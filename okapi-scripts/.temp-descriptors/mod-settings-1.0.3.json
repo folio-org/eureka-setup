@@ -1,0 +1,208 @@
+{
+  "id": "mod-settings-1.0.3",
+  "name": "settings",
+  "requires": [],
+  "provides": [
+    {
+      "id": "_tenant",
+      "version": "2.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [
+            "POST"
+          ],
+          "pathPattern": "/_/tenant"
+        },
+        {
+          "methods": [
+            "GET",
+            "DELETE"
+          ],
+          "pathPattern": "/_/tenant/{id}"
+        }
+      ]
+    },
+    {
+      "id": "settings",
+      "version": "1.0",
+      "handlers": [
+        {
+          "methods": [
+            "POST"
+          ],
+          "pathPattern": "/settings/entries",
+          "permissionsRequired": [
+            "mod-settings.entries.item.post"
+          ],
+          "permissionsDesired": [
+            "mod-settings.global.write.*",
+            "mod-settings.users.write.*",
+            "mod-settings.owner.write.*"
+          ]
+        },
+        {
+          "methods": [
+            "GET"
+          ],
+          "pathPattern": "/settings/entries",
+          "permissionsRequired": [
+            "mod-settings.entries.collection.get"
+          ],
+          "permissionsDesired": [
+            "mod-settings.global.read.*",
+            "mod-settings.users.read.*",
+            "mod-settings.owner.read.*"
+          ]
+        },
+        {
+          "methods": [
+            "GET"
+          ],
+          "pathPattern": "/settings/entries/{id}",
+          "permissionsRequired": [
+            "mod-settings.entries.item.get"
+          ],
+          "permissionsDesired": [
+            "mod-settings.global.read.*",
+            "mod-settings.users.read.*",
+            "mod-settings.owner.read.*"
+          ]
+        },
+        {
+          "methods": [
+            "PUT"
+          ],
+          "pathPattern": "/settings/entries/{id}",
+          "permissionsRequired": [
+            "mod-settings.entries.item.put"
+          ],
+          "permissionsDesired": [
+            "mod-settings.global.write.*",
+            "mod-settings.users.write.*",
+            "mod-settings.owner.write.*"
+          ]
+        },
+        {
+          "methods": [
+            "DELETE"
+          ],
+          "pathPattern": "/settings/entries/{id}",
+          "permissionsRequired": [
+            "mod-settings.entries.item.delete"
+          ],
+          "permissionsDesired": [
+            "mod-settings.global.write.*",
+            "mod-settings.users.write.*",
+            "mod-settings.owner.write.*"
+          ]
+        },
+        {
+          "methods": [
+            "PUT"
+          ],
+          "pathPattern": "/settings/upload",
+          "permissionsRequired": [
+            "mod-settings.entries.upload"
+          ],
+          "permissionsDesired": [
+            "mod-settings.global.write.*",
+            "mod-settings.users.write.*",
+            "mod-settings.owner.write.*"
+          ]
+        }
+      ]
+    }
+  ],
+  "permissionSets": [
+    {
+      "permissionName": "mod-settings.entries.item.post",
+      "displayName": "settings - create setting",
+      "description": "Create setting"
+    },
+    {
+      "permissionName": "mod-settings.entries.collection.get",
+      "displayName": "settings - get settings",
+      "description": "Get settings"
+    },
+    {
+      "permissionName": "mod-settings.entries.item.get",
+      "displayName": "settings - get setting",
+      "description": "Get setting"
+    },
+    {
+      "permissionName": "mod-settings.entries.item.put",
+      "displayName": "settings - update setting",
+      "description": "Update setting"
+    },
+    {
+      "permissionName": "mod-settings.entries.item.delete",
+      "displayName": "settings - delete setting",
+      "description": "Delete setting"
+    },
+    {
+      "permissionName": "mod-settings.entries.upload",
+      "displayName": "settings - upload",
+      "description": "Upload settings"
+    },
+    {
+      "permissionName": "mod-settings.entries.all",
+      "displayName": "settings - all setting permissions",
+      "description": "All setting permissions",
+      "subPermissions": [
+        "mod-settings.entries.item.post",
+        "mod-settings.entries.collection.get",
+        "mod-settings.entries.item.get",
+        "mod-settings.entries.item.put",
+        "mod-settings.entries.item.delete",
+        "mod-settings.entries.upload"
+      ]
+    }
+  ],
+  "launchDescriptor": {
+    "dockerImage": "folioorg/mod-settings:1.0.3",
+    "dockerPull": true,
+    "env": [
+      {
+        "name": "JAVA_OPTIONS",
+        "value": "-XX:MaxRAMPercentage=66.0"
+      },
+      {
+        "name": "DB_HOST",
+        "value": "postgres"
+      },
+      {
+        "name": "DB_PORT",
+        "value": "5432"
+      },
+      {
+        "name": "DB_USERNAME",
+        "value": "folio_admin"
+      },
+      {
+        "name": "DB_PASSWORD",
+        "value": "folio_admin"
+      },
+      {
+        "name": "DB_DATABASE",
+        "value": "okapi_modules"
+      },
+      {
+        "name": "DB_MAXPOOLSIZE",
+        "value": "5"
+      }
+    ],
+    "dockerArgs": {
+      "HostConfig": {
+        "Memory": 2147483648,
+        "PortBindings": {
+          "8081/tcp": [
+            {
+              "HostPort": "%p"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

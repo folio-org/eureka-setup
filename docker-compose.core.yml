@@ -1,0 +1,210 @@
+x-core-service: &core-service
+  networks: [ fpm-net ]
+
+networks:
+  fpm-net:
+    name: eureka
+    driver: bridge
+
+volumes:
+  db: 
+    name: eureka_db
+  vault-data: 
+    name: eureka_vault_data
+  kafka-data: 
+    name: eureka_kafka_data
+
+services:
+  nginx-netcat:
+    <<: *core-service
+    container_name: nginx-netcat
+    build:
+      context: nginx-netcat
+      dockerfile: Dockerfile
+    image: nginx-netcat:latest
+    ports:
+      - "17980:80"
+    healthcheck:
+      test: nc -zv localhost 80 || exit -1
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+  db:
+    <<: *core-service
+    container_name: db
+    image: postgres:13.4-alpine
+    networks: [ fpm-net ]
+    env_file: [ env/db.env ]
+    volumes:
+      - db:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  kafka-ui:
+    <<: *core-service
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - zookeeper
+      - kafka
+    ports:
+      - 9080:8080
+    healthcheck:
+      test: wget --spider --timeout 1 localhost:8080
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+    environment:
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka.eureka:9092
+      KAFKA_CLUSTERS_0_JMXPORT: 9997
+
+  zookeeper:
+    <<: *core-service
+    container_name: zookeeper
+    image: zookeeper
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: nc -zv localhost 2181 || exit -1
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+  kafka:
+    <<: *core-service
+    container_name: kafka
+    image: wurstmeister/kafka:2.13-2.8.1
+    env_file: [ env/kafka.env ]
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    volumes:
+      - kafka-data:/kafka
+    restart: always
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: nc -zv localhost 9092 || exit -1
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+  vault:
+    <<: *core-service
+    container_name: vault
+    build:
+      context: vault
+      dockerfile: Dockerfile
+    image: folio-vault:1.13.3
+    env_file: [ env/vault.env ]
+    volumes:
+      - vault-data:/vault/data:rw
+    cap_add: [ IPC_LOCK ]
+    ports:
+      - "8200:8200"
+    healthcheck:
+      test: [ "CMD", "vault", "status" ]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  keycloak:
+    <<: *core-service
+    container_name: keycloak
+    image: nginx
+    depends_on:
+      - keycloak-internal
+    volumes:
+      - ./nginx/keycloak-nginx.conf:/etc/nginx/nginx.conf:ro
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080" ]
+      interval: 15s
+      timeout: 2s
+      retries: 15
+    ports:
+      - "8080:8080"
+
+  keycloak-internal:
+    <<: *core-service
+    container_name: keycloak-internal
+    build:
+      context: ./keycloak
+      dockerfile: Dockerfile
+    image: folio-keycloak:23.0.3
+    env_file: [ env/keycloak.env ]
+    depends_on:
+      db:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+    ports:
+      - "18081:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: 1024m
+          memory: 1200M
+        reservations:
+          cpus: 1024m
+          memory: 1200M
+
+  api-gateway:
+    <<: *core-service
+    container_name: api-gateway
+    image: folio-kong:3.4.1-ubuntu
+    build:
+      context: ./kong
+      dockerfile: Dockerfile
+    env_file: [ env/kong.env ]
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+      - "8002:8002"
+      - "8443:8443"
+      - "8444:8444"
+    healthcheck:
+      test: [ "CMD", "kong", "health" ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  okapi:
+    container_name: okapi
+    image: folioorg/okapi:5.0.1
+    networks: [ fpm-net ]
+    command: [ dev ]
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "9130:9130"
+      - "10000:5005"
+    healthcheck:
+      test: nc -zv localhost 9130 || exit -1
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    environment:
+      JAVA_OPTIONS: >-
+        -Dhost=okapi
+        -Dstorage=postgres
+        -Dpostgres_host=db.eureka
+        -Dpostgres_username=okapi_rw
+        -Dpostgres_password=superAdmin
+        -Dokapiurl=http://okapi.eureka:9130
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005

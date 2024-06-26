@@ -1,0 +1,7 @@
+_format_version: "3.0"
+plugins:
+  - config:
+      set_okapi_header: true
+      set_authorization_header: false
+    enabled: true
+    name: auth-headers-manager

@@ -1,0 +1,237 @@
+x-sidecar-module: &sidecar-module
+  image: $ECR_REGISTRY/folio-module-sidecar:latest
+  networks: [ fpm-net ]
+  deploy:
+    resources:
+      limits:
+        cpus: 64m
+        memory: 128M
+      reservations:
+        cpus: 64m
+        memory: 128M
+
+x-sidecar-env: &sidecar-env
+  # Keycloak
+  KC_URL: http://keycloak.eureka:8080
+  KC_ADMIN_CLIENT_ID: superAdmin
+  KC_SERVICE_CLIENT_ID: m2m-client
+  KC_LOGIN_CLIENT_SUFFIX: login-app
+  # Vault
+  SECRET_STORE_TYPE: VAULT
+  SECRET_STORE_VAULT_TOKEN: $VAULT_TOKEN
+  SECRET_STORE_VAULT_ADDRESS: http://vault.eureka:8200
+  # Management
+  TM_CLIENT_URL: http://mgr-tenants.eureka:8081
+  AM_CLIENT_URL: http://mgr-applications.eureka:8081
+  TE_CLIENT_URL: http://mgr-tenant-entitlements.eureka:8081
+  # Java
+  JAVA_OPTIONS: "-XX:MaxRAMPercentage=85.0 -Xms50m -Xmx128m -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+
+networks:
+  fpm-net:
+    name: eureka
+    external: true
+
+services:
+  # Keycloak
+  sc-login-keycloak:
+    <<: *sidecar-module
+    container_name: sc-login-keycloak
+    ports:
+      - "19010:8081"
+      - "11010:5005"
+    environment:
+      <<: *sidecar-env
+      MODULE_NAME: mod-login-keycloak
+      MODULE_VERSION: $MOD_LOGIN_KEYCLOAK
+      MODULE_URL: http://mod-login-keycloak.eureka:8081
+      SIDECAR_URL: http://sc-login-keycloak.eureka:8081
+
+  sc-users-keycloak:
+    <<: *sidecar-module
+    container_name: sc-users-keycloak
+    ports:
+      - "19009:8081"
+      - "11009:5005"
+    environment:
+      <<: *sidecar-env
+      MODULE_NAME: mod-users-keycloak
+      MODULE_VERSION: $MOD_USERS_KEYCLOAK
+      MODULE_URL: http://mod-users-keycloak.eureka:8081
+      SIDECAR_URL: http://sc-users-keycloak.eureka:8081
+
+  sc-roles-keycloak:
+    <<: *sidecar-module
+    container_name: sc-roles-keycloak
+    ports:
+      - "19011:8081"
+      - "11011:5005"
+    environment:
+      <<: *sidecar-env
+      MODULE_NAME: mod-roles-keycloak
+      MODULE_VERSION: $MOD_ROLES_KEYCLOAK
+      MODULE_URL: http://mod-roles-keycloak.eureka:8081
+      SIDECAR_URL: http://sc-roles-keycloak.eureka:8081
+
+  sc-scheduler:
+    <<: *sidecar-module
+    container_name: sc-scheduler
+    ports:
+      - "19020:8081"
+      - "11020:5005"
+    environment:
+      <<: *sidecar-env
+      MODULE_NAME: mod-scheduler
+      MODULE_VERSION: $MOD_SCHEDULER_VERSION
+      MODULE_URL: http://mod-scheduler.eureka:8081
+      SIDECAR_URL: http://sc-scheduler.eureka:8081
+
+  # Core
+  sc-users:
+    <<: *sidecar-module
+    container_name: sc-users
+    ports:
+      - "19001:8081"
+      - "11001:5005"
+    environment:
+      <<: *sidecar-env
+      MODULE_NAME: mod-users
+      MODULE_VERSION: $MOD_USERS_VERSION
+      MODULE_URL: http://mod-users.eureka:8081
+      SIDECAR_URL: http://sc-users.eureka:8081
+
+  sc-permissions:
+    <<: *sidecar-module
+    container_name: sc-permissions
+    ports:
+      - "19003:8081"
+      - "11003:5005"
+    environment:
+      <<: *sidecar-env
+      MODULE_NAME: mod-permissions
+      MODULE_VERSION: $MOD_PERMISSIONS_VERSION
+      MODULE_URL: http://mod-permissions.eureka:8081
+      SIDECAR_URL: http://sc-permissions.eureka:8081
+
+  sc-configuration:
+    <<: *sidecar-module
+    container_name: sc-configuration
+    ports:
+      - "19002:8081"
+      - "11002:5005"
+    environment:
+      <<: *sidecar-env
+      MODULE_NAME: mod-configuration
+      MODULE_VERSION: $MOD_CONFIGURATION_VERSION
+      MODULE_URL: http://mod-configuration.eureka:8081
+      SIDECAR_URL: http://sc-configuration.eureka:8081
+
+  # Others
+  sc-password-validator:
+    <<: *sidecar-module
+    container_name: sc-password-validator
+    ports:
+      - "19007:8081"
+      - "11007:5005"
+    environment:
+      <<: *sidecar-env
+      MODULE_NAME: mod-password-validator
+      MODULE_VERSION: $MOD_PASSWORD_VALIDATOR_VERSION
+      MODULE_URL: http://mod-password-validator.eureka:8081
+      SIDECAR_URL: http://sc-password-validator.eureka:8081
+
+  sc-tags:
+    <<: *sidecar-module
+    container_name: sc-tags
+    ports:
+      - "19004:8081"
+      - "11004:5005"
+    environment:
+      <<: *sidecar-env
+      MODULE_NAME: mod-tags
+      MODULE_VERSION: $MOD_TAGS_VERSION
+      MODULE_URL: http://mod-tags.eureka:8081
+      SIDECAR_URL: http://sc-tags.eureka:8081
+
+  sc-users-bl:
+    <<: *sidecar-module
+    container_name: sc-users-bl
+    ports:
+      - "19005:8081"
+      - "11005:5005"
+    environment:
+      <<: *sidecar-env
+      MODULE_NAME: mod-users-bl
+      MODULE_VERSION: $MOD_USERS_BL_VERSION
+      MODULE_URL: http://mod-users-bl.eureka:8081
+      SIDECAR_URL: http://sc-users-bl.eureka:8081
+
+  sc-notes:
+    <<: *sidecar-module
+    container_name: sc-notes
+    ports:
+      - "19008:8081"
+      - "11008:5005"
+    environment:
+      <<: *sidecar-env
+      MODULE_NAME: mod-notes
+      MODULE_VERSION: $MOD_NOTES_VERSION
+      MODULE_URL: http://mod-notes.eureka:8081
+      SIDECAR_URL: http://sc-notes.eureka:8081
+
+  sc-settings:
+    <<: *sidecar-module
+    container_name: sc-settings
+    ports:
+      - "19012:8081"
+      - "11012:5005"
+    environment:
+      <<: *sidecar-env
+      MODULE_NAME: mod-settings
+      MODULE_VERSION: $MOD_SETTINGS_VERSION
+      MODULE_URL: http://mod-settings.eureka:8081
+      SIDECAR_URL: http://sc-settings.eureka:8081
+
+  sc-inventory-storage:
+    <<: *sidecar-module
+    container_name: sc-inventory-storage
+    ports:
+      - "19030:8081"
+      - "11030:5005"
+    environment:
+      <<: *sidecar-env
+      MODULE_NAME: mod-inventory-storage
+      MODULE_VERSION: $MOD_INVENTORY_STORAGE_VERSION
+      MODULE_URL: http://mod-inventory-storage.eureka:8081
+      SIDECAR_URL: http://sc-inventory-storage.eureka:8081
+
+  sc-pubsub:
+    <<: *sidecar-module
+    container_name: sc-pubsub
+    ports:
+      - "19032:8081"
+      - "11032:5005"
+    environment:
+      <<: *sidecar-env
+      MODULE_NAME: mod-pubsub
+      MODULE_VERSION: $MOD_PUBSUB_VERSION
+      MODULE_URL: http://mod-pubsub.eureka:8081
+      SIDECAR_URL: http://sc-pubsub.eureka:8081
+
+  sc-circulation-storage:
+    <<: *sidecar-module
+    container_name: sc-circulation-storage
+    ports:
+      - "19031:8081"
+      - "11031:5005"
+    environment:
+      <<: *sidecar-env
+      MODULE_NAME: mod-circulation-storage
+      MODULE_VERSION: $MOD_CIRCULATION_STORAGE_VERSION
+      MODULE_URL: http://mod-circulation-storage.eureka:8081
+      SIDECAR_URL: http://sc-circulation-storage.eureka:8081
+
+
+
+
+

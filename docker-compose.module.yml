@@ -1,0 +1,206 @@
+x-okapi-env: &okapi-module
+  networks: [ fpm-net ]
+  env_file: [ env/okapi.env ]
+  deploy:
+    resources:
+      limits:
+        cpus: 512m
+        memory: 256M
+      reservations:
+        cpus: 256m
+        memory: 128M
+
+x-vault-env: &vault-env
+  # Vault
+  SECRET_STORE_TYPE: VAULT
+  SECRET_STORE_VAULT_TOKEN: $VAULT_TOKEN
+  SECRET_STORE_VAULT_ADDRESS: http://vault.eureka:8200
+
+networks:
+  fpm-net:
+    name: eureka
+    external: true
+
+services:
+  # Keycloak
+  mod-login-keycloak:
+    <<: *okapi-module
+    container_name: mod-login-keycloak
+    image: $ECR_REGISTRY/mod-login-keycloak:latest
+    ports:
+      - "9010:8081"
+      - "10010:5005"
+    environment:
+      <<: *vault-env
+      KC_URL: http://keycloak.eureka:8080
+      KC_ADMIN_CLIENT_ID: superAdmin
+      KC_LOGIN_CLIENT_SUFFIX: login-app
+      KC_ADMIN_PASSWORD: admin
+      X_OKAPI_TOKEN_HEADER_ENABLED: true
+
+  mod-users-keycloak:
+    <<: *okapi-module
+    container_name: mod-users-keycloak
+    image: $ECR_REGISTRY/mod-users-keycloak:latest
+    ports:
+      - "9009:8081"
+      - "10009:5005"
+    environment:
+      <<: *vault-env
+      KC_URL: http://keycloak.eureka:8080
+      KC_ADMIN_CLIENT_ID: superAdmin
+      KC_LOGIN_CLIENT_SUFFIX: login-app
+      JAVA_OPTIONS: >-
+        -Dhost=okapi
+        -Dstorage=postgres
+        -Dpostgres_host=db
+        -Dpostgres_username=okapi_rw
+        -Dpostgres_password=superAdmin
+        -Dokapi.url=http://sc-users-keycloak.eureka:8081
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+
+  mod-roles-keycloak:
+    <<: *okapi-module
+    container_name: mod-roles-keycloak
+    image: $ECR_REGISTRY/mod-roles-keycloak:latest
+    ports:
+      - "9011:8081"
+      - "10011:5005"
+    environment:
+      <<: *vault-env
+      KC_URL: http://keycloak.eureka:8080
+      KC_ADMIN_CLIENT_ID: superAdmin
+      KC_LOGIN_CLIENT_SUFFIX: login-app
+      SECRET_STORE_TYPE: VAULT
+      SECRET_STORE_VAULT_TOKEN: $VAULT_TOKEN
+      SECRET_STORE_VAULT_ADDRESS: http://vault.eureka:8200
+
+  mod-scheduler:
+    <<: *okapi-module
+    container_name: mod-scheduler
+    image: $ECR_REGISTRY/mod-scheduler:latest
+    ports:
+      - "9020:8081"
+      - "10020:5005"
+    environment:
+      <<: *vault-env
+      KC_URL: http://keycloak.eureka:8080
+      KC_ADMIN_CLIENT_ID: superAdmin
+      KC_LOGIN_CLIENT_SUFFIX: login-app
+      SECRET_STORE_TYPE: VAULT
+      SECRET_STORE_VAULT_TOKEN: $VAULT_TOKEN
+      SECRET_STORE_VAULT_ADDRESS: http://vault.eureka:8200
+      JAVA_OPTIONS: >-
+        -Dokapi.url=http://api-gateway.eureka:8000
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=85.0
+        -Xms128m -Xmx240m
+
+  # Core
+  mod-authtoken:
+    <<: *okapi-module
+    container_name: mod-authtoken
+    image: folioorg/mod-authtoken:$MOD_AUTHTOKEN_VERSION
+    networks: [ fpm-net ]
+    ports:
+      - "9101:8081"
+      - "10101:5005"
+
+  mod-login:
+    <<: *okapi-module
+    container_name: mod-login
+    image: folioorg/mod-login:$MOD_LOGIN_VERSION
+    ports:
+      - "9100:8081"
+      - "10100:5005"
+
+  mod-users:
+    <<: *okapi-module
+    container_name: mod-users
+    image: folioorg/mod-users:$MOD_USERS_VERSION
+    ports:
+      - "9001:8081"
+      - "10001:5005"
+
+  mod-permissions:
+    <<: *okapi-module
+    container_name: mod-permissions
+    image: folioorg/mod-permissions:$MOD_PERMISSIONS_VERSION
+    ports:
+      - "9003:8081"
+      - "10003:5005"
+
+  mod-configuration:
+    <<: *okapi-module
+    container_name: mod-configuration
+    image: folioorg/mod-configuration:$MOD_CONFIGURATION_VERSION
+    ports:
+      - "9002:8081"
+      - "10002:5005"
+
+  # Others
+  mod-password-validator:
+    <<: *okapi-module
+    container_name: mod-password-validator
+    image: folioorg/mod-password-validator:$MOD_PASSWORD_VALIDATOR_VERSION
+    ports:
+      - "9007:8081"
+      - "10007:5005"
+
+  mod-tags:
+    <<: *okapi-module
+    container_name: mod-tags
+    image: folioorg/mod-tags:$MOD_TAGS_VERSION
+    ports:
+      - "9004:8081"
+      - "10004:5005"
+
+  mod-users-bl:
+    <<: *okapi-module
+    container_name: mod-users-bl
+    image: folioorg/mod-users-bl:$MOD_USERS_BL_VERSION
+    ports:
+      - "9005:8081"
+      - "10005:5005"
+
+  mod-notes:
+    <<: *okapi-module
+    container_name: mod-notes
+    image: folioorg/mod-notes:$MOD_NOTES_VERSION
+    ports:
+      - "9008:8081"
+      - "10008:5005"
+
+  mod-settings:
+    <<: *okapi-module
+    container_name: mod-settings
+    image: folioorg/mod-settings:$MOD_SETTINGS_VERSION
+    ports:
+      - "9012:8081"
+      - "10012:5005"
+
+  mod-inventory-storage:
+    <<: *okapi-module
+    container_name: mod-inventory-storage
+    image: folioorg/mod-inventory-storage:$MOD_INVENTORY_STORAGE_VERSION
+    ports:
+      - "9030:8081"
+      - "10030:5005"
+
+  mod-pubsub:
+    <<: *okapi-module
+    container_name: mod-pubsub
+    image: folioorg/mod-pubsub:$MOD_PUBSUB_VERSION
+    ports:
+      - "9032:8081"
+      - "10032:5005"
+    environment:
+      SYSTEM_USER_NAME: system_user
+      SYSTEM_USER_PASSWORD: system_user_password
+
+  mod-circulation-storage:
+    <<: *okapi-module
+    container_name: mod-circulation-storage
+    image: folioorg/mod-circulation-storage:$MOD_CIRCULATION_STORAGE_VERSION
+    ports:
+      - "9031:8081"
+      - "10031:5005"

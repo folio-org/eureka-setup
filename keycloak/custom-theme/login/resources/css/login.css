@@ -1,0 +1,96 @@
+.login-wrapper {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+#kc-header {
+    opacity: 0 !important;
+}
+
+.kcLogoBlock {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.kcLogoImageWrapper {
+    max-width: 300px;
+    max-height: 300px;
+}
+
+.kcLogoImageWrapper img {
+    display: block;
+    width: 100%;
+}
+
+.login-pf-header h1 {
+    text-align: center;
+    font-weight: 700;
+    font-size: 32px;
+    margin-bottom: 32px;
+}
+
+.login-pf-settings {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-pf {
+    box-shadow: none !important;
+}
+
+#kc-content-wrapper {
+    max-width: 470px;
+    margin: 0 auto;
+}
+
+.input-label {
+    display: block;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 1.5rem 0 1rem;
+    width: 100%;
+    letter-spacing: 0.04em;
+}
+
+.form-input {
+    display: block;
+    background: none !important;
+    width: 100%;
+    padding: 20px;
+    border: 1px solid rgba(0, 0, 0, .42);
+    outline: none;
+    font-size: 1rem;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 100px white inset !important;
+}
+
+input:focus {
+    border: 1.5px solid #1960a4 !important;
+    box-shadow: inset 0 0 0 2px rgba(37, 118, 195, .3) !important;
+}
+
+.submit-btn {
+    width: 100%;
+    box-sizing: border-box;
+    display: block;
+    align-items: center;
+    border: transparent;
+    border-radius: 999px;
+    color: #000;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.5;
+    text-align: center;
+    text-decoration: none;
+    height: 60px;
+    background-color: #1960a4 !important;
+}

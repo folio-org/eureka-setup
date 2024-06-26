@@ -1,0 +1,71 @@
+_format_version: "3.0"
+services:
+  - connect_timeout: 60000
+    enabled: true
+    host: application-manager-{env}.int.aws.folio.org
+    name: mgr-applications-0.0.1
+    path: /
+    port: 443
+    protocol: https
+    read_timeout: 60000
+    retries: 5
+    routes:
+      - https_redirect_status_code: 426
+        name: applications
+        expression: http.method == "GET" && http.path == "/applications"
+        preserve_host: false
+        protocols:
+          - http
+          - https
+        request_buffering: true
+        response_buffering: true
+        strip_path: false
+    tags:
+      - mgr-applications-0.0.1
+    write_timeout: 60000
+  - connect_timeout: 60000
+    enabled: true
+    host: tenant-entitlement-{env}.int.aws.folio.org
+    name: mgr-tenant-entitlements-0.0.1
+    path: /
+    port: 443
+    protocol: https
+    read_timeout: 60000
+    retries: 5
+    routes:
+      - https_redirect_status_code: 426
+        name: entitlements
+        expression: http.method == "GET" && (http.path == "/entitlements" || http.path ~ "/entitlements/([^/]+)/applications")
+        preserve_host: false
+        protocols:
+          - http
+          - https
+        request_buffering: true
+        response_buffering: true
+        strip_path: false
+    tags:
+      - mgr-tenant-entitlements-0.0.1
+    write_timeout: 60000
+  - connect_timeout: 60000
+    enabled: true
+    host: tenant-manager-{env}.int.aws.folio.org
+    name: tenant-manager-0.0.1
+    path: /
+    port: 443
+    protocol: https
+    read_timeout: 60000
+    retries: 5
+    routes:
+      - https_redirect_status_code: 426
+        name: tenants
+        expression: http.method == "GET" && http.path == "/tenants"
+        preserve_host: false
+        protocols:
+          - http
+          - https
+        request_buffering: true
+        response_buffering: true
+        strip_path: false
+    tags:
+      - tenant-manager-0.0.1
+    write_timeout: 60000

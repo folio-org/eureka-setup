@@ -1,0 +1,320 @@
+{
+  "id": "mod-permissions-6.5.0",
+  "name": "permissions",
+  "requires": [],
+  "provides": [
+    {
+      "id": "permissions",
+      "version": "5.6",
+      "handlers": [
+        {
+          "methods": [
+            "POST"
+          ],
+          "pathPattern": "/perms/users*",
+          "permissionsRequired": [
+            "perms.users.item.post"
+          ],
+          "permissionsDesired": [
+            "perms.users.assign.okapi",
+            "perms.users.assign.immutable",
+            "perms.users.assign.mutable"
+          ]
+        },
+        {
+          "methods": [
+            "GET"
+          ],
+          "pathPattern": "/perms/users*",
+          "permissionsRequired": [
+            "perms.users.get"
+          ]
+        },
+        {
+          "methods": [
+            "PUT"
+          ],
+          "pathPattern": "/perms/users/{id}",
+          "permissionsRequired": [
+            "perms.users.item.put"
+          ],
+          "permissionsDesired": [
+            "perms.users.assign.okapi",
+            "perms.users.assign.immutable",
+            "perms.users.assign.mutable"
+          ]
+        },
+        {
+          "methods": [
+            "DELETE"
+          ],
+          "pathPattern": "/perms/users/{id}",
+          "permissionsRequired": [
+            "perms.users.item.delete"
+          ],
+          "permissionsDesired": [
+            "perms.users.assign.okapi",
+            "perms.users.assign.immutable",
+            "perms.users.assign.mutable"
+          ]
+        },
+        {
+          "methods": [
+            "DELETE"
+          ],
+          "pathPattern": "/perms/users/{id}/permissions/{perm}",
+          "permissionsRequired": [
+            "perms.users.item.delete"
+          ],
+          "permissionsDesired": [
+            "perms.users.assign.okapi",
+            "perms.users.assign.immutable",
+            "perms.users.assign.mutable"
+          ]
+        },
+        {
+          "methods": [
+            "GET"
+          ],
+          "pathPattern": "/perms/permissions",
+          "permissionsRequired": [
+            "perms.permissions.get"
+          ]
+        },
+        {
+          "methods": [
+            "GET"
+          ],
+          "pathPattern": "/perms/permissions/{id}",
+          "permissionsRequired": [
+            "perms.permissions.get"
+          ]
+        },
+        {
+          "methods": [
+            "PUT"
+          ],
+          "pathPattern": "/perms/permissions/{id}",
+          "permissionsRequired": [
+            "perms.permissions.item.put"
+          ],
+          "permissionsDesired": [
+            "perms.users.assign.okapi",
+            "perms.users.assign.immutable",
+            "perms.users.assign.mutable"
+          ]
+        },
+        {
+          "methods": [
+            "POST"
+          ],
+          "pathPattern": "/perms/permissions",
+          "permissionsRequired": [
+            "perms.permissions.item.post"
+          ]
+        },
+        {
+          "methods": [
+            "DELETE"
+          ],
+          "pathPattern": "/perms/permissions/{id}",
+          "permissionsRequired": [
+            "perms.permissions.item.delete"
+          ]
+        },
+        {
+          "methods": [
+            "POST"
+          ],
+          "pathPattern": "/perms/purge-deprecated",
+          "permissionsRequired": [
+            "perms.permissions.purge-deprecated.post"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "_tenant",
+      "version": "2.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [
+            "POST"
+          ],
+          "pathPattern": "/_/tenant"
+        },
+        {
+          "methods": [
+            "GET",
+            "DELETE"
+          ],
+          "pathPattern": "/_/tenant/{id}"
+        }
+      ]
+    },
+    {
+      "id": "_tenantPermissions",
+      "version": "2.1",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [
+            "POST"
+          ],
+          "pathPattern": "/_/tenantpermissions"
+        }
+      ]
+    }
+  ],
+  "permissionSets": [
+    {
+      "permissionName": "perms.users.get",
+      "displayName": "permission users read",
+      "description": "Read or list permissions user(s)"
+    },
+    {
+      "permissionName": "perms.users.item.post",
+      "displayName": "permission users item create",
+      "description": "Add a new permissions user"
+    },
+    {
+      "permissionName": "perms.users.item.put",
+      "displayName": "permission users item modify",
+      "description": "Modify a permissions user"
+    },
+    {
+      "permissionName": "perms.users.item.delete",
+      "displayName": "permission users item delete",
+      "description": "Remove a permissions user or remove permissions from a user"
+    },
+    {
+      "permissionName": "perms.permissions.get",
+      "displayName": "permission read",
+      "description": "Read or list permissions"
+    },
+    {
+      "permissionName": "perms.permissions.item.post",
+      "displayName": "permission item create",
+      "description": "Add a new permission"
+    },
+    {
+      "permissionName": "perms.permissions.item.put",
+      "displayName": "permission item modify",
+      "description": "Modify a permission"
+    },
+    {
+      "permissionName": "perms.permissions.item.delete",
+      "displayName": "permission item delete",
+      "description": "Remove a permission"
+    },
+    {
+      "permissionName": "perms.permissions.purge-deprecated.post",
+      "displayName": "purge deprecated permission",
+      "description": "Purge deprecated permissions"
+    },
+    {
+      "permissionName": "perms.users.assign.okapi",
+      "displayName": "perms users assign okapi",
+      "description": "Allow any okapi permission to be added for user"
+    },
+    {
+      "permissionName": "perms.users.assign.immutable",
+      "displayName": "perms users assign immutable",
+      "description": "Allow any immutable permission to be added for user"
+    },
+    {
+      "permissionName": "perms.users.assign.mutable",
+      "displayName": "perms users assign mutable",
+      "description": "Allow any mutable permission to be added for user"
+    },
+    {
+      "permissionName": "perms.permissions",
+      "displayName": "permissions",
+      "description": "All permissions for permission objects",
+      "subPermissions": [
+        "perms.permissions.get",
+        "perms.permissions.item.post",
+        "perms.permissions.item.put",
+        "perms.permissions.item.delete",
+        "perms.permissions.purge-deprecated.post"
+      ]
+    },
+    {
+      "permissionName": "perms.users",
+      "displayName": "permission users",
+      "description": "All permissions for permission user objects",
+      "subPermissions": [
+        "perms.users.get",
+        "perms.users.item.post",
+        "perms.users.item.put",
+        "perms.users.item.delete"
+      ]
+    },
+    {
+      "permissionName": "perms.all",
+      "displayName": "perms all",
+      "description": "All permissions for the permissions module",
+      "subPermissions": [
+        "perms.users",
+        "perms.permissions",
+        "perms.users.assign.immutable",
+        "perms.users.assign.mutable"
+      ]
+    }
+  ],
+  "launchDescriptor": {
+    "dockerImage": "folioorg/mod-permissions:6.5.0",
+    "dockerPull": true,
+    "env": [
+      {
+        "name": "JAVA_OPTIONS",
+        "value": "-XX:MaxRAMPercentage=66.0"
+      },
+      {
+        "name": "DB_HOST",
+        "value": "postgres"
+      },
+      {
+        "name": "DB_PORT",
+        "value": "5432"
+      },
+      {
+        "name": "DB_USERNAME",
+        "value": "folio_admin"
+      },
+      {
+        "name": "DB_PASSWORD",
+        "value": "folio_admin"
+      },
+      {
+        "name": "DB_DATABASE",
+        "value": "okapi_modules"
+      },
+      {
+        "name": "DB_QUERYTIMEOUT",
+        "value": "60000"
+      },
+      {
+        "name": "DB_CHARSET",
+        "value": "UTF-8"
+      },
+      {
+        "name": "DB_MAXPOOLSIZE",
+        "value": "5"
+      }
+    ],
+    "dockerArgs": {
+      "HostConfig": {
+        "Memory": 715827883,
+        "PortBindings": {
+          "8081/tcp": [
+            {
+              "HostPort": "%p"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
