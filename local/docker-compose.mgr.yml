@@ -12,7 +12,7 @@ services:
   mgr-tenants:
     <<: *mgmt-service
     container_name: mgr-tenants
-    ### Uncomment line below build to build a local version ###
+    ### Uncomment line below to build a local version
     # build: ./cloned-modules/mgr-tenants
     image: $ECR_REGISTRY/mgr-tenants:latest
     ports:
@@ -33,7 +33,7 @@ services:
   mgr-applications:
     <<: *mgmt-service
     container_name: mgr-applications
-    ### Uncomment line below build to build a local version ###
+    ### Uncomment line below to build a local version
     # build: ./cloned-modules/mgr-applications
     image: $ECR_REGISTRY/mgr-applications:latest
     ports:
@@ -52,7 +52,7 @@ services:
   mgr-tenant-entitlements:
     <<: *mgmt-service
     container_name: mgr-tenant-entitlements
-    ### Uncomment line below build to build a local version ###
+    ### Uncomment line below to build a local version
     # build: ./cloned-modules/mgr-tenant-entitlements
     image: $ECR_REGISTRY/mgr-tenant-entitlements:latest
     ports:
