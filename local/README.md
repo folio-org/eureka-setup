@@ -135,31 +135,36 @@ curl -f -sS -w '\n' "$indexDataModules?filter=mod-roles-keycloak&latest=1&full=t
 
 ```bash
 # Check system ports
-docker exec -it nginx-netcat bash -c 'netcat -zv db.eureka 5432'
-docker exec -it nginx-netcat bash -c 'netcat -zv kafka.eureka 9092'
-docker exec -it nginx-netcat bash -c 'netcat -zv zookeeper.eureka 2181'
-docker exec -it nginx-netcat bash -c 'netcat -zv vault.eureka 8200'
-docker exec -it nginx-netcat bash -c 'netcat -zv keycloak.eureka 8080'
-docker exec -it nginx-netcat bash -c 'netcat -zv keycloak-internal.eureka 8080'
-docker exec -it nginx-netcat bash -c 'netcat -zv okapi.eureka 9130'
-docker exec -it nginx-netcat bash -c 'netcat -zv api-gateway.eureka 8000'
-docker exec -it nginx-netcat bash -c 'netcat -zv api-gateway.eureka 8001'
-docker exec -it nginx-netcat bash -c 'netcat -zv api-gateway.eureka 8002'
-docker exec -it nginx-netcat bash -c 'netcat -zv api-gateway.eureka 8443'
-docker exec -it nginx-netcat bash -c 'netcat -zv api-gateway.eureka 8444'
+docker exec -i nginx-netcat bash <<EOF
+netcat -zv db.eureka 5432
+netcat -zv kafka.eureka 9092
+netcat -zv zookeeper.eureka 2181
+netcat -zv vault.eureka 8200
+netcat -zv keycloak.eureka 8080
+netcat -zv keycloak-internal.eureka 8080
+netcat -zv okapi.eureka 9130
+netcat -zv api-gateway.eureka 8000
+netcat -zv api-gateway.eureka 8001
+netcat -zv api-gateway.eureka 8002
+netcat -zv api-gateway.eureka 8443
+netcat -zv api-gateway.eureka 8444
 
 # Check management ports
-docker exec -it nginx-netcat bash -c 'netcat -zv mgr-tenants.eureka 8081'
-docker exec -it nginx-netcat bash -c 'netcat -zv mgr-tenant-entitlements 8081'
-docker exec -it nginx-netcat bash -c 'netcat -zv mgr-applications.eureka 8081'
-docker exec -it nginx-netcat bash -c 'netcat -zv mod-login-keycloak.eureka 8081'
-docker exec -it nginx-netcat bash -c 'netcat -zv mod-users-keycloak.eureka 8081'
-docker exec -it nginx-netcat bash -c 'netcat -zv mod-roles-keycloak.eureka 8081'
-docker exec -it nginx-netcat bash -c 'netcat -zv mod-scheduler.eureka 8081'
+netcat -zv mgr-tenants.eureka 8081
+netcat -zv mgr-tenant-entitlements.eureka  8081
+netcat -zv mgr-applications.eureka 8081
+netcat -zv mod-login-keycloak.eureka 8081
+netcat -zv mod-users-keycloak.eureka 8081
+netcat -zv mod-roles-keycloak.eureka 8081
+netcat -zv mod-scheduler.eureka 8081
 
 # Check module and sidecar ports
-docker exec -it nginx-netcat bash -c 'netcat -zv mod-circulation-storage.eureka 8081'
-docker exec -it nginx-netcat bash -c 'netcat -zv sc-circulation-storage.eureka 8081'
+netcat -zv mod-circulation-storage.eureka 8081
+netcat -zv sc-circulation-storage.eureka 8081
+
+echo "DONE"
+exit 0
+EOF
 ```
 
 ### Tertiary commands
@@ -176,13 +181,15 @@ docker exec -i keycloak-internal sh <<EOF
   --set publicClient=false \
   --set clientAuthenticatorType=client-secret \
   --set secret="superAdmin" \
-  --set standardFlowEnabled=false;
+  --set standardFlowEnabled=false
+
 # Add superAdmin client service account admin role
 /opt/keycloak/bin/kcadm.sh add-roles \
   --uusername service-account-superadmin \
   --rolename admin \
-  --rolename create-realm;
-echo "DONE";
+  --rolename create-realm
+
+echo "DONE"
 exit 0
 EOF
 ```
