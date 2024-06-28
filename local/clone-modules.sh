@@ -4,7 +4,7 @@ set -e
 
 echo "Started Git cloning modules"
 
-WORK_DIR="${1:-$HOME/Folio/eureka-setup}"
+WORK_DIR="${1:-$HOME/Folio/eureka-setup/local}"
 MODULE_DIR="${2:-cloned-modules}"
 MODULE_JSON="${3:-cloneable-modules.json}"
 

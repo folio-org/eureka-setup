@@ -124,8 +124,8 @@ curl -f -sS -w '\n' "$indexDataModules?filter=mod-roles-keycloak&latest=1&full=t
   --username "superuser" \
   --password "superAdmin" \
   --mgr-applications-url "http://localhost:9901" \
-  --base-mgrs-folder-path "/c/Users/$USERNAME/Folio/eureka-setup/cloned-modules" \
-  --descriptors-path "/c/Users/$USERNAME/Folio/eureka-setup/okapi-scripts/mgr-applications"
+  --base-mgrs-folder-path "/c/Users/$USERNAME/Folio/eureka-setup/local/cloned-modules" \
+  --descriptors-path "/c/Users/$USERNAME/Folio/eureka-setup/local/okapi-scripts/mgr-applications"
 ```
 
 ### Secondary commands
