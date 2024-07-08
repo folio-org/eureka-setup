@@ -15,13 +15,13 @@
 ### Primary commands
 
 - Enable Live Compilation in Terminal session #1
-  - Will compile a Windows binary into `./bin` folder
+  - Will compile a Windows binary into `bin` folder
 
 ```bash
 air
 ```
 
-- Deploy all modules and sidecars in another Terminal session #2
+- Deploy/undeploy all modules and sidecars in another Terminal session #2
 
 ```bash
 # 1. Prepare AWS CLI for AWS ECR usage (to be done at least once)
