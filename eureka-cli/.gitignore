@@ -1,0 +1,7 @@
+*bin*
+*log*
+
+.module.env
+.module-descriptors.json
+
+SETUP.md
