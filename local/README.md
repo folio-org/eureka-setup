@@ -52,10 +52,7 @@ aws ecr list-images --repository-name mgr-applications --no-paginate --output ta
 aws ecr list-images --repository-name mgr-tenants --no-paginate --output table
 aws ecr list-images --repository-name mgr-tenant-entitlements --no-paginate --output table
 
-# 3. Git Clone and Maven Install Management modules locally for debugging, and to use their module descriptors in registration
-./clone_modules.sh
-
-# 4. Start all components
+# 3. Start all components
 # WARNING: Before starting make sure to replace [account_id] and [region] in .env with your provided values
 {
 docker compose -p eureka -f docker-compose.core.yml up -d --build --always-recreate-deps --force-recreate && sleep 60
@@ -63,7 +60,7 @@ export VAULT_TOKEN=$(docker logs vault 2>&1 | grep 'init.sh: Root VAULT TOKEN is
 docker compose -p eureka -f docker-compose.mgr.yml up -d --force-recreate && sleep 60
 }
 
-# 5. Monitor services
+# 4. Monitor services
 # All services with a health checks must be healthy 
 docker compose -p eureka ps -a --format 'table {{.ID}}\t{{.Name}}\t{{.Status}}\t{{.Image}}'
 
@@ -85,15 +82,6 @@ docker compose -p eureka -f docker-compose.core.yml down -v
 
 # (Optional) Stop all components
 docker compose -p eureka down -v
-
-# 9. Install UI
-{
-git clone git@github.com:folio-org/platform-complete.git --branch snapshot || true
-cd platform-complete || exit
-git pull origin snapshot
-yarn install
-yarn start
-}
 ```
 
 ### Secondary commands
