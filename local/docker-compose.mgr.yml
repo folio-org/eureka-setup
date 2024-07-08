@@ -9,12 +9,27 @@ networks:
     external: true
 
 services:
+  mgr-applications:
+    <<: *mgmt-service
+    container_name: mgr-applications
+    image: $ECR_REGISTRY/mgr-applications:$MGR_APPLICATIONS_VERSION
+    ports:
+      - "9901:8081"
+      - "10901:5005"
+    environment:
+      # DB
+      DB_DATABASE: app_manager
+      DB_USERNAME: app_manager_rw
+      DB_PASSWORD: superAdmin
+      # Management
+      TE_URL: http://mgr-tenant-entitlements.eureka:8081
+      MODULE_URL: http://mgr-applications.eureka:8081
+      VALIDATION_MODE: basic
+  
   mgr-tenants:
     <<: *mgmt-service
     container_name: mgr-tenants
-    ### Uncomment line below to build a local version
-    # build: ./cloned-modules/mgr-tenants
-    image: $ECR_REGISTRY/mgr-tenants:latest
+    image: $ECR_REGISTRY/mgr-tenants:$MGR_TENANTS_VERSION
     ports:
       - "9902:8081"
       - "10902:5005"
@@ -30,31 +45,10 @@ services:
       MODULE_URL: http://mgr-tenants.eureka:8081
       CACHE_EXPIRATION_TTL: 55s
 
-  mgr-applications:
-    <<: *mgmt-service
-    container_name: mgr-applications
-    ### Uncomment line below to build a local version
-    # build: ./cloned-modules/mgr-applications
-    image: $ECR_REGISTRY/mgr-applications:latest
-    ports:
-      - "9901:8081"
-      - "10901:5005"
-    environment:
-      # DB
-      DB_DATABASE: app_manager
-      DB_USERNAME: app_manager_rw
-      DB_PASSWORD: superAdmin
-      # Management
-      TE_URL: http://mgr-tenant-entitlements.eureka:8081
-      MODULE_URL: http://mgr-applications.eureka:8081
-      VALIDATION_MODE: basic
-
   mgr-tenant-entitlements:
     <<: *mgmt-service
     container_name: mgr-tenant-entitlements
-    ### Uncomment line below to build a local version
-    # build: ./cloned-modules/mgr-tenant-entitlements
-    image: $ECR_REGISTRY/mgr-tenant-entitlements:latest
+    image: $ECR_REGISTRY/mgr-tenant-entitlements:$MGR_TENANT_ENTITLEMENTS_VERION
     ports:
       - "9903:8081"
       - "10903:5005"

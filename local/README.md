@@ -36,7 +36,7 @@
   - [Kong UI (no auth)](<http://localhost:8002>)
 
 ```bash
-# 1. Prepare AWS CLI for AWS ECR usage
+# 1. Prepare AWS CLI for AWS ECR usage (to be done at least once)
 # DO NOT SHARE ANY AWS TOKENS OR SECRETS WITH ANYONE 
 # OR PUSH ANY OF THESE TOKENS OR SECRETS INTO ANY REPOSITORY
 aws configure set aws_access_key_id [access_key] 
@@ -51,10 +51,6 @@ aws ecr get-login-password --region [region] | docker login --username [username
 aws ecr list-images --repository-name mgr-applications --no-paginate --output table
 aws ecr list-images --repository-name mgr-tenants --no-paginate --output table
 aws ecr list-images --repository-name mgr-tenant-entitlements --no-paginate --output table
-aws ecr list-images --repository-name mod-login-keycloak --no-paginate --output table
-aws ecr list-images --repository-name mod-users-keycloak --no-paginate --output table
-aws ecr list-images --repository-name mod-roles-keycloak --no-paginate --output table
-aws ecr list-images --repository-name mod-scheduler --no-paginate --output table
 
 # 3. Git Clone and Maven Install Management modules locally for debugging, and to use their module descriptors in registration
 ./clone_modules.sh
@@ -63,10 +59,8 @@ aws ecr list-images --repository-name mod-scheduler --no-paginate --output table
 # WARNING: Before starting make sure to replace [account_id] and [region] in .env with your provided values
 {
 docker compose -p eureka -f docker-compose.core.yml up -d --build --always-recreate-deps --force-recreate && sleep 60
-export VAULT_TOKEN=$(docker logs vault 2>&1 | grep 'init.sh: Root VAULT TOKEN is:' | sed 's/.*://' | xargs); echo $VAULT_TOKEN
+export VAULT_TOKEN=$(docker logs vault 2>&1 | grep 'init.sh: Root VAULT TOKEN is:' | sed 's/.*://' | xargs); echo "Using Vault Token: $VAULT_TOKEN"
 docker compose -p eureka -f docker-compose.mgr.yml up -d --force-recreate && sleep 60
-docker compose -p eureka -f docker-compose.module.yml up -d --force-recreate && sleep 120
-docker compose -p eureka -f docker-compose.sidecar.yml up -d --force-recreate && sleep 30
 }
 
 # 5. Monitor services
@@ -74,11 +68,9 @@ docker compose -p eureka -f docker-compose.sidecar.yml up -d --force-recreate &&
 docker compose -p eureka ps -a --format 'table {{.ID}}\t{{.Name}}\t{{.Status}}\t{{.Image}}'
 
 # (Optional) Start, Restart or Kill a container(s)
-export VAULT_TOKEN=$(docker logs vault 2>&1 | grep 'init.sh: Root VAULT TOKEN is:' | sed 's/.*://' | xargs); echo $VAULT_TOKEN
-docker compose -p eureka -f docker-compose.mgr.yml up -d mgr-tenants
+export VAULT_TOKEN=$(docker logs vault 2>&1 | grep 'init.sh: Root VAULT TOKEN is:' | sed 's/.*://' | xargs); echo "Using Vault Token: $VAULT_TOKEN"
 docker compose -p eureka -f docker-compose.mgr.yml restart mgr-tenants mgr-tenant-entitlements mgr-applications
 docker compose -p eureka -f docker-compose.mgr.yml kill mgr-tenants mgr-tenant-entitlements mgr-applications
-docker compose -p eureka -f docker-compose.sidecar.yml restart
 
 # (Optional) Monitor logs for an individual module
 docker logs -f --tail 1000 vault
@@ -86,46 +78,22 @@ docker logs -f --tail 1000 keycloak
 docker logs -f --tail 1000 mgr-tenants
 docker logs -f --tail 1000 mgr-tenant-entitlements
 docker logs -f --tail 1000 mgr-applications
-docker logs -f --tail 1000 mod-scheduler
-docker logs -f --tail 1000 mod-users
 
 # (Optional) Stop components
 docker compose -p eureka -f docker-compose.mgr.yml down -v 
 docker compose -p eureka -f docker-compose.core.yml down -v 
-docker compose -p eureka -f docker-compose.module.yml down -v 
-docker compose -p eureka -f docker-compose.sidecar.yml down -v 
 
 # (Optional) Stop all components
 docker compose -p eureka down -v
 
-# (Optional) Download latest mod-*-keycloak descriptors
+# 9. Install UI
 {
-indexDataModules='http://folio-registry.aws.indexdata.com/_/proxy/modules'
-# WARNING: mod-login-keycloak is missing in folio-registry
-curl -f -sS -w '\n' "$indexDataModules?filter=mod-login-keycloak&latest=1&full=true" | jq '.[0]' >"./okapi-scripts/.temp-descriptors/mod-login-keycloak-latestjson" 
-curl -f -sS -w '\n' "$indexDataModules?filter=mod-users-keycloak&latest=1&full=true" | jq '.[0]' >"./okapi-scripts/.temp-descriptors/mod-users-keycloak-latest.json"
-curl -f -sS -w '\n' "$indexDataModules?filter=mod-roles-keycloak&latest=1&full=true" | jq '.[0]' >"./okapi-scripts/.temp-descriptors/mod-roles-keycloak-latest.json"
+git clone git@github.com:folio-org/platform-complete.git --branch snapshot || true
+cd platform-complete || exit
+git pull origin snapshot
+yarn install
+yarn start
 }
-
-# 6. Register core modules with Okapi
-./okapi-scripts/register-with-okapi-core-modules.sh \
-  --okapi "http://localhost:9130" \
-  --db-password="superAdmin" \
-  --admin-password="superAdmin"
-
-# 7. Register other modules with Okapi
-./okapi-scripts/register-with-okapi-other-modules.sh
-
-# 8. Register core modules with Management mgr-application module
-# Uncomment and replace "User" with your Windows User directory name
-# export USERNAME="User"
-./okapi-scripts/register-with-mgr-applications-all-modules.sh \
-  --okapi "http://localhost:9130" \
-  --username "superuser" \
-  --password "superAdmin" \
-  --mgr-applications-url "http://localhost:9901" \
-  --base-mgrs-folder-path "/c/Users/$USERNAME/Folio/eureka-setup/local/cloned-modules" \
-  --descriptors-path "/c/Users/$USERNAME/Folio/eureka-setup/local/okapi-scripts/mgr-applications"
 ```
 
 ### Secondary commands
@@ -153,14 +121,6 @@ netcat -zv api-gateway.eureka 8444
 netcat -zv mgr-tenants.eureka 8081
 netcat -zv mgr-tenant-entitlements.eureka  8081
 netcat -zv mgr-applications.eureka 8081
-netcat -zv mod-login-keycloak.eureka 8081
-netcat -zv mod-users-keycloak.eureka 8081
-netcat -zv mod-roles-keycloak.eureka 8081
-netcat -zv mod-scheduler.eureka 8081
-
-# Check module and sidecar ports
-netcat -zv mod-circulation-storage.eureka 8081
-netcat -zv sc-circulation-storage.eureka 8081
 
 echo "DONE"
 exit 0

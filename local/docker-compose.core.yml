@@ -181,30 +181,3 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
-
-  okapi:
-    container_name: okapi
-    image: folioorg/okapi:5.0.1
-    networks: [ fpm-net ]
-    command: [ dev ]
-    depends_on:
-      db:
-        condition: service_healthy
-    ports:
-      - "9130:9130"
-      - "10000:5005"
-    healthcheck:
-      test: nc -zv localhost 9130 || exit -1
-      interval: 10s
-      timeout: 5s
-      retries: 15
-      start_period: 5s
-    environment:
-      JAVA_OPTIONS: >-
-        -Dhost=okapi
-        -Dstorage=postgres
-        -Dpostgres_host=db.eureka
-        -Dpostgres_username=okapi_rw
-        -Dpostgres_password=superAdmin
-        -Dokapiurl=http://okapi.eureka:9130
-        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
