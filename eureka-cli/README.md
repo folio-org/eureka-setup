@@ -10,6 +10,7 @@
 
 - Install necessary prerequisites (Windows users)
   - [AWS CLI](<https://docs.aws.amazon.com/cli/latest/userguide/>)
+  - [GO](<https://go.dev/doc/install>)
 - Request AWS ECR access tokens from **Folio Kitfox Team** in Slack devops channel
 
 ### Primary commands
