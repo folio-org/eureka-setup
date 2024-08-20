@@ -28,7 +28,7 @@ air
 
 # 2. Deploy management modules
 # Enable debug (optional) flag: -d or --debug
-./bin/eureka-cli.exe deployModules
+./bin/eureka-cli.exe deployManagement
 
 # 3. Deploy other modules and sidecars
 # Enable debug (optional) flag: -d or --debug
@@ -36,11 +36,11 @@ air
 
 # (Optional) Undeploy other modules and sidecars
 # Enable debug (optional) flag: -d or --debug
-./bin/eureka-cli.exe undeployManagement
-
-# (Optional) Undeploy other modules and sidecars
-# Enable debug (optional) flag: -d or --debug
 ./bin/eureka-cli.exe undeployModules
+
+# (Optional) Undeploy management modules
+# Enable debug (optional) flag: -d or --debug
+./bin/eureka-cli.exe undeployManagement
 
 # (Optional) Undeploy single module and its sidecar
 # Module name (required) flag: -m or --moduleName 
