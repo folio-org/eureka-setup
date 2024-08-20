@@ -48,37 +48,18 @@ aws configure set default.region [region]
 aws ecr get-login-password --region [region] | docker login --username [username] --password-stdin [account_id].dkr.ecr.[region].amazonaws.com
 
 # (Optional) List available version for a repository
-aws ecr list-images --repository-name mgr-applications --no-paginate --output table
-aws ecr list-images --repository-name mgr-tenants --no-paginate --output table
-aws ecr list-images --repository-name mgr-tenant-entitlements --no-paginate --output table
+aws ecr list-images --repository-name [project_name] --no-paginate --output table
 
 # 3. Start all components
 # WARNING: Before starting make sure to replace [account_id] and [region] in .env with your provided values
-{
 docker compose -p eureka -f docker-compose.core.yml up -d --build --always-recreate-deps --force-recreate && sleep 60
-export VAULT_TOKEN=$(docker logs vault 2>&1 | grep 'init.sh: Root VAULT TOKEN is:' | sed 's/.*://' | xargs); echo "Using Vault Token: $VAULT_TOKEN"
-docker compose -p eureka -f docker-compose.mgr.yml up -d --force-recreate && sleep 60
-}
 
 # 4. Monitor services
 # All services with a health checks must be healthy 
 docker compose -p eureka ps -a --format 'table {{.ID}}\t{{.Name}}\t{{.Status}}\t{{.Image}}'
 
-# (Optional) Start, Restart or Kill a container(s)
-export VAULT_TOKEN=$(docker logs vault 2>&1 | grep 'init.sh: Root VAULT TOKEN is:' | sed 's/.*://' | xargs); echo "Using Vault Token: $VAULT_TOKEN"
-docker compose -p eureka -f docker-compose.mgr.yml restart mgr-tenants mgr-tenant-entitlements mgr-applications
-docker compose -p eureka -f docker-compose.mgr.yml kill mgr-tenants mgr-tenant-entitlements mgr-applications
-
 # (Optional) Monitor logs for an individual module
-docker logs -f --tail 1000 vault
-docker logs -f --tail 1000 keycloak
-docker logs -f --tail 1000 mgr-tenants
-docker logs -f --tail 1000 mgr-tenant-entitlements
-docker logs -f --tail 1000 mgr-applications
-
-# (Optional) Stop components
-docker compose -p eureka -f docker-compose.mgr.yml down -v 
-docker compose -p eureka -f docker-compose.core.yml down -v 
+docker logs -f --tail 1000 [container_name]
 
 # (Optional) Stop all components
 docker compose -p eureka down -v
@@ -86,8 +67,7 @@ docker compose -p eureka down -v
 
 ### Secondary commands
 
-- Diagnose system & module ports
-  - All must result in something similar to: `keycloak.eureka [192.168.240.9] 8080 (?) open`
+- Diagnose system
 
 ```bash
 # Check system ports
@@ -104,12 +84,6 @@ netcat -zv api-gateway.eureka 8001
 netcat -zv api-gateway.eureka 8002
 netcat -zv api-gateway.eureka 8443
 netcat -zv api-gateway.eureka 8444
-
-# Check management ports
-netcat -zv mgr-tenants.eureka 8081
-netcat -zv mgr-tenant-entitlements.eureka  8081
-netcat -zv mgr-applications.eureka 8081
-
 echo "DONE"
 exit 0
 EOF
