@@ -45,9 +45,7 @@ func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryM
 	}
 }
 
-func DeregisterModules(commandName string, moduleName string, enableDebug bool) {
-	slog.Info(commandName, "Deregistering module", moduleName)
-
+func RemoveApplications(commandName string, moduleName string, enableDebug bool) {
 	resp := DoGetReturnResponse(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/applications"), enableDebug)
 	defer resp.Body.Close()
 
@@ -83,69 +81,116 @@ func DeregisterModules(commandName string, moduleName string, enableDebug bool) 
 	}
 }
 
-func RegisterModules(commandName string, enableDebug bool, dto *RegisterModuleDto) {
+func CreateApplications(commandName string, enableDebug bool, dto *RegisterModuleDto) {
+	var backendModules []map[string]string
+	var frontendModules []map[string]string
+	var backendModuleDescriptors []interface{}
+	var frontendModuleDescriptors []interface{}
+	var dependencies []interface{}
+	var discoveryModules []map[string]string
+
 	for registryName, registryModules := range dto.RegistryModules {
 		slog.Info(commandName, MessageKey, fmt.Sprintf("Registering %s registry modules", registryName))
 
 		for _, module := range registryModules {
 			if strings.Contains(module.Name, ManagementModulePattern) {
 				slog.Info(commandName, MessageKey, fmt.Sprintf("Ignoring %s module", module.Name))
-
 				continue
 			}
 
-			_, ok := dto.BackendModulesMap[module.Name]
-			if !ok {
+			_, okBackend := dto.BackendModulesMap[module.Name]
+			_, okFrontend := dto.FrontendModulesMap[module.Name]
+			if !okBackend && !okFrontend {
 				continue
 			}
 
-			moduleNameEnv := EnvNameRegexp.ReplaceAllString(strings.ToUpper(module.Name), `_`)
-
-			_, err := dto.FileModuleEnvPointer.WriteString(fmt.Sprintf("export %s_VERSION=%s\r\n", moduleNameEnv, module.Version))
+			_, err := dto.FileModuleEnvPointer.WriteString(fmt.Sprintf("export %s_VERSION=%s\r\n", TransformToEnvVar(module.Name), module.Version))
 			if err != nil {
 				slog.Error(commandName, MessageKey, "moduleEnvVarsFile.WriteString error")
 				panic(err)
 			}
 
-			moduleDescriptors := DoGetDecodeReturnInterface(commandName, fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls["folio"], module.Id), enableDebug)
+			url := fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls["folio"], module.Id)
 
-			dto.ModuleDescriptorsMap[module.Id] = moduleDescriptors
+			dto.ModuleDescriptorsMap[module.Id] = DoGetDecodeReturnInterface(commandName, url, enableDebug)
 
-			var appModules []map[string]string
-			appModules = append(appModules, map[string]string{"name": module.Name, "version": module.Version})
+			if okBackend {
+				backendModules = append(backendModules, map[string]string{
+					"id":      module.Id,
+					"name":    module.Name,
+					"version": module.Version,
+				})
+				backendModuleDescriptors = append(backendModuleDescriptors, dto.ModuleDescriptorsMap[module.Id])
 
-			appBytes, err := json.Marshal(map[string]interface{}{
-				"id":                module.Id,
-				"version":           module.Version,
-				"name":              module.Name,
-				"description":       "Deployed by Eureka CLI",
-				"modules":           appModules,
-				"moduleDescriptors": moduleDescriptors,
-			})
-			if err != nil {
-				slog.Error(commandName, MessageKey, "json.Marshal error")
-				panic(err)
+				discoveryModules = append(discoveryModules, map[string]string{
+					"id":       module.Id,
+					"name":     module.Name,
+					"version":  module.Version,
+					"location": fmt.Sprintf("http://%s.eureka:%s", module.Name, ServerPort),
+				})
+			} else if okFrontend {
+				frontendModules = append(frontendModules, map[string]string{
+					"id":      module.Id,
+					"name":    module.Name,
+					"version": module.Version,
+				})
+				frontendModuleDescriptors = append(frontendModuleDescriptors, dto.ModuleDescriptorsMap[module.Id])
 			}
 
-			DoPostNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/applications"), enableDebug, appBytes)
+			slog.Info(commandName, "Found module", module.Name)
+		}
+	}
 
-			var appDiscModules []map[string]string
-			appDiscModules = append(appDiscModules, map[string]string{
-				"id":       module.Id,
-				"name":     module.Name,
-				"version":  module.Version,
-				"location": fmt.Sprintf("http://%s.eureka:%s", module.Name, ServerPort),
-			})
+	// ########## Application ##########
+	appBytes, err := json.Marshal(map[string]interface{}{
+		"id":                  "app-platform-complete-1.0.0",
+		"name":                "app-platform-complete",
+		"version":             "1.0.0",
+		"description":         "app-platform-complete:Deployed by Eureka CLI",
+		"platform":            "base",
+		"dependencies":        dependencies,
+		"modules":             backendModules,
+		"uiModules":           frontendModules,
+		"moduleDescriptors":   backendModuleDescriptors,
+		"uiModuleDescriptors": frontendModuleDescriptors,
+	})
+	if err != nil {
+		slog.Error(commandName, MessageKey, "json.Marshal error")
+		panic(err)
+	}
 
-			appDiscInfoBytes, err := json.Marshal(map[string]interface{}{"discovery": appDiscModules})
-			if err != nil {
-				slog.Error(commandName, MessageKey, "json.Marshal error")
-				panic(err)
-			}
+	DoPostNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/applications?check=false"), enableDebug, appBytes)
 
-			DoPostNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/modules/discovery"), enableDebug, appDiscInfoBytes)
+	// ########## Application Discovery ##########
+	applicationDiscoveryBytes, err := json.Marshal(map[string]interface{}{"discovery": discoveryModules})
+	if err != nil {
+		slog.Error(commandName, MessageKey, "json.Marshal error")
+		panic(err)
+	}
 
-			slog.Info(commandName, "Registered module", module.Id)
+	DoPostNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/modules/discovery"), enableDebug, applicationDiscoveryBytes)
+}
+
+func RemoveTenants(commandName string, enableDebug bool) {
+	tenants := viper.GetStringSlice(TenantConfigKey)
+
+	foundTenantsMap := DoGetDecodeReturnMapStringInteface(commandName, fmt.Sprintf(DockerInternalUrl, TenantsPort, "/tenants"), enableDebug)
+
+	foundTenants := foundTenantsMap["tenants"].([]interface{})
+
+	for _, value := range foundTenants {
+		mapEntry := value.(map[string]interface{})
+
+		name := mapEntry["name"].(string)
+
+		if slices.Contains(tenants, name) {
+			id := mapEntry["id"].(string)
+
+			DoDelete(commandName, fmt.Sprintf(DockerInternalUrl, TenantsPort, fmt.Sprintf("/tenants/%s?purge=true", id)), enableDebug)
+
+			slog.Info(commandName, MessageKey, fmt.Sprintf("Removed tenant %s", name))
+
+			break
 		}
 	}
 }
@@ -174,10 +219,7 @@ func CreateTenants(commandName string, enableDebug bool) {
 	}
 
 	for _, tenant := range tenants {
-		tenantBytes, err := json.Marshal(map[string]string{
-			"name":        tenant,
-			"description": "Default_tenant",
-		})
+		tenantBytes, err := json.Marshal(map[string]string{"name": tenant, "description": "Default_tenant"})
 		if err != nil {
 			slog.Error(commandName, MessageKey, "json.Marshal error")
 			panic(err)
@@ -185,6 +227,72 @@ func CreateTenants(commandName string, enableDebug bool) {
 
 		DoPostNoContent(commandName, fmt.Sprintf(DockerInternalUrl, TenantsPort, "/tenants"), enableDebug, tenantBytes)
 
-		slog.Info(commandName, MessageKey, fmt.Sprintf("Created tenant %s", tenant))
+		slog.Info(commandName, MessageKey, fmt.Sprintf("Created tenant named %s", tenant))
+	}
+}
+
+func RemoveTenantEntitlements(commandName string, enableDebug bool) {
+	tenants := viper.GetStringSlice(TenantConfigKey)
+
+	foundTenantsMap := DoGetDecodeReturnMapStringInteface(commandName, fmt.Sprintf(DockerInternalUrl, TenantsPort, "/tenants"), enableDebug)
+
+	foundTenants := foundTenantsMap["tenants"].([]interface{})
+
+	for _, value := range foundTenants {
+		mapEntry := value.(map[string]interface{})
+
+		name := mapEntry["name"].(string)
+
+		if slices.Contains(tenants, name) {
+			id := mapEntry["id"].(string)
+
+			var applications []string
+			applications = append(applications, "app-platform-complete-1.0.0")
+
+			tenantEntitlementBytes, err := json.Marshal(map[string]any{"tenantId": id, "applications": applications})
+			if err != nil {
+				slog.Error(commandName, MessageKey, "json.Marshal error")
+				panic(err)
+			}
+
+			url := fmt.Sprintf(DockerInternalUrl, TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=false,loadSample=false&purge=true")
+
+			DoDeleteBody(commandName, url, enableDebug, tenantEntitlementBytes)
+
+			slog.Info(commandName, MessageKey, fmt.Sprintf("Removed tenant entitlement for tenant name %s and id %s", name, id))
+		}
+	}
+}
+
+func CreateTenantEntitlement(commandName string, enableDebug bool) {
+	tenants := viper.GetStringSlice(TenantConfigKey)
+
+	foundTenantsMap := DoGetDecodeReturnMapStringInteface(commandName, fmt.Sprintf(DockerInternalUrl, TenantsPort, "/tenants"), enableDebug)
+
+	foundTenants := foundTenantsMap["tenants"].([]interface{})
+
+	for _, value := range foundTenants {
+		mapEntry := value.(map[string]interface{})
+
+		name := mapEntry["name"].(string)
+
+		if slices.Contains(tenants, name) {
+			id := mapEntry["id"].(string)
+
+			var applications []string
+			applications = append(applications, "app-platform-complete-1.0.0")
+
+			tenantEntitlementBytes, err := json.Marshal(map[string]any{"tenantId": id, "applications": applications})
+			if err != nil {
+				slog.Error(commandName, MessageKey, "json.Marshal error")
+				panic(err)
+			}
+
+			url := fmt.Sprintf(DockerInternalUrl, TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=true&tenantParameters=loadReference=false,loadSample=false&includeModules=true")
+
+			DoPostNoContent(commandName, url, enableDebug, tenantEntitlementBytes)
+
+			slog.Info(commandName, MessageKey, fmt.Sprintf("Created tenant entitlement for tenant name %s and id %s", name, id))
+		}
 	}
 }

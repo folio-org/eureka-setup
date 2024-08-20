@@ -150,24 +150,58 @@ backend-modules:
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=85.0
         -Xms128m -Xmx240m
   # Core Modules
-  mod-users:
-    port: 30001
-    sidecar: true
-  mod-users-bl:
-    port: 30002
-    sidecar: true
-  mod-roles:
-    port: 30003
-    sidecar: true
-  mod-authtoken:
-    port: 30004
-    sidecar: true
   mod-permissions:
-    port: 30005
-    sidecar: true
   mod-configuration:
-    port: 30006
-    sidecar: true
+  mod-users:
+  mod-users-bl:
+  mod-roles:
+  mod-authtoken:
+  # Other modules
+  mod-source-record-storage:
+  mod-source-record-manager:
+  mod-pubsub:
+  mod-inventory-storage:
+  mod-inventory:
+  mod-organizations-storage:
+  mod-organizations:
+  mod-entities-links:
+  # Disable temporary
+  # mod-invoice-storage:
+  # mod-invoice:
+  # mod-orders-storage:
+  # mod-orders:
+  # mod-finance:
+  # mod-finance-storage:
+  mod-circulation-storage:
+  mod-circulation:
+  # Included for Exception Handling
+  # mod-di-converter-storage:
+  # mod-data-import:
+  # mod-data-export:
+  mod-copycat:
+  mod-audit:
+  mod-patron:
+  mod-patron-blocks:
+  mod-feesfines:
+  mod-tags:
+  # Included for Exception Handling
+  # mod-search:
+  mod-password-validator:
+  mod-login-saml:
+  mod-settings:
+  mod-event-config:
+  mod-template-engine:
+  # Included for Exception Handling
+  # mod-data-export-spring:
+  # mod-erm-usage:
+  # mod-calendar:
+  # mod-notes: 
+  # mod-agreements:
+  # mod-sender:
+  # mod-email:
+  # mod-batch-print:
+  # mod-notify:
+  # mod-service-interaction:
 # Frontend modules
 frontend-modules:
   folio_users:

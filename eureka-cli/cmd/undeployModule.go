@@ -34,7 +34,7 @@ var undeployModuleCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		slog.Info(undeployModulesCommand, internal.MessageKey, "### DEREGISTERING MODULE ###")
 
-		internal.DeregisterModules(undeployModulesCommand, moduleName, enableDebug)
+		internal.RemoveApplications(undeployModulesCommand, moduleName, enableDebug)
 
 		slog.Info(undeployModuleCommand, internal.MessageKey, "### UNDEPLOYING MODULE ###")
 

@@ -83,7 +83,7 @@ var deployModulesCmd = &cobra.Command{
 		fileModuleEnvPointer := internal.CreateModuleEnvFile(deployModulesCommand, fileModuleEnv)
 		defer fileModuleEnvPointer.Close()
 
-		slog.Info(deployModulesCommand, internal.MessageKey, "### REGISTERING MODULES ###")
+		slog.Info(deployModulesCommand, internal.MessageKey, "### CREATING APPLICATIONS ###")
 
 		moduleDescriptorsMap := make(map[string]interface{})
 
@@ -91,9 +91,9 @@ var deployModulesCmd = &cobra.Command{
 
 		registerModuleDto := internal.NewRegisterModuleDto(registryUrls, registryModules, backendModulesMap, frontendModulesMap, moduleDescriptorsMap, fileModuleEnvPointer, enableDebug)
 
-		internal.RegisterModules(deployModulesCommand, enableDebug, registerModuleDto)
+		internal.CreateApplications(deployModulesCommand, enableDebug, registerModuleDto)
 
-		slog.Info(deployModulesCommand, internal.MessageKey, "Created module ENV file")
+		slog.Info(deployModulesCommand, internal.MessageKey, "Created module environment file")
 
 		fileModuleDescriptorsPointer := internal.CreateModuleDescriptorsFile(deployModulesCommand, fileModuleDescriptors)
 		defer fileModuleDescriptorsPointer.Close()
@@ -110,6 +110,14 @@ var deployModulesCmd = &cobra.Command{
 		deployModulesDto := internal.NewDeployModulesDto(vaultToken, registryHostname, registryModules, backendModulesMap, environment)
 
 		internal.DeployModules(deployModulesCommand, client, deployModulesDto)
+
+		slog.Info(deployManagementCommand, internal.MessageKey, "### CREATING TENANTS ###")
+
+		internal.CreateTenants(deployManagementCommand, enableDebug)
+
+		slog.Info(deployManagementCommand, internal.MessageKey, "### CREATING TENANT ENTITLEMENTS ###")
+
+		internal.CreateTenantEntitlement(deployManagementCommand, enableDebug)
 	},
 }
 

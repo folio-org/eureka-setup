@@ -58,3 +58,7 @@ func TrimModuleName(name string) string {
 
 	return name
 }
+
+func TransformToEnvVar(name string) string {
+	return EnvNameRegexp.ReplaceAllString(strings.ToUpper(name), `_`)
+}

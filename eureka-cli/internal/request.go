@@ -10,7 +10,7 @@ import (
 // ####### GET ########
 
 func DoGetReturnResponse(commandName string, url string, enableDebug bool) *http.Response {
-	req, err := http.NewRequest(http.MethodPost, url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		slog.Error(commandName, MessageKey, "http.NewRequest error")
 		panic(err)
@@ -34,7 +34,7 @@ func DoGetReturnResponse(commandName string, url string, enableDebug bool) *http
 func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool) interface{} {
 	var respMap interface{}
 
-	req, err := http.NewRequest(http.MethodPost, url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		slog.Error(commandName, MessageKey, "http.NewRequest error")
 		panic(err)
@@ -95,10 +95,10 @@ func DoGetDecodeReturnMapStringInteface(commandName string, url string, enableDe
 
 // ####### POST ########
 
-func DoPostNoContent(commandName string, url string, enableDebug bool, payloadBytes []byte) {
-	DumpHttpBody(commandName, enableDebug, payloadBytes)
+func DoPostNoContent(commandName string, url string, enableDebug bool, bodyBytes []byte) {
+	DumpHttpBody(commandName, enableDebug, bodyBytes)
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(payloadBytes))
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		slog.Error(commandName, MessageKey, "http.NewRequest error")
 		panic(err)
@@ -126,6 +126,27 @@ func DoDelete(commandName string, url string, enableDebug bool) {
 		slog.Error(commandName, MessageKey, "http.NewRequest error")
 		panic(err)
 	}
+
+	DumpHttpRequest(commandName, req, enableDebug)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		slog.Error(commandName, MessageKey, "http.DefaultClient.Do error")
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	DumpHttpResponse(commandName, resp, enableDebug)
+}
+
+func DoDeleteBody(commandName string, url string, enableDebug bool, bodyBytes []byte) {
+	req, err := http.NewRequest(http.MethodDelete, url, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		slog.Error(commandName, MessageKey, "http.NewRequest error")
+		panic(err)
+	}
+
+	req.Header.Add("Content-Type", ApplicationJson)
 
 	DumpHttpRequest(commandName, req, enableDebug)
 

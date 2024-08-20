@@ -29,7 +29,7 @@ const undeployManagementCommand = "Undeploy Management"
 var undeployManagementCmd = &cobra.Command{
 	Use:   "undeployManagement",
 	Short: "Undeploy modules",
-	Long:  `Undeploy management modules.`,
+	Long:  `Undeploy all management modules.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		slog.Info(undeployManagementCommand, internal.MessageKey, "### UNDEPLOYING MANAGEMENT MODULES ###")
 

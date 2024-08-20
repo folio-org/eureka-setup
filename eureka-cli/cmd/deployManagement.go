@@ -30,7 +30,7 @@ const deployManagementCommand string = "Deploy Management"
 var deployManagementCmd = &cobra.Command{
 	Use:   "deployManagement",
 	Short: "Deploy mananagement",
-	Long:  `Deploy management modules.`,
+	Long:  `Deploy all management modules.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		registryFolioInstallJsonUrl := viper.GetString(internal.RegistryFolioInstallJsonUrlKey)
 		registryEurekaInstallJsonUrl := viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)
@@ -74,11 +74,8 @@ var deployManagementCmd = &cobra.Command{
 
 		slog.Info(deployManagementCommand, internal.MessageKey, "### WAITING FOR MANAGEMENT MODULES TO INITIALIZE ###")
 
+		// TODO Replace with HTTP calls
 		time.Sleep(150 * time.Second)
-
-		slog.Info(deployManagementCommand, internal.MessageKey, "### CREATING TENANTS ###")
-
-		internal.CreateTenants(deployManagementCommand, enableDebug)
 	},
 }
 

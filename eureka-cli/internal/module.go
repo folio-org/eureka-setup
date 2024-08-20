@@ -116,7 +116,7 @@ func NewRegisterModuleDto(
 	}
 }
 
-func NewBackendModuleWithSidecar(name string, port int, deploySidecar bool, moduleEnvironment map[string]interface{}) *BackendModule {
+func NewBackendModuleAndSidecar(name string, port int, deploySidecar bool, moduleEnvironment map[string]interface{}) *BackendModule {
 	exposedPorts := CreateExposedPorts()
 	modulePortBindings := CreatePortBindings(port, port+1000)
 	sidecarPortBindings := CreatePortBindings(port+2000, port+3000)
@@ -278,9 +278,7 @@ func DeployModule(commandName string, client *client.Client, dto *DeployModuleDt
 				panic(err)
 			}
 
-			if event.Error == "" {
-				slog.Info(commandName, "Pulling module container image", fmt.Sprintf("%+v", event.Status))
-			} else {
+			if event.Error != "" {
 				slog.Error(commandName, "Pulling module container image", fmt.Sprintf("%+v", event.Error))
 			}
 		}
@@ -322,10 +320,6 @@ func UndeployModule(commandName string, client *client.Client, deployedModule ty
 }
 
 func DeployModules(commandName string, client *client.Client, dto *DeployModulesDto) {
-	if true {
-		return
-	}
-
 	sidecarImage := viper.GetString(RegistrySidecarImageKey)
 	resourceUrlKeycloak := viper.GetString(ResourcesKeycloakKey)
 	resourceUrlVault := viper.GetString(ResourcesVaultKey)
@@ -371,6 +365,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			// Vault environment
 			combinedModuleEnvironment = AppendVaultEnvironment(combinedModuleEnvironment, dto.VaultToken, resourceUrlVault)
 
+			// TODO Create a "New" method
 			deployModuleDto := &DeployModuleDto{
 				Name:         module.Name,
 				Image:        image,

@@ -55,6 +55,7 @@ var (
 	VaultTokenRegexp = regexp.MustCompile(VaultTokenPattern)
 	ModuleIdRegexp   = regexp.MustCompile(ModuleIdPattern)
 	EnvNameRegexp    = regexp.MustCompile(EnvNamePattern)
+	PortIndex        = 30000
 )
 
 func GetEnvironmentFromConfig(commandName string, sharedEnvMap map[string]string) []string {
@@ -75,27 +76,42 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 	backendModulesMap := make(map[string]BackendModule)
 
 	for name, value := range backendModulesAnyMap {
-		mapEntry := value.((map[string]interface{}))
-
-		port := mapEntry[PortKey].(int)
-
+		var port *int
 		var sidecar *bool
-		if mapEntry[SidecarKey] != nil {
-			sidecarValue := mapEntry[SidecarKey].(bool)
-			sidecar = &sidecarValue
-		}
+		var environment map[string]interface{}
 
-		var moduleEnv map[string]interface{}
-		if mapEntry[ModuleEnvKey] != nil {
-			moduleEnv = mapEntry[ModuleEnvKey].(map[string]interface{})
+		if value != nil {
+			mapEntry := value.(map[string]interface{})
+
+			if mapEntry[PortKey] != nil {
+				portValue := mapEntry[PortKey].(int)
+				port = &portValue
+			}
+
+			if mapEntry[SidecarKey] != nil {
+				sidecarValue := mapEntry[SidecarKey].(bool)
+				sidecar = &sidecarValue
+			}
+
+			if mapEntry[ModuleEnvKey] != nil {
+				environment = mapEntry[ModuleEnvKey].(map[string]interface{})
+			} else {
+				environment = make(map[string]interface{})
+			}
 		} else {
-			moduleEnv = make(map[string]interface{})
+			PortIndex++
+			port = &PortIndex
+
+			sidecarDefaultValue := true
+			sidecar = &sidecarDefaultValue
+
+			environment = make(map[string]interface{})
 		}
 
 		if sidecar != nil && *sidecar {
-			backendModulesMap[name] = *NewBackendModuleWithSidecar(name, port, *sidecar, moduleEnv)
+			backendModulesMap[name] = *NewBackendModuleAndSidecar(name, *port, *sidecar, environment)
 		} else {
-			backendModulesMap[name] = *NewBackendModule(name, port, moduleEnv)
+			backendModulesMap[name] = *NewBackendModule(name, *port, environment)
 		}
 
 		slog.Info(commandName, "Found backend module", name)
@@ -107,7 +123,7 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMap map[string]any) map[string]FrontendModule {
 	frontendModulesMap := make(map[string]FrontendModule)
 
-	for name, _ := range frontendModulesAnyMap {
+	for name := range frontendModulesAnyMap {
 		frontendModulesMap[name] = *NewFrontendModule(name)
 
 		slog.Info(commandName, "Found frontend module", name)
