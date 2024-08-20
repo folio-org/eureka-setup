@@ -76,9 +76,11 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 	backendModulesMap := make(map[string]BackendModule)
 
 	for name, value := range backendModulesAnyMap {
-		var port *int
-		var sidecar *bool
-		var environment map[string]interface{}
+		var (
+			port        *int
+			sidecar     *bool
+			environment map[string]interface{}
+		)
 
 		if value != nil {
 			mapEntry := value.(map[string]interface{})

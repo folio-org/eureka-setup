@@ -171,6 +171,7 @@ func NewDeployModulesDto(
 
 func CreateExposedPorts() *nat.PortSet {
 	moduleExposedPorts := make(map[nat.Port]struct{})
+
 	moduleExposedPorts[nat.Port(ServerPort)] = struct{}{}
 	moduleExposedPorts[nat.Port(DebugPort)] = struct{}{}
 
@@ -180,8 +181,10 @@ func CreateExposedPorts() *nat.PortSet {
 }
 
 func CreatePortBindings(hostServerPort int, hostServerDebugPort int) *nat.PortMap {
-	var serverPortBinding []nat.PortBinding
-	var serverDebugPortBinding []nat.PortBinding
+	var (
+		serverPortBinding      []nat.PortBinding
+		serverDebugPortBinding []nat.PortBinding
+	)
 
 	serverPortBinding = append(serverPortBinding, nat.PortBinding{HostIP: HostIp, HostPort: strconv.Itoa(hostServerPort)})
 	serverDebugPortBinding = append(serverDebugPortBinding, nat.PortBinding{HostIP: HostIp, HostPort: strconv.Itoa(hostServerDebugPort)})
@@ -416,6 +419,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 
 				sidecarName := fmt.Sprintf("%s-sc", module.Name)
 
+				// TODO Create a "New" method
 				deploySidecarDto := &DeployModuleDto{
 					Name:         sidecarName,
 					Image:        sidecarImage,

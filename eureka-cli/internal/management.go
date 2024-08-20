@@ -61,33 +61,33 @@ func RemoveApplications(commandName string, moduleName string, enableDebug bool)
 		slog.Info(commandName, MessageKey, "No deployed module applications were found")
 	}
 
-	if apps.TotalRecords > 0 {
-		for _, v := range apps.ApplicationDescriptors {
-			id := v["id"].(string)
+	for _, v := range apps.ApplicationDescriptors {
+		id := v["id"].(string)
 
-			if moduleName != "" {
-				moduleNameFiltered := ModuleIdRegexp.ReplaceAllString(id, `$1`)
-				moduleNameFiltered = TrimModuleName(moduleNameFiltered)
+		if moduleName != "" {
+			moduleNameFiltered := ModuleIdRegexp.ReplaceAllString(id, `$1`)
+			moduleNameFiltered = TrimModuleName(moduleNameFiltered)
 
-				if moduleNameFiltered != moduleName {
-					continue
-				}
+			if moduleNameFiltered != moduleName {
+				continue
 			}
-
-			slog.Info(commandName, "Deregistering application", id)
-
-			DoDelete(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, fmt.Sprintf("/applications/%s", id)), enableDebug)
 		}
+
+		slog.Info(commandName, "Deregistering application", id)
+
+		DoDelete(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, fmt.Sprintf("/applications/%s", id)), enableDebug)
 	}
 }
 
 func CreateApplications(commandName string, enableDebug bool, dto *RegisterModuleDto) {
-	var backendModules []map[string]string
-	var frontendModules []map[string]string
-	var backendModuleDescriptors []interface{}
-	var frontendModuleDescriptors []interface{}
-	var dependencies []interface{}
-	var discoveryModules []map[string]string
+	var (
+		backendModules            []map[string]string
+		frontendModules           []map[string]string
+		backendModuleDescriptors  []interface{}
+		frontendModuleDescriptors []interface{}
+		dependencies              []interface{}
+		discoveryModules          []map[string]string
+	)
 
 	for registryName, registryModules := range dto.RegistryModules {
 		slog.Info(commandName, MessageKey, fmt.Sprintf("Registering %s registry modules", registryName))
