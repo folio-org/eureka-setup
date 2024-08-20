@@ -16,45 +16,39 @@ const (
 	ServerPort        string = "8081"
 	DebugPort         string = "5005"
 
-	VaultTokenPattern string = `.*:`
-	ModuleIdPattern   string = `([a-z-_]+)([\d-_.]+)([a-zA-Z0-9-_.]+)`
-	EnvNamePattern    string = `[.-]+`
+	VaultTokenPattern       string = ".*:"
+	ModuleIdPattern         string = "([a-z-_]+)([\\d-_.]+)([a-zA-Z0-9-_.]+)"
+	EnvNamePattern          string = "[.-]+"
+	ManagementModulePattern string = "mgr-"
 
-	PrimaryMessageKey   string = "Primary Message"
-	SecondaryMessageKey string = "Secondary Message"
+	MessageKey string = ""
 )
 
 const (
-	FolioRegistryHostnameKey string = "registries.folio.registry-hostname"
-	FolioRegistryUrlKey      string = "registries.folio.registry-url"
-	FolioInstallJsonUrlKey   string = "registries.folio.install-json-url"
+	RegistryUrlKey                  string = "registry.registry-url"
+	RegistrySidecarImageKey         string = "registry.sidecar-image"
+	RegistryFolioInstallJsonUrlKey  string = "registry.folio-install-json-url"
+	RegistryEurekaInstallJsonUrlKey string = "registry.eureka-install-json-url"
 
-	EurekaRegistryHostnameKey string = "registries.eureka.registry-hostname"
-	EurekaRegistryUrlKey      string = "registries.eureka.registry-url"
-	EurekaInstallJsonUrlKey   string = "registries.eureka.install-json-url"
-	EurekaSidecarImageKey     string = "registries.eureka.sidecar-image"
-	EurekaUsernameKey         string = "registries.eureka.username"
-	EurekaPasswordKey         string = "registries.eureka.password"
+	EnvironmentKey string = "environment"
 
-	SharedEnvKey string = "shared-env"
+	FilesModuleEnvKey         string = "files.module-env"
+	FilesModuleDescriptorsKey string = "files.module-descriptors"
 
-	CacheFileModuleEnvKey         string = "cache-files.module-env"
-	CacheFileModuleDescriptorsKey string = "cache-files.module-descriptors"
+	ResourcesVaultKey              string = "resources.vault"
+	ResourcesKeycloakKey           string = "resources.keycloak"
+	ResourcesMgrTenantsKey         string = "resources.mgr-tenants"
+	ResourcesMgrApplicationsKey    string = "resources.mgr-applications"
+	ResourcesMgrTenantEntitlements string = "resources.mgr-tenant-entitlements"
 
-	ResourceUrlVaultKey              string = "resource-urls.vault"
-	ResourceUrlKeycloakKey           string = "resource-urls.keycloak"
-	ResourceUrlMgrTenantsKey         string = "resource-urls.mgr-tenants"
-	ResourceUrlMgrApplicationsKey    string = "resource-urls.mgr-applications"
-	ResourceUrlMgrTenantEntitlements string = "resource-urls.mgr-tenant-entitlements"
+	TenantConfigKey string = "tenants"
 
-	TenantConfigKey string = "tenant-config"
+	BackendModuleKey  string = "backend-modules"
+	FrontendModuleKey string = "frontend-modules"
 
-	BackendModuleKey string = "backend-modules"
-
-	PortKey          string = "port"
-	DeployModuleKey  string = "deploy-module"
-	DeploySidecarKey string = "deploy-sidecar"
-	ModuleEnvKey     string = "module-env"
+	PortKey      string = "port"
+	SidecarKey   string = "sidecar"
+	ModuleEnvKey string = "environment"
 )
 
 var (
@@ -63,13 +57,13 @@ var (
 	EnvNameRegexp    = regexp.MustCompile(EnvNamePattern)
 )
 
-func GetSharedEnvFromConfig(commandName string, sharedEnvMap map[string]string) []string {
+func GetEnvironmentFromConfig(commandName string, sharedEnvMap map[string]string) []string {
 	var sharedEnv []string
 
 	for name, value := range sharedEnvMap {
 		env := fmt.Sprintf("%s=%s", strings.ToUpper(name), value)
 
-		slog.Info(commandName, "Found shared ENV", env)
+		slog.Info(commandName, "Found environment", env)
 
 		sharedEnv = append(sharedEnv, env)
 	}
@@ -83,21 +77,23 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 	for name, value := range backendModulesAnyMap {
 		mapEntry := value.((map[string]interface{}))
 
-		if !mapEntry[DeployModuleKey].(bool) {
-			continue
+		port := mapEntry[PortKey].(int)
+
+		var sidecar *bool
+		if mapEntry[SidecarKey] != nil {
+			sidecarValue := mapEntry[SidecarKey].(bool)
+			sidecar = &sidecarValue
 		}
 
-		port := mapEntry[PortKey].(int)
 		var moduleEnv map[string]interface{}
-
 		if mapEntry[ModuleEnvKey] != nil {
 			moduleEnv = mapEntry[ModuleEnvKey].(map[string]interface{})
 		} else {
 			moduleEnv = make(map[string]interface{})
 		}
 
-		if mapEntry[DeployModuleKey].(bool) {
-			backendModulesMap[name] = *NewBackendModuleWithSidecar(name, port, moduleEnv)
+		if sidecar != nil && *sidecar {
+			backendModulesMap[name] = *NewBackendModuleWithSidecar(name, port, *sidecar, moduleEnv)
 		} else {
 			backendModulesMap[name] = *NewBackendModule(name, port, moduleEnv)
 		}
@@ -108,30 +104,42 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 	return backendModulesMap
 }
 
-func CreateModuleEnvCacheFile(commandName string, cacheFileModuleEnv string) *os.File {
-	err := os.Remove(cacheFileModuleEnv)
-	if err != nil {
-		slog.Warn(commandName, SecondaryMessageKey, fmt.Sprintf("os.Remove warn=\"%s\"", err.Error()))
+func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMap map[string]any) map[string]FrontendModule {
+	frontendModulesMap := make(map[string]FrontendModule)
+
+	for name, _ := range frontendModulesAnyMap {
+		frontendModulesMap[name] = *NewFrontendModule(name)
+
+		slog.Info(commandName, "Found frontend module", name)
 	}
 
-	fileModuleEnvPointer, err := os.OpenFile(cacheFileModuleEnv, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	return frontendModulesMap
+}
+
+func CreateModuleEnvFile(commandName string, fileModuleEnv string) *os.File {
+	err := os.Remove(fileModuleEnv)
 	if err != nil {
-		slog.Error(commandName, SecondaryMessageKey, "os.OpenFile error")
+		slog.Warn(commandName, MessageKey, fmt.Sprintf("os.Remove warn=\"%s\"", err.Error()))
+	}
+
+	fileModuleEnvPointer, err := os.OpenFile(fileModuleEnv, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		slog.Error(commandName, MessageKey, "os.OpenFile error")
 		panic(err)
 	}
 
 	return fileModuleEnvPointer
 }
 
-func CreateModuleDescriptorsCacheFile(commandName string, cacheFileModuleDescriptors string) *os.File {
-	err := os.Remove(cacheFileModuleDescriptors)
+func CreateModuleDescriptorsFile(commandName string, fileModuleDescriptors string) *os.File {
+	err := os.Remove(fileModuleDescriptors)
 	if err != nil {
-		slog.Warn(commandName, SecondaryMessageKey, fmt.Sprintf("os.Remove warn=\"%s\"", err.Error()))
+		slog.Warn(commandName, MessageKey, fmt.Sprintf("os.Remove warn=\"%s\"", err.Error()))
 	}
 
-	moduleDescriptorsFile, err := os.OpenFile(cacheFileModuleDescriptors, os.O_CREATE, 0644)
+	moduleDescriptorsFile, err := os.OpenFile(fileModuleDescriptors, os.O_CREATE, 0644)
 	if err != nil {
-		slog.Error(commandName, SecondaryMessageKey, "os.OpenFile error")
+		slog.Error(commandName, MessageKey, "os.OpenFile error")
 		panic(err)
 	}
 

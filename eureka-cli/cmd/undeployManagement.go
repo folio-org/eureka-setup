@@ -23,33 +23,29 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const undeployModulesCommand = "Undeploy Modules"
+const undeployManagementCommand = "Undeploy Management"
 
-// undeployModulesCmd represents the undeployModules command
-var undeployModulesCmd = &cobra.Command{
-	Use:   "undeployModules",
+// undeployManagementCmd represents the undeployManagement command
+var undeployManagementCmd = &cobra.Command{
+	Use:   "undeployManagement",
 	Short: "Undeploy modules",
-	Long:  `Undeploy multiple modules.`,
+	Long:  `Undeploy management modules.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		slog.Info(undeployModulesCommand, internal.MessageKey, "### DEREGISTERING MODULES ###")
+		slog.Info(undeployManagementCommand, internal.MessageKey, "### UNDEPLOYING MANAGEMENT MODULES ###")
 
-		internal.DeregisterModules(undeployModulesCommand, "", enableDebug)
-
-		slog.Info(undeployModulesCommand, internal.MessageKey, "### UNDEPLOYING MODULES ###")
-
-		client := internal.CreateClient(undeployModulesCommand)
+		client := internal.CreateClient(undeployManagementCommand)
 		defer client.Close()
 
-		filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: "eureka"})
+		filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: "eureka-mgr"})
 
-		deployedModules := internal.GetDeployedModules(undeployModulesCommand, client, filters)
+		deployedModules := internal.GetDeployedModules(undeployManagementCommand, client, filters)
 
 		for _, deployedModule := range deployedModules {
-			internal.UndeployModule(undeployModulesCommand, client, deployedModule)
+			internal.UndeployModule(undeployManagementCommand, client, deployedModule)
 		}
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(undeployModulesCmd)
+	rootCmd.AddCommand(undeployManagementCmd)
 }

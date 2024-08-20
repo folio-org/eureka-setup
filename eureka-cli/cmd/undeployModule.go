@@ -32,21 +32,21 @@ var undeployModuleCmd = &cobra.Command{
 	Short: "Undeploy module",
 	Long:  `Undeploy a single module.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		slog.Info(undeployModulesCommand, internal.PrimaryMessageKey, "### DEREGISTERING MODULE ###")
+		slog.Info(undeployModulesCommand, internal.MessageKey, "### DEREGISTERING MODULE ###")
 
 		internal.DeregisterModules(undeployModulesCommand, moduleName, enableDebug)
 
-		slog.Info(undeployModuleCommand, internal.PrimaryMessageKey, "### UNDEPLOYING MODULE ###")
+		slog.Info(undeployModuleCommand, internal.MessageKey, "### UNDEPLOYING MODULE ###")
 
-		containerdCli := internal.CreateContainerdCli(undeployModuleCommand)
-		defer containerdCli.Close()
+		client := internal.CreateClient(undeployModuleCommand)
+		defer client.Close()
 
 		filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf("^(eureka-)(%[1]s|%[1]s-sc)$", moduleName)})
 
-		deployedModules := internal.GetDeployedModules(undeployModuleCommand, containerdCli, filters)
+		deployedModules := internal.GetDeployedModules(undeployModuleCommand, client, filters)
 
 		for _, deployedModule := range deployedModules {
-			internal.UndeployModule(undeployModuleCommand, containerdCli, deployedModule)
+			internal.UndeployModule(undeployModuleCommand, client, deployedModule)
 		}
 	},
 }

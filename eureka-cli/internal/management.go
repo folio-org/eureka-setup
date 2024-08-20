@@ -1,11 +1,9 @@
 package internal
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"slices"
 	"strings"
 
@@ -33,38 +31,36 @@ type Applications struct {
 	TotalRecords           int                      `json:"totalRecords"`
 }
 
+func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryModulesMap map[string][]RegistryModule) {
+	for registryName, registryModules := range registryModulesMap {
+		slog.Info(commandName, MessageKey, fmt.Sprintf("Registering %s registry modules", registryName))
+
+		for moduleIndex, module := range registryModules {
+			module.Name = ModuleIdRegexp.ReplaceAllString(module.Id, `$1`)
+			module.Version = ModuleIdRegexp.ReplaceAllString(module.Id, `$2$3`)
+			module.Name = TrimModuleName(module.Name)
+
+			registryModules[moduleIndex] = module
+		}
+	}
+}
+
 func DeregisterModules(commandName string, moduleName string, enableDebug bool) {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/applications"), nil)
-	if err != nil {
-		slog.Error(commandName, SecondaryMessageKey, "http.NewRequest error")
-		panic(err)
-	}
+	slog.Info(commandName, "Deregistering module", moduleName)
 
-	if enableDebug {
-		DumpHttpRequest(commandName, req)
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		slog.Error(commandName, SecondaryMessageKey, "http.DefaultClient.Do error")
-		panic(err)
-	}
+	resp := DoGetReturnResponse(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/applications"), enableDebug)
 	defer resp.Body.Close()
-
-	if enableDebug {
-		DumpHttpResponse(commandName, resp)
-	}
 
 	var apps Applications
 
-	err = json.NewDecoder(resp.Body).Decode(&apps)
+	err := json.NewDecoder(resp.Body).Decode(&apps)
 	if err != nil {
-		slog.Error(commandName, SecondaryMessageKey, "json.NewDecoder error")
+		slog.Error(commandName, MessageKey, "json.NewDecoder error")
 		panic(err)
 	}
 
 	if apps.TotalRecords == 0 {
-		slog.Info(commandName, SecondaryMessageKey, "No deployed module applications were found")
+		slog.Info(commandName, MessageKey, "No deployed module applications were found")
 	}
 
 	if apps.TotalRecords > 0 {
@@ -73,10 +69,7 @@ func DeregisterModules(commandName string, moduleName string, enableDebug bool) 
 
 			if moduleName != "" {
 				moduleNameFiltered := ModuleIdRegexp.ReplaceAllString(id, `$1`)
-
-				if moduleNameFiltered[strings.LastIndex(moduleNameFiltered, "-")] == 45 {
-					moduleNameFiltered = moduleNameFiltered[:strings.LastIndex(moduleNameFiltered, "-")]
-				}
+				moduleNameFiltered = TrimModuleName(moduleNameFiltered)
 
 				if moduleNameFiltered != moduleName {
 					continue
@@ -85,43 +78,21 @@ func DeregisterModules(commandName string, moduleName string, enableDebug bool) 
 
 			slog.Info(commandName, "Deregistering application", id)
 
-			delAppReq, err := http.NewRequest(http.MethodDelete, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, fmt.Sprintf("/applications/%s", id)), nil)
-			if err != nil {
-				slog.Error(commandName, SecondaryMessageKey, "http.NewRequest error")
-				panic(err)
-			}
-
-			if enableDebug {
-				DumpHttpRequest(commandName, delAppReq)
-			}
-
-			delAppResp, err := http.DefaultClient.Do(delAppReq)
-			if err != nil {
-				slog.Error(commandName, SecondaryMessageKey, "http.DefaultClient.Do error")
-				panic(err)
-			}
-			defer delAppResp.Body.Close()
-
-			if enableDebug {
-				DumpHttpResponse(commandName, delAppResp)
-			}
+			DoDelete(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, fmt.Sprintf("/applications/%s", id)), enableDebug)
 		}
 	}
 }
 
 func RegisterModules(commandName string, enableDebug bool, dto *RegisterModuleDto) {
 	for registryName, registryModules := range dto.RegistryModules {
-		slog.Info(commandName, SecondaryMessageKey, fmt.Sprintf("Registering %s registry modules", registryName))
+		slog.Info(commandName, MessageKey, fmt.Sprintf("Registering %s registry modules", registryName))
 
-		for moduleIndex, module := range registryModules {
-			module.Name = ModuleIdRegexp.ReplaceAllString(module.Id, `$1`)
-			module.Version = ModuleIdRegexp.ReplaceAllString(module.Id, `$2$3`)
+		for _, module := range registryModules {
+			if strings.Contains(module.Name, ManagementModulePattern) {
+				slog.Info(commandName, MessageKey, fmt.Sprintf("Ignoring %s module", module.Name))
 
-			if module.Name[strings.LastIndex(module.Name, "-")] == 45 {
-				module.Name = module.Name[:strings.LastIndex(module.Name, "-")]
+				continue
 			}
-
-			registryModules[moduleIndex] = module
 
 			_, ok := dto.BackendModulesMap[module.Name]
 			if !ok {
@@ -130,48 +101,13 @@ func RegisterModules(commandName string, enableDebug bool, dto *RegisterModuleDt
 
 			moduleNameEnv := EnvNameRegexp.ReplaceAllString(strings.ToUpper(module.Name), `_`)
 
-			_, err := dto.CacheFileModuleEnvPointer.WriteString(fmt.Sprintf("export %s_VERSION=%s\r\n", moduleNameEnv, module.Version))
+			_, err := dto.FileModuleEnvPointer.WriteString(fmt.Sprintf("export %s_VERSION=%s\r\n", moduleNameEnv, module.Version))
 			if err != nil {
-				slog.Error(commandName, SecondaryMessageKey, "moduleEnvVarsFile.WriteString error")
+				slog.Error(commandName, MessageKey, "moduleEnvVarsFile.WriteString error")
 				panic(err)
 			}
 
-			var moduleDescriptorsUrl string
-
-			if registryName == "folio" {
-				moduleDescriptorsUrl = fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls["folio"], module.Id)
-			} else {
-				moduleDescriptorsUrl = fmt.Sprintf("%s/descriptors/%s.json", dto.RegistryUrls["eureka"], module.Id)
-			}
-
-			moduleDescriptorsReq, err := http.NewRequest(http.MethodGet, moduleDescriptorsUrl, nil)
-			if err != nil {
-				slog.Error(commandName, SecondaryMessageKey, "http.NewRequest error")
-				panic(err)
-			}
-
-			if enableDebug {
-				DumpHttpRequest(commandName, moduleDescriptorsReq)
-			}
-
-			moduleDescriptorsResp, err := http.DefaultClient.Do(moduleDescriptorsReq)
-			if err != nil {
-				slog.Error(commandName, SecondaryMessageKey, "http.DefaultClient.Do error")
-				panic(err)
-			}
-			defer moduleDescriptorsResp.Body.Close()
-
-			if enableDebug {
-				DumpHttpResponse(commandName, moduleDescriptorsResp)
-			}
-
-			var moduleDescriptors interface{}
-
-			err = json.NewDecoder(moduleDescriptorsResp.Body).Decode(&moduleDescriptors)
-			if err != nil {
-				slog.Error(commandName, SecondaryMessageKey, "json.NewDecoder error")
-				panic(err)
-			}
+			moduleDescriptors := DoGetDecodeReturnInterface(commandName, fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls["folio"], module.Id), enableDebug)
 
 			dto.ModuleDescriptorsMap[module.Id] = moduleDescriptors
 
@@ -187,37 +123,11 @@ func RegisterModules(commandName string, enableDebug bool, dto *RegisterModuleDt
 				"moduleDescriptors": moduleDescriptors,
 			})
 			if err != nil {
-				slog.Error(commandName, SecondaryMessageKey, "json.Marshal error")
+				slog.Error(commandName, MessageKey, "json.Marshal error")
 				panic(err)
 			}
 
-			if enableDebug {
-				fmt.Println("### Dumping HTTP Request Body")
-				fmt.Println(string(appBytes))
-			}
-
-			postAppReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/applications"), bytes.NewBuffer(appBytes))
-			if err != nil {
-				slog.Error(commandName, SecondaryMessageKey, "http.NewRequest error")
-				panic(err)
-			}
-
-			postAppReq.Header.Add("Content-Type", ApplicationJson)
-
-			if enableDebug {
-				DumpHttpRequest(commandName, postAppReq)
-			}
-
-			postAppResp, err := http.DefaultClient.Do(postAppReq)
-			if err != nil {
-				slog.Error(commandName, SecondaryMessageKey, "http.DefaultClient.Do error")
-				panic(err)
-			}
-			defer postAppResp.Body.Close()
-
-			if enableDebug {
-				DumpHttpResponse(commandName, postAppResp)
-			}
+			DoPostNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/applications"), enableDebug, appBytes)
 
 			var appDiscModules []map[string]string
 			appDiscModules = append(appDiscModules, map[string]string{
@@ -227,43 +137,15 @@ func RegisterModules(commandName string, enableDebug bool, dto *RegisterModuleDt
 				"location": fmt.Sprintf("http://%s.eureka:%s", module.Name, ServerPort),
 			})
 
-			appDiscInfoBytes, err := json.Marshal(map[string]interface{}{
-				"discovery": appDiscModules,
-			})
+			appDiscInfoBytes, err := json.Marshal(map[string]interface{}{"discovery": appDiscModules})
 			if err != nil {
-				slog.Error(commandName, SecondaryMessageKey, "json.Marshal error")
+				slog.Error(commandName, MessageKey, "json.Marshal error")
 				panic(err)
 			}
 
-			if enableDebug {
-				fmt.Println("### Dumping HTTP Request Body")
-				fmt.Println(string(appDiscInfoBytes))
-			}
+			DoPostNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/modules/discovery"), enableDebug, appDiscInfoBytes)
 
-			postAppDiscReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/modules/discovery"), bytes.NewBuffer(appDiscInfoBytes))
-			if err != nil {
-				slog.Error(commandName, SecondaryMessageKey, "http.NewRequest error")
-				panic(err)
-			}
-
-			postAppDiscReq.Header.Add("Content-Type", ApplicationJson)
-
-			if enableDebug {
-				DumpHttpRequest(commandName, postAppDiscReq)
-			}
-
-			postAppDiscResp, err := http.DefaultClient.Do(postAppDiscReq)
-			if err != nil {
-				slog.Error(commandName, SecondaryMessageKey, "http.DefaultClient.Do error")
-				panic(err)
-			}
-			defer postAppDiscResp.Body.Close()
-
-			if enableDebug {
-				DumpHttpResponse(commandName, postAppResp)
-			}
-
-			slog.Info(commandName, "Registered module", fmt.Sprintf("%s %d %d", module.Id, postAppResp.StatusCode, postAppDiscResp.StatusCode))
+			slog.Info(commandName, "Registered module", module.Id)
 		}
 	}
 }
@@ -271,34 +153,7 @@ func RegisterModules(commandName string, enableDebug bool, dto *RegisterModuleDt
 func CreateTenants(commandName string, enableDebug bool) {
 	tenants := viper.GetStringSlice(TenantConfigKey)
 
-	getTenantsReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf(DockerInternalUrl, TenantsPort, "/tenants"), nil)
-	if err != nil {
-		slog.Error(commandName, SecondaryMessageKey, "http.NewRequest error")
-		panic(err)
-	}
-
-	if enableDebug {
-		DumpHttpRequest(commandName, getTenantsReq)
-	}
-
-	getTenantsResp, err := http.DefaultClient.Do(getTenantsReq)
-	if err != nil {
-		slog.Error(commandName, SecondaryMessageKey, "http.DefaultClient.Do error")
-		panic(err)
-	}
-	defer getTenantsResp.Body.Close()
-
-	if enableDebug {
-		DumpHttpResponse(commandName, getTenantsResp)
-	}
-
-	var foundTenantsMap map[string]interface{}
-
-	err = json.NewDecoder(getTenantsResp.Body).Decode(&foundTenantsMap)
-	if err != nil {
-		slog.Error(commandName, SecondaryMessageKey, "json.NewDecoder error")
-		panic(err)
-	}
+	foundTenantsMap := DoGetDecodeReturnMapStringInteface(commandName, fmt.Sprintf(DockerInternalUrl, TenantsPort, "/tenants"), enableDebug)
 
 	foundTenants := foundTenantsMap["tenants"].([]interface{})
 
@@ -310,28 +165,9 @@ func CreateTenants(commandName string, enableDebug bool) {
 		if slices.Contains(tenants, name) {
 			id := mapEntry["id"].(string)
 
-			delTenantReq, err := http.NewRequest(http.MethodDelete, fmt.Sprintf(DockerInternalUrl, TenantsPort, fmt.Sprintf("/tenants/%s", id)), nil)
-			if err != nil {
-				slog.Error(commandName, SecondaryMessageKey, "http.NewRequest error")
-				panic(err)
-			}
+			DoDelete(commandName, fmt.Sprintf(DockerInternalUrl, TenantsPort, fmt.Sprintf("/tenants/%s?purge=true", id)), enableDebug)
 
-			if enableDebug {
-				DumpHttpRequest(commandName, delTenantReq)
-			}
-
-			delTenantResp, err := http.DefaultClient.Do(delTenantReq)
-			if err != nil {
-				slog.Error(commandName, SecondaryMessageKey, "http.DefaultClient.Do error")
-				panic(err)
-			}
-			defer delTenantResp.Body.Close()
-
-			if enableDebug {
-				DumpHttpResponse(commandName, delTenantResp)
-			}
-
-			slog.Info(commandName, SecondaryMessageKey, fmt.Sprintf("Removed tenant %s", name))
+			slog.Info(commandName, MessageKey, fmt.Sprintf("Removed tenant %s", name))
 
 			break
 		}
@@ -343,38 +179,12 @@ func CreateTenants(commandName string, enableDebug bool) {
 			"description": "Default_tenant",
 		})
 		if err != nil {
-			slog.Error(commandName, SecondaryMessageKey, "json.Marshal error")
+			slog.Error(commandName, MessageKey, "json.Marshal error")
 			panic(err)
 		}
 
-		if enableDebug {
-			fmt.Println("### Dumping HTTP Request Body")
-			fmt.Println(string(tenantBytes))
-		}
+		DoPostNoContent(commandName, fmt.Sprintf(DockerInternalUrl, TenantsPort, "/tenants"), enableDebug, tenantBytes)
 
-		tenantReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf(DockerInternalUrl, TenantsPort, "/tenants"), bytes.NewBuffer(tenantBytes))
-		if err != nil {
-			slog.Error(commandName, SecondaryMessageKey, "http.NewRequest error")
-			panic(err)
-		}
-
-		tenantReq.Header.Add("Content-Type", ApplicationJson)
-
-		if enableDebug {
-			DumpHttpRequest(commandName, tenantReq)
-		}
-
-		tenantResp, err := http.DefaultClient.Do(tenantReq)
-		if err != nil {
-			slog.Error(commandName, SecondaryMessageKey, "http.DefaultClient.Do error")
-			panic(err)
-		}
-		defer tenantResp.Body.Close()
-
-		if enableDebug {
-			DumpHttpResponse(commandName, tenantResp)
-		}
-
-		slog.Info(commandName, SecondaryMessageKey, fmt.Sprintf("Created tenant %s", tenant))
+		slog.Info(commandName, MessageKey, fmt.Sprintf("Created tenant %s", tenant))
 	}
 }

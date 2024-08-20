@@ -22,12 +22,13 @@ import (
 )
 
 type RegisterModuleDto struct {
-	RegistryUrls              map[string]string
-	RegistryModules           map[string][]RegistryModule
-	BackendModulesMap         map[string]BackendModule
-	ModuleDescriptorsMap      map[string]interface{}
-	CacheFileModuleEnvPointer *os.File
-	EnableDebug               bool
+	RegistryUrls         map[string]string
+	RegistryModules      map[string][]RegistryModule
+	BackendModulesMap    map[string]BackendModule
+	FrontendModulesMap   map[string]FrontendModule
+	ModuleDescriptorsMap map[string]interface{}
+	FileModuleEnvPointer *os.File
+	EnableDebug          bool
 }
 
 type DeployModuleDto struct {
@@ -42,12 +43,12 @@ type DeployModuleDto struct {
 }
 
 type DeployModulesDto struct {
-	VaultToken              string
-	RegistryHostname        map[string]string
-	EurekaRegistryAuthToken string
-	RegistryModules         map[string][]RegistryModule
-	BackendModulesMap       map[string]BackendModule
-	SharedEnv               []string
+	VaultToken        string
+	RegistryHostname  map[string]string
+	RegistryModules   map[string][]RegistryModule
+	BackendModulesMap map[string]BackendModule
+	GlobalEnvironment []string
+	ManagementOnly    bool
 }
 
 type BackendModule struct {
@@ -55,11 +56,16 @@ type BackendModule struct {
 	ModuleName         string
 	ModuleExposedPorts *nat.PortSet
 	ModulePortBindings *nat.PortMap
-	ModuleEnv          map[string]interface{}
+	ModuleEnvironment  map[string]interface{}
 
 	DeploySidecar       bool
 	SidecarExposedPorts *nat.PortSet
 	SidecarPortBindings *nat.PortMap
+}
+
+type FrontendModule struct {
+	DeployModule bool
+	ModuleName   string
 }
 
 type Event struct {
@@ -72,37 +78,95 @@ type Event struct {
 	} `json:"progressDetail"`
 }
 
-func AppendModuleEnv(envMap map[string]interface{}, moduleEnv []string) []string {
-	if len(envMap) > 0 {
-		for key, value := range envMap {
-			moduleEnv = append(moduleEnv, fmt.Sprintf("%s=%s", strings.ToUpper(key), value))
+func AppendModuleEnvironment(environmentMap map[string]interface{}, moduleEnvironment []string) []string {
+	if len(environmentMap) > 0 {
+		for key, value := range environmentMap {
+			moduleEnvironment = append(moduleEnvironment, fmt.Sprintf("%s=%s", strings.ToUpper(key), value))
 		}
 	}
 
-	return moduleEnv
+	return moduleEnvironment
 }
 
-func AppendVaultEnv(moduleEnv []string, vaultToken string, vaultUrl string) []string {
-	moduleEnv = append(moduleEnv, "SECRET_STORE_TYPE=VAULT")
-	moduleEnv = append(moduleEnv, fmt.Sprintf("SECRET_STORE_VAULT_TOKEN=%s", vaultToken))
-	moduleEnv = append(moduleEnv, fmt.Sprintf("SECRET_STORE_VAULT_ADDRESS=%s", vaultUrl))
+func AppendVaultEnvironment(moduleEnvironment []string, vaultToken string, vaultUrl string) []string {
+	moduleEnvironment = append(moduleEnvironment, "SECRET_STORE_TYPE=VAULT")
+	moduleEnvironment = append(moduleEnvironment, fmt.Sprintf("SECRET_STORE_VAULT_TOKEN=%s", vaultToken))
+	moduleEnvironment = append(moduleEnvironment, fmt.Sprintf("SECRET_STORE_VAULT_ADDRESS=%s", vaultUrl))
 
-	return moduleEnv
+	return moduleEnvironment
 }
 
-func NewBackendModuleWithSidecar(name string, port int, moduleEnv map[string]interface{}) *BackendModule {
+func NewRegisterModuleDto(
+	registryUrls map[string]string,
+	registryModules map[string][]RegistryModule,
+	backendModulesMap map[string]BackendModule,
+	frontendModulesMap map[string]FrontendModule,
+	moduleDescriptorsMap map[string]interface{},
+	fileModuleEnvPointer *os.File,
+	enableDebug bool,
+) *RegisterModuleDto {
+	return &RegisterModuleDto{
+		RegistryUrls:         registryUrls,
+		RegistryModules:      registryModules,
+		BackendModulesMap:    backendModulesMap,
+		FrontendModulesMap:   frontendModulesMap,
+		ModuleDescriptorsMap: moduleDescriptorsMap,
+		FileModuleEnvPointer: fileModuleEnvPointer,
+		EnableDebug:          enableDebug,
+	}
+}
+
+func NewBackendModuleWithSidecar(name string, port int, deploySidecar bool, moduleEnvironment map[string]interface{}) *BackendModule {
 	exposedPorts := CreateExposedPorts()
 	modulePortBindings := CreatePortBindings(port, port+1000)
 	sidecarPortBindings := CreatePortBindings(port+2000, port+3000)
 
-	return &BackendModule{true, name, exposedPorts, modulePortBindings, moduleEnv, true, exposedPorts, sidecarPortBindings}
+	return &BackendModule{true, name, exposedPorts, modulePortBindings, moduleEnvironment, deploySidecar, exposedPorts, sidecarPortBindings}
 }
 
-func NewBackendModule(name string, port int, moduleEnv map[string]interface{}) *BackendModule {
+func NewBackendModule(name string, port int, moduleEnvironment map[string]interface{}) *BackendModule {
 	exposedPorts := CreateExposedPorts()
 	modulePortBindings := CreatePortBindings(port, port+1000)
 
-	return &BackendModule{true, name, exposedPorts, modulePortBindings, moduleEnv, false, nil, nil}
+	return &BackendModule{true, name, exposedPorts, modulePortBindings, moduleEnvironment, false, nil, nil}
+}
+
+func NewFrontendModule(name string) *FrontendModule {
+	return &FrontendModule{true, name}
+}
+
+func NewDeployManagementModulesDto(
+	vaultToken string,
+	registryHostname map[string]string,
+	registryModules map[string][]RegistryModule,
+	backendModulesMap map[string]BackendModule,
+	globalEnvironment []string,
+) *DeployModulesDto {
+	return &DeployModulesDto{
+		VaultToken:        vaultToken,
+		RegistryHostname:  registryHostname,
+		RegistryModules:   registryModules,
+		BackendModulesMap: backendModulesMap,
+		GlobalEnvironment: globalEnvironment,
+		ManagementOnly:    true,
+	}
+}
+
+func NewDeployModulesDto(
+	vaultToken string,
+	registryHostname map[string]string,
+	registryModules map[string][]RegistryModule,
+	backendModulesMap map[string]BackendModule,
+	globalEnvironment []string,
+) *DeployModulesDto {
+	return &DeployModulesDto{
+		VaultToken:        vaultToken,
+		RegistryHostname:  registryHostname,
+		RegistryModules:   registryModules,
+		BackendModulesMap: backendModulesMap,
+		GlobalEnvironment: globalEnvironment,
+		ManagementOnly:    false,
+	}
 }
 
 func CreateExposedPorts() *nat.PortSet {
@@ -131,20 +195,20 @@ func CreatePortBindings(hostServerPort int, hostServerDebugPort int) *nat.PortMa
 	return &portMap
 }
 
-func CreateContainerdCli(commandName string) *client.Client {
-	containerdCli, err := client.NewClientWithOpts(client.FromEnv)
+func CreateClient(commandName string) *client.Client {
+	newClient, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		slog.Error(commandName, SecondaryMessageKey, "client.NewClientWithOpts error")
+		slog.Error(commandName, MessageKey, "client.NewClientWithOpts error")
 		panic(err)
 	}
 
-	return containerdCli
+	return newClient
 }
 
-func GetVaultToken(commandName string, containerdCli *client.Client) string {
-	logStream, err := containerdCli.ContainerLogs(context.Background(), "vault", container.LogsOptions{ShowStdout: true, ShowStderr: true})
+func GetVaultToken(commandName string, client *client.Client) string {
+	logStream, err := client.ContainerLogs(context.Background(), "vault", container.LogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
-		slog.Error(commandName, SecondaryMessageKey, "cli.ContainerLogs error")
+		slog.Error(commandName, MessageKey, "cli.ContainerLogs error")
 		panic(err)
 	}
 	defer logStream.Close()
@@ -153,7 +217,7 @@ func GetVaultToken(commandName string, containerdCli *client.Client) string {
 	for {
 		_, err := logStream.Read(buffer)
 		if err != nil {
-			slog.Error(commandName, SecondaryMessageKey, "logStream.Read(buffer) error")
+			slog.Error(commandName, MessageKey, "logStream.Read(buffer) error")
 			panic(err)
 		}
 
@@ -162,7 +226,7 @@ func GetVaultToken(commandName string, containerdCli *client.Client) string {
 
 		_, err = logStream.Read(rawLogLine)
 		if err != nil {
-			slog.Warn(commandName, SecondaryMessageKey, "logStream.Read(rawLogLine) encoutered an EOF")
+			slog.Warn(commandName, MessageKey, "logStream.Read(rawLogLine) encoutered an EOF")
 		}
 
 		parsedLogLine := string(rawLogLine)
@@ -177,27 +241,27 @@ func GetVaultToken(commandName string, containerdCli *client.Client) string {
 	}
 }
 
-func GetDeployedModules(commandName string, containerdCli *client.Client, filters filters.Args) []types.Container {
-	deployedModules, err := containerdCli.ContainerList(context.Background(), container.ListOptions{All: true, Filters: filters})
+func GetDeployedModules(commandName string, client *client.Client, filters filters.Args) []types.Container {
+	deployedModules, err := client.ContainerList(context.Background(), container.ListOptions{All: true, Filters: filters})
 	if err != nil {
-		slog.Error(commandName, SecondaryMessageKey, "cli.ContainerList error")
+		slog.Error(commandName, MessageKey, "cli.ContainerList error")
 		panic(err)
 	}
 
 	if len(deployedModules) == 0 {
-		slog.Info(commandName, SecondaryMessageKey, "No deployed module containers were found")
+		slog.Info(commandName, MessageKey, "No deployed module containers were found")
 	}
 
 	return deployedModules
 }
 
-func DeployModule(commandName string, containerdCli *client.Client, dto *DeployModuleDto) {
+func DeployModule(commandName string, client *client.Client, dto *DeployModuleDto) {
 	containerName := fmt.Sprintf("eureka-%s", dto.Name)
 
 	if dto.PullImage {
-		reader, err := containerdCli.ImagePull(context.Background(), dto.Image, types.ImagePullOptions{RegistryAuth: dto.RegistryAuth})
+		reader, err := client.ImagePull(context.Background(), dto.Image, types.ImagePullOptions{RegistryAuth: dto.RegistryAuth})
 		if err != nil {
-			slog.Error(commandName, SecondaryMessageKey, "cli.ImagePull error")
+			slog.Error(commandName, MessageKey, "cli.ImagePull error")
 			panic(err)
 		}
 		defer reader.Close()
@@ -222,49 +286,52 @@ func DeployModule(commandName string, containerdCli *client.Client, dto *DeployM
 		}
 	}
 
-	cr, err := containerdCli.ContainerCreate(context.Background(), dto.Config, dto.HostConfig, dto.NetworkConfig, dto.Platform, containerName)
+	cr, err := client.ContainerCreate(context.Background(), dto.Config, dto.HostConfig, dto.NetworkConfig, dto.Platform, containerName)
 	if err != nil {
-		slog.Error(commandName, SecondaryMessageKey, "cli.ContainerCreate error")
+		slog.Error(commandName, MessageKey, "cli.ContainerCreate error")
 		panic(err)
 	}
 
 	if cr.Warnings != nil && len(cr.Warnings) > 0 {
-		slog.Warn(commandName, SecondaryMessageKey, fmt.Sprintf("cli.ContainerCreate warnings=\"%s\"", cr.Warnings))
+		slog.Warn(commandName, MessageKey, fmt.Sprintf("cli.ContainerCreate warnings=\"%s\"", cr.Warnings))
 	}
 
-	err = containerdCli.ContainerStart(context.Background(), cr.ID, container.StartOptions{})
+	err = client.ContainerStart(context.Background(), cr.ID, container.StartOptions{})
 	if err != nil {
-		slog.Error(commandName, SecondaryMessageKey, "cli.ContainerStart error")
+		slog.Error(commandName, MessageKey, "cli.ContainerStart error")
 		panic(err)
 	}
 
 	slog.Info(commandName, "Deployed module container", fmt.Sprintf("%s %s", containerName, cr.ID))
 }
 
-func UndeployModule(commandName string, containerdCli *client.Client, deployedModule types.Container) {
-	err := containerdCli.ContainerStop(context.Background(), deployedModule.ID, container.StopOptions{Signal: "9"})
+func UndeployModule(commandName string, client *client.Client, deployedModule types.Container) {
+	err := client.ContainerStop(context.Background(), deployedModule.ID, container.StopOptions{Signal: "9"})
 	if err != nil {
-		slog.Error(commandName, SecondaryMessageKey, "cli.ContainerStop error")
+		slog.Error(commandName, MessageKey, "cli.ContainerStop error")
 		panic(err)
 	}
 
-	err = containerdCli.ContainerRemove(context.Background(), deployedModule.ID, container.RemoveOptions{Force: true, RemoveVolumes: true})
+	err = client.ContainerRemove(context.Background(), deployedModule.ID, container.RemoveOptions{Force: true, RemoveVolumes: true})
 	if err != nil {
-		slog.Error(commandName, SecondaryMessageKey, "cli.ContainerRemove error")
+		slog.Error(commandName, MessageKey, "cli.ContainerRemove error")
 		panic(err)
 	}
 
 	slog.Info(commandName, "Undeployed module container", fmt.Sprintf("%s %s %s", deployedModule.ID, deployedModule.Image, deployedModule.Status))
 }
 
-func DeployModules(commandName string, containerdCli *client.Client, dto *DeployModulesDto) {
-	eurekaSidecarImage := fmt.Sprintf("%s/%s", viper.GetString(EurekaRegistryHostnameKey), viper.GetString(EurekaSidecarImageKey))
+func DeployModules(commandName string, client *client.Client, dto *DeployModulesDto) {
+	if true {
+		return
+	}
 
-	resourceUrlKeycloak := viper.GetString(ResourceUrlKeycloakKey)
-	resourceUrlVault := viper.GetString(ResourceUrlVaultKey)
-	resourceUrlMgrTenants := viper.GetString(ResourceUrlMgrTenantsKey)
-	resourceUrlMgrApplications := viper.GetString(ResourceUrlMgrApplicationsKey)
-	resourceUrlMgrTenantEntitlements := viper.GetString(ResourceUrlMgrTenantEntitlements)
+	sidecarImage := viper.GetString(RegistrySidecarImageKey)
+	resourceUrlKeycloak := viper.GetString(ResourcesKeycloakKey)
+	resourceUrlVault := viper.GetString(ResourcesVaultKey)
+	resourceUrlMgrTenants := viper.GetString(ResourcesMgrTenantsKey)
+	resourceUrlMgrApplications := viper.GetString(ResourcesMgrApplicationsKey)
+	resourceUrlMgrTenantEntitlements := viper.GetString(ResourcesMgrTenantEntitlements)
 
 	networkConfig := &network.NetworkingConfig{
 		EndpointsConfig: map[string]*network.EndpointSettings{"fpm-net": {NetworkID: "eureka"}},
@@ -273,50 +340,45 @@ func DeployModules(commandName string, containerdCli *client.Client, dto *Deploy
 	pullSidecarImage := true
 
 	for registryName, registryModules := range dto.RegistryModules {
-		slog.Info(commandName, PrimaryMessageKey, fmt.Sprintf("Deploying %s registry modules", registryName))
+		slog.Info(commandName, MessageKey, fmt.Sprintf("Deploying %s registry modules", registryName))
 
 		for _, module := range registryModules {
+			managementModule := strings.Contains(module.Name, ManagementModulePattern)
+			if dto.ManagementOnly && !managementModule || !dto.ManagementOnly && managementModule {
+				continue
+			}
+
 			backendModule, ok := dto.BackendModulesMap[module.Name]
 			if !ok {
 				continue
 			}
 
-			moduleNameEnv := EnvNameRegexp.ReplaceAllString(strings.ToUpper(module.Name), `_`)
-
 			var image string
-
-			if registryName == "folio" {
-				image = fmt.Sprintf("%s/%s:%s", dto.RegistryHostname["folio"], module.Name, module.Version)
+			if strings.Contains(module.Version, "SNAPSHOT") {
+				image = fmt.Sprintf("folioci/%s:%s", module.Name, module.Version)
 			} else {
-				image = fmt.Sprintf("%s/%s:%s", dto.RegistryHostname["eureka"], module.Name, module.Version)
+				image = fmt.Sprintf("folioorg/%s:%s", module.Name, module.Version)
 			}
 
-			var moduleEnv []string
+			var combinedModuleEnvironment []string
 
-			// Shared ENV
-			moduleEnv = append(moduleEnv, dto.SharedEnv...)
+			// Global environment
+			combinedModuleEnvironment = append(combinedModuleEnvironment, dto.GlobalEnvironment...)
 
-			// Module ENV
-			moduleEnv = AppendModuleEnv(backendModule.ModuleEnv, moduleEnv)
+			// Module environment
+			combinedModuleEnvironment = AppendModuleEnvironment(backendModule.ModuleEnvironment, combinedModuleEnvironment)
 
-			// Vault ENV
-			moduleEnv = AppendVaultEnv(moduleEnv, dto.VaultToken, resourceUrlVault)
-
-			var moduleRegistryAuthToken string
-			if registryName == "folio" {
-				moduleRegistryAuthToken = ""
-			} else {
-				moduleRegistryAuthToken = dto.EurekaRegistryAuthToken
-			}
+			// Vault environment
+			combinedModuleEnvironment = AppendVaultEnvironment(combinedModuleEnvironment, dto.VaultToken, resourceUrlVault)
 
 			deployModuleDto := &DeployModuleDto{
 				Name:         module.Name,
 				Image:        image,
-				RegistryAuth: moduleRegistryAuthToken,
+				RegistryAuth: "",
 				Config: &container.Config{
 					Image:        image,
-					Hostname:     strings.ToLower(moduleNameEnv),
-					Env:          moduleEnv,
+					Hostname:     module.Name,
+					Env:          combinedModuleEnvironment,
 					ExposedPorts: *backendModule.ModuleExposedPorts,
 				},
 				HostConfig: &container.HostConfig{
@@ -329,42 +391,44 @@ func DeployModules(commandName string, containerdCli *client.Client, dto *Deploy
 			}
 
 			// TODO Use mutex and make parallel
-			DeployModule(commandName, containerdCli, deployModuleDto)
+			DeployModule(commandName, client, deployModuleDto)
 
 			if backendModule.DeploySidecar {
-				var sidecarEnv []string
+				var combinedSidecarEnvironment []string
 
-				// Keycloak ENV
-				sidecarEnv = append(sidecarEnv, fmt.Sprintf("KC_URL=%s", resourceUrlKeycloak))
-				sidecarEnv = append(sidecarEnv, "KC_ADMIN_CLIENT_ID=superAdmin")
-				sidecarEnv = append(sidecarEnv, "KC_SERVICE_CLIENT_ID=m2m-client")
-				sidecarEnv = append(sidecarEnv, "KC_LOGIN_CLIENT_SUFFIX=login-app")
+				// Keycloak environment
+				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("KC_URL=%s", resourceUrlKeycloak))
+				combinedSidecarEnvironment = append(combinedSidecarEnvironment, "KC_ADMIN_CLIENT_ID=superAdmin")
+				combinedSidecarEnvironment = append(combinedSidecarEnvironment, "KC_SERVICE_CLIENT_ID=m2m-client")
+				combinedSidecarEnvironment = append(combinedSidecarEnvironment, "KC_LOGIN_CLIENT_SUFFIX=login-app")
 
-				// Vault ENV
-				sidecarEnv = AppendVaultEnv(sidecarEnv, dto.VaultToken, resourceUrlVault)
+				// Vault environment
+				combinedSidecarEnvironment = AppendVaultEnvironment(combinedSidecarEnvironment, dto.VaultToken, resourceUrlVault)
 
-				// Management ENV
-				sidecarEnv = append(sidecarEnv, fmt.Sprintf("TM_CLIENT_URL=%s", resourceUrlMgrTenants))
-				sidecarEnv = append(sidecarEnv, fmt.Sprintf("AM_CLIENT_URL=%s", resourceUrlMgrApplications))
-				sidecarEnv = append(sidecarEnv, fmt.Sprintf("TE_CLIENT_URL=%s", resourceUrlMgrTenantEntitlements))
+				// Management environment
+				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("TM_CLIENT_URL=%s", resourceUrlMgrTenants))
+				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("AM_CLIENT_URL=%s", resourceUrlMgrApplications))
+				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("TE_CLIENT_URL=%s", resourceUrlMgrTenantEntitlements))
 
-				// Module ENV
-				sidecarEnv = append(sidecarEnv, fmt.Sprintf("MODULE_NAME=%s", module.Name))
-				sidecarEnv = append(sidecarEnv, fmt.Sprintf("MODULE_VERSION=%s", module.Version))
-				sidecarEnv = append(sidecarEnv, fmt.Sprintf("MODULE_URL=http://%s.eureka:%s", module.Name, ServerPort))
-				sidecarEnv = append(sidecarEnv, fmt.Sprintf("SIDECAR_URL=http://%s-sc.eureka:%s", module.Name, ServerPort))
+				// Module environment
+				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("MODULE_NAME=%s", module.Name))
+				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("MODULE_VERSION=%s", module.Version))
+				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("MODULE_URL=http://%s.eureka:%s", module.Name, ServerPort))
+				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("SIDECAR_URL=http://%s-sc.eureka:%s", module.Name, ServerPort))
 
-				// Java ENV
-				sidecarEnv = append(sidecarEnv, "JAVA_OPTIONS=-XX:MaxRAMPercentage=85.0 -Xms50m -Xmx128m -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005")
+				// Java environment
+				combinedSidecarEnvironment = append(combinedSidecarEnvironment, "JAVA_OPTIONS=-XX:MaxRAMPercentage=85.0 -Xms50m -Xmx128m -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005")
+
+				sidecarName := fmt.Sprintf("%s-sc", module.Name)
 
 				deploySidecarDto := &DeployModuleDto{
-					Name:         fmt.Sprintf("%s-sc", module.Name),
-					Image:        eurekaSidecarImage,
-					RegistryAuth: dto.EurekaRegistryAuthToken,
+					Name:         sidecarName,
+					Image:        sidecarImage,
+					RegistryAuth: "",
 					Config: &container.Config{
-						Image:        eurekaSidecarImage,
-						Hostname:     fmt.Sprintf("%s-sc", strings.ToLower(moduleNameEnv)),
-						Env:          sidecarEnv,
+						Image:        sidecarImage,
+						Hostname:     sidecarName,
+						Env:          combinedSidecarEnvironment,
 						ExposedPorts: *backendModule.SidecarExposedPorts,
 					},
 					HostConfig: &container.HostConfig{
@@ -376,7 +440,7 @@ func DeployModules(commandName string, containerdCli *client.Client, dto *Deploy
 					PullImage:     pullSidecarImage,
 				}
 
-				DeployModule(commandName, containerdCli, deploySidecarDto)
+				DeployModule(commandName, client, deploySidecarDto)
 
 				pullSidecarImage = false
 			}

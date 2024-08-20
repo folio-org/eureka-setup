@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path"
 
@@ -25,6 +26,7 @@ import (
 )
 
 var (
+	configDir   string = ".eureka"
 	configFile  string
 	moduleName  string
 	enableDebug bool
@@ -47,7 +49,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "Config file (default is $HOME/.eureka/config.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", fmt.Sprintf("Config file (default is $HOME/%s/config.yaml)", configDir))
 	rootCmd.PersistentFlags().BoolVarP(&enableDebug, "debug", "d", false, "Enable debug")
 }
 
@@ -58,7 +60,7 @@ func initConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		configPath := path.Join(home, ".eureka")
+		configPath := path.Join(home, configDir)
 
 		viper.AddConfigPath(configPath)
 		viper.SetConfigType("yaml")

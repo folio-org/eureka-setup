@@ -35,24 +35,24 @@ var setupCmd = &cobra.Command{
 	Short: "Setup CLI",
 	Long:  `Setup CLI config.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		slog.Info(setupCommand, internal.PrimaryMessageKey, "### CREATING SETUP CONFIG ###")
+		slog.Info(setupCommand, internal.MessageKey, "### CREATING SETUP CONFIG ###")
 
 		srcConfigFile := "config.yaml"
 
 		sourceFileStat, err := os.Stat(srcConfigFile)
 		if err != nil {
-			slog.Error(setupCommand, internal.SecondaryMessageKey, "os.Stat error")
+			slog.Error(setupCommand, internal.MessageKey, "os.Stat error")
 			panic(err)
 		}
 
 		if !sourceFileStat.Mode().IsRegular() {
-			slog.Error(setupCommand, internal.SecondaryMessageKey, "sourceFileStat.Mode().IsRegular error")
+			slog.Error(setupCommand, internal.MessageKey, "sourceFileStat.Mode().IsRegular error")
 			panic(err)
 		}
 
 		source, err := os.Open(srcConfigFile)
 		if err != nil {
-			slog.Error(setupCommand, internal.SecondaryMessageKey, "os.Open error")
+			slog.Error(setupCommand, internal.MessageKey, "os.Open error")
 			panic(err)
 		}
 		defer source.Close()
@@ -70,18 +70,18 @@ var setupCmd = &cobra.Command{
 
 		destination, err := os.Create(dstConfigFile)
 		if err != nil {
-			slog.Error(setupCommand, internal.SecondaryMessageKey, "os.Create error")
+			slog.Error(setupCommand, internal.MessageKey, "os.Create error")
 			panic(err)
 		}
 		defer destination.Close()
 
 		_, err = io.Copy(destination, source)
 		if err != nil {
-			slog.Error(setupCommand, internal.SecondaryMessageKey, "io.Copy error")
+			slog.Error(setupCommand, internal.MessageKey, "io.Copy error")
 			panic(err)
 		}
 
-		slog.Info(setupCommand, internal.SecondaryMessageKey, fmt.Sprintf("Created setup config in %s", dstConfigFile))
+		slog.Info(setupCommand, internal.MessageKey, fmt.Sprintf("Created setup config in %s", dstConfigFile))
 	},
 }
 

@@ -21,7 +21,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/docker/docker/api/types/filters"
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -38,121 +37,79 @@ var deployModulesCmd = &cobra.Command{
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		// Registries
-		folioRegistryUrl := viper.GetString(internal.FolioRegistryUrlKey)
-		folioInstallJsonUrl := viper.GetString(internal.FolioInstallJsonUrlKey)
-		folioRegistryHostname := viper.GetString(internal.FolioRegistryHostnameKey)
-		eurekaInstallJsonUrl := viper.GetString(internal.EurekaInstallJsonUrlKey)
-		eurekaRegistryHostname := viper.GetString(internal.EurekaRegistryHostnameKey)
-		eurekaRegistryUrl := viper.GetString(internal.EurekaRegistryUrlKey)
+		registryUrl := viper.GetString(internal.RegistryUrlKey)
+		registryFolioInstallJsonUrl := viper.GetString(internal.RegistryFolioInstallJsonUrlKey)
+		registryEurekaInstallJsonUrl := viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)
 
-		// Shared ENV
-		sharedEnvMap := viper.GetStringMapString(internal.SharedEnvKey)
+		environmentMap := viper.GetStringMapString(internal.EnvironmentKey)
 
-		// Cache files
-		cacheFileModuleEnv := path.Join(home, internal.WorkDir, viper.GetString(internal.CacheFileModuleEnvKey))
-		cacheFileModuleDescriptors := path.Join(home, internal.WorkDir, viper.GetString(internal.CacheFileModuleDescriptorsKey))
+		fileModuleEnv := path.Join(home, internal.WorkDir, viper.GetString(internal.FilesModuleEnvKey))
+		fileModuleDescriptors := path.Join(home, internal.WorkDir, viper.GetString(internal.FilesModuleDescriptorsKey))
 
-		// Backend modules
 		backendModulesAnyMap := viper.GetStringMap(internal.BackendModuleKey)
+		frontendModulesAnyMap := viper.GetStringMap(internal.FrontendModuleKey)
 
-		// UI modules
-		// TODO Add support for UI modules
+		slog.Info(deployModulesCommand, internal.MessageKey, "### READING ENVIRONMENT FROM CONFIG ###")
 
-		slog.Info(deployModulesCommand, internal.PrimaryMessageKey, "### READING SHARED ENV FROM CONFIG ###")
+		environment := internal.GetEnvironmentFromConfig(deployModulesCommand, environmentMap)
 
-		sharedEnv := internal.GetSharedEnvFromConfig(deployModulesCommand, sharedEnvMap)
-
-		slog.Info(deployModulesCommand, internal.PrimaryMessageKey, "### READING BACKEND MODULES FROM CONFIG ###")
+		slog.Info(deployModulesCommand, internal.MessageKey, "### READING BACKEND MODULES FROM CONFIG ###")
 
 		backendModulesMap := internal.GetBackendModulesFromConfig(deployModulesCommand, backendModulesAnyMap)
 
-		slog.Info(deployModulesCommand, internal.PrimaryMessageKey, "### READING BACKEND MODULES REGISTRIES ###")
+		slog.Info(deployModulesCommand, internal.MessageKey, "### READING FRONTEND MODULES FROM CONFIG ###")
 
-		instalJsonUrls := map[string]string{
-			"folio":  folioInstallJsonUrl,
-			"eureka": eurekaInstallJsonUrl,
-		}
+		frontendModulesMap := internal.GetFrontendModulesFromConfig(deployModulesCommand, frontendModulesAnyMap)
+
+		slog.Info(deployModulesCommand, internal.MessageKey, "### READING BACKEND MODULES REGISTRIES ###")
+
+		instalJsonUrls := map[string]string{"folio": registryFolioInstallJsonUrl, "eureka": registryEurekaInstallJsonUrl}
 
 		registryModules := internal.GetModulesFromRegistries(deployModulesCommand, instalJsonUrls)
 
-		slog.Info(deployModulesCommand, internal.PrimaryMessageKey, "### ACQUIRING VAULT TOKEN ###")
+		slog.Info(deployModulesCommand, internal.MessageKey, "### EXTRACTING MODULE NAME AND VERSION ###")
 
-		containerdCli := internal.CreateContainerdCli(deployModulesCommand)
-		defer containerdCli.Close()
+		internal.ExtractModuleNameAndVersion(deployModulesCommand, enableDebug, registryModules)
 
-		vaultToken := internal.GetVaultToken(deployModulesCommand, containerdCli)
+		slog.Info(deployModulesCommand, internal.MessageKey, "### ACQUIRING VAULT TOKEN ###")
 
-		slog.Info(deployModulesCommand, internal.PrimaryMessageKey, "### ACQUIRING EUREKA REGISTRY AUTH TOKEN ###")
+		client := internal.CreateClient(deployModulesCommand)
+		defer client.Close()
 
-		eurekaRegistryAuthToken := internal.GetEurekaRegistryAuthToken(deployModulesCommand)
+		vaultToken := internal.GetVaultToken(deployModulesCommand, client)
 
-		slog.Info(deployModulesCommand, internal.PrimaryMessageKey, "### CREATING MODULE ENV CACHE FILE ###")
+		slog.Info(deployModulesCommand, internal.MessageKey, "### CREATING MODULE ENV FILE ###")
 
-		cacheFileModuleEnvPointer := internal.CreateModuleEnvCacheFile(deployModulesCommand, cacheFileModuleEnv)
-		defer cacheFileModuleEnvPointer.Close()
+		fileModuleEnvPointer := internal.CreateModuleEnvFile(deployModulesCommand, fileModuleEnv)
+		defer fileModuleEnvPointer.Close()
 
-		slog.Info(deployModulesCommand, internal.PrimaryMessageKey, "### DEREGISTERING MODULES ###")
-
-		internal.DeregisterModules(deployModulesCommand, "", enableDebug)
-
-		slog.Info(deployModulesCommand, internal.PrimaryMessageKey, "### REGISTERING MODULES ###")
+		slog.Info(deployModulesCommand, internal.MessageKey, "### REGISTERING MODULES ###")
 
 		moduleDescriptorsMap := make(map[string]interface{})
 
-		registerModuleDto := &internal.RegisterModuleDto{
-			RegistryUrls: map[string]string{
-				"folio":  folioRegistryUrl,
-				"eureka": eurekaRegistryUrl,
-			},
-			RegistryModules:           registryModules,
-			BackendModulesMap:         backendModulesMap,
-			ModuleDescriptorsMap:      moduleDescriptorsMap,
-			CacheFileModuleEnvPointer: cacheFileModuleEnvPointer,
-			EnableDebug:               enableDebug,
-		}
+		registryUrls := map[string]string{"folio": registryUrl, "eureka": registryUrl}
+
+		registerModuleDto := internal.NewRegisterModuleDto(registryUrls, registryModules, backendModulesMap, frontendModulesMap, moduleDescriptorsMap, fileModuleEnvPointer, enableDebug)
 
 		internal.RegisterModules(deployModulesCommand, enableDebug, registerModuleDto)
 
-		slog.Info(deployModulesCommand, internal.SecondaryMessageKey, "Created module ENV cache file")
+		slog.Info(deployModulesCommand, internal.MessageKey, "Created module ENV file")
 
-		cacheFileModuleDescriptorsPointer := internal.CreateModuleDescriptorsCacheFile(deployModulesCommand, cacheFileModuleDescriptors)
-		defer cacheFileModuleDescriptorsPointer.Close()
+		fileModuleDescriptorsPointer := internal.CreateModuleDescriptorsFile(deployModulesCommand, fileModuleDescriptors)
+		defer fileModuleDescriptorsPointer.Close()
 
-		encoder := json.NewEncoder(cacheFileModuleDescriptorsPointer)
+		encoder := json.NewEncoder(fileModuleDescriptorsPointer)
 		encoder.Encode(moduleDescriptorsMap)
 
-		slog.Info(deployModulesCommand, internal.SecondaryMessageKey, "Created module descriptors cache file")
+		slog.Info(deployModulesCommand, internal.MessageKey, "Created module descriptors file")
 
-		slog.Info(deployModulesCommand, internal.PrimaryMessageKey, "### UNDEPLOYING MODULES ###")
+		slog.Info(deployModulesCommand, internal.MessageKey, "### DEPLOYING MODULES ###")
 
-		filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: "eureka"})
+		registryHostname := map[string]string{"folio": "", "eureka": ""}
 
-		deployedModules := internal.GetDeployedModules(deployModulesCommand, containerdCli, filters)
+		deployModulesDto := internal.NewDeployModulesDto(vaultToken, registryHostname, registryModules, backendModulesMap, environment)
 
-		for _, deployedModule := range deployedModules {
-			internal.UndeployModule(deployModulesCommand, containerdCli, deployedModule)
-		}
-
-		slog.Info(deployModulesCommand, internal.PrimaryMessageKey, "### DEPLOYING MODULES ###")
-
-		deployModulesDto := &internal.DeployModulesDto{
-			VaultToken: vaultToken,
-			RegistryHostname: map[string]string{
-				"folio":  folioRegistryHostname,
-				"eureka": eurekaRegistryHostname,
-			},
-			EurekaRegistryAuthToken: eurekaRegistryAuthToken,
-			RegistryModules:         registryModules,
-			BackendModulesMap:       backendModulesMap,
-			SharedEnv:               sharedEnv,
-		}
-
-		internal.DeployModules(deployModulesCommand, containerdCli, deployModulesDto)
-
-		slog.Info(deployModulesCommand, internal.PrimaryMessageKey, "### CREATING TENANTS ###")
-
-		internal.CreateTenants(deployModulesCommand, enableDebug)
+		internal.DeployModules(deployModulesCommand, client, deployModulesDto)
 	},
 }
 

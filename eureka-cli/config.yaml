@@ -1,31 +1,25 @@
-# Registries
-registries: 
-  folio:
-    registry-hostname: folioci
-    registry-url: http://folio-registry.dev.folio.org
-    install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
-  eureka:
-    registry-hostname: 732722833398.dkr.ecr.us-west-2.amazonaws.com
-    registry-url: https://eureka-registry.ci.folio.org
-    install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
-    sidecar-image: folio-module-sidecar:latest
-    
-# Shared ENV
-shared-env:
+# Registry
+registry: 
+  registry-url: http://folio-registry.dev.folio.org
+  sidecar-image: folioci/folio-module-sidecar:1.1.0-SNAPSHOT.90
+  folio-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
+  eureka-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
+# Environment
+environment:
   # General
   ENV: folio
-  # PostgeSQL DB
+  # PostgeSQL
   DB_HOST: db.eureka
   DB_PORT: 5432
   DB_DATABASE: okapi
   DB_USERNAME: okapi_rw
   DB_PASSWORD: superAdmin
-  # Kafka Brokers
+  # Kafka
   KAFKA_HOST: kafka.eureka
   KAFKA_PORT: 9092
   # Elasticsearch
   ELASTICSEARCH_URL: http://host.docker.internal:9200
-  # AWS S3 (MinIO)
+  # AWS S3/MinIO
   AWS_URL: http://host.docker.internal:9000
   AWS_REGION: us-east-1
   AWS_BUCKET: example-bucket
@@ -38,39 +32,85 @@ shared-env:
   S3_SECRET_ACCESS_KEY: minioadmin
   S3_BUCKET: example-bucket
   SPLIT_FILES_ENABLED: true
-  # Okapi (legacy)
+  # Okapi
   OKAPI_URL: http://api-gateway.eureka:8000
   # Consortia
   SYSTEM_USER_PASSWORD: system_user_password
   # Java
   JAVA_OPTIONS: "-Dokapi.url=http://api-gateway.eureka:8000 -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=85.0 -Xms128m -Xmx240m"
-
-# Cache files
-cache-files: 
+  # Management
+  MOD_AUTHTOKEN_URL: http://mod-authtoken.eureka:8081
+  MT_URL: http://mgr-tenants.eureka:8081
+  AM_CLIENT_URL: http://mgr-applications.eureka:8081
+  KONG_ADMIN_URL: http://api-gateway.eureka:8001
+  # Keycloak 
+  KC_URL: http://keycloak.eureka:8080
+  KC_ADMIN_CLIENT_ID: superAdmin
+  KC_ADMIN_USERNAME: admin
+  KC_ADMIN_PASSWORD: admin
+  SECURITY_ENABLED: false
+  KC_IMPORT_ENABLED: true
+  KC_INTEGRATION_ENABLED: true
+  KONG_INTEGRATION_ENABLED: true
+  OKAPI_INTEGRATION_ENABLED: false
+# Files
+files: 
   module-env: .module.env
   module-descriptors: .module-descriptors.json
-
-# Resource URLs
-resource-urls: 
+# Resources
+resources: 
   vault: http://vault.eureka:8200
   keycloak: http://keycloak.eureka:8080
   mgr-tenants: http://mgr-tenants.eureka:8081
   mgr-applications: http://mgr-applications.eureka:8081
   mgr-tenant-entitlements: http://mgr-tenant-entitlements.eureka:8081
-
-# Tenant configuration
-tenant-config:
+# Tenants
+tenants:
   - diku 
-  - diku2 
-
 # Backend modules
 backend-modules:
-  # Keycloak
+  # Management modules
+  mgr-applications:
+    port: 9901
+    environment:
+      # DB
+      DB_DATABASE: app_manager
+      DB_USERNAME: app_manager_rw
+      DB_PASSWORD: superAdmin
+      # Management
+      TE_URL: http://mgr-tenant-entitlements.eureka:8081
+      MODULE_URL: http://mgr-applications.eureka:8081
+      VALIDATION_MODE: basic
+  mgr-tenants:
+    port: 9902
+    environment:
+      # DB
+      DB_DATABASE: tenant_manager
+      DB_USERNAME: tenant_manager_rw
+      DB_PASSWORD: superAdmin
+      # Keycloak
+      KC_LOGIN_CLIENT_SUFFIX: login-app
+      KC_SERVICE_CLIENT_ID: m2m-client
+      # Management
+      MODULE_URL: http://mgr-tenants.eureka:8081
+      CACHE_EXPIRATION_TTL: 55s
+  mgr-tenant-entitlements:
+    port: 9903
+    environment:
+      # DB
+      DB_DATABASE: tenant_entitlement
+      DB_USERNAME: tenant_entitlement_rw
+      DB_PASSWORD: superAdmin
+      # Keycloak
+      KC_LOGIN_CLIENT_SUFFIX: login-app
+      # Management
+      TENANT_URL: http://mgr-tenants.eureka:8081
+      AM_CLIENT_URL: http://mgr-applications.eureka:8081
+      MODULE_URL: http://mgr-tenant-entitlements.eureka:8081
+  # Keycloak modules
   mod-users-keycloak:
     port: 9009
-    deploy-module: true
-    deploy-sidecar: true
-    module-env:
+    environment:
       KC_URL: http://keycloak.eureka:8080
       KC_ADMIN_CLIENT_ID: superAdmin
       KC_LOGIN_CLIENT_SUFFIX: login-app
@@ -84,9 +124,8 @@ backend-modules:
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
   mod-login-keycloak:
     port: 9010
-    deploy-module: true
-    deploy-sidecar: true
-    module-env:
+    sidecar: true
+    environment:
       KC_URL: http://keycloak.eureka:8080
       KC_ADMIN_CLIENT_ID: superAdmin
       KC_LOGIN_CLIENT_SUFFIX: login-app
@@ -94,17 +133,15 @@ backend-modules:
       X_OKAPI_TOKEN_HEADER_ENABLED: 'true'
   mod-roles-keycloak:
     port: 9011
-    deploy-module: true
-    deploy-sidecar: true
-    module-env:
+    sidecar: true
+    environment:
       KC_URL: http://keycloak.eureka:8080
       KC_ADMIN_CLIENT_ID: superAdmin
       KC_LOGIN_CLIENT_SUFFIX: login-app
   mod-scheduler:
     port: 9012
-    deploy-module: true
-    deploy-sidecar: true
-    module-env:
+    sidecar: true
+    environment:
       KC_URL: http://keycloak.eureka:8080
       KC_ADMIN_CLIENT_ID: superAdmin
       KC_LOGIN_CLIENT_SUFFIX: login-app
@@ -112,35 +149,41 @@ backend-modules:
         -Dokapi.url=http://api-gateway.eureka:8000
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=85.0
         -Xms128m -Xmx240m
-  mod-consortia-keycloak:
-    port: 9013
-    deploy-module: true
-    deploy-sidecar: true
   # Core Modules
   mod-users:
     port: 30001
-    deploy-module: true
-    deploy-sidecar: true
+    sidecar: true
   mod-users-bl:
     port: 30002
-    deploy-module: true
-    deploy-sidecar: true
+    sidecar: true
   mod-roles:
     port: 30003
-    deploy-module: true
-    deploy-sidecar: true
+    sidecar: true
   mod-authtoken:
     port: 30004
-    deploy-module: true
-    deploy-sidecar: true
+    sidecar: true
   mod-permissions:
     port: 30005
-    deploy-module: true
-    deploy-sidecar: true
+    sidecar: true
   mod-configuration:
     port: 30006
-    deploy-module: true
-    deploy-sidecar: true
-
-# UI modules
-ui-modules: []
+    sidecar: true
+# Frontend modules
+frontend-modules:
+  folio_users:
+  folio_tenant-settings:
+  folio_organizations:
+  folio_inventory:
+  folio_invoice:
+  folio_orders:
+  folio_finance:
+  folio_receiving:
+  folio_servicepoints:
+  folio_service-interaction:
+  folio_acquisition-units:
+  folio_developer:
+  folio_requests:
+  folio_plugin-find-instance:
+  folio_plugin-find-organization:
+  folio_plugin-find-po-line:
+  folio_plugin-find-user:
