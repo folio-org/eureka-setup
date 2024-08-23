@@ -30,12 +30,16 @@ var createApplicationCmd = &cobra.Command{
 	Short: "Create application",
 	Long:  `Create an application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		slog.Info(createApplicationCommand, internal.MessageKey, "### CREATING TENANTS ###")
-		internal.CreateTenants(createApplicationCommand, enableDebug)
-
-		slog.Info(createApplicationCommand, internal.MessageKey, "### CREATING TENANT ENTITLEMENTS ###")
-		internal.CreateTenantEntitlement(createApplicationCommand, enableDebug)
+		CreateApplication()
 	},
+}
+
+func CreateApplication() {
+	slog.Info(createApplicationCommand, internal.MessageKey, "### CREATING TENANTS ###")
+	internal.CreateTenants(createApplicationCommand, enableDebug)
+
+	slog.Info(createApplicationCommand, internal.MessageKey, "### CREATING TENANT ENTITLEMENTS ###")
+	internal.CreateTenantEntitlement(createApplicationCommand, enableDebug)
 }
 
 func init() {

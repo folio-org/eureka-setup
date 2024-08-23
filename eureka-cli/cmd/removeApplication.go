@@ -30,12 +30,16 @@ var removeApplicationCmd = &cobra.Command{
 	Short: "Remove application",
 	Long:  `Remove an application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		slog.Info(createApplicationCommand, internal.MessageKey, "### REMOVING TENANT ENTITLEMENTS ###")
-		internal.RemoveTenantEntitlements(removeApplicationCommand, enableDebug)
-
-		slog.Info(createApplicationCommand, internal.MessageKey, "### REMOVING TENANTS ###")
-		internal.RemoveTenants(removeApplicationCommand, enableDebug)
+		RemoveApplication()
 	},
+}
+
+func RemoveApplication() {
+	slog.Info(createApplicationCommand, internal.MessageKey, "### REMOVING TENANT ENTITLEMENTS ###")
+	internal.RemoveTenantEntitlements(removeApplicationCommand, enableDebug)
+
+	slog.Info(createApplicationCommand, internal.MessageKey, "### REMOVING TENANTS ###")
+	internal.RemoveTenants(removeApplicationCommand, enableDebug)
 }
 
 func init() {
