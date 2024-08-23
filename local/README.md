@@ -2,7 +2,7 @@
 
 ## Purpose
 
-- Docker compose files and shell scripts to setup local development Eureka environment
+- Supplementary Docker compose files and shell scripts to setup local development Eureka environment
 
 ## Commands
 
@@ -52,14 +52,7 @@ aws ecr list-images --repository-name [project_name] --no-paginate --output tabl
 
 # 3. Start all components
 # WARNING: Before starting make sure to replace [account_id] and [region] in .env with your provided values
-docker compose -p eureka -f docker-compose.core.yml up -d --build --always-recreate-deps --force-recreate && sleep 60
-
-# 4. Monitor services
-# All services with a health checks must be healthy 
-docker compose -p eureka ps -a --format 'table {{.ID}}\t{{.Name}}\t{{.Status}}\t{{.Image}}'
-
-# (Optional) Monitor logs for an individual module
-docker logs -f --tail 1000 [container_name]
+docker compose -p eureka -f docker-compose.yaml up -d --build --always-recreate-deps --force-recreate && sleep 60
 
 # (Optional) Stop all components
 docker compose -p eureka down -v

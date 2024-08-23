@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 )
@@ -162,4 +163,13 @@ func CreateModuleDescriptorsFile(commandName string, fileModuleDescriptors strin
 	}
 
 	return moduleDescriptorsFile
+}
+
+func RunCommand(commandName string, preparedCommand *exec.Cmd) {
+	preparedCommand.Stdout, preparedCommand.Stderr = os.Stdout, os.Stderr
+
+	if err := preparedCommand.Run(); err != nil {
+		slog.Error(commandName, MessageKey, "systemCmd.Run() error")
+		panic(err)
+	}
 }

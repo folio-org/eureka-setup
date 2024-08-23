@@ -31,31 +31,29 @@ var undeployModulesCmd = &cobra.Command{
 	Short: "Undeploy modules",
 	Long:  `Undeploy multiple modules.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		slog.Info(undeployModulesCommand, internal.MessageKey, "### UNDEPLOYING MODULES ###")
-
-		client := internal.CreateClient(undeployModulesCommand)
-		defer client.Close()
-
-		filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: "eureka-mod"})
-
-		deployedModules := internal.GetDeployedModules(undeployModulesCommand, client, filters)
-
-		for _, deployedModule := range deployedModules {
-			internal.UndeployModule(undeployModulesCommand, client, deployedModule)
-		}
-
-		slog.Info(undeployModulesCommand, internal.MessageKey, "### REMOVING APPLICATIONS ###")
-
-		internal.RemoveApplications(undeployModulesCommand, "", enableDebug)
-
-		slog.Info(undeployModulesCommand, internal.MessageKey, "### REMOVING TENANT ENTITLEMENTS ###")
-
-		internal.RemoveTenantEntitlements(undeployModuleCommand, enableDebug)
-
-		slog.Info(undeployModulesCommand, internal.MessageKey, "### REMOVING TENANTS ###")
-
-		internal.RemoveTenants(undeployModuleCommand, enableDebug)
+		UndeployModules()
 	},
+}
+
+func UndeployModules() {
+	slog.Info(undeployModulesCommand, internal.MessageKey, "### UNDEPLOYING MODULES ###")
+	client := internal.CreateClient(undeployModulesCommand)
+	defer client.Close()
+
+	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: "eureka-mod"})
+	deployedModules := internal.GetDeployedModules(undeployModulesCommand, client, filters)
+	for _, deployedModule := range deployedModules {
+		internal.UndeployModule(undeployModulesCommand, client, deployedModule)
+	}
+
+	slog.Info(undeployModulesCommand, internal.MessageKey, "### REMOVING APPLICATIONS ###")
+	internal.RemoveApplications(undeployModulesCommand, "", enableDebug)
+
+	slog.Info(undeployModulesCommand, internal.MessageKey, "### REMOVING TENANT ENTITLEMENTS ###")
+	internal.RemoveTenantEntitlements(undeployModuleCommand, enableDebug)
+
+	slog.Info(undeployModulesCommand, internal.MessageKey, "### REMOVING TENANTS ###")
+	internal.RemoveTenants(undeployModuleCommand, enableDebug)
 }
 
 func init() {

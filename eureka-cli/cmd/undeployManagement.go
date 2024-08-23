@@ -31,19 +31,20 @@ var undeployManagementCmd = &cobra.Command{
 	Short: "Undeploy modules",
 	Long:  `Undeploy all management modules.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		slog.Info(undeployManagementCommand, internal.MessageKey, "### UNDEPLOYING MANAGEMENT MODULES ###")
-
-		client := internal.CreateClient(undeployManagementCommand)
-		defer client.Close()
-
-		filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: "eureka-mgr"})
-
-		deployedModules := internal.GetDeployedModules(undeployManagementCommand, client, filters)
-
-		for _, deployedModule := range deployedModules {
-			internal.UndeployModule(undeployManagementCommand, client, deployedModule)
-		}
+		UndeployManagement()
 	},
+}
+
+func UndeployManagement() {
+	slog.Info(undeployManagementCommand, internal.MessageKey, "### UNDEPLOYING MANAGEMENT MODULES ###")
+	client := internal.CreateClient(undeployManagementCommand)
+	defer client.Close()
+
+	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: "eureka-mgr"})
+	deployedModules := internal.GetDeployedModules(undeployManagementCommand, client, filters)
+	for _, deployedModule := range deployedModules {
+		internal.UndeployModule(undeployManagementCommand, client, deployedModule)
+	}
 }
 
 func init() {
