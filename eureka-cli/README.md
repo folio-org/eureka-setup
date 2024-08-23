@@ -23,24 +23,23 @@ air
 - Deploy/undeploy all modules and sidecars in another Terminal session #2
 
 ```bash
-# 1. Setup CLI config
+# Setup CLI config
 ./bin/eureka-cli.exe setup
 
-# 2. Deploy management modules
+# Deploy/undeploy system
+# Enable debug (optional) flag: -d or --debug
+./bin/eureka-cli.exe deploySystem
+./bin/eureka-cli.exe undeploySystem
+
+# Deploy/undeploy management modules
 # Enable debug (optional) flag: -d or --debug
 ./bin/eureka-cli.exe deployManagement
+./bin/eureka-cli.exe undeployManagement
 
-# 3. Deploy other modules and sidecars
+# Deploy/undeploy other modules and sidecars
 # Enable debug (optional) flag: -d or --debug
 ./bin/eureka-cli.exe deployModules
-
-# (Optional) Undeploy other modules and sidecars
-# Enable debug (optional) flag: -d or --debug
 ./bin/eureka-cli.exe undeployModules
-
-# (Optional) Undeploy management modules
-# Enable debug (optional) flag: -d or --debug
-./bin/eureka-cli.exe undeployManagement
 
 # (Optional) Undeploy single module and its sidecar
 # Module name (required) flag: -m or --moduleName 
