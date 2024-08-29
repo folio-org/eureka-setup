@@ -89,6 +89,8 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 	applicationsMap := viper.GetStringMap(ApplicationsKey)
 	applicationName := applicationsMap["name"].(string)
 	applicationVersion := applicationsMap["version"].(string)
+	applicationPlatform := applicationsMap["platform"].(string)
+	applicationFetchDescriptors := applicationsMap["fetch-descriptors"].(bool)
 
 	for registryName, registryModules := range dto.RegistryModules {
 		slog.Info(commandName, fmt.Sprintf("Registering %s registry modules", registryName), "")
@@ -113,15 +115,23 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 
 			url := fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls["folio"], module.Id)
 
-			dto.ModuleDescriptorsMap[module.Id] = DoGetDecodeReturnInterface(commandName, url, enableDebug)
+			if applicationFetchDescriptors {
+				dto.ModuleDescriptorsMap[module.Id] = DoGetDecodeReturnInterface(commandName, url, enableDebug)
+			}
 
 			if okBackend {
-				backendModules = append(backendModules, map[string]string{
+				backendModule := map[string]string{
 					"id":      module.Id,
 					"name":    module.Name,
 					"version": module.Version,
-				})
-				backendModuleDescriptors = append(backendModuleDescriptors, dto.ModuleDescriptorsMap[module.Id])
+				}
+				if applicationFetchDescriptors {
+					backendModuleDescriptors = append(backendModuleDescriptors, dto.ModuleDescriptorsMap[module.Id])
+				} else {
+					backendModule["url"] = url
+				}
+
+				backendModules = append(backendModules, backendModule)
 
 				discoveryModules = append(discoveryModules, map[string]string{
 					"id":       module.Id,
@@ -130,12 +140,18 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 					"location": fmt.Sprintf("http://%s.eureka:%s", module.Name, ServerPort),
 				})
 			} else if okFrontend {
-				frontendModules = append(frontendModules, map[string]string{
+				frontendModule := map[string]string{
 					"id":      module.Id,
 					"name":    module.Name,
 					"version": module.Version,
-				})
-				frontendModuleDescriptors = append(frontendModuleDescriptors, dto.ModuleDescriptorsMap[module.Id])
+				}
+				if applicationFetchDescriptors {
+					frontendModuleDescriptors = append(frontendModuleDescriptors, dto.ModuleDescriptorsMap[module.Id])
+				} else {
+					frontendModule["url"] = url
+				}
+
+				frontendModules = append(frontendModules, frontendModule)
 			}
 
 			slog.Info(commandName, "Found module", module.Name)
@@ -148,7 +164,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 		"name":                applicationName,
 		"version":             applicationVersion,
 		"description":         fmt.Sprintf("%s:Deployed by Eureka CLI", applicationName),
-		"platform":            "base",
+		"platform":            applicationPlatform,
 		"dependencies":        dependencies,
 		"modules":             backendModules,
 		"uiModules":           frontendModules,

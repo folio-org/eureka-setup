@@ -19,7 +19,6 @@ services:
     <<: *core-service
     container_name: db
     image: postgres:13.4-alpine
-    networks: [ fpm-net ]
     env_file: [ env/db.env ]
     volumes:
       - db:/var/lib/postgresql/data
@@ -40,13 +39,12 @@ services:
       - zookeeper
       - kafka
     ports:
-      - 9080:8080
+      - "9080:8080"
     healthcheck:
       test: wget --spider --timeout 1 localhost:8080
       interval: 10s
       timeout: 10s
       retries: 10
-
     environment:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka.eureka:9092
       KAFKA_CLUSTERS_0_JMXPORT: 9997
@@ -54,7 +52,7 @@ services:
   zookeeper:
     <<: *core-service
     container_name: zookeeper
-    image: zookeeper
+    image: zookeeper:latest
     ports:
       - "2181:2181"
     healthcheck:
@@ -87,10 +85,10 @@ services:
   vault:
     <<: *core-service
     container_name: vault
+    image: folio-vault:1.13.3
     build:
       context: vault
       dockerfile: Dockerfile
-    image: folio-vault:1.13.3
     env_file: [ env/vault.env ]
     volumes:
       - vault-data:/vault/data:rw
@@ -106,26 +104,26 @@ services:
   keycloak:
     <<: *core-service
     container_name: keycloak
-    image: nginx
+    image: nginx:latest
     depends_on:
       - keycloak-internal
     volumes:
       - ./nginx/keycloak-nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8080:8080"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080" ]
       interval: 15s
       timeout: 2s
       retries: 15
-    ports:
-      - "8080:8080"
 
   keycloak-internal:
     <<: *core-service
     container_name: keycloak-internal
+    image: $ECR_REGISTRY/folio-keycloak:23.0.3
     build:
       context: ./keycloak
       dockerfile: Dockerfile
-    image: $ECR_REGISTRY/folio-keycloak:23.0.3
     env_file: [ env/keycloak.env ]
     depends_on:
       db:

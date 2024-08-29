@@ -5,9 +5,11 @@ profile:
 applications:
   name: app-minimal
   version: 1.0.0
+  platform: base
+  fetch-descriptors: false
 # Registry
 registry: 
-  registry-url: http://folio-registry.dev.folio.org
+  registry-url: https://folio-registry.dev.folio.org
   sidecar-image: folioci/folio-module-sidecar:1.1.0-SNAPSHOT.90
   folio-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
   eureka-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
@@ -140,4 +142,12 @@ backend-modules:
   mod-users-bl:
   mod-roles:
   mod-password-validator:
-frontend-modules: []
+  mod-settings:
+  mod-notes:
+  mod-tags:
+frontend-modules:
+  folio_developer:
+  folio_tags:
+  folio_stripes-core:
+  folio_notes:
+  folio_stripes-smart-components:

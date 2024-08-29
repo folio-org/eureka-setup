@@ -14,6 +14,8 @@ const (
 	ComposeFileDir string = "./misc"
 
 	ContentTypeJson   string = "application/json"
+	NetworkName       string = "fpm-net"
+	NetworkId         string = "eureka"
 	DockerInternalUrl string = "http://host.docker.internal:%d%s"
 	HostIp            string = "0.0.0.0"
 	ServerPort        string = "8081"

@@ -5,9 +5,11 @@ profile:
 applications:
   name: app-acquisitions
   version: 1.0.0
+  platform: acquisitions
+  fetch-descriptors: false
 # Registry
 registry: 
-  registry-url: http://folio-registry.dev.folio.org
+  registry-url: https://folio-registry.dev.folio.org
   sidecar-image: folioci/folio-module-sidecar:1.1.0-SNAPSHOT.90
   folio-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
   eureka-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json

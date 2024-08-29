@@ -372,7 +372,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 	resourceUrlMgrTenantEntitlements := viper.GetString(ResourcesMgrTenantEntitlements)
 
 	networkConfig := &network.NetworkingConfig{
-		EndpointsConfig: map[string]*network.EndpointSettings{"fpm-net": {NetworkID: "eureka"}},
+		EndpointsConfig: map[string]*network.EndpointSettings{NetworkName: {NetworkID: NetworkId}},
 	}
 
 	pullSidecarImage := true
