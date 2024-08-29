@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"regexp"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 const (
@@ -51,10 +52,13 @@ const (
 	ResourcesMgrApplicationsKey    string = "resources.mgr-applications"
 	ResourcesMgrTenantEntitlements string = "resources.mgr-tenant-entitlements"
 
-	TenantConfigKey string = "tenants"
+	TenantsKey string = "tenants"
+	UsersKey   string = "users"
+	RolesKey   string = "roles"
 
-	BackendModuleKey  string = "backend-modules"
-	FrontendModuleKey string = "frontend-modules"
+	SidecarModuleEnvironmentKey string = "sidecar-module.environment"
+	BackendModuleKey            string = "backend-modules"
+	FrontendModuleKey           string = "frontend-modules"
 
 	PortKey      string = "port"
 	SidecarKey   string = "sidecar"
@@ -62,25 +66,49 @@ const (
 )
 
 var (
-	VaultTokenRegexp = regexp.MustCompile(VaultTokenPattern)
-	ModuleIdRegexp   = regexp.MustCompile(ModuleIdPattern)
-	EnvNameRegexp    = regexp.MustCompile(EnvNamePattern)
+	VaultTokenRegexp *regexp.Regexp = regexp.MustCompile(VaultTokenPattern)
+	ModuleIdRegexp   *regexp.Regexp = regexp.MustCompile(ModuleIdPattern)
+	EnvNameRegexp    *regexp.Regexp = regexp.MustCompile(EnvNamePattern)
 
-	PortIndex = 30000
+	PortIndex int = 30000
 )
 
-func GetEnvironmentFromConfig(commandName string, sharedEnvMap map[string]string) []string {
-	var sharedEnv []string
+func GetEnvironmentFromConfig(commandName string) []string {
+	var environmentVariables []string
 
-	for name, value := range sharedEnvMap {
-		env := fmt.Sprintf("%s=%s", strings.ToUpper(name), value)
+	for key, value := range viper.GetStringMapString(EnvironmentKey) {
+		environment := fmt.Sprintf("%s=%s", strings.ToUpper(key), value)
 
-		slog.Info(commandName, "Found environment", env)
+		slog.Info(commandName, "Found environment", environment)
 
-		sharedEnv = append(sharedEnv, env)
+		environmentVariables = append(environmentVariables, environment)
 	}
 
-	return sharedEnv
+	return environmentVariables
+}
+
+func GetSidecarEnvironmentFromConfig(commandName string) []string {
+	var environmentVariables []string
+
+	for key, value := range viper.GetStringMapString(SidecarModuleEnvironmentKey) {
+		environment := fmt.Sprintf("%s=%s", strings.ToUpper(key), value)
+
+		slog.Info(commandName, "Found sidecar environment", environment)
+
+		environmentVariables = append(environmentVariables, environment)
+	}
+
+	return environmentVariables
+}
+
+func GetEnvironmentFromMapByKey(commandName string, requestKey string) string {
+	for key, value := range viper.GetStringMapString(EnvironmentKey) {
+		if strings.ToUpper(key) == requestKey {
+			return value
+		}
+	}
+
+	panic(fmt.Errorf("internal.GetEnvironmentFromMapByKey error - Cannnot find environment value key by %s", requestKey))
 }
 
 func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[string]any) map[string]BackendModule {
@@ -173,14 +201,4 @@ func CreateModuleDescriptorsFile(commandName string, fileModuleDescriptors strin
 	}
 
 	return moduleDescriptorsFile
-}
-
-func RunCommand(commandName string, preparedCommand *exec.Cmd, composeFileDir string) {
-	preparedCommand.Dir = composeFileDir
-	preparedCommand.Stdout = os.Stdout
-	preparedCommand.Stderr = os.Stderr
-	if err := preparedCommand.Run(); err != nil {
-		slog.Error(commandName, "systemCmd.Run() error", "")
-		panic(err)
-	}
 }

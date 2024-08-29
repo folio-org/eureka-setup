@@ -34,6 +34,7 @@ func DumpHttpRequest(commandName string, req *http.Request, enableDebug bool) {
 
 	fmt.Println("###### Dumping HTTP Request ######")
 	fmt.Println(string(reqBytes))
+	fmt.Println()
 }
 
 func DumpHttpResponse(commandName string, resp *http.Response, enableDebug bool) {
@@ -49,6 +50,7 @@ func DumpHttpResponse(commandName string, resp *http.Response, enableDebug bool)
 
 	fmt.Println("###### Dumping HTTP Response ######")
 	fmt.Println(string(respBytes))
+	fmt.Println()
 }
 
 func CheckStatusCodes(commandName string, resp *http.Response) {
@@ -56,14 +58,15 @@ func CheckStatusCodes(commandName string, resp *http.Response) {
 		return
 	}
 
-	LogErrorPanic(commandName, fmt.Sprintf("Unacceptable request status %d", resp.StatusCode))
+	LogErrorPanic(commandName, fmt.Sprintf("internal.CheckStatusCodes error - Unacceptable request status %d", resp.StatusCode))
 }
 
 // ####### STRING ########
 
 func TrimModuleName(name string) string {
-	if name[strings.LastIndex(name, "-")] == 45 {
-		name = name[:strings.LastIndex(name, "-")]
+	charIndex := strings.LastIndex(name, "-")
+	if name[charIndex] == 45 {
+		name = name[:charIndex]
 	}
 
 	return name

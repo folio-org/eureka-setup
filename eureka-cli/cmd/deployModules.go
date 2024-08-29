@@ -46,14 +46,16 @@ func DeployModules() {
 	registryUrl := viper.GetString(internal.RegistryUrlKey)
 	registryFolioInstallJsonUrl := viper.GetString(internal.RegistryFolioInstallJsonUrlKey)
 	registryEurekaInstallJsonUrl := viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)
-	environmentMap := viper.GetStringMapString(internal.EnvironmentKey)
 	fileModuleEnv := path.Join(home, internal.WorkDir, viper.GetString(internal.FilesModuleEnvKey))
 	fileModuleDescriptors := path.Join(home, internal.WorkDir, viper.GetString(internal.FilesModuleDescriptorsKey))
 	backendModulesAnyMap := viper.GetStringMap(internal.BackendModuleKey)
 	frontendModulesAnyMap := viper.GetStringMap(internal.FrontendModuleKey)
 
 	slog.Info(deployModulesCommand, "### READING ENVIRONMENT FROM CONFIG ###", "")
-	environment := internal.GetEnvironmentFromConfig(deployModulesCommand, environmentMap)
+	environment := internal.GetEnvironmentFromConfig(deployModulesCommand)
+
+	slog.Info(deployModulesCommand, "### READING SIDECAR ENVIRONMENT FROM CONFIG ###", "")
+	sidecarEnvironment := internal.GetSidecarEnvironmentFromConfig(deployModulesCommand)
 
 	slog.Info(deployModulesCommand, "### READING BACKEND MODULES FROM CONFIG ###", "")
 	backendModulesMap := internal.GetBackendModulesFromConfig(deployModulesCommand, backendModulesAnyMap)
@@ -92,11 +94,11 @@ func DeployModules() {
 
 	slog.Info(deployModulesCommand, "### DEPLOYING MODULES ###", "")
 	registryHostname := map[string]string{"folio": "", "eureka": ""}
-	deployModulesDto := internal.NewDeployModulesDto(vaultToken, registryHostname, registryModules, backendModulesMap, environment)
+	deployModulesDto := internal.NewDeployModulesDto(vaultToken, registryHostname, registryModules, backendModulesMap, environment, sidecarEnvironment)
 	internal.DeployModules(deployModulesCommand, client, deployModulesDto)
 
 	slog.Info(deployModulesCommand, "### WAITING FOR MODULES TO INITIALIZE ###", "")
-	time.Sleep(180 * time.Second)
+	time.Sleep(300 * time.Second)
 }
 
 func init() {

@@ -7,6 +7,9 @@ application:
   version: 1.0.0
   platform: acquisitions
   fetch-descriptors: false
+  dependencies:
+    name: app-minimal-1.0.0
+    version: 1.0.0
 # Registry
 registry: 
   registry-url: https://folio-registry.dev.folio.org
@@ -17,7 +20,7 @@ registry:
 environment:
   # General
   ENV: folio
-  # PostgeSQL
+  # PostgreSQL
   DB_HOST: db.eureka
   DB_PORT: 5432
   DB_DATABASE: okapi
@@ -43,10 +46,7 @@ environment:
   SPLIT_FILES_ENABLED: true
   # Consortia
   SYSTEM_USER_PASSWORD: system_user_password
-  # Java
-  JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms256m -Xmx512m"
   # Management
-  MOD_AUTHTOKEN_URL: http://mod-authtoken.eureka:8081
   MT_URL: http://mgr-tenants.eureka:8081
   AM_CLIENT_URL: http://mgr-applications.eureka:8081
   KONG_ADMIN_URL: http://api-gateway.eureka:8001
@@ -62,6 +62,8 @@ environment:
   KC_SERVICE_CLIENT_ID: m2m-client
   KONG_INTEGRATION_ENABLED: true
   OKAPI_INTEGRATION_ENABLED: false
+  # Java
+  JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms128m -Xmx256m"
 # Files
 files: 
   module-env: .module.env
@@ -75,66 +77,16 @@ resources:
   mgr-tenant-entitlements: http://mgr-tenant-entitlements.eureka:8081
 # Tenants
 tenants:
-  - diku 
+  - diku
+# Users
+users:
+  - username: diku_admin
+    password: admin
+# Roles
+roles:
+  - name: admin
 # Backend modules
 backend-modules:
-  # Management modules
-  mgr-applications:
-    port: 9901
-    environment:
-      # DB
-      DB_DATABASE: app_manager
-      DB_USERNAME: app_manager_rw
-      DB_PASSWORD: superAdmin
-      # Management
-      MODULE_URL: http://mgr-applications.eureka:8081
-      TE_URL: http://mgr-tenant-entitlements.eureka:8081
-      VALIDATION_MODE: basic
-  mgr-tenants:
-    port: 9902
-    environment:
-      # DB
-      DB_DATABASE: tenant_manager
-      DB_USERNAME: tenant_manager_rw
-      DB_PASSWORD: superAdmin
-      # Management
-      MODULE_URL: http://mgr-tenants.eureka:8081
-      CACHE_EXPIRATION_TTL: 55s
-  mgr-tenant-entitlements:
-    port: 9903
-    environment:
-      # DB
-      DB_DATABASE: tenant_entitlement
-      DB_USERNAME: tenant_entitlement_rw
-      DB_PASSWORD: superAdmin
-      # Management
-      MODULE_URL: http://mgr-tenant-entitlements.eureka:8081
-      TENANT_URL: http://mgr-tenants.eureka:8081
-      AM_CLIENT_URL: http://mgr-applications.eureka:8081
-  # Keycloak modules
-  mod-users-keycloak:
-    port: 9009
-    sidecar: true
-    environment:
-      OKAPI_URL: http://mod-users-keycloak-sc.eureka:8081
-  mod-login-keycloak:
-    port: 9010
-    sidecar: true
-    environment:
-      X_OKAPI_TOKEN_HEADER_ENABLED: 'true'
-  mod-roles-keycloak:
-    port: 9011
-    sidecar: true
-  mod-scheduler:
-    port: 9012
-    sidecar: true
-  # Core Modules
-  mod-permissions:
-  mod-configuration:
-  mod-users:
-  mod-users-bl:
-  mod-roles:
-  mod-authtoken:
   # Other modules
   mod-source-record-storage:
   mod-source-record-manager:
@@ -160,11 +112,8 @@ backend-modules:
   mod-patron:
   mod-patron-blocks:
   mod-feesfines:
-  mod-tags:
   mod-search:
-  mod-password-validator:
   mod-login-saml:
-  mod-settings:
   mod-event-config:
   mod-template-engine:
   mod-data-export-spring:
@@ -190,7 +139,6 @@ frontend-modules:
   folio_servicepoints:
   folio_service-interaction:
   folio_acquisition-units:
-  folio_developer:
   folio_requests:
   folio_plugin-find-instance:
   folio_plugin-find-organization:

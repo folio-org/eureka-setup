@@ -21,6 +21,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	SnapshotRegistry string = "folioci"
+	ReleaseRegistry  string = "folioorg"
+)
+
 type RegisterModuleDto struct {
 	RegistryUrls         map[string]string
 	RegistryModules      map[string][]RegistryModule
@@ -43,12 +48,13 @@ type DeployModuleDto struct {
 }
 
 type DeployModulesDto struct {
-	VaultToken        string
-	RegistryHostname  map[string]string
-	RegistryModules   map[string][]RegistryModule
-	BackendModulesMap map[string]BackendModule
-	GlobalEnvironment []string
-	ManagementOnly    bool
+	VaultToken         string
+	RegistryHostname   map[string]string
+	RegistryModules    map[string][]RegistryModule
+	BackendModulesMap  map[string]BackendModule
+	GlobalEnvironment  []string
+	SidecarEnvironment []string
+	ManagementOnly     bool
 }
 
 type BackendModule struct {
@@ -76,24 +82,6 @@ type Event struct {
 		Current int `json:"current"`
 		Total   int `json:"total"`
 	} `json:"progressDetail"`
-}
-
-func AppendModuleEnvironment(environmentMap map[string]interface{}, moduleEnvironment []string) []string {
-	if len(environmentMap) > 0 {
-		for key, value := range environmentMap {
-			moduleEnvironment = append(moduleEnvironment, fmt.Sprintf("%s=%s", strings.ToUpper(key), value))
-		}
-	}
-
-	return moduleEnvironment
-}
-
-func AppendVaultEnvironment(moduleEnvironment []string, vaultToken string, vaultUrl string) []string {
-	moduleEnvironment = append(moduleEnvironment, "SECRET_STORE_TYPE=VAULT")
-	moduleEnvironment = append(moduleEnvironment, fmt.Sprintf("SECRET_STORE_VAULT_TOKEN=%s", vaultToken))
-	moduleEnvironment = append(moduleEnvironment, fmt.Sprintf("SECRET_STORE_VAULT_ADDRESS=%s", vaultUrl))
-
-	return moduleEnvironment
 }
 
 func NewRegisterModuleDto(registryUrls map[string]string,
@@ -139,12 +127,13 @@ func NewDeployManagementModulesDto(vaultToken string,
 	backendModulesMap map[string]BackendModule,
 	globalEnvironment []string) *DeployModulesDto {
 	return &DeployModulesDto{
-		VaultToken:        vaultToken,
-		RegistryHostname:  registryHostname,
-		RegistryModules:   registryModules,
-		BackendModulesMap: backendModulesMap,
-		GlobalEnvironment: globalEnvironment,
-		ManagementOnly:    true,
+		VaultToken:         vaultToken,
+		RegistryHostname:   registryHostname,
+		RegistryModules:    registryModules,
+		BackendModulesMap:  backendModulesMap,
+		GlobalEnvironment:  globalEnvironment,
+		SidecarEnvironment: nil,
+		ManagementOnly:     true,
 	}
 }
 
@@ -152,14 +141,16 @@ func NewDeployModulesDto(vaultToken string,
 	registryHostname map[string]string,
 	registryModules map[string][]RegistryModule,
 	backendModulesMap map[string]BackendModule,
-	globalEnvironment []string) *DeployModulesDto {
+	globalEnvironment []string,
+	sidecarEnvironment []string) *DeployModulesDto {
 	return &DeployModulesDto{
-		VaultToken:        vaultToken,
-		RegistryHostname:  registryHostname,
-		RegistryModules:   registryModules,
-		BackendModulesMap: backendModulesMap,
-		GlobalEnvironment: globalEnvironment,
-		ManagementOnly:    false,
+		VaultToken:         vaultToken,
+		RegistryHostname:   registryHostname,
+		RegistryModules:    registryModules,
+		BackendModulesMap:  backendModulesMap,
+		GlobalEnvironment:  globalEnvironment,
+		SidecarEnvironment: sidecarEnvironment,
+		ManagementOnly:     false,
 	}
 }
 
@@ -211,6 +202,12 @@ func NewDeploySidecarDto(name string,
 		NetworkConfig: networkConfig,
 		Platform:      &v1.Platform{},
 		PullImage:     pullSidecarImage,
+	}
+}
+
+func NewModuleNetworkConfig() *network.NetworkingConfig {
+	return &network.NetworkingConfig{
+		EndpointsConfig: map[string]*network.EndpointSettings{NetworkName: {NetworkID: NetworkId}},
 	}
 }
 
@@ -344,7 +341,7 @@ func DeployModule(commandName string, client *client.Client, dto *DeployModuleDt
 		panic(err)
 	}
 
-	slog.Info(commandName, "Deployed module container", fmt.Sprintf("%s %s", containerName, cr.ID))
+	slog.Info(commandName, "Deployed module container", fmt.Sprintf("%s %s", cr.ID, containerName))
 }
 
 func UndeployModule(commandName string, client *client.Client, deployedModule types.Container) {
@@ -360,21 +357,13 @@ func UndeployModule(commandName string, client *client.Client, deployedModule ty
 		panic(err)
 	}
 
-	slog.Info(commandName, "Undeployed module container", fmt.Sprintf("%s %s %s", deployedModule.ID, deployedModule.Image, deployedModule.Status))
+	slog.Info(commandName, "Undeployed module container", fmt.Sprintf("%s %s %s", deployedModule.ID, strings.ReplaceAll(deployedModule.Names[0], "/", ""), deployedModule.Status))
 }
 
 func DeployModules(commandName string, client *client.Client, dto *DeployModulesDto) {
 	sidecarImage := viper.GetString(RegistrySidecarImageKey)
-	resourceUrlKeycloak := viper.GetString(ResourcesKeycloakKey)
 	resourceUrlVault := viper.GetString(ResourcesVaultKey)
-	resourceUrlMgrTenants := viper.GetString(ResourcesMgrTenantsKey)
-	resourceUrlMgrApplications := viper.GetString(ResourcesMgrApplicationsKey)
-	resourceUrlMgrTenantEntitlements := viper.GetString(ResourcesMgrTenantEntitlements)
-
-	networkConfig := &network.NetworkingConfig{
-		EndpointsConfig: map[string]*network.EndpointSettings{NetworkName: {NetworkID: NetworkId}},
-	}
-
+	networkConfig := NewModuleNetworkConfig()
 	pullSidecarImage := true
 
 	for registryName, registryModules := range dto.RegistryModules {
@@ -393,63 +382,35 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 
 			var image string
 			if strings.Contains(module.Version, "SNAPSHOT") {
-				image = fmt.Sprintf("folioci/%s:%s", module.Name, module.Version)
+				image = fmt.Sprintf("%s/%s:%s", SnapshotRegistry, module.Name, module.Version)
 			} else {
-				image = fmt.Sprintf("folioorg/%s:%s", module.Name, module.Version)
+				image = fmt.Sprintf("%s/%s:%s", ReleaseRegistry, module.Name, module.Version)
 			}
 
 			var combinedModuleEnvironment []string
-
-			// Global environment
 			combinedModuleEnvironment = append(combinedModuleEnvironment, dto.GlobalEnvironment...)
-
-			// Module environment
 			combinedModuleEnvironment = AppendModuleEnvironment(backendModule.ModuleEnvironment, combinedModuleEnvironment)
-
-			// Vault environment
 			combinedModuleEnvironment = AppendVaultEnvironment(combinedModuleEnvironment, dto.VaultToken, resourceUrlVault)
-
 			deployModuleDto := NewDeployModuleDto(module.Name, image, combinedModuleEnvironment, backendModule, networkConfig)
 
-			// TODO Use mutex and make parallel
 			DeployModule(commandName, client, deployModuleDto)
 
-			if backendModule.DeploySidecar {
-				var combinedSidecarEnvironment []string
-
-				// Keycloak environment
-				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("KC_URL=%s", resourceUrlKeycloak))
-				// TODO Fetch from environment map
-				combinedSidecarEnvironment = append(combinedSidecarEnvironment, "KC_ADMIN_CLIENT_ID=superAdmin")
-				combinedSidecarEnvironment = append(combinedSidecarEnvironment, "KC_SERVICE_CLIENT_ID=m2m-client")
-				combinedSidecarEnvironment = append(combinedSidecarEnvironment, "KC_LOGIN_CLIENT_SUFFIX=-login-app")
-
-				// Vault environment
-				combinedSidecarEnvironment = AppendVaultEnvironment(combinedSidecarEnvironment, dto.VaultToken, resourceUrlVault)
-
-				// Management environment
-				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("TM_CLIENT_URL=%s", resourceUrlMgrTenants))
-				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("AM_CLIENT_URL=%s", resourceUrlMgrApplications))
-				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("TE_CLIENT_URL=%s", resourceUrlMgrTenantEntitlements))
-
-				// Module environment
-				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("MODULE_NAME=%s", module.Name))
-				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("MODULE_VERSION=%s", module.Version))
-				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("MODULE_URL=http://%s.eureka:%s", module.Name, ServerPort))
-				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("SIDECAR_URL=http://%s-sc.eureka:%s", module.Name, ServerPort))
-
-				// Java environment
-				// TODO Move to config
-				combinedSidecarEnvironment = append(combinedSidecarEnvironment, "JAVA_OPTIONS=-XX:MaxRAMPercentage=85.0 -Xms50m -Xmx128m -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005")
-
-				sidecarName := fmt.Sprintf("%s-sc", module.Name)
-
-				deploySidecarDto := NewDeploySidecarDto(sidecarName, sidecarImage, combinedSidecarEnvironment, backendModule, networkConfig, pullSidecarImage)
-
-				DeployModule(commandName, client, deploySidecarDto)
-
-				pullSidecarImage = false
+			if !backendModule.DeploySidecar {
+				continue
 			}
+
+			var combinedSidecarEnvironment []string
+			combinedSidecarEnvironment = AppendKeycloakEnvironment(commandName, combinedSidecarEnvironment)
+			combinedSidecarEnvironment = AppendVaultEnvironment(combinedSidecarEnvironment, dto.VaultToken, resourceUrlVault)
+			combinedSidecarEnvironment = AppendManagementEnvironment(combinedSidecarEnvironment)
+			combinedSidecarEnvironment = AppendSidecarEnvironment(combinedSidecarEnvironment, module)
+
+			combinedSidecarEnvironment = append(combinedSidecarEnvironment, dto.SidecarEnvironment...)
+			deploySidecarDto := NewDeploySidecarDto(module.SidecarName, sidecarImage, combinedSidecarEnvironment, backendModule, networkConfig, pullSidecarImage)
+
+			DeployModule(commandName, client, deploySidecarDto)
+
+			pullSidecarImage = false
 		}
 	}
 }

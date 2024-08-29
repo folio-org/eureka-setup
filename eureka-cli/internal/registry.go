@@ -20,9 +20,7 @@ func GetEurekaRegistryAuthToken(commandName string) string {
 		panic(err)
 	}
 
-	ecrClient := ecr.New(session)
-
-	authToken, err := ecrClient.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
+	authToken, err := ecr.New(session).GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
 	if err != nil {
 		panic(err)
 	}

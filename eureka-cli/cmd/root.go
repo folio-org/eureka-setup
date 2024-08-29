@@ -26,10 +26,12 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-var (
+const (
 	rootCommand string = "Root"
 	configDir   string = ".eureka"
+)
 
+var (
 	configFile  string
 	moduleName  string
 	enableDebug bool

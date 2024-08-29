@@ -54,12 +54,15 @@ go build -o ./bin/eureka-cli.exe .
 ./bin/eureka-cli.exe setup
 ```
 
-### Deploy/undeploy entire system
+### Deploy minimal platform system
 
 - Use a specific config: `-c` or `--config`
 - Enable debug: `-d` or `--debug`
 
 ```shell
-./bin/eureka-cli.exe deploySystem
-./bin/eureka-cli.exe undeploySystem
+./bin/eureka-cli.exe -c ./config.minimal.yaml deploySystem
 ```
+
+- undeploy using:
+
+> ./bin/eureka-cli.exe -c ./config.minimal.yaml undeploySystem

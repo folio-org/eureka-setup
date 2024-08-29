@@ -17,7 +17,7 @@ registry:
 environment:
   # General
   ENV: folio
-  # PostgeSQL
+  # PostgreSQL
   DB_HOST: db.eureka
   DB_PORT: 5432
   DB_DATABASE: okapi
@@ -43,10 +43,7 @@ environment:
   SPLIT_FILES_ENABLED: true
   # Consortia
   SYSTEM_USER_PASSWORD: system_user_password
-  # Java
-  JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms256m -Xmx512m"
   # Management
-  MOD_AUTHTOKEN_URL: http://mod-authtoken.eureka:8081
   MT_URL: http://mgr-tenants.eureka:8081
   AM_CLIENT_URL: http://mgr-applications.eureka:8081
   KONG_ADMIN_URL: http://api-gateway.eureka:8001
@@ -62,6 +59,8 @@ environment:
   KC_SERVICE_CLIENT_ID: m2m-client
   KONG_INTEGRATION_ENABLED: true
   OKAPI_INTEGRATION_ENABLED: false
+  # Java
+  JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms256m -Xmx512m"
 # Files
 files: 
   module-env: .module.env
@@ -75,7 +74,18 @@ resources:
   mgr-tenant-entitlements: http://mgr-tenant-entitlements.eureka:8081
 # Tenants
 tenants:
-  - diku 
+  - diku
+# Users
+users:
+  - username: diku_admin
+    password: admin
+# Roles
+roles:
+  - name: admin
+# Sidecar module
+sidecar-module:
+  environment:
+    JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms50m -Xmx128m"
 # Backend modules
 backend-modules:
   # Management modules
@@ -113,20 +123,20 @@ backend-modules:
       AM_CLIENT_URL: http://mgr-applications.eureka:8081
   # Keycloak modules
   mod-users-keycloak:
-    port: 9009
+    port: 9904
     sidecar: true
     environment:
       OKAPI_URL: http://mod-users-keycloak-sc.eureka:8081
   mod-login-keycloak:
-    port: 9010
+    port: 9905
     sidecar: true
     environment:
       X_OKAPI_TOKEN_HEADER_ENABLED: 'true'
   mod-roles-keycloak:
-    port: 9011
+    port: 9906
     sidecar: true
   mod-scheduler:
-    port: 9012
+    port: 9907
     sidecar: true
   # Core Modules
   mod-permissions:

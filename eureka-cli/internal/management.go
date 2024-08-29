@@ -20,8 +20,9 @@ type RegistryModule struct {
 	Id     string `json:"id"`
 	Action string `json:"action"`
 
-	Name    string
-	Version string
+	Name        string
+	SidecarName string
+	Version     string
 }
 
 type RegistryModules []RegistryModule
@@ -39,6 +40,7 @@ func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryM
 			module.Name = ModuleIdRegexp.ReplaceAllString(module.Id, `$1`)
 			module.Version = ModuleIdRegexp.ReplaceAllString(module.Id, `$2$3`)
 			module.Name = TrimModuleName(module.Name)
+			module.SidecarName = fmt.Sprintf("%s-sc", module.Name)
 
 			registryModules[moduleIndex] = module
 		}
@@ -92,6 +94,10 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 	applicationPlatform := applicationsMap["platform"].(string)
 	applicationFetchDescriptors := applicationsMap["fetch-descriptors"].(bool)
 
+	if applicationsMap["dependencies"] != nil {
+		dependencies = applicationsMap["dependencies"].([]interface{})
+	}
+
 	for registryName, registryModules := range dto.RegistryModules {
 		slog.Info(commandName, fmt.Sprintf("Registering %s registry modules", registryName), "")
 
@@ -113,10 +119,10 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 				panic(err)
 			}
 
-			url := fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls["folio"], module.Id)
+			moduleDescriptorUrl := fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls["folio"], module.Id)
 
 			if applicationFetchDescriptors {
-				dto.ModuleDescriptorsMap[module.Id] = DoGetDecodeReturnInterface(commandName, url, enableDebug)
+				dto.ModuleDescriptorsMap[module.Id] = DoGetDecodeReturnInterface(commandName, moduleDescriptorUrl, enableDebug)
 			}
 
 			if okBackend {
@@ -124,12 +130,12 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 				if applicationFetchDescriptors {
 					backendModuleDescriptors = append(backendModuleDescriptors, dto.ModuleDescriptorsMap[module.Id])
 				} else {
-					backendModule["url"] = url
+					backendModule["url"] = moduleDescriptorUrl
 				}
 
 				backendModules = append(backendModules, backendModule)
 
-				sidecarUrl := fmt.Sprintf("http://%s-sc.eureka:%s", module.Name, ServerPort)
+				sidecarUrl := fmt.Sprintf("http://%s.eureka:%s", module.SidecarName, ServerPort)
 
 				discoveryModules = append(discoveryModules, map[string]string{"id": module.Id, "name": module.Name, "version": module.Version, "location": sidecarUrl})
 			} else if okFrontend {
@@ -137,7 +143,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 				if applicationFetchDescriptors {
 					frontendModuleDescriptors = append(frontendModuleDescriptors, dto.ModuleDescriptorsMap[module.Id])
 				} else {
-					frontendModule["url"] = url
+					frontendModule["url"] = moduleDescriptorUrl
 				}
 
 				frontendModules = append(frontendModules, frontendModule)
@@ -152,7 +158,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 		"id":                  fmt.Sprintf("%s-%s", applicationName, applicationVersion),
 		"name":                applicationName,
 		"version":             applicationVersion,
-		"description":         fmt.Sprintf("%s:Deployed by Eureka CLI", applicationName),
+		"description":         "Default",
 		"platform":            applicationPlatform,
 		"dependencies":        dependencies,
 		"modules":             backendModules,
@@ -196,7 +202,7 @@ func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 
 		name := mapEntry["name"].(string)
 
-		if slices.Contains(viper.GetStringSlice(TenantConfigKey), name) {
+		if slices.Contains(viper.GetStringSlice(TenantsKey), name) {
 			id := mapEntry["id"].(string)
 
 			DoDelete(commandName, fmt.Sprintf(DockerInternalUrl, TenantsPort, fmt.Sprintf("/tenants/%s?purge=true", id)), enableDebug)
@@ -209,7 +215,7 @@ func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 }
 
 func CreateTenants(commandName string, enableDebug bool) {
-	tenantsConfig := viper.GetStringSlice(TenantConfigKey)
+	tenantsConfig := viper.GetStringSlice(TenantsKey)
 
 	for _, value := range GetTenants(commandName, enableDebug, false) {
 		mapEntry := value.(map[string]interface{})
@@ -228,7 +234,7 @@ func CreateTenants(commandName string, enableDebug bool) {
 	}
 
 	for _, tenant := range tenantsConfig {
-		tenantBytes, err := json.Marshal(map[string]string{"name": tenant, "description": "Default_tenant"})
+		tenantBytes, err := json.Marshal(map[string]string{"name": tenant, "description": "Default"})
 		if err != nil {
 			slog.Error(commandName, "json.Marshal error", "")
 			panic(err)
@@ -250,7 +256,7 @@ func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError
 
 		name := mapEntry["name"].(string)
 
-		if slices.Contains(viper.GetStringSlice(TenantConfigKey), name) {
+		if slices.Contains(viper.GetStringSlice(TenantsKey), name) {
 			id := mapEntry["id"].(string)
 
 			var applications []string
@@ -281,7 +287,7 @@ func CreateTenantEntitlement(commandName string, enableDebug bool) {
 
 		name := mapEntry["name"].(string)
 
-		if slices.Contains(viper.GetStringSlice(TenantConfigKey), name) {
+		if slices.Contains(viper.GetStringSlice(TenantsKey), name) {
 			id := mapEntry["id"].(string)
 
 			var applications []string
