@@ -39,36 +39,33 @@ var deployManagementCmd = &cobra.Command{
 func DeployManagement() {
 	registryFolioInstallJsonUrl := viper.GetString(internal.RegistryFolioInstallJsonUrlKey)
 	registryEurekaInstallJsonUrl := viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)
-
 	environmentMap := viper.GetStringMapString(internal.EnvironmentKey)
-
 	backendModulesAnyMap := viper.GetStringMap(internal.BackendModuleKey)
 
-	slog.Info(deployManagementCommand, internal.MessageKey, "### READING ENVIRONMENT FROM CONFIG ###")
+	slog.Info(deployManagementCommand, "### READING ENVIRONMENT FROM CONFIG ###", "")
 	environment := internal.GetEnvironmentFromConfig(deployManagementCommand, environmentMap)
 
-	slog.Info(deployManagementCommand, internal.MessageKey, "### READING BACKEND MODULES FROM CONFIG ###")
+	slog.Info(deployManagementCommand, "### READING BACKEND MODULES FROM CONFIG ###", "")
 	backendModulesMap := internal.GetBackendModulesFromConfig(deployManagementCommand, backendModulesAnyMap)
 
-	slog.Info(deployManagementCommand, internal.MessageKey, "### READING BACKEND MODULES REGISTRIES ###")
+	slog.Info(deployManagementCommand, "### READING BACKEND MODULE REGISTRIES ###", "")
 	instalJsonUrls := map[string]string{"folio": registryFolioInstallJsonUrl, "eureka": registryEurekaInstallJsonUrl}
 	registryModules := internal.GetModulesFromRegistries(deployManagementCommand, instalJsonUrls)
 
-	slog.Info(deployManagementCommand, internal.MessageKey, "### EXTRACTING MODULE NAME AND VERSION ###")
+	slog.Info(deployManagementCommand, "### EXTRACTING MODULE NAME AND VERSION ###", "")
 	internal.ExtractModuleNameAndVersion(deployManagementCommand, enableDebug, registryModules)
 
-	slog.Info(deployManagementCommand, internal.MessageKey, "### ACQUIRING VAULT TOKEN ###")
+	slog.Info(deployManagementCommand, "### ACQUIRING VAULT TOKEN ###", "")
 	client := internal.CreateClient(deployManagementCommand)
 	defer client.Close()
 	vaultToken := internal.GetVaultToken(deployManagementCommand, client)
 
-	slog.Info(deployManagementCommand, internal.MessageKey, "### DEPLOYING MANAGEMENT MODULES ###")
+	slog.Info(deployManagementCommand, "### DEPLOYING MANAGEMENT MODULES ###", "")
 	registryHostname := map[string]string{"folio": "", "eureka": ""}
 	deployModulesDto := internal.NewDeployManagementModulesDto(vaultToken, registryHostname, registryModules, backendModulesMap, environment)
 	internal.DeployModules(deployManagementCommand, client, deployModulesDto)
 
-	slog.Info(deployManagementCommand, internal.MessageKey, "### WAITING FOR MANAGEMENT MODULES TO INITIALIZE ###")
-	// TODO Replace with HTTP calls
+	slog.Info(deployManagementCommand, "### WAITING FOR MANAGEMENT MODULES TO INITIALIZE ###", "")
 	time.Sleep(150 * time.Second)
 }
 

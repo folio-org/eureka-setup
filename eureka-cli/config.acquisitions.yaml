@@ -1,3 +1,10 @@
+# Profile
+profile: 
+  name: acquisitions
+# Applications
+applications:
+  name: app-acquisitions
+  version: 1.0.0
 # Registry
 registry: 
   registry-url: http://folio-registry.dev.folio.org
@@ -37,7 +44,7 @@ environment:
   # Consortia
   SYSTEM_USER_PASSWORD: system_user_password
   # Java
-  JAVA_OPTIONS: "-Dokapi.url=http://api-gateway.eureka:8000 -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=85.0 -Xms128m -Xmx240m"
+  JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms256m -Xmx512m"
   # Management
   MOD_AUTHTOKEN_URL: http://mod-authtoken.eureka:8081
   MT_URL: http://mgr-tenants.eureka:8081
@@ -51,6 +58,8 @@ environment:
   SECURITY_ENABLED: false
   KC_IMPORT_ENABLED: true
   KC_INTEGRATION_ENABLED: true
+  KC_LOGIN_CLIENT_SUFFIX: login-app
+  KC_SERVICE_CLIENT_ID: m2m-client
   KONG_INTEGRATION_ENABLED: true
   OKAPI_INTEGRATION_ENABLED: false
 # Files
@@ -78,8 +87,8 @@ backend-modules:
       DB_USERNAME: app_manager_rw
       DB_PASSWORD: superAdmin
       # Management
-      TE_URL: http://mgr-tenant-entitlements.eureka:8081
       MODULE_URL: http://mgr-applications.eureka:8081
+      TE_URL: http://mgr-tenant-entitlements.eureka:8081
       VALIDATION_MODE: basic
   mgr-tenants:
     port: 9902
@@ -88,9 +97,6 @@ backend-modules:
       DB_DATABASE: tenant_manager
       DB_USERNAME: tenant_manager_rw
       DB_PASSWORD: superAdmin
-      # Keycloak
-      KC_LOGIN_CLIENT_SUFFIX: login-app
-      KC_SERVICE_CLIENT_ID: m2m-client
       # Management
       MODULE_URL: http://mgr-tenants.eureka:8081
       CACHE_EXPIRATION_TTL: 55s
@@ -101,54 +107,32 @@ backend-modules:
       DB_DATABASE: tenant_entitlement
       DB_USERNAME: tenant_entitlement_rw
       DB_PASSWORD: superAdmin
-      # Keycloak
-      KC_LOGIN_CLIENT_SUFFIX: login-app
       # Management
+      MODULE_URL: http://mgr-tenant-entitlements.eureka:8081
       TENANT_URL: http://mgr-tenants.eureka:8081
       AM_CLIENT_URL: http://mgr-applications.eureka:8081
-      MODULE_URL: http://mgr-tenant-entitlements.eureka:8081
   # Keycloak modules
   mod-users-keycloak:
     port: 9009
+    sidecar: true
     environment:
-      KC_URL: http://keycloak.eureka:8080
-      KC_ADMIN_CLIENT_ID: superAdmin
-      KC_LOGIN_CLIENT_SUFFIX: login-app
       JAVA_OPTIONS: >-
         -Dhost=okapi
         -Dstorage=postgres
         -Dpostgres_host=db
         -Dpostgres_username=okapi_rw
         -Dpostgres_password=superAdmin
-        -Dokapi.url=http://api-gateway.eureka:8000
-        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
   mod-login-keycloak:
     port: 9010
     sidecar: true
     environment:
-      KC_URL: http://keycloak.eureka:8080
-      KC_ADMIN_CLIENT_ID: superAdmin
-      KC_LOGIN_CLIENT_SUFFIX: login-app
-      KC_ADMIN_PASSWORD: admin
       X_OKAPI_TOKEN_HEADER_ENABLED: 'true'
   mod-roles-keycloak:
     port: 9011
     sidecar: true
-    environment:
-      KC_URL: http://keycloak.eureka:8080
-      KC_ADMIN_CLIENT_ID: superAdmin
-      KC_LOGIN_CLIENT_SUFFIX: login-app
   mod-scheduler:
     port: 9012
     sidecar: true
-    environment:
-      KC_URL: http://keycloak.eureka:8080
-      KC_ADMIN_CLIENT_ID: superAdmin
-      KC_LOGIN_CLIENT_SUFFIX: login-app
-      JAVA_OPTIONS: >-
-        -Dokapi.url=http://api-gateway.eureka:8000
-        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=85.0
-        -Xms128m -Xmx240m
   # Core Modules
   mod-permissions:
   mod-configuration:
@@ -165,43 +149,39 @@ backend-modules:
   mod-organizations-storage:
   mod-organizations:
   mod-entities-links:
-  # Disable temporary
-  # mod-invoice-storage:
-  # mod-invoice:
-  # mod-orders-storage:
-  # mod-orders:
-  # mod-finance:
-  # mod-finance-storage:
+  mod-invoice-storage:
+  mod-invoice:
+  mod-orders-storage:
+  mod-orders:
+  mod-finance:
+  mod-finance-storage:
   mod-circulation-storage:
   mod-circulation:
-  # Included for Exception Handling
-  # mod-di-converter-storage:
-  # mod-data-import:
-  # mod-data-export:
+  mod-di-converter-storage:
+  mod-data-import:
+  mod-data-export:
   mod-copycat:
   mod-audit:
   mod-patron:
   mod-patron-blocks:
   mod-feesfines:
   mod-tags:
-  # Included for Exception Handling
-  # mod-search:
+  mod-search:
   mod-password-validator:
   mod-login-saml:
   mod-settings:
   mod-event-config:
   mod-template-engine:
-  # Included for Exception Handling
-  # mod-data-export-spring:
-  # mod-erm-usage:
-  # mod-calendar:
-  # mod-notes: 
-  # mod-agreements:
-  # mod-sender:
-  # mod-email:
-  # mod-batch-print:
-  # mod-notify:
-  # mod-service-interaction:
+  mod-data-export-spring:
+  mod-erm-usage:
+  mod-calendar:
+  mod-notes: 
+  mod-agreements:
+  mod-sender:
+  mod-email:
+  mod-batch-print:
+  mod-notify:
+  mod-service-interaction:
 # Frontend modules
 frontend-modules:
   folio_users:

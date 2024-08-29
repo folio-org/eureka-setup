@@ -22,26 +22,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const createApplicationCommand string = "Create Application"
+const createTenantsCommand string = "Create Tenants"
 
-// createApplicationCmd represents the createApplication command
-var createApplicationCmd = &cobra.Command{
-	Use:   "createApplication",
-	Short: "Create application",
-	Long:  `Create an application.`,
+// createTenantsCmd represents the createTenants command
+var createTenantsCmd = &cobra.Command{
+	Use:   "createTenants",
+	Short: "Create tenants",
+	Long:  `Create all tenants.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		CreateApplication()
+		CreateTenants()
 	},
 }
 
-func CreateApplication() {
-	slog.Info(createApplicationCommand, internal.MessageKey, "### CREATING TENANTS ###")
-	internal.CreateTenants(createApplicationCommand, enableDebug)
-
-	slog.Info(createApplicationCommand, internal.MessageKey, "### CREATING TENANT ENTITLEMENTS ###")
-	internal.CreateTenantEntitlement(createApplicationCommand, enableDebug)
+func CreateTenants() {
+	slog.Info(createTenantsCommand, "### CREATING TENANTS ###", "")
+	internal.CreateTenants(createTenantsCommand, enableDebug)
 }
 
 func init() {
-	rootCmd.AddCommand(createApplicationCmd)
+	rootCmd.AddCommand(createTenantsCmd)
 }

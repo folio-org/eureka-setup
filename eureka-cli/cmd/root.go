@@ -20,13 +20,16 @@ import (
 	"os"
 	"path"
 
+	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/exp/slog"
 )
 
 var (
+	rootCommand string = "Root"
 	configDir   string = ".eureka"
+
 	configFile  string
 	moduleName  string
 	enableDebug bool
@@ -40,36 +43,35 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
 func init() {
 	cobra.OnInitialize(initConfig)
-
 	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", fmt.Sprintf("Config file (default is $HOME/%s/config.yaml)", configDir))
 	rootCmd.PersistentFlags().BoolVarP(&enableDebug, "debug", "d", false, "Enable debug")
 }
 
 func initConfig() {
+	slog.Info(rootCommand, "### READING CONFIG ###", "")
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
 	} else {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
-
 		configPath := path.Join(home, configDir)
-
 		viper.AddConfigPath(configPath)
 		viper.SetConfigType("yaml")
 		viper.SetConfigName("config")
 	}
-
 	viper.AutomaticEnv()
-
 	if err := viper.ReadInConfig(); err == nil {
-		slog.Info("Root", "Found config file", viper.ConfigFileUsed())
+		profile := viper.GetString(internal.ProfileNameKey)
+		applicationsMap := viper.GetStringMap(internal.ApplicationsKey)
+		slog.Info(rootCommand, "Using config file", profile)
+		slog.Info(rootCommand, "Using config profile", viper.ConfigFileUsed())
+		slog.Info(rootCommand, "Using config application", fmt.Sprintf("%s-%s", applicationsMap["name"], applicationsMap["version"]))
 	}
 }

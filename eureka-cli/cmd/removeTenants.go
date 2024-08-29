@@ -17,34 +17,28 @@ package cmd
 
 import (
 	"log/slog"
-	"os/exec"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
 )
 
-const undeploySystemCommand string = "Undeploy System"
+const removeTenantsCommand string = "Remove Tenants"
 
-// undeploySystemCmd represents the undeploySystem command
-var undeploySystemCmd = &cobra.Command{
-	Use:   "undeploySystem",
-	Short: "Deploy system",
-	Long:  `Deploy all system containers.`,
+// removeTenantsCmd represents the removeTenants command
+var removeTenantsCmd = &cobra.Command{
+	Use:   "removeTenants",
+	Short: "Remove tenants",
+	Long:  `Remove all tenants.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RemoveTenantEntitlements()
 		RemoveTenants()
-		UndeployModules()
-		UndeployManagement()
-		UndeploySystem()
 	},
 }
 
-func UndeploySystem() {
-	slog.Info(undeploySystemCommand, "### UNDEPLOYING SYSTEM CONTAINERS ###", "")
-	preparedCommand := exec.Command("docker", "compose", "-p", "eureka", "down", "-v")
-	internal.RunCommand(deployManagementCommand, preparedCommand, internal.ComposeFileDir)
+func RemoveTenants() {
+	slog.Info(removeTenantsCommand, "### REMOVING TENANTS ###", "")
+	internal.RemoveTenants(removeTenantsCommand, enableDebug, false)
 }
 
 func init() {
-	rootCmd.AddCommand(undeploySystemCmd)
+	rootCmd.AddCommand(removeTenantsCmd)
 }

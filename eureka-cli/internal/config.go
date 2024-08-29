@@ -10,8 +10,10 @@ import (
 )
 
 const (
-	WorkDir           string = ".eureka"
-	ApplicationJson   string = "application/json"
+	WorkDir        string = ".eureka"
+	ComposeFileDir string = "./misc"
+
+	ContentTypeJson   string = "application/json"
 	DockerInternalUrl string = "http://host.docker.internal:%d%s"
 	HostIp            string = "0.0.0.0"
 	ServerPort        string = "8081"
@@ -21,11 +23,13 @@ const (
 	ModuleIdPattern         string = "([a-z-_]+)([\\d-_.]+)([a-zA-Z0-9-_.]+)"
 	EnvNamePattern          string = "[.-]+"
 	ManagementModulePattern string = "mgr-"
-
-	MessageKey string = ""
 )
 
 const (
+	ProfileNameKey string = "profile.name"
+
+	ApplicationsKey string = "applications"
+
 	RegistryUrlKey                  string = "registry.registry-url"
 	RegistrySidecarImageKey         string = "registry.sidecar-image"
 	RegistryFolioInstallJsonUrlKey  string = "registry.folio-install-json-url"
@@ -56,7 +60,8 @@ var (
 	VaultTokenRegexp = regexp.MustCompile(VaultTokenPattern)
 	ModuleIdRegexp   = regexp.MustCompile(ModuleIdPattern)
 	EnvNameRegexp    = regexp.MustCompile(EnvNamePattern)
-	PortIndex        = 30000
+
+	PortIndex = 30000
 )
 
 func GetEnvironmentFromConfig(commandName string, sharedEnvMap map[string]string) []string {
@@ -138,12 +143,12 @@ func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMap map[
 func CreateModuleEnvFile(commandName string, fileModuleEnv string) *os.File {
 	err := os.Remove(fileModuleEnv)
 	if err != nil {
-		slog.Warn(commandName, MessageKey, fmt.Sprintf("os.Remove warn=\"%s\"", err.Error()))
+		slog.Warn(commandName, fmt.Sprintf("os.Remove warn=\"%s\"", err.Error()), "")
 	}
 
 	fileModuleEnvPointer, err := os.OpenFile(fileModuleEnv, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		slog.Error(commandName, MessageKey, "os.OpenFile error")
+		slog.Error(commandName, "os.OpenFile error", "")
 		panic(err)
 	}
 
@@ -153,23 +158,24 @@ func CreateModuleEnvFile(commandName string, fileModuleEnv string) *os.File {
 func CreateModuleDescriptorsFile(commandName string, fileModuleDescriptors string) *os.File {
 	err := os.Remove(fileModuleDescriptors)
 	if err != nil {
-		slog.Warn(commandName, MessageKey, fmt.Sprintf("os.Remove warn=\"%s\"", err.Error()))
+		slog.Warn(commandName, fmt.Sprintf("os.Remove warn=\"%s\"", err.Error()), "")
 	}
 
 	moduleDescriptorsFile, err := os.OpenFile(fileModuleDescriptors, os.O_CREATE, 0644)
 	if err != nil {
-		slog.Error(commandName, MessageKey, "os.OpenFile error")
+		slog.Error(commandName, "os.OpenFile error", "")
 		panic(err)
 	}
 
 	return moduleDescriptorsFile
 }
 
-func RunCommand(commandName string, preparedCommand *exec.Cmd) {
-	preparedCommand.Stdout, preparedCommand.Stderr = os.Stdout, os.Stderr
-
+func RunCommand(commandName string, preparedCommand *exec.Cmd, composeFileDir string) {
+	preparedCommand.Dir = composeFileDir
+	preparedCommand.Stdout = os.Stdout
+	preparedCommand.Stderr = os.Stderr
 	if err := preparedCommand.Run(); err != nil {
-		slog.Error(commandName, MessageKey, "systemCmd.Run() error")
+		slog.Error(commandName, "systemCmd.Run() error", "")
 		panic(err)
 	}
 }

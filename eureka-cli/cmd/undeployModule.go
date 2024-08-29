@@ -37,10 +37,7 @@ var undeployModuleCmd = &cobra.Command{
 }
 
 func UndeployModule() {
-	slog.Info(undeployModulesCommand, internal.MessageKey, "### DEREGISTERING MODULE ###")
-	internal.RemoveApplications(undeployModulesCommand, moduleName, enableDebug)
-
-	slog.Info(undeployModuleCommand, internal.MessageKey, "### UNDEPLOYING MODULE ###")
+	slog.Info(undeployModuleCommand, "### UNDEPLOYING MODULE ###", "")
 	client := internal.CreateClient(undeployModuleCommand)
 	defer client.Close()
 
@@ -53,7 +50,6 @@ func UndeployModule() {
 
 func init() {
 	rootCmd.AddCommand(undeployModuleCmd)
-
 	undeployModuleCmd.PersistentFlags().StringVarP(&moduleName, "moduleName", "m", "", "Module name (required)")
 	undeployModuleCmd.MarkPersistentFlagRequired("moduleName")
 }

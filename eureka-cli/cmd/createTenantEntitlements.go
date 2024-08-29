@@ -17,34 +17,28 @@ package cmd
 
 import (
 	"log/slog"
-	"os/exec"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
 )
 
-const undeploySystemCommand string = "Undeploy System"
+const createTenantEntitlementsCommand string = "Create Tenant Entitlements"
 
-// undeploySystemCmd represents the undeploySystem command
-var undeploySystemCmd = &cobra.Command{
-	Use:   "undeploySystem",
-	Short: "Deploy system",
-	Long:  `Deploy all system containers.`,
+// createTenantEntitlementsCmd represents the createTenantEntitlements command
+var createTenantEntitlementsCmd = &cobra.Command{
+	Use:   "createTenantEntitlements",
+	Short: "Create tenant entitlements",
+	Long:  `Create all tenant entitlements.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RemoveTenantEntitlements()
-		RemoveTenants()
-		UndeployModules()
-		UndeployManagement()
-		UndeploySystem()
+		CreateTenantEntitlements()
 	},
 }
 
-func UndeploySystem() {
-	slog.Info(undeploySystemCommand, "### UNDEPLOYING SYSTEM CONTAINERS ###", "")
-	preparedCommand := exec.Command("docker", "compose", "-p", "eureka", "down", "-v")
-	internal.RunCommand(deployManagementCommand, preparedCommand, internal.ComposeFileDir)
+func CreateTenantEntitlements() {
+	slog.Info(createTenantEntitlementsCommand, "### CREATING TENANT ENTITLEMENTS ###", "")
+	internal.CreateTenantEntitlement(createTenantEntitlementsCommand, enableDebug)
 }
 
 func init() {
-	rootCmd.AddCommand(undeploySystemCmd)
+	rootCmd.AddCommand(createTenantEntitlementsCmd)
 }

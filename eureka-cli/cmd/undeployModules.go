@@ -36,7 +36,7 @@ var undeployModulesCmd = &cobra.Command{
 }
 
 func UndeployModules() {
-	slog.Info(undeployModulesCommand, internal.MessageKey, "### UNDEPLOYING MODULES ###")
+	slog.Info(undeployModulesCommand, "### UNDEPLOYING MODULES ###", "")
 	client := internal.CreateClient(undeployModulesCommand)
 	defer client.Close()
 
@@ -46,14 +46,8 @@ func UndeployModules() {
 		internal.UndeployModule(undeployModulesCommand, client, deployedModule)
 	}
 
-	slog.Info(undeployModulesCommand, internal.MessageKey, "### REMOVING APPLICATIONS ###")
-	internal.RemoveApplications(undeployModulesCommand, "", enableDebug)
-
-	slog.Info(undeployModulesCommand, internal.MessageKey, "### REMOVING TENANT ENTITLEMENTS ###")
-	internal.RemoveTenantEntitlements(undeployModuleCommand, enableDebug)
-
-	slog.Info(undeployModulesCommand, internal.MessageKey, "### REMOVING TENANTS ###")
-	internal.RemoveTenants(undeployModuleCommand, enableDebug)
+	slog.Info(undeployModulesCommand, "### REMOVING APPLICATIONS ###", "")
+	internal.RemoveApplications(undeployModulesCommand, "", enableDebug, false)
 }
 
 func init() {

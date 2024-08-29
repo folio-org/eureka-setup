@@ -22,26 +22,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const removeApplicationCommand string = "Remove Application"
+const removeTenantEntitlementsCommand string = "Remove Tenant Entitlements"
 
-// removeApplicationCmd represents the removeApplication command
-var removeApplicationCmd = &cobra.Command{
-	Use:   "removeApplication",
-	Short: "Remove application",
-	Long:  `Remove an application.`,
+// removeTenantEntitlementsCmd represents the removeTenantEntitlements command
+var removeTenantEntitlementsCmd = &cobra.Command{
+	Use:   "removeTenantEntitlements",
+	Short: "Remove tenant entitlements",
+	Long:  `Remove all tenant entitlements.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RemoveApplication()
+		RemoveTenantEntitlements()
 	},
 }
 
-func RemoveApplication() {
-	slog.Info(createApplicationCommand, internal.MessageKey, "### REMOVING TENANT ENTITLEMENTS ###")
-	internal.RemoveTenantEntitlements(removeApplicationCommand, enableDebug)
-
-	slog.Info(createApplicationCommand, internal.MessageKey, "### REMOVING TENANTS ###")
-	internal.RemoveTenants(removeApplicationCommand, enableDebug)
+func RemoveTenantEntitlements() {
+	slog.Info(removeTenantEntitlementsCommand, "### REMOVING TENANT ENTITLEMENTS ###", "")
+	internal.RemoveTenantEntitlements(removeTenantEntitlementsCommand, enableDebug, false)
 }
 
 func init() {
-	rootCmd.AddCommand(removeApplicationCmd)
+	rootCmd.AddCommand(removeTenantEntitlementsCmd)
 }

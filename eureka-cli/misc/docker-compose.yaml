@@ -15,22 +15,6 @@ volumes:
     name: eureka_kafka_data
 
 services:
-  nginx-netcat:
-    <<: *core-service
-    container_name: nginx-netcat
-    build:
-      context: nginx-netcat
-      dockerfile: Dockerfile
-    image: nginx-netcat:latest
-    ports:
-      - "17980:80"
-    healthcheck:
-      test: nc -zv localhost 80 || exit -1
-      interval: 10s
-      timeout: 5s
-      retries: 15
-      start_period: 5s
-
   db:
     <<: *core-service
     container_name: db
@@ -141,7 +125,7 @@ services:
     build:
       context: ./keycloak
       dockerfile: Dockerfile
-    image: folio-keycloak:23.0.3
+    image: $ECR_REGISTRY/folio-keycloak:23.0.3
     env_file: [ env/keycloak.env ]
     depends_on:
       db:

@@ -96,15 +96,13 @@ func AppendVaultEnvironment(moduleEnvironment []string, vaultToken string, vault
 	return moduleEnvironment
 }
 
-func NewRegisterModuleDto(
-	registryUrls map[string]string,
+func NewRegisterModuleDto(registryUrls map[string]string,
 	registryModules map[string][]RegistryModule,
 	backendModulesMap map[string]BackendModule,
 	frontendModulesMap map[string]FrontendModule,
 	moduleDescriptorsMap map[string]interface{},
 	fileModuleEnvPointer *os.File,
-	enableDebug bool,
-) *RegisterModuleDto {
+	enableDebug bool) *RegisterModuleDto {
 	return &RegisterModuleDto{
 		RegistryUrls:         registryUrls,
 		RegistryModules:      registryModules,
@@ -135,13 +133,11 @@ func NewFrontendModule(name string) *FrontendModule {
 	return &FrontendModule{true, name}
 }
 
-func NewDeployManagementModulesDto(
-	vaultToken string,
+func NewDeployManagementModulesDto(vaultToken string,
 	registryHostname map[string]string,
 	registryModules map[string][]RegistryModule,
 	backendModulesMap map[string]BackendModule,
-	globalEnvironment []string,
-) *DeployModulesDto {
+	globalEnvironment []string) *DeployModulesDto {
 	return &DeployModulesDto{
 		VaultToken:        vaultToken,
 		RegistryHostname:  registryHostname,
@@ -152,13 +148,11 @@ func NewDeployManagementModulesDto(
 	}
 }
 
-func NewDeployModulesDto(
-	vaultToken string,
+func NewDeployModulesDto(vaultToken string,
 	registryHostname map[string]string,
 	registryModules map[string][]RegistryModule,
 	backendModulesMap map[string]BackendModule,
-	globalEnvironment []string,
-) *DeployModulesDto {
+	globalEnvironment []string) *DeployModulesDto {
 	return &DeployModulesDto{
 		VaultToken:        vaultToken,
 		RegistryHostname:  registryHostname,
@@ -166,6 +160,57 @@ func NewDeployModulesDto(
 		BackendModulesMap: backendModulesMap,
 		GlobalEnvironment: globalEnvironment,
 		ManagementOnly:    false,
+	}
+}
+
+func NewDeployModuleDto(name string,
+	image string,
+	env []string,
+	backendModule BackendModule,
+	networkConfig *network.NetworkingConfig) *DeployModuleDto {
+	return &DeployModuleDto{
+		Name:         name,
+		Image:        image,
+		RegistryAuth: "",
+		Config: &container.Config{
+			Image:        image,
+			Hostname:     name,
+			Env:          env,
+			ExposedPorts: *backendModule.ModuleExposedPorts,
+		},
+		HostConfig: &container.HostConfig{
+			PortBindings:  *backendModule.ModulePortBindings,
+			RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyOnFailure, MaximumRetryCount: 3},
+		},
+		NetworkConfig: networkConfig,
+		Platform:      &v1.Platform{},
+		PullImage:     true,
+	}
+}
+
+func NewDeploySidecarDto(name string,
+	image string,
+	env []string,
+	backendModule BackendModule,
+	networkConfig *network.NetworkingConfig,
+	pullSidecarImage bool) *DeployModuleDto {
+	return &DeployModuleDto{
+		Name:         name,
+		Image:        image,
+		RegistryAuth: "",
+		Config: &container.Config{
+			Image:        image,
+			Hostname:     name,
+			Env:          env,
+			ExposedPorts: *backendModule.SidecarExposedPorts,
+		},
+		HostConfig: &container.HostConfig{
+			PortBindings:  *backendModule.SidecarPortBindings,
+			RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyOnFailure, MaximumRetryCount: 3},
+		},
+		NetworkConfig: networkConfig,
+		Platform:      &v1.Platform{},
+		PullImage:     pullSidecarImage,
 	}
 }
 
@@ -201,7 +246,7 @@ func CreatePortBindings(hostServerPort int, hostServerDebugPort int) *nat.PortMa
 func CreateClient(commandName string) *client.Client {
 	newClient, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		slog.Error(commandName, MessageKey, "client.NewClientWithOpts error")
+		slog.Error(commandName, "client.NewClientWithOpts error", "")
 		panic(err)
 	}
 
@@ -211,7 +256,7 @@ func CreateClient(commandName string) *client.Client {
 func GetVaultToken(commandName string, client *client.Client) string {
 	logStream, err := client.ContainerLogs(context.Background(), "vault", container.LogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
-		slog.Error(commandName, MessageKey, "cli.ContainerLogs error")
+		slog.Error(commandName, "cli.ContainerLogs error", "")
 		panic(err)
 	}
 	defer logStream.Close()
@@ -220,7 +265,7 @@ func GetVaultToken(commandName string, client *client.Client) string {
 	for {
 		_, err := logStream.Read(buffer)
 		if err != nil {
-			slog.Error(commandName, MessageKey, "logStream.Read(buffer) error")
+			slog.Error(commandName, "logStream.Read(buffer) error", "")
 			panic(err)
 		}
 
@@ -229,7 +274,7 @@ func GetVaultToken(commandName string, client *client.Client) string {
 
 		_, err = logStream.Read(rawLogLine)
 		if err != nil {
-			slog.Warn(commandName, MessageKey, "logStream.Read(rawLogLine) encoutered an EOF")
+			slog.Warn(commandName, "logStream.Read(rawLogLine) encoutered an EOF", "")
 		}
 
 		parsedLogLine := string(rawLogLine)
@@ -247,12 +292,8 @@ func GetVaultToken(commandName string, client *client.Client) string {
 func GetDeployedModules(commandName string, client *client.Client, filters filters.Args) []types.Container {
 	deployedModules, err := client.ContainerList(context.Background(), container.ListOptions{All: true, Filters: filters})
 	if err != nil {
-		slog.Error(commandName, MessageKey, "cli.ContainerList error")
+		slog.Error(commandName, "cli.ContainerList error", "")
 		panic(err)
-	}
-
-	if len(deployedModules) == 0 {
-		slog.Info(commandName, MessageKey, "No deployed module containers were found")
 	}
 
 	return deployedModules
@@ -264,7 +305,7 @@ func DeployModule(commandName string, client *client.Client, dto *DeployModuleDt
 	if dto.PullImage {
 		reader, err := client.ImagePull(context.Background(), dto.Image, types.ImagePullOptions{RegistryAuth: dto.RegistryAuth})
 		if err != nil {
-			slog.Error(commandName, MessageKey, "cli.ImagePull error")
+			slog.Error(commandName, "cli.ImagePull error", "")
 			panic(err)
 		}
 		defer reader.Close()
@@ -289,17 +330,17 @@ func DeployModule(commandName string, client *client.Client, dto *DeployModuleDt
 
 	cr, err := client.ContainerCreate(context.Background(), dto.Config, dto.HostConfig, dto.NetworkConfig, dto.Platform, containerName)
 	if err != nil {
-		slog.Error(commandName, MessageKey, "cli.ContainerCreate error")
+		slog.Error(commandName, "cli.ContainerCreate error", "")
 		panic(err)
 	}
 
 	if cr.Warnings != nil && len(cr.Warnings) > 0 {
-		slog.Warn(commandName, MessageKey, fmt.Sprintf("cli.ContainerCreate warnings=\"%s\"", cr.Warnings))
+		slog.Warn(commandName, fmt.Sprintf("cli.ContainerCreate warnings=\"%s\"", cr.Warnings), "")
 	}
 
 	err = client.ContainerStart(context.Background(), cr.ID, container.StartOptions{})
 	if err != nil {
-		slog.Error(commandName, MessageKey, "cli.ContainerStart error")
+		slog.Error(commandName, "cli.ContainerStart error", "")
 		panic(err)
 	}
 
@@ -309,13 +350,13 @@ func DeployModule(commandName string, client *client.Client, dto *DeployModuleDt
 func UndeployModule(commandName string, client *client.Client, deployedModule types.Container) {
 	err := client.ContainerStop(context.Background(), deployedModule.ID, container.StopOptions{Signal: "9"})
 	if err != nil {
-		slog.Error(commandName, MessageKey, "cli.ContainerStop error")
+		slog.Error(commandName, "cli.ContainerStop error", "")
 		panic(err)
 	}
 
 	err = client.ContainerRemove(context.Background(), deployedModule.ID, container.RemoveOptions{Force: true, RemoveVolumes: true})
 	if err != nil {
-		slog.Error(commandName, MessageKey, "cli.ContainerRemove error")
+		slog.Error(commandName, "cli.ContainerRemove error", "")
 		panic(err)
 	}
 
@@ -337,7 +378,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 	pullSidecarImage := true
 
 	for registryName, registryModules := range dto.RegistryModules {
-		slog.Info(commandName, MessageKey, fmt.Sprintf("Deploying %s registry modules", registryName))
+		slog.Info(commandName, fmt.Sprintf("Deploying %s registry modules", registryName), "")
 
 		for _, module := range registryModules {
 			managementModule := strings.Contains(module.Name, ManagementModulePattern)
@@ -368,25 +409,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			// Vault environment
 			combinedModuleEnvironment = AppendVaultEnvironment(combinedModuleEnvironment, dto.VaultToken, resourceUrlVault)
 
-			// TODO Create a "New" method
-			deployModuleDto := &DeployModuleDto{
-				Name:         module.Name,
-				Image:        image,
-				RegistryAuth: "",
-				Config: &container.Config{
-					Image:        image,
-					Hostname:     module.Name,
-					Env:          combinedModuleEnvironment,
-					ExposedPorts: *backendModule.ModuleExposedPorts,
-				},
-				HostConfig: &container.HostConfig{
-					PortBindings:  *backendModule.ModulePortBindings,
-					RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyOnFailure, MaximumRetryCount: 3},
-				},
-				NetworkConfig: networkConfig,
-				Platform:      &v1.Platform{},
-				PullImage:     true,
-			}
+			deployModuleDto := NewDeployModuleDto(module.Name, image, combinedModuleEnvironment, backendModule, networkConfig)
 
 			// TODO Use mutex and make parallel
 			DeployModule(commandName, client, deployModuleDto)
@@ -419,25 +442,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 
 				sidecarName := fmt.Sprintf("%s-sc", module.Name)
 
-				// TODO Create a "New" method
-				deploySidecarDto := &DeployModuleDto{
-					Name:         sidecarName,
-					Image:        sidecarImage,
-					RegistryAuth: "",
-					Config: &container.Config{
-						Image:        sidecarImage,
-						Hostname:     sidecarName,
-						Env:          combinedSidecarEnvironment,
-						ExposedPorts: *backendModule.SidecarExposedPorts,
-					},
-					HostConfig: &container.HostConfig{
-						PortBindings:  *backendModule.SidecarPortBindings,
-						RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyOnFailure, MaximumRetryCount: 3},
-					},
-					NetworkConfig: networkConfig,
-					Platform:      &v1.Platform{},
-					PullImage:     pullSidecarImage,
-				}
+				deploySidecarDto := NewDeploySidecarDto(sidecarName, sidecarImage, combinedSidecarEnvironment, backendModule, networkConfig, pullSidecarImage)
 
 				DeployModule(commandName, client, deploySidecarDto)
 

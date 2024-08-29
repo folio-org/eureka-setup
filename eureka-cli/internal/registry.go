@@ -16,7 +16,7 @@ import (
 func GetEurekaRegistryAuthToken(commandName string) string {
 	session, err := session.NewSession()
 	if err != nil {
-		slog.Error(commandName, MessageKey, "session.NewSession() error")
+		slog.Error(commandName, "session.NewSession() error", "")
 		panic(err)
 	}
 
@@ -29,7 +29,7 @@ func GetEurekaRegistryAuthToken(commandName string) string {
 
 	decodedBytes, err := base64.StdEncoding.DecodeString(*authToken.AuthorizationData[0].AuthorizationToken)
 	if err != nil {
-		slog.Error(commandName, MessageKey, "base64.StdEncoding.DecodeString error")
+		slog.Error(commandName, "base64.StdEncoding.DecodeString error", "")
 		panic(err)
 	}
 
@@ -37,13 +37,13 @@ func GetEurekaRegistryAuthToken(commandName string) string {
 
 	jsonBytes, err := json.Marshal(map[string]string{"username": authCreds[0], "password": authCreds[1]})
 	if err != nil {
-		slog.Error(commandName, MessageKey, "json.Marshal error")
+		slog.Error(commandName, "json.Marshal error", "")
 		panic(err)
 	}
 
 	encodedAuth := base64.StdEncoding.EncodeToString(jsonBytes)
 
-	slog.Info(commandName, MessageKey, "Created registry auth token")
+	slog.Info(commandName, "Created registry auth token", "")
 
 	return encodedAuth
 }
@@ -56,19 +56,19 @@ func GetModulesFromRegistries(commandName string, installJsonUrls map[string]str
 
 		installJsonResp, err := http.Get(installJsonUrl)
 		if err != nil {
-			slog.Error(commandName, MessageKey, "http.Get error")
+			slog.Error(commandName, "http.Get error", "")
 			panic(err)
 		}
 		defer installJsonResp.Body.Close()
 
 		err = json.NewDecoder(installJsonResp.Body).Decode(&registryModules)
 		if err != nil {
-			slog.Error(commandName, MessageKey, "json.NewDecoder error")
+			slog.Error(commandName, "json.NewDecoder error", "")
 			panic(err)
 		}
 
 		if len(registryModules) > 0 {
-			slog.Info(commandName, fmt.Sprintf("Found %s registry modules", registryName), len(registryModules))
+			slog.Info(commandName, fmt.Sprintf("Found %s modules", registryName), len(registryModules))
 
 			sort.Slice(registryModules, func(i, j int) bool {
 				switch strings.Compare(registryModules[i].Id, registryModules[j].Id) {
