@@ -21,16 +21,19 @@ const (
 	ServerPort        string = "8081"
 	DebugPort         string = "5005"
 
-	VaultTokenPattern       string = ".*:"
-	ModuleIdPattern         string = "([a-z-_]+)([\\d-_.]+)([a-zA-Z0-9-_.]+)"
-	EnvNamePattern          string = "[.-]+"
-	ManagementModulePattern string = "mgr-"
+	VaultTokenPattern                string = ".*:"
+	ModuleIdPattern                  string = "([a-z-_]+)([\\d-_.]+)([a-zA-Z0-9-_.]+)"
+	EnvNamePattern                   string = "[.-]+"
+	ManagementModulePattern          string = "mgr-"
+	ManagementModuleContainerPattern string = "eureka-mgr-"
+	MultipleModulesContainerPattern  string = "eureka-mod-"
+	SingleModuleContainerPattern     string = "^(eureka-)(%[1]s|%[1]s-sc)$"
 )
 
 const (
 	ProfileNameKey string = "profile.name"
 
-	ApplicationsKey string = "applications"
+	ApplicationKey string = "application"
 
 	RegistryUrlKey                  string = "registry.registry-url"
 	RegistrySidecarImageKey         string = "registry.sidecar-image"

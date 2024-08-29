@@ -40,7 +40,7 @@ func UndeployModules() {
 	client := internal.CreateClient(undeployModulesCommand)
 	defer client.Close()
 
-	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: "eureka-mod"})
+	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: internal.MultipleModulesContainerPattern})
 	deployedModules := internal.GetDeployedModules(undeployModulesCommand, client, filters)
 	for _, deployedModule := range deployedModules {
 		internal.UndeployModule(undeployModulesCommand, client, deployedModule)

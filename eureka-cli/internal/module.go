@@ -419,9 +419,10 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 
 				// Keycloak environment
 				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("KC_URL=%s", resourceUrlKeycloak))
+				// TODO Fetch from environment map
 				combinedSidecarEnvironment = append(combinedSidecarEnvironment, "KC_ADMIN_CLIENT_ID=superAdmin")
 				combinedSidecarEnvironment = append(combinedSidecarEnvironment, "KC_SERVICE_CLIENT_ID=m2m-client")
-				combinedSidecarEnvironment = append(combinedSidecarEnvironment, "KC_LOGIN_CLIENT_SUFFIX=login-app")
+				combinedSidecarEnvironment = append(combinedSidecarEnvironment, "KC_LOGIN_CLIENT_SUFFIX=-login-app")
 
 				// Vault environment
 				combinedSidecarEnvironment = AppendVaultEnvironment(combinedSidecarEnvironment, dto.VaultToken, resourceUrlVault)
@@ -438,6 +439,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 				combinedSidecarEnvironment = append(combinedSidecarEnvironment, fmt.Sprintf("SIDECAR_URL=http://%s-sc.eureka:%s", module.Name, ServerPort))
 
 				// Java environment
+				// TODO Move to config
 				combinedSidecarEnvironment = append(combinedSidecarEnvironment, "JAVA_OPTIONS=-XX:MaxRAMPercentage=85.0 -Xms50m -Xmx128m -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005")
 
 				sidecarName := fmt.Sprintf("%s-sc", module.Name)

@@ -69,7 +69,7 @@ func initConfig() {
 	viper.AutomaticEnv()
 	if err := viper.ReadInConfig(); err == nil {
 		profile := viper.GetString(internal.ProfileNameKey)
-		applicationsMap := viper.GetStringMap(internal.ApplicationsKey)
+		applicationsMap := viper.GetStringMap(internal.ApplicationKey)
 		slog.Info(rootCommand, "Using config file", profile)
 		slog.Info(rootCommand, "Using config profile", viper.ConfigFileUsed())
 		slog.Info(rootCommand, "Using config application", fmt.Sprintf("%s-%s", applicationsMap["name"], applicationsMap["version"]))

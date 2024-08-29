@@ -96,7 +96,7 @@ func DeployModules() {
 	internal.DeployModules(deployModulesCommand, client, deployModulesDto)
 
 	slog.Info(deployModulesCommand, "### WAITING FOR MODULES TO INITIALIZE ###", "")
-	time.Sleep(150 * time.Second)
+	time.Sleep(180 * time.Second)
 }
 
 func init() {

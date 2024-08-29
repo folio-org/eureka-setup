@@ -41,7 +41,7 @@ func UndeployModule() {
 	client := internal.CreateClient(undeployModuleCommand)
 	defer client.Close()
 
-	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf("^(eureka-)(%[1]s|%[1]s-sc)$", moduleName)})
+	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.SingleModuleContainerPattern, moduleName)})
 	deployedModules := internal.GetDeployedModules(undeployModuleCommand, client, filters)
 	for _, deployedModule := range deployedModules {
 		internal.UndeployModule(undeployModuleCommand, client, deployedModule)

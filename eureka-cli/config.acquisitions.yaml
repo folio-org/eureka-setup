@@ -1,8 +1,8 @@
 # Profile
 profile: 
   name: acquisitions
-# Applications
-applications:
+# Application
+application:
   name: app-acquisitions
   version: 1.0.0
   platform: acquisitions
@@ -41,8 +41,6 @@ environment:
   S3_SECRET_ACCESS_KEY: minioadmin
   S3_BUCKET: example-bucket
   SPLIT_FILES_ENABLED: true
-  # Okapi
-  OKAPI_URL: http://api-gateway.eureka:8000
   # Consortia
   SYSTEM_USER_PASSWORD: system_user_password
   # Java
@@ -60,7 +58,7 @@ environment:
   SECURITY_ENABLED: false
   KC_IMPORT_ENABLED: true
   KC_INTEGRATION_ENABLED: true
-  KC_LOGIN_CLIENT_SUFFIX: login-app
+  KC_LOGIN_CLIENT_SUFFIX: -login-app
   KC_SERVICE_CLIENT_ID: m2m-client
   KONG_INTEGRATION_ENABLED: true
   OKAPI_INTEGRATION_ENABLED: false
@@ -118,12 +116,7 @@ backend-modules:
     port: 9009
     sidecar: true
     environment:
-      JAVA_OPTIONS: >-
-        -Dhost=okapi
-        -Dstorage=postgres
-        -Dpostgres_host=db
-        -Dpostgres_username=okapi_rw
-        -Dpostgres_password=superAdmin
+      OKAPI_URL: http://mod-users-keycloak-sc.eureka:8081
   mod-login-keycloak:
     port: 9010
     sidecar: true

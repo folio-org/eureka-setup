@@ -40,7 +40,7 @@ func UndeployManagement() {
 	client := internal.CreateClient(undeployManagementCommand)
 	defer client.Close()
 
-	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: "eureka-mgr"})
+	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: internal.ManagementModuleContainerPattern})
 	deployedModules := internal.GetDeployedModules(undeployManagementCommand, client, filters)
 	for _, deployedModule := range deployedModules {
 		internal.UndeployModule(undeployManagementCommand, client, deployedModule)

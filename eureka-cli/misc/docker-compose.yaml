@@ -15,6 +15,7 @@ volumes:
     name: eureka_kafka_data
 
 services:
+  ### Postgres ###
   db:
     <<: *core-service
     container_name: db
@@ -31,6 +32,7 @@ services:
       timeout: 10s
       retries: 10
 
+  ### Kafka ###
   kafka-ui:
     <<: *core-service
     container_name: kafka-ui
@@ -82,6 +84,7 @@ services:
       retries: 15
       start_period: 5s
 
+  ### Vault ###
   vault:
     <<: *core-service
     container_name: vault
@@ -101,6 +104,7 @@ services:
       timeout: 10s
       retries: 30
 
+  ### Keycloak ###
   keycloak:
     <<: *core-service
     container_name: keycloak
@@ -141,6 +145,7 @@ services:
           cpus: 1024m
           memory: 1200M
 
+  ### Kong ###
   api-gateway:
     <<: *core-service
     container_name: api-gateway
@@ -163,3 +168,20 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
+      
+  ### Netcat ###
+  netcat:
+    <<: *core-service
+    container_name: netcat
+    build:
+      context: netcat
+      dockerfile: Dockerfile
+    image: netcat:latest
+    ports:
+      - "8445:80"
+    healthcheck:
+      test: nc -zv localhost 80 || exit -1
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 5s

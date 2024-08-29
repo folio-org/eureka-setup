@@ -86,7 +86,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 		discoveryModules          []map[string]string
 	)
 
-	applicationsMap := viper.GetStringMap(ApplicationsKey)
+	applicationsMap := viper.GetStringMap(ApplicationKey)
 	applicationName := applicationsMap["name"].(string)
 	applicationVersion := applicationsMap["version"].(string)
 	applicationPlatform := applicationsMap["platform"].(string)
@@ -120,11 +120,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 			}
 
 			if okBackend {
-				backendModule := map[string]string{
-					"id":      module.Id,
-					"name":    module.Name,
-					"version": module.Version,
-				}
+				backendModule := map[string]string{"id": module.Id, "name": module.Name, "version": module.Version}
 				if applicationFetchDescriptors {
 					backendModuleDescriptors = append(backendModuleDescriptors, dto.ModuleDescriptorsMap[module.Id])
 				} else {
@@ -133,18 +129,11 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 
 				backendModules = append(backendModules, backendModule)
 
-				discoveryModules = append(discoveryModules, map[string]string{
-					"id":       module.Id,
-					"name":     module.Name,
-					"version":  module.Version,
-					"location": fmt.Sprintf("http://%s.eureka:%s", module.Name, ServerPort),
-				})
+				sidecarUrl := fmt.Sprintf("http://%s-sc.eureka:%s", module.Name, ServerPort)
+
+				discoveryModules = append(discoveryModules, map[string]string{"id": module.Id, "name": module.Name, "version": module.Version, "location": sidecarUrl})
 			} else if okFrontend {
-				frontendModule := map[string]string{
-					"id":      module.Id,
-					"name":    module.Name,
-					"version": module.Version,
-				}
+				frontendModule := map[string]string{"id": module.Id, "name": module.Name, "version": module.Version}
 				if applicationFetchDescriptors {
 					frontendModuleDescriptors = append(frontendModuleDescriptors, dto.ModuleDescriptorsMap[module.Id])
 				} else {
@@ -252,7 +241,7 @@ func CreateTenants(commandName string, enableDebug bool) {
 }
 
 func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError bool) {
-	applicationsMap := viper.GetStringMap(ApplicationsKey)
+	applicationsMap := viper.GetStringMap(ApplicationKey)
 	applicationName := applicationsMap["name"].(string)
 	applicationVersion := applicationsMap["version"].(string)
 
@@ -283,7 +272,7 @@ func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError
 }
 
 func CreateTenantEntitlement(commandName string, enableDebug bool) {
-	applicationsMap := viper.GetStringMap(ApplicationsKey)
+	applicationsMap := viper.GetStringMap(ApplicationKey)
 	applicationName := applicationsMap["name"].(string)
 	applicationVersion := applicationsMap["version"].(string)
 
