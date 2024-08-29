@@ -36,20 +36,30 @@ aws ecr get-login-password --region [region] | docker login --username [username
 
 ### (Optional) List available project versions
 
-> aws ecr list-images --repository-name [project_name] --no-paginate --output table
+```shell
+aws ecr list-images --repository-name [project_name] --no-paginate --output table
+```
 
 ### Build binary
   
-> go build -o ./bin/eureka-cli.exe .
+```shell
+go build -o ./bin/eureka-cli.exe .
+```
 
-### Setup config
+### (Optional) Setup config in home folder
 
-> ./bin/eureka-cli.exe setup
+- This config will be used by default if `-c` or `--config` flag is not specified
+
+```shell
+./bin/eureka-cli.exe setup
+```
 
 ### Deploy/undeploy entire system
 
-- Use  config (optional) flag: `-c` or `--config`
-- Enable debug (optional) flag: `-d` or `--debug`
+- Use a specific config: `-c` or `--config`
+- Enable debug: `-d` or `--debug`
 
-> ./bin/eureka-cli.exe deploySystem
-> ./bin/eureka-cli.exe undeploySystem
+```shell
+./bin/eureka-cli.exe deploySystem
+./bin/eureka-cli.exe undeploySystem
+```
