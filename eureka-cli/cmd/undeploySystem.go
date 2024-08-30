@@ -28,9 +28,12 @@ const undeploySystemCommand string = "Undeploy System"
 // undeploySystemCmd represents the undeploySystem command
 var undeploySystemCmd = &cobra.Command{
 	Use:   "undeploySystem",
-	Short: "Deploy system",
-	Long:  `Deploy all system containers.`,
+	Short: "Undeploy system",
+	Long:  `Undeploy all system containers.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		RemoveCapabilities()
+		RemoveRoles()
+		RemoveUsers()
 		RemoveTenantEntitlements()
 		RemoveTenants()
 		UndeployModules()
@@ -42,7 +45,7 @@ var undeploySystemCmd = &cobra.Command{
 func UndeploySystem() {
 	slog.Info(undeploySystemCommand, "### UNDEPLOYING SYSTEM CONTAINERS ###", "")
 	preparedCommand := exec.Command("docker", "compose", "-p", "eureka", "down", "-v")
-	internal.RunCommand(deployManagementCommand, preparedCommand, internal.ComposeFileDir)
+	internal.RunCommand(deployManagementCommand, preparedCommand)
 }
 
 func init() {

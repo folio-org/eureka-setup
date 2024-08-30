@@ -6,12 +6,46 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecr"
 )
+
+const (
+	SnapshotRegistry string = "folioci"
+	ReleaseRegistry  string = "folioorg"
+)
+
+type RegisterModuleDto struct {
+	RegistryUrls         map[string]string
+	RegistryModules      map[string][]RegistryModule
+	BackendModulesMap    map[string]BackendModule
+	FrontendModulesMap   map[string]FrontendModule
+	ModuleDescriptorsMap map[string]interface{}
+	FileModuleEnvPointer *os.File
+	EnableDebug          bool
+}
+
+func NewRegisterModuleDto(registryUrls map[string]string,
+	registryModules map[string][]RegistryModule,
+	backendModulesMap map[string]BackendModule,
+	frontendModulesMap map[string]FrontendModule,
+	moduleDescriptorsMap map[string]interface{},
+	fileModuleEnvPointer *os.File,
+	enableDebug bool) *RegisterModuleDto {
+	return &RegisterModuleDto{
+		RegistryUrls:         registryUrls,
+		RegistryModules:      registryModules,
+		BackendModulesMap:    backendModulesMap,
+		FrontendModulesMap:   frontendModulesMap,
+		ModuleDescriptorsMap: moduleDescriptorsMap,
+		FileModuleEnvPointer: fileModuleEnvPointer,
+		EnableDebug:          enableDebug,
+	}
+}
 
 func GetEurekaRegistryAuthToken(commandName string) string {
 	session, err := session.NewSession()

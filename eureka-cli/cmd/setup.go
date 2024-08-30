@@ -24,7 +24,6 @@ import (
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const setupCommand = "Setup"
@@ -41,7 +40,7 @@ var setupCmd = &cobra.Command{
 
 func Setup() {
 	slog.Info(setupCommand, "### CREATING SETUP CONFIG ###", "")
-	srcConfigFile := "config.yaml"
+	srcConfigFile := fmt.Sprintf("%s.%s", configMinimal, configType)
 	sourceFileStat, err := os.Stat(srcConfigFile)
 	if err != nil {
 		slog.Error(setupCommand, "os.Stat error", "")
@@ -58,16 +57,17 @@ func Setup() {
 	}
 	defer source.Close()
 
-	var dstConfigFile string
-	if configFile != "" {
-		viper.SetConfigFile(configFile)
-	} else {
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
+	home, err := os.UserHomeDir()
+	cobra.CheckErr(err)
 
-		dstConfigFile = path.Join(home, ".eureka", srcConfigFile)
+	dstConfigDir := path.Join(home, configDir)
+	err = os.MkdirAll(dstConfigDir, 0700)
+	if err != nil {
+		slog.Error(setupCommand, "os.MkdirAll", "")
+		panic(err)
 	}
 
+	dstConfigFile := path.Join(dstConfigDir, srcConfigFile)
 	destination, err := os.Create(dstConfigFile)
 	if err != nil {
 		slog.Error(setupCommand, "os.Create error", "")
@@ -81,7 +81,7 @@ func Setup() {
 		panic(err)
 	}
 
-	slog.Info(setupCommand, fmt.Sprintf("Created setup config in %s", dstConfigFile), "")
+	slog.Info(setupCommand, fmt.Sprintf("Created setup in %s", dstConfigFile), "")
 }
 
 func init() {

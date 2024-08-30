@@ -31,11 +31,16 @@ var undeployModulesCmd = &cobra.Command{
 	Short: "Undeploy modules",
 	Long:  `Undeploy multiple modules.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		RemoveTenantEntitlements()
+		RemoveTenants()
 		UndeployModules()
 	},
 }
 
 func UndeployModules() {
+	slog.Info(undeployModulesCommand, "### REMOVING APPLICATIONS ###", "")
+	internal.RemoveApplications(undeployModulesCommand, "", enableDebug, false)
+
 	slog.Info(undeployModulesCommand, "### UNDEPLOYING MODULES ###", "")
 	client := internal.CreateClient(undeployModulesCommand)
 	defer client.Close()
@@ -45,9 +50,6 @@ func UndeployModules() {
 	for _, deployedModule := range deployedModules {
 		internal.UndeployModule(undeployModulesCommand, client, deployedModule)
 	}
-
-	slog.Info(undeployModulesCommand, "### REMOVING APPLICATIONS ###", "")
-	internal.RemoveApplications(undeployModulesCommand, "", enableDebug, false)
 }
 
 func init() {

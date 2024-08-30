@@ -37,14 +37,21 @@ var deploySystemCmd = &cobra.Command{
 		DeployModules()
 		CreateTenants()
 		CreateTenantEntitlements()
+		CreateUsers()
+		CreateRoles()
+		CreateCapabilities()
 	},
 }
 
 func DeploySystem() {
 	slog.Info(deploySystemCommand, "### DEPLOYING SYSTEM CONTAINERS ###", "")
-	preparedCommand := exec.Command("docker", "compose", "-p", "eureka", "-f", "docker-compose.yaml", "up", "-d", "--build", "--always-recreate-deps", "--force-recreate")
-	internal.RunCommand(deployManagementCommand, preparedCommand, internal.ComposeFileDir)
-
+	preparedCommands := []*exec.Cmd{
+		exec.Command("docker", "compose", "-p", "eureka", "build", "--quiet"),
+		exec.Command("docker", "compose", "-p", "eureka", "up", "--detach", "--quiet-pull"),
+	}
+	for _, preparedCommand := range preparedCommands {
+		internal.RunCommandFromDir(deployManagementCommand, preparedCommand, internal.ComposeWorkDir)
+	}
 	slog.Info(deployModulesCommand, "### WAITING FOR SYSTEM TO INITIALIZE ###", "")
 	time.Sleep(150 * time.Second)
 }

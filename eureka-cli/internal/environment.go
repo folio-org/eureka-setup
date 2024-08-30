@@ -7,10 +7,10 @@ import (
 	"github.com/spf13/viper"
 )
 
-func AppendVaultEnvironment(environment []string, vaultToken string, vaultUrl string) []string {
+func AppendVaultEnvironment(environment []string, vaultRootToken string, vaultUrl string) []string {
 	extraEnvironment := []string{
 		"SECRET_STORE_TYPE=VAULT",
-		fmt.Sprintf("SECRET_STORE_VAULT_TOKEN=%s", vaultToken),
+		fmt.Sprintf("SECRET_STORE_VAULT_TOKEN=%s", vaultRootToken),
 		fmt.Sprintf("SECRET_STORE_VAULT_ADDRESS=%s", vaultUrl),
 	}
 	environment = append(environment, extraEnvironment...)

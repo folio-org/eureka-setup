@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"os"
 	"strconv"
 	"strings"
 
@@ -21,21 +20,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	SnapshotRegistry string = "folioci"
-	ReleaseRegistry  string = "folioorg"
-)
-
-type RegisterModuleDto struct {
-	RegistryUrls         map[string]string
-	RegistryModules      map[string][]RegistryModule
-	BackendModulesMap    map[string]BackendModule
-	FrontendModulesMap   map[string]FrontendModule
-	ModuleDescriptorsMap map[string]interface{}
-	FileModuleEnvPointer *os.File
-	EnableDebug          bool
-}
-
 type DeployModuleDto struct {
 	Name          string
 	Image         string
@@ -48,7 +32,7 @@ type DeployModuleDto struct {
 }
 
 type DeployModulesDto struct {
-	VaultToken         string
+	VaultRootToken     string
 	RegistryHostname   map[string]string
 	RegistryModules    map[string][]RegistryModule
 	BackendModulesMap  map[string]BackendModule
@@ -84,24 +68,6 @@ type Event struct {
 	} `json:"progressDetail"`
 }
 
-func NewRegisterModuleDto(registryUrls map[string]string,
-	registryModules map[string][]RegistryModule,
-	backendModulesMap map[string]BackendModule,
-	frontendModulesMap map[string]FrontendModule,
-	moduleDescriptorsMap map[string]interface{},
-	fileModuleEnvPointer *os.File,
-	enableDebug bool) *RegisterModuleDto {
-	return &RegisterModuleDto{
-		RegistryUrls:         registryUrls,
-		RegistryModules:      registryModules,
-		BackendModulesMap:    backendModulesMap,
-		FrontendModulesMap:   frontendModulesMap,
-		ModuleDescriptorsMap: moduleDescriptorsMap,
-		FileModuleEnvPointer: fileModuleEnvPointer,
-		EnableDebug:          enableDebug,
-	}
-}
-
 func NewBackendModuleAndSidecar(name string, port int, deploySidecar bool, moduleEnvironment map[string]interface{}) *BackendModule {
 	exposedPorts := CreateExposedPorts()
 	modulePortBindings := CreatePortBindings(port, port+1000)
@@ -121,13 +87,13 @@ func NewFrontendModule(name string) *FrontendModule {
 	return &FrontendModule{true, name}
 }
 
-func NewDeployManagementModulesDto(vaultToken string,
+func NewDeployManagementModulesDto(vaultRootToken string,
 	registryHostname map[string]string,
 	registryModules map[string][]RegistryModule,
 	backendModulesMap map[string]BackendModule,
 	globalEnvironment []string) *DeployModulesDto {
 	return &DeployModulesDto{
-		VaultToken:         vaultToken,
+		VaultRootToken:     vaultRootToken,
 		RegistryHostname:   registryHostname,
 		RegistryModules:    registryModules,
 		BackendModulesMap:  backendModulesMap,
@@ -137,14 +103,14 @@ func NewDeployManagementModulesDto(vaultToken string,
 	}
 }
 
-func NewDeployModulesDto(vaultToken string,
+func NewDeployModulesDto(vaultRootToken string,
 	registryHostname map[string]string,
 	registryModules map[string][]RegistryModule,
 	backendModulesMap map[string]BackendModule,
 	globalEnvironment []string,
 	sidecarEnvironment []string) *DeployModulesDto {
 	return &DeployModulesDto{
-		VaultToken:         vaultToken,
+		VaultRootToken:     vaultRootToken,
 		RegistryHostname:   registryHostname,
 		RegistryModules:    registryModules,
 		BackendModulesMap:  backendModulesMap,
@@ -250,7 +216,7 @@ func CreateClient(commandName string) *client.Client {
 	return newClient
 }
 
-func GetVaultToken(commandName string, client *client.Client) string {
+func GetRootVaultToken(commandName string, client *client.Client) string {
 	logStream, err := client.ContainerLogs(context.Background(), "vault", container.LogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
 		slog.Error(commandName, "cli.ContainerLogs error", "")
@@ -277,11 +243,11 @@ func GetVaultToken(commandName string, client *client.Client) string {
 		parsedLogLine := string(rawLogLine)
 
 		if strings.Contains(parsedLogLine, "init.sh: Root VAULT TOKEN is:") {
-			vaultToken := strings.TrimSpace(VaultTokenRegexp.ReplaceAllString(parsedLogLine, `$1`))
+			vaultRootToken := strings.TrimSpace(VaultRootTokenRegexp.ReplaceAllString(parsedLogLine, `$1`))
 
-			slog.Info(commandName, "Found Vault Token", vaultToken)
+			slog.Info(commandName, "Found vault root token", vaultRootToken)
 
-			return vaultToken
+			return vaultRootToken
 		}
 	}
 }
@@ -390,7 +356,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			var combinedModuleEnvironment []string
 			combinedModuleEnvironment = append(combinedModuleEnvironment, dto.GlobalEnvironment...)
 			combinedModuleEnvironment = AppendModuleEnvironment(backendModule.ModuleEnvironment, combinedModuleEnvironment)
-			combinedModuleEnvironment = AppendVaultEnvironment(combinedModuleEnvironment, dto.VaultToken, resourceUrlVault)
+			combinedModuleEnvironment = AppendVaultEnvironment(combinedModuleEnvironment, dto.VaultRootToken, resourceUrlVault)
 			deployModuleDto := NewDeployModuleDto(module.Name, image, combinedModuleEnvironment, backendModule, networkConfig)
 
 			DeployModule(commandName, client, deployModuleDto)
@@ -401,7 +367,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 
 			var combinedSidecarEnvironment []string
 			combinedSidecarEnvironment = AppendKeycloakEnvironment(commandName, combinedSidecarEnvironment)
-			combinedSidecarEnvironment = AppendVaultEnvironment(combinedSidecarEnvironment, dto.VaultToken, resourceUrlVault)
+			combinedSidecarEnvironment = AppendVaultEnvironment(combinedSidecarEnvironment, dto.VaultRootToken, resourceUrlVault)
 			combinedSidecarEnvironment = AppendManagementEnvironment(combinedSidecarEnvironment)
 			combinedSidecarEnvironment = AppendSidecarEnvironment(combinedSidecarEnvironment, module)
 

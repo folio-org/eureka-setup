@@ -75,16 +75,6 @@ resources:
   mgr-tenants: http://mgr-tenants.eureka:8081
   mgr-applications: http://mgr-applications.eureka:8081
   mgr-tenant-entitlements: http://mgr-tenant-entitlements.eureka:8081
-# Tenants
-tenants:
-  - diku
-# Users
-users:
-  - username: diku_admin
-    password: admin
-# Roles
-roles:
-  - name: admin
 # Sidecar module
 sidecar-module:
   environment:

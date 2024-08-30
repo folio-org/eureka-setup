@@ -16,8 +16,15 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+	"log/slog"
+	"os/exec"
+
+	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
 )
+
+const listModulesCommand string = "List Modules"
 
 // listModulesCmd represents the listModules command
 var listModulesCmd = &cobra.Command{
@@ -30,9 +37,16 @@ var listModulesCmd = &cobra.Command{
 }
 
 func ListModules() {
-
+	slog.Info(listModulesCommand, "### LISTING MODULES ###", "")
+	filter := internal.ManagementOrModulesContainerPattern
+	if moduleName != "" {
+		filter = fmt.Sprintf(internal.SingleModuleContainerPattern, moduleName)
+	}
+	internal.RunCommand(listSystemCommand, exec.Command("docker", "container", "ls", "--all", "--filter", fmt.Sprintf("name=%s", filter)))
 }
 
 func init() {
 	rootCmd.AddCommand(listModulesCmd)
+	listModulesCmd.Flags().StringVarP(&moduleName, "moduleName", "m", "", "Module name (required)")
+	listModulesCmd.MarkPersistentFlagRequired("moduleName")
 }

@@ -16,30 +16,24 @@ limitations under the License.
 package cmd
 
 import (
-	"log/slog"
-	"os/exec"
-
-	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
 )
 
-const listSystemCommand string = "List System"
-
-// listSystemCmd represents the listSystem command
-var listSystemCmd = &cobra.Command{
-	Use:   "listSystem",
-	Short: "List system containers",
-	Long:  `List all system containers.`,
+// redirectCmd represents the redirect command
+var redirectCmd = &cobra.Command{
+	Use:   "redirect",
+	Short: "Redirect modules",
+	Long:  `Redirect multiple modules.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		ListSystem()
+		RedirectModules()
 	},
 }
 
-func ListSystem() {
-	slog.Info(listSystemCommand, "### LISTING SYSTEM CONTAINERS ###", "")
-	internal.RunCommand(listSystemCommand, exec.Command("docker", "compose", "-p", "eureka", "ps", "--all"))
+// TODO
+func RedirectModules() {
+
 }
 
 func init() {
-	rootCmd.AddCommand(listSystemCmd)
+	rootCmd.AddCommand(redirectCmd)
 }

@@ -16,8 +16,13 @@ limitations under the License.
 package cmd
 
 import (
+	"log/slog"
+
+	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
 )
+
+const removeUsersCommand string = "Remove Users"
 
 // removeUsersCmd represents the removeUsers command
 var removeUsersCmd = &cobra.Command{
@@ -30,7 +35,8 @@ var removeUsersCmd = &cobra.Command{
 }
 
 func RemoveUsers() {
-
+	slog.Info(removeUsersCommand, "### REMOVING USERS ###", "")
+	internal.RemoveUsers(removeUsersCommand, enableDebug, false)
 }
 
 func init() {

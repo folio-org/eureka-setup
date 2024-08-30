@@ -28,9 +28,12 @@ const undeployManagementCommand = "Undeploy Management"
 // undeployManagementCmd represents the undeployManagement command
 var undeployManagementCmd = &cobra.Command{
 	Use:   "undeployManagement",
-	Short: "Undeploy modules",
+	Short: "Undeploy management",
 	Long:  `Undeploy all management modules.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		RemoveTenantEntitlements()
+		RemoveTenants()
+		UndeployModules()
 		UndeployManagement()
 	},
 }

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 // ####### GET ########
@@ -17,7 +19,7 @@ func DoGetReturnResponse(commandName string, url string, enableDebug bool, panic
 		panic(err)
 	}
 
-	req.Header.Set("Content-Type", ContentTypeJson)
+	req.Header.Set("Content-Type", JsonContentType)
 
 	DumpHttpRequest(commandName, req, enableDebug)
 
@@ -27,7 +29,7 @@ func DoGetReturnResponse(commandName string, url string, enableDebug bool, panic
 			slog.Error(commandName, "http.DefaultClient.Do error", "")
 			panic(err)
 		} else {
-			LogWarn(commandName, fmt.Sprintf("Endpoint is unreachable: %s", url))
+			LogWarn(commandName, fmt.Sprintf("http.DefaultClient.Do warn - Endpoint is unreachable: %s", url))
 			return nil
 		}
 	}
@@ -46,7 +48,7 @@ func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool
 		panic(err)
 	}
 
-	req.Header.Set("Content-Type", ContentTypeJson)
+	req.Header.Set("Content-Type", JsonContentType)
 
 	DumpHttpRequest(commandName, req, enableDebug)
 
@@ -80,7 +82,7 @@ func DoGetDecodeReturnMapStringInteface(commandName string, url string, enableDe
 		panic(err)
 	}
 
-	req.Header.Set("Content-Type", ContentTypeJson)
+	req.Header.Set("Content-Type", JsonContentType)
 
 	DumpHttpRequest(commandName, req, enableDebug)
 
@@ -90,7 +92,7 @@ func DoGetDecodeReturnMapStringInteface(commandName string, url string, enableDe
 			slog.Error(commandName, "http.DefaultClient.Do error", "")
 			panic(err)
 		} else {
-			LogWarn(commandName, fmt.Sprintf("Endpoint is unreachable: %s", url))
+			LogWarn(commandName, fmt.Sprintf("http.DefaultClient.Do warn - Endpoint is unreachable: %s", url))
 			return nil
 		}
 	}
@@ -112,7 +114,7 @@ func DoGetDecodeReturnMapStringInteface(commandName string, url string, enableDe
 
 // ####### POST ########
 
-func DoPostNoContent(commandName string, url string, enableDebug bool, bodyBytes []byte, accessToken string) {
+func DoPostReturnNoContent(commandName string, url string, enableDebug bool, bodyBytes []byte, headers map[string]string) {
 	DumpHttpBody(commandName, enableDebug, bodyBytes)
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(bodyBytes))
@@ -121,10 +123,8 @@ func DoPostNoContent(commandName string, url string, enableDebug bool, bodyBytes
 		panic(err)
 	}
 
-	req.Header.Add("Content-Type", ContentTypeJson)
-
-	if accessToken != "" {
-		req.Header.Add("x-okapi-token", accessToken)
+	for key, value := range headers {
+		req.Header.Add(key, value)
 	}
 
 	DumpHttpRequest(commandName, req, enableDebug)
@@ -140,6 +140,44 @@ func DoPostNoContent(commandName string, url string, enableDebug bool, bodyBytes
 	}()
 
 	DumpHttpResponse(commandName, resp, enableDebug)
+}
+
+func DoPostReturnMapStringInteface(commandName string, url string, enableDebug bool, formData url.Values, headers map[string]string) map[string]interface{} {
+	var respMap map[string]interface{}
+
+	DumpHttpFormData(commandName, enableDebug, formData)
+
+	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(formData.Encode()))
+	if err != nil {
+		slog.Error(commandName, "http.NewRequest error", "")
+		panic(err)
+	}
+
+	for key, value := range headers {
+		req.Header.Add(key, value)
+	}
+
+	DumpHttpRequest(commandName, req, enableDebug)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		slog.Error(commandName, "http.DefaultClient.Do error", "")
+		panic(err)
+	}
+	defer func() {
+		CheckStatusCodes(commandName, resp)
+		resp.Body.Close()
+	}()
+
+	DumpHttpResponse(commandName, resp, enableDebug)
+
+	err = json.NewDecoder(resp.Body).Decode(&respMap)
+	if err != nil {
+		slog.Error(commandName, "json.NewDecoder error", "")
+		panic(err)
+	}
+
+	return respMap
 }
 
 // ####### DELETE ########
@@ -166,14 +204,14 @@ func DoDelete(commandName string, url string, enableDebug bool) {
 	DumpHttpResponse(commandName, resp, enableDebug)
 }
 
-func DoDeleteBody(commandName string, url string, enableDebug bool, bodyBytes []byte, ignoreError bool) {
+func DoDeleteWithBody(commandName string, url string, enableDebug bool, bodyBytes []byte, ignoreError bool) {
 	req, err := http.NewRequest(http.MethodDelete, url, bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		slog.Error(commandName, "http.NewRequest error", "")
 		panic(err)
 	}
 
-	req.Header.Add("Content-Type", ContentTypeJson)
+	req.Header.Add("Content-Type", JsonContentType)
 
 	DumpHttpRequest(commandName, req, enableDebug)
 

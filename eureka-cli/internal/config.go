@@ -11,10 +11,7 @@ import (
 )
 
 const (
-	WorkDir        string = ".eureka"
-	ComposeFileDir string = "./misc"
-
-	ContentTypeJson   string = "application/json"
+	ComposeWorkDir    string = "./misc"
 	NetworkName       string = "fpm-net"
 	NetworkId         string = "eureka"
 	DockerInternalUrl string = "http://host.docker.internal:%d%s"
@@ -22,13 +19,15 @@ const (
 	ServerPort        string = "8081"
 	DebugPort         string = "5005"
 
-	VaultTokenPattern                string = ".*:"
-	ModuleIdPattern                  string = "([a-z-_]+)([\\d-_.]+)([a-zA-Z0-9-_.]+)"
-	EnvNamePattern                   string = "[.-]+"
-	ManagementModulePattern          string = "mgr-"
-	ManagementModuleContainerPattern string = "eureka-mgr-"
-	MultipleModulesContainerPattern  string = "eureka-mod-"
-	SingleModuleContainerPattern     string = "^(eureka-)(%[1]s|%[1]s-sc)$"
+	VaultRootTokenPattern               string = ".*:"
+	ModuleIdPattern                     string = "([a-z-_]+)([\\d-_.]+)([a-zA-Z0-9-_.]+)"
+	EnvNamePattern                      string = "[.-]+"
+	ManagementModulePattern             string = "mgr-"
+	ModulesPattern                      string = "eureka-"
+	ManagementModuleContainerPattern    string = "eureka-mgr-"
+	MultipleModulesContainerPattern     string = "eureka-mod-"
+	ManagementOrModulesContainerPattern string = "^(eureka-)(mod|mgr)-(.+)"
+	SingleModuleContainerPattern        string = "^(eureka-)(%[1]s|%[1]s-sc)$"
 )
 
 const (
@@ -66,9 +65,9 @@ const (
 )
 
 var (
-	VaultTokenRegexp *regexp.Regexp = regexp.MustCompile(VaultTokenPattern)
-	ModuleIdRegexp   *regexp.Regexp = regexp.MustCompile(ModuleIdPattern)
-	EnvNameRegexp    *regexp.Regexp = regexp.MustCompile(EnvNamePattern)
+	VaultRootTokenRegexp *regexp.Regexp = regexp.MustCompile(VaultRootTokenPattern)
+	ModuleIdRegexp       *regexp.Regexp = regexp.MustCompile(ModuleIdPattern)
+	EnvNameRegexp        *regexp.Regexp = regexp.MustCompile(EnvNamePattern)
 
 	PortIndex int = 30000
 )

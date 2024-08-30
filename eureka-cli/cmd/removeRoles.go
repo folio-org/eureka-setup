@@ -29,6 +29,7 @@ var removeRolesCmd = &cobra.Command{
 	},
 }
 
+// TODO
 func RemoveRoles() {
 
 }

@@ -11,9 +11,18 @@ import (
 )
 
 const (
+	GatewayPort = 8000
+
 	ApplicationsPort       = 9901
 	TenantsPort            = 9902
 	TenantEntitlementsPort = 9903
+
+	JsonContentType           string = "application/json"
+	FormUrlEncodedContentType string = "application/x-www-form-urlencoded"
+
+	ContentTypeHeader = "Content-Type"
+	TenantHeader      = "X-Okapi-Tenant"
+	TokenHeader       = "X-Okapi-Token"
 )
 
 type RegistryModule struct {
@@ -88,14 +97,14 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 		discoveryModules          []map[string]string
 	)
 
-	applicationsMap := viper.GetStringMap(ApplicationKey)
-	applicationName := applicationsMap["name"].(string)
-	applicationVersion := applicationsMap["version"].(string)
-	applicationPlatform := applicationsMap["platform"].(string)
-	applicationFetchDescriptors := applicationsMap["fetch-descriptors"].(bool)
+	applicationMap := viper.GetStringMap(ApplicationKey)
+	applicationName := applicationMap["name"].(string)
+	applicationVersion := applicationMap["version"].(string)
+	applicationPlatform := applicationMap["platform"].(string)
+	applicationFetchDescriptors := applicationMap["fetch-descriptors"].(bool)
 
-	if applicationsMap["dependencies"] != nil {
-		dependencies = applicationsMap["dependencies"].([]interface{})
+	if applicationMap["dependencies"] != nil {
+		dependencies = applicationMap["dependencies"].([]interface{})
 	}
 
 	for registryName, registryModules := range dto.RegistryModules {
@@ -115,7 +124,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 
 			_, err := dto.FileModuleEnvPointer.WriteString(fmt.Sprintf("export %s_VERSION=%s\r\n", TransformToEnvVar(module.Name), module.Version))
 			if err != nil {
-				slog.Error(commandName, "moduleEnvVarsFile.WriteString error", "")
+				slog.Error(commandName, "dto.FileModuleEnvPointer.WriteString error", "")
 				panic(err)
 			}
 
@@ -153,7 +162,6 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 		}
 	}
 
-	// ########## Application ##########
 	applicationBytes, err := json.Marshal(map[string]interface{}{
 		"id":                  fmt.Sprintf("%s-%s", applicationName, applicationVersion),
 		"name":                applicationName,
@@ -171,16 +179,15 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 		panic(err)
 	}
 
-	DoPostNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/applications?check=true"), enableDebug, applicationBytes, "")
+	DoPostReturnNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/applications?check=true"), enableDebug, applicationBytes, map[string]string{ContentTypeHeader: JsonContentType})
 
-	// ########## Application Discovery ##########
 	applicationDiscoveryBytes, err := json.Marshal(map[string]interface{}{"discovery": discoveryModules})
 	if err != nil {
 		slog.Error(commandName, "json.Marshal error", "")
 		panic(err)
 	}
 
-	DoPostNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/modules/discovery"), enableDebug, applicationDiscoveryBytes, "")
+	DoPostReturnNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/modules/discovery"), enableDebug, applicationDiscoveryBytes, map[string]string{ContentTypeHeader: JsonContentType})
 }
 
 func GetTenants(commandName string, enableDebug bool, panicOnError bool) []interface{} {
@@ -199,15 +206,14 @@ func GetTenants(commandName string, enableDebug bool, panicOnError bool) []inter
 func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 	for _, value := range GetTenants(commandName, enableDebug, panicOnError) {
 		mapEntry := value.(map[string]interface{})
+		tenantName := mapEntry["name"].(string)
 
-		name := mapEntry["name"].(string)
+		if slices.Contains(viper.GetStringSlice(TenantsKey), tenantName) {
+			tenantId := mapEntry["id"].(string)
 
-		if slices.Contains(viper.GetStringSlice(TenantsKey), name) {
-			id := mapEntry["id"].(string)
+			DoDelete(commandName, fmt.Sprintf(DockerInternalUrl, TenantsPort, fmt.Sprintf("/tenants/%s?purge=true", tenantId)), enableDebug)
 
-			DoDelete(commandName, fmt.Sprintf(DockerInternalUrl, TenantsPort, fmt.Sprintf("/tenants/%s?purge=true", id)), enableDebug)
-
-			slog.Info(commandName, fmt.Sprintf("Removed tenant %s", name), "")
+			slog.Info(commandName, fmt.Sprintf("Removed tenant %s", tenantName), "")
 
 			break
 		}
@@ -215,95 +221,116 @@ func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 }
 
 func CreateTenants(commandName string, enableDebug bool) {
-	tenantsConfig := viper.GetStringSlice(TenantsKey)
+	requestUrl := fmt.Sprintf(DockerInternalUrl, TenantsPort, "/tenants")
+	tenants := viper.GetStringSlice(TenantsKey)
 
-	for _, value := range GetTenants(commandName, enableDebug, false) {
-		mapEntry := value.(map[string]interface{})
-
-		name := mapEntry["name"].(string)
-
-		if slices.Contains(tenantsConfig, name) {
-			id := mapEntry["id"].(string)
-
-			DoDelete(commandName, fmt.Sprintf(DockerInternalUrl, TenantsPort, fmt.Sprintf("/tenants/%s", id)), enableDebug)
-
-			slog.Info(commandName, fmt.Sprintf("Removed tenant %s", name), "")
-
-			break
-		}
-	}
-
-	for _, tenant := range tenantsConfig {
+	for _, tenant := range tenants {
 		tenantBytes, err := json.Marshal(map[string]string{"name": tenant, "description": "Default"})
 		if err != nil {
 			slog.Error(commandName, "json.Marshal error", "")
 			panic(err)
 		}
 
-		DoPostNoContent(commandName, fmt.Sprintf(DockerInternalUrl, TenantsPort, "/tenants"), enableDebug, tenantBytes, "")
+		DoPostReturnNoContent(commandName, requestUrl, enableDebug, tenantBytes, map[string]string{ContentTypeHeader: JsonContentType})
 
-		slog.Info(commandName, fmt.Sprintf("Created tenant named %s", tenant), "")
+		slog.Info(commandName, fmt.Sprintf("Created %s tenant", tenant), "")
 	}
 }
 
 func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError bool) {
-	applicationsMap := viper.GetStringMap(ApplicationKey)
-	applicationName := applicationsMap["name"].(string)
-	applicationVersion := applicationsMap["version"].(string)
+	requestUrl := fmt.Sprintf(DockerInternalUrl, TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false")
+	applicationMap := viper.GetStringMap(ApplicationKey)
+	applicationName := applicationMap["name"].(string)
+	applicationVersion := applicationMap["version"].(string)
 
 	for _, value := range GetTenants(commandName, enableDebug, panicOnError) {
 		mapEntry := value.(map[string]interface{})
+		tenantName := mapEntry["name"].(string)
 
-		name := mapEntry["name"].(string)
-
-		if slices.Contains(viper.GetStringSlice(TenantsKey), name) {
-			id := mapEntry["id"].(string)
+		if slices.Contains(viper.GetStringSlice(TenantsKey), tenantName) {
+			tenantId := mapEntry["id"].(string)
 
 			var applications []string
 			applications = append(applications, fmt.Sprintf("%s-%s", applicationName, applicationVersion))
 
-			tenantEntitlementBytes, err := json.Marshal(map[string]any{"tenantId": id, "applications": applications})
+			tenantEntitlementBytes, err := json.Marshal(map[string]any{"tenantId": tenantId, "applications": applications})
 			if err != nil {
 				slog.Error(commandName, "json.Marshal error", "")
 				panic(err)
 			}
 
-			url := fmt.Sprintf(DockerInternalUrl, TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false")
+			DoDeleteWithBody(commandName, requestUrl, enableDebug, tenantEntitlementBytes, true)
 
-			DoDeleteBody(commandName, url, enableDebug, tenantEntitlementBytes, true)
-
-			slog.Info(commandName, fmt.Sprintf("Removed tenant entitlement tenant %s", name), "")
+			slog.Info(commandName, fmt.Sprintf("Removed tenant entitlement %s tenant", tenantName), "")
 		}
 	}
 }
 
 func CreateTenantEntitlement(commandName string, enableDebug bool) {
-	applicationsMap := viper.GetStringMap(ApplicationKey)
-	applicationName := applicationsMap["name"].(string)
-	applicationVersion := applicationsMap["version"].(string)
+	requestUrl := fmt.Sprintf(DockerInternalUrl, TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=true,loadSample=true")
+	applicationMap := viper.GetStringMap(ApplicationKey)
+	applicationName := applicationMap["name"].(string)
+	applicationVersion := applicationMap["version"].(string)
 
 	for _, value := range GetTenants(commandName, enableDebug, false) {
 		mapEntry := value.(map[string]interface{})
+		tenantName := mapEntry["name"].(string)
 
-		name := mapEntry["name"].(string)
-
-		if slices.Contains(viper.GetStringSlice(TenantsKey), name) {
-			id := mapEntry["id"].(string)
+		if slices.Contains(viper.GetStringSlice(TenantsKey), tenantName) {
+			tenantId := mapEntry["id"].(string)
 
 			var applications []string
 			applications = append(applications, fmt.Sprintf("%s-%s", applicationName, applicationVersion))
 
-			tenantEntitlementBytes, err := json.Marshal(map[string]any{"tenantId": id, "applications": applications})
+			tenantEntitlementBytes, err := json.Marshal(map[string]any{"tenantId": tenantId, "applications": applications})
 			if err != nil {
 				slog.Error(commandName, "json.Marshal error", "")
 				panic(err)
 			}
 
-			url := fmt.Sprintf(DockerInternalUrl, TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false")
+			DoPostReturnNoContent(commandName, requestUrl, enableDebug, tenantEntitlementBytes, map[string]string{ContentTypeHeader: JsonContentType})
 
-			DoPostNoContent(commandName, url, enableDebug, tenantEntitlementBytes, "")
-
-			slog.Info(commandName, fmt.Sprintf("Created tenant entitlement for tenant name %s and id %s", name, id), "")
+			slog.Info(commandName, fmt.Sprintf("Created tenant entitlement for %s tenant (%s)", tenantName, tenantId), "")
 		}
+	}
+}
+
+func RemoveUsers(commandName string, enableDebug bool, panicOnError bool) {
+
+}
+
+func CreateUsers(commandName string, enableDebug bool, accessToken string) {
+	requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/users-keycloak/users")
+	usersMap := viper.GetStringMap(UsersKey)
+
+	for _, value := range usersMap {
+		mapEntry := value.(map[string]interface{})
+		tenant := mapEntry["tenant"].(string)
+		username := mapEntry["username"].(string)
+		firstName := mapEntry["username"].(string)
+		lastName := mapEntry["username"].(string)
+
+		userBytes, err := json.Marshal(map[string]any{
+			"username": username,
+			"active":   true,
+			"type":     "staff",
+			"personal": map[string]any{
+				"firstName":              firstName,
+				"lastName":               lastName,
+				"preferredContactTypeId": "002",
+			},
+		})
+		if err != nil {
+			slog.Error(commandName, "json.Marshal error", "")
+			panic(err)
+		}
+
+		headers := map[string]string{
+			ContentTypeHeader: JsonContentType,
+			TenantHeader:      tenant,
+			TokenHeader:       accessToken,
+		}
+
+		DoPostReturnNoContent(DockerInternalUrl, requestUrl, enableDebug, userBytes, headers)
 	}
 }

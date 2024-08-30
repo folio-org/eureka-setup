@@ -54,14 +54,14 @@ func DeployManagement() {
 	slog.Info(deployManagementCommand, "### EXTRACTING MODULE NAME AND VERSION ###", "")
 	internal.ExtractModuleNameAndVersion(deployManagementCommand, enableDebug, registryModules)
 
-	slog.Info(deployManagementCommand, "### ACQUIRING VAULT TOKEN ###", "")
+	slog.Info(deployModulesCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
 	client := internal.CreateClient(deployManagementCommand)
 	defer client.Close()
-	vaultToken := internal.GetVaultToken(deployManagementCommand, client)
+	vaultRootToken := internal.GetRootVaultToken(deployManagementCommand, client)
 
 	slog.Info(deployManagementCommand, "### DEPLOYING MANAGEMENT MODULES ###", "")
 	registryHostname := map[string]string{"folio": "", "eureka": ""}
-	deployModulesDto := internal.NewDeployManagementModulesDto(vaultToken, registryHostname, registryModules, backendModulesMap, environment)
+	deployModulesDto := internal.NewDeployManagementModulesDto(vaultRootToken, registryHostname, registryModules, backendModulesMap, environment)
 	internal.DeployModules(deployManagementCommand, client, deployModulesDto)
 
 	slog.Info(deployManagementCommand, "### WAITING FOR MANAGEMENT MODULES TO INITIALIZE ###", "")

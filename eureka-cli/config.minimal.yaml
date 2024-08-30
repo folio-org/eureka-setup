@@ -77,8 +77,18 @@ tenants:
   - diku
 # Users
 users:
-  - username: diku_admin
+  diku_admin: 
+    tenant: diku
+    username: diku_admin
     password: admin
+    last-name: admin
+    first-name: admin
+  diku_user: 
+    tenant: diku
+    username: diku_user
+    password: user
+    last-name: user
+    first-name: user
 # Roles
 roles:
   - name: admin

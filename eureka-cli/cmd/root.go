@@ -27,8 +27,10 @@ import (
 )
 
 const (
-	rootCommand string = "Root"
-	configDir   string = ".eureka"
+	rootCommand   string = "Root"
+	configDir     string = ".eureka"
+	configMinimal string = "config.minimal"
+	configType    string = "yaml"
 )
 
 var (
@@ -52,7 +54,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", fmt.Sprintf("Config file (default is $HOME/%s/config.yaml)", configDir))
+	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", fmt.Sprintf("Config file (default is $HOME/%s/%s.%s)", configDir, configMinimal, configType))
 	rootCmd.PersistentFlags().BoolVarP(&enableDebug, "debug", "d", false, "Enable debug")
 }
 
@@ -65,15 +67,15 @@ func initConfig() {
 		cobra.CheckErr(err)
 		configPath := path.Join(home, configDir)
 		viper.AddConfigPath(configPath)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName("config")
+		viper.SetConfigType(configType)
+		viper.SetConfigName(configMinimal)
 	}
 	viper.AutomaticEnv()
 	if err := viper.ReadInConfig(); err == nil {
 		profile := viper.GetString(internal.ProfileNameKey)
 		applicationsMap := viper.GetStringMap(internal.ApplicationKey)
-		slog.Info(rootCommand, "Using config file", profile)
-		slog.Info(rootCommand, "Using config profile", viper.ConfigFileUsed())
+		slog.Info(rootCommand, "Using config file", viper.ConfigFileUsed())
+		slog.Info(rootCommand, "Using config profile", profile)
 		slog.Info(rootCommand, "Using config application", fmt.Sprintf("%s-%s", applicationsMap["name"], applicationsMap["version"]))
 	}
 }

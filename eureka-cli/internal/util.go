@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"strings"
 )
 
@@ -18,6 +19,16 @@ func DumpHttpBody(commandName string, enableDebug bool, bodyBytes []byte) {
 
 	fmt.Println("###### Dumping HTTP Request Body ######")
 	fmt.Println(string(bodyBytes))
+	fmt.Println()
+}
+
+func DumpHttpFormData(commandName string, enableDebug bool, formData url.Values) {
+	if !enableDebug {
+		return
+	}
+
+	fmt.Println("###### Dumping HTTP Request Body ######")
+	fmt.Println(formData)
 	fmt.Println()
 }
 
