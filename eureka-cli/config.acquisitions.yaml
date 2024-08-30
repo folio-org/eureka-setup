@@ -85,6 +85,10 @@ users:
 # Roles
 roles:
   - name: admin
+# Sidecar module
+sidecar-module:
+  environment:
+    JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms50m -Xmx128m"
 # Backend modules
 backend-modules:
   # Other modules
