@@ -14,7 +14,7 @@ const (
 	VaultTimeout    = 30 * time.Second
 )
 
-func GetVaultKey(commandName string, enableDebug bool, vaultRootToken string, secretPath string) map[string]interface{} {
+func GetVaultSecretKey(commandName string, enableDebug bool, vaultRootToken string, secretPath string) map[string]interface{} {
 	serverUrl := fmt.Sprintf(DockerInternalUrl, VaultServerPort, "")
 
 	client, err := vault.New(vault.WithAddress(serverUrl), vault.WithRequestTimeout(VaultTimeout))

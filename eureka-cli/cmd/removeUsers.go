@@ -17,9 +17,11 @@ package cmd
 
 import (
 	"log/slog"
+	"slices"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const removeUsersCommand string = "Remove Users"
@@ -35,8 +37,25 @@ var removeUsersCmd = &cobra.Command{
 }
 
 func RemoveUsers() {
-	slog.Info(removeUsersCommand, "### REMOVING USERS ###", "")
-	internal.RemoveUsers(removeUsersCommand, enableDebug, false)
+	slog.Info(removeUsersCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	client := internal.CreateClient(removeUsersCommand)
+	defer client.Close()
+	vaultRootToken := internal.GetRootVaultToken(removeUsersCommand, client)
+
+	for _, value := range internal.GetTenants(removeUsersCommand, enableDebug, false) {
+		mapEntry := value.(map[string]interface{})
+		tenant := mapEntry["name"].(string)
+
+		if !slices.Contains(viper.GetStringSlice(internal.TenantsKey), tenant) {
+			continue
+		}
+
+		slog.Info(removeUsersCommand, "### ACQUIRING KEYCLOAK ACCESS TOKEN ###", "")
+		accessToken := internal.GetKeycloakAccessToken(removeUsersCommand, enableDebug, vaultRootToken, tenant)
+
+		slog.Info(removeUsersCommand, "### REMOVING USERS ###", "")
+		internal.RemoveUsers(removeUsersCommand, enableDebug, false, tenant, accessToken)
+	}
 }
 
 func init() {

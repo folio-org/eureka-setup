@@ -366,12 +366,11 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			}
 
 			var combinedSidecarEnvironment []string
+			combinedSidecarEnvironment = append(combinedSidecarEnvironment, dto.SidecarEnvironment...)
 			combinedSidecarEnvironment = AppendKeycloakEnvironment(commandName, combinedSidecarEnvironment)
 			combinedSidecarEnvironment = AppendVaultEnvironment(combinedSidecarEnvironment, dto.VaultRootToken, resourceUrlVault)
 			combinedSidecarEnvironment = AppendManagementEnvironment(combinedSidecarEnvironment)
 			combinedSidecarEnvironment = AppendSidecarEnvironment(combinedSidecarEnvironment, module)
-
-			combinedSidecarEnvironment = append(combinedSidecarEnvironment, dto.SidecarEnvironment...)
 			deploySidecarDto := NewDeploySidecarDto(module.SidecarName, sidecarImage, combinedSidecarEnvironment, backendModule, networkConfig, pullSidecarImage)
 
 			DeployModule(commandName, client, deploySidecarDto)

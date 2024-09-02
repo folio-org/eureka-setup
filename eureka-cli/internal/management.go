@@ -20,9 +20,10 @@ const (
 	JsonContentType           string = "application/json"
 	FormUrlEncodedContentType string = "application/x-www-form-urlencoded"
 
-	ContentTypeHeader = "Content-Type"
-	TenantHeader      = "X-Okapi-Tenant"
-	TokenHeader       = "X-Okapi-Token"
+	ContentTypeHeader   = "Content-Type"
+	AuthorizationHeader = "Authorization"
+	TenantHeader        = "X-Okapi-Tenant"
+	TokenHeader         = "X-Okapi-Token"
 )
 
 type RegistryModule struct {
@@ -57,7 +58,7 @@ func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryM
 }
 
 func RemoveApplications(commandName string, moduleName string, enableDebug bool, panicOnError bool) {
-	resp := DoGetReturnResponse(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/applications"), enableDebug, panicOnError)
+	resp := DoGetReturnResponse(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/applications"), enableDebug, panicOnError, map[string]string{})
 	if resp == nil {
 		return
 	}
@@ -83,7 +84,7 @@ func RemoveApplications(commandName string, moduleName string, enableDebug bool,
 
 		slog.Info(commandName, "Removing application", id)
 
-		DoDelete(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, fmt.Sprintf("/applications/%s", id)), enableDebug)
+		DoDelete(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, fmt.Sprintf("/applications/%s", id)), enableDebug, map[string]string{})
 	}
 }
 
@@ -131,7 +132,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 			moduleDescriptorUrl := fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls["folio"], module.Id)
 
 			if applicationFetchDescriptors {
-				dto.ModuleDescriptorsMap[module.Id] = DoGetDecodeReturnInterface(commandName, moduleDescriptorUrl, enableDebug)
+				dto.ModuleDescriptorsMap[module.Id] = DoGetDecodeReturnInterface(commandName, moduleDescriptorUrl, enableDebug, map[string]string{})
 			}
 
 			if okBackend {
@@ -193,7 +194,9 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 func GetTenants(commandName string, enableDebug bool, panicOnError bool) []interface{} {
 	var foundTenants []interface{}
 
-	foundTenantsMap := DoGetDecodeReturnMapStringInteface(commandName, fmt.Sprintf(DockerInternalUrl, TenantsPort, "/tenants"), enableDebug, panicOnError)
+	requestUrl := fmt.Sprintf(DockerInternalUrl, TenantsPort, "/tenants")
+
+	foundTenantsMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
 	if foundTenantsMap["tenants"] == nil || len(foundTenantsMap["tenants"].([]interface{})) == 0 {
 		return nil
 	}
@@ -206,17 +209,17 @@ func GetTenants(commandName string, enableDebug bool, panicOnError bool) []inter
 func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 	for _, value := range GetTenants(commandName, enableDebug, panicOnError) {
 		mapEntry := value.(map[string]interface{})
-		tenantName := mapEntry["name"].(string)
+		tenant := mapEntry["name"].(string)
 
-		if slices.Contains(viper.GetStringSlice(TenantsKey), tenantName) {
-			tenantId := mapEntry["id"].(string)
-
-			DoDelete(commandName, fmt.Sprintf(DockerInternalUrl, TenantsPort, fmt.Sprintf("/tenants/%s?purge=true", tenantId)), enableDebug)
-
-			slog.Info(commandName, fmt.Sprintf("Removed tenant %s", tenantName), "")
-
-			break
+		if !slices.Contains(viper.GetStringSlice(TenantsKey), tenant) {
+			continue
 		}
+
+		requestUrl := fmt.Sprintf("/tenants/%s?purge=true", mapEntry["id"].(string))
+
+		DoDelete(commandName, fmt.Sprintf(DockerInternalUrl, TenantsPort, requestUrl), enableDebug, map[string]string{})
+
+		slog.Info(commandName, fmt.Sprintf("Removed tenant %s", tenant), "")
 	}
 }
 
@@ -245,70 +248,119 @@ func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError
 
 	for _, value := range GetTenants(commandName, enableDebug, panicOnError) {
 		mapEntry := value.(map[string]interface{})
-		tenantName := mapEntry["name"].(string)
+		tenant := mapEntry["name"].(string)
 
-		if slices.Contains(viper.GetStringSlice(TenantsKey), tenantName) {
-			tenantId := mapEntry["id"].(string)
-
-			var applications []string
-			applications = append(applications, fmt.Sprintf("%s-%s", applicationName, applicationVersion))
-
-			tenantEntitlementBytes, err := json.Marshal(map[string]any{"tenantId": tenantId, "applications": applications})
-			if err != nil {
-				slog.Error(commandName, "json.Marshal error", "")
-				panic(err)
-			}
-
-			DoDeleteWithBody(commandName, requestUrl, enableDebug, tenantEntitlementBytes, true)
-
-			slog.Info(commandName, fmt.Sprintf("Removed tenant entitlement %s tenant", tenantName), "")
+		if !slices.Contains(viper.GetStringSlice(TenantsKey), tenant) {
+			continue
 		}
+
+		tenantId := mapEntry["id"].(string)
+
+		var applications []string
+		applications = append(applications, fmt.Sprintf("%s-%s", applicationName, applicationVersion))
+
+		tenantEntitlementBytes, err := json.Marshal(map[string]any{"tenantId": tenantId, "applications": applications})
+		if err != nil {
+			slog.Error(commandName, "json.Marshal error", "")
+			panic(err)
+		}
+
+		DoDeleteWithBody(commandName, requestUrl, enableDebug, tenantEntitlementBytes, true, map[string]string{})
+
+		slog.Info(commandName, fmt.Sprintf("Removed tenant entitlement %s tenant", tenant), "")
+
 	}
 }
 
 func CreateTenantEntitlement(commandName string, enableDebug bool) {
-	requestUrl := fmt.Sprintf(DockerInternalUrl, TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=true,loadSample=true")
+	requestUrl := fmt.Sprintf(DockerInternalUrl, TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=false,loadSample=false")
 	applicationMap := viper.GetStringMap(ApplicationKey)
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)
 
 	for _, value := range GetTenants(commandName, enableDebug, false) {
 		mapEntry := value.(map[string]interface{})
-		tenantName := mapEntry["name"].(string)
+		tenant := mapEntry["name"].(string)
 
-		if slices.Contains(viper.GetStringSlice(TenantsKey), tenantName) {
-			tenantId := mapEntry["id"].(string)
-
-			var applications []string
-			applications = append(applications, fmt.Sprintf("%s-%s", applicationName, applicationVersion))
-
-			tenantEntitlementBytes, err := json.Marshal(map[string]any{"tenantId": tenantId, "applications": applications})
-			if err != nil {
-				slog.Error(commandName, "json.Marshal error", "")
-				panic(err)
-			}
-
-			DoPostReturnNoContent(commandName, requestUrl, enableDebug, tenantEntitlementBytes, map[string]string{ContentTypeHeader: JsonContentType})
-
-			slog.Info(commandName, fmt.Sprintf("Created tenant entitlement for %s tenant (%s)", tenantName, tenantId), "")
+		if !slices.Contains(viper.GetStringSlice(TenantsKey), tenant) {
+			continue
 		}
+
+		tenantId := mapEntry["id"].(string)
+
+		var applications []string
+		applications = append(applications, fmt.Sprintf("%s-%s", applicationName, applicationVersion))
+
+		tenantEntitlementBytes, err := json.Marshal(map[string]any{"tenantId": tenantId, "applications": applications})
+		if err != nil {
+			slog.Error(commandName, "json.Marshal error", "")
+			panic(err)
+		}
+
+		DoPostReturnNoContent(commandName, requestUrl, enableDebug, tenantEntitlementBytes, map[string]string{ContentTypeHeader: JsonContentType})
+
+		slog.Info(commandName, fmt.Sprintf("Created tenant entitlement for %s tenant (%s)", tenant, tenantId), "")
+
 	}
 }
 
-func RemoveUsers(commandName string, enableDebug bool, panicOnError bool) {
+func GetUsers(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) []interface{} {
+	var foundUsers []interface{}
 
+	requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/users")
+
+	headers := map[string]string{
+		ContentTypeHeader: JsonContentType,
+		TenantHeader:      tenant,
+		TokenHeader:       accessToken,
+	}
+
+	foundTenantsMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, panicOnError, headers)
+	if foundTenantsMap["users"] == nil || len(foundTenantsMap["users"].([]interface{})) == 0 {
+		return nil
+	}
+
+	foundUsers = foundTenantsMap["users"].([]interface{})
+
+	return foundUsers
+}
+
+func RemoveUsers(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) {
+	for _, value := range GetUsers(commandName, enableDebug, panicOnError, tenant, accessToken) {
+		mapEntry := value.(map[string]interface{})
+		username := mapEntry["username"].(string)
+
+		usersMap := viper.GetStringMap(UsersKey)
+		if usersMap[username] == nil {
+			continue
+		}
+
+		headers := map[string]string{
+			ContentTypeHeader: JsonContentType,
+			TenantHeader:      tenant,
+			TokenHeader:       accessToken,
+		}
+
+		requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, fmt.Sprintf("/users-keycloak/users/%s", mapEntry["id"].(string)))
+
+		DoDelete(commandName, requestUrl, enableDebug, headers)
+
+		slog.Info(commandName, fmt.Sprintf("Removed user %s", username), "")
+	}
 }
 
 func CreateUsers(commandName string, enableDebug bool, accessToken string) {
-	requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/users-keycloak/users")
+	postUserRequestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/users-keycloak/users")
+	postUserPasswordRequestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/authn/credentials")
 	usersMap := viper.GetStringMap(UsersKey)
 
 	for _, value := range usersMap {
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["tenant"].(string)
 		username := mapEntry["username"].(string)
-		firstName := mapEntry["username"].(string)
-		lastName := mapEntry["username"].(string)
+		password := mapEntry["password"].(string)
+		firstName := mapEntry["first-name"].(string)
+		lastName := mapEntry["last-name"].(string)
 
 		userBytes, err := json.Marshal(map[string]any{
 			"username": username,
@@ -317,6 +369,7 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 			"personal": map[string]any{
 				"firstName":              firstName,
 				"lastName":               lastName,
+				"email":                  fmt.Sprintf("%s-%s", tenant, username),
 				"preferredContactTypeId": "002",
 			},
 		})
@@ -331,6 +384,22 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 			TokenHeader:       accessToken,
 		}
 
-		DoPostReturnNoContent(DockerInternalUrl, requestUrl, enableDebug, userBytes, headers)
+		DoPostReturnNoContent(commandName, postUserRequestUrl, enableDebug, userBytes, headers)
+
+		userPasswordBytes, err := json.Marshal(map[string]any{"username": username, "password": password})
+		if err != nil {
+			slog.Error(commandName, "json.Marshal error", "")
+			panic(err)
+		}
+
+		headers = map[string]string{
+			ContentTypeHeader:   JsonContentType,
+			TenantHeader:        tenant,
+			AuthorizationHeader: fmt.Sprintf("Bearer %s", accessToken),
+		}
+
+		DoPostReturnNoContent(commandName, postUserPasswordRequestUrl, enableDebug, userPasswordBytes, headers)
+
+		slog.Info(commandName, fmt.Sprintf("Create user %s with password %s in %s realm", username, password, tenant), "")
 	}
 }

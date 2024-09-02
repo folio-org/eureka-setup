@@ -12,15 +12,14 @@ import (
 
 // ####### GET ########
 
-func DoGetReturnResponse(commandName string, url string, enableDebug bool, panicOnError bool) *http.Response {
+func DoGetReturnResponse(commandName string, url string, enableDebug bool, panicOnError bool, headers map[string]string) *http.Response {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		slog.Error(commandName, "http.NewRequest error", "")
 		panic(err)
 	}
 
-	req.Header.Set("Content-Type", JsonContentType)
-
+	AddRequestHeaders(req, headers)
 	DumpHttpRequest(commandName, req, enableDebug)
 
 	resp, err := http.DefaultClient.Do(req)
@@ -39,7 +38,7 @@ func DoGetReturnResponse(commandName string, url string, enableDebug bool, panic
 	return resp
 }
 
-func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool) interface{} {
+func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool, headers map[string]string) interface{} {
 	var respMap interface{}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -48,8 +47,7 @@ func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool
 		panic(err)
 	}
 
-	req.Header.Set("Content-Type", JsonContentType)
-
+	AddRequestHeaders(req, headers)
 	DumpHttpRequest(commandName, req, enableDebug)
 
 	resp, err := http.DefaultClient.Do(req)
@@ -73,7 +71,7 @@ func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool
 	return respMap
 }
 
-func DoGetDecodeReturnMapStringInteface(commandName string, url string, enableDebug bool, panicOnError bool) map[string]interface{} {
+func DoGetDecodeReturnMapStringInteface(commandName string, url string, enableDebug bool, panicOnError bool, headers map[string]string) map[string]interface{} {
 	var respMap map[string]interface{}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -82,8 +80,7 @@ func DoGetDecodeReturnMapStringInteface(commandName string, url string, enableDe
 		panic(err)
 	}
 
-	req.Header.Set("Content-Type", JsonContentType)
-
+	AddRequestHeaders(req, headers)
 	DumpHttpRequest(commandName, req, enableDebug)
 
 	resp, err := http.DefaultClient.Do(req)
@@ -123,10 +120,7 @@ func DoPostReturnNoContent(commandName string, url string, enableDebug bool, bod
 		panic(err)
 	}
 
-	for key, value := range headers {
-		req.Header.Add(key, value)
-	}
-
+	AddRequestHeaders(req, headers)
 	DumpHttpRequest(commandName, req, enableDebug)
 
 	resp, err := http.DefaultClient.Do(req)
@@ -153,10 +147,7 @@ func DoPostReturnMapStringInteface(commandName string, url string, enableDebug b
 		panic(err)
 	}
 
-	for key, value := range headers {
-		req.Header.Add(key, value)
-	}
-
+	AddRequestHeaders(req, headers)
 	DumpHttpRequest(commandName, req, enableDebug)
 
 	resp, err := http.DefaultClient.Do(req)
@@ -182,13 +173,14 @@ func DoPostReturnMapStringInteface(commandName string, url string, enableDebug b
 
 // ####### DELETE ########
 
-func DoDelete(commandName string, url string, enableDebug bool) {
+func DoDelete(commandName string, url string, enableDebug bool, headers map[string]string) {
 	req, err := http.NewRequest(http.MethodDelete, url, nil)
 	if err != nil {
 		slog.Error(commandName, "http.NewRequest error", "")
 		panic(err)
 	}
 
+	AddRequestHeaders(req, headers)
 	DumpHttpRequest(commandName, req, enableDebug)
 
 	resp, err := http.DefaultClient.Do(req)
@@ -204,15 +196,14 @@ func DoDelete(commandName string, url string, enableDebug bool) {
 	DumpHttpResponse(commandName, resp, enableDebug)
 }
 
-func DoDeleteWithBody(commandName string, url string, enableDebug bool, bodyBytes []byte, ignoreError bool) {
+func DoDeleteWithBody(commandName string, url string, enableDebug bool, bodyBytes []byte, ignoreError bool, headers map[string]string) {
 	req, err := http.NewRequest(http.MethodDelete, url, bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		slog.Error(commandName, "http.NewRequest error", "")
 		panic(err)
 	}
 
-	req.Header.Add("Content-Type", JsonContentType)
-
+	AddRequestHeaders(req, headers)
 	DumpHttpRequest(commandName, req, enableDebug)
 
 	resp, err := http.DefaultClient.Do(req)
@@ -228,4 +219,14 @@ func DoDeleteWithBody(commandName string, url string, enableDebug bool, bodyByte
 	}()
 
 	DumpHttpResponse(commandName, resp, enableDebug)
+}
+
+func AddRequestHeaders(req *http.Request, headers map[string]string) {
+	if len(headers) > 0 {
+		for key, value := range headers {
+			req.Header.Add(key, value)
+		}
+	} else {
+		req.Header.Add(ContentTypeHeader, JsonContentType)
+	}
 }
