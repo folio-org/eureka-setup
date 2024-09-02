@@ -16,31 +16,29 @@ limitations under the License.
 package cmd
 
 import (
-	"log/slog"
-	"os/exec"
-
-	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
 )
 
-const undeploySystemCommand string = "Undeploy System"
-
-// undeploySystemCmd represents the undeploySystem command
-var undeploySystemCmd = &cobra.Command{
-	Use:   "undeploySystem",
-	Short: "Undeploy system",
-	Long:  `Undeploy all system containers.`,
+// undeployApplicationCmd represents the undeployApplication command
+var undeployApplicationCmd = &cobra.Command{
+	Use:   "undeployApplication",
+	Short: "Undeploy application",
+	Long:  `Undeploy platform application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		UndeploySystem()
+		UndeployApplication()
 	},
 }
 
-func UndeploySystem() {
-	slog.Info(undeploySystemCommand, "### UNDEPLOYING SYSTEM CONTAINERS ###", "")
-	preparedCommand := exec.Command("docker", "compose", "-p", "eureka", "down", "-v")
-	internal.RunCommand(deployManagementCommand, preparedCommand)
+func UndeployApplication() {
+	RemoveUsers()
+	RemoveCapabilities()
+	RemoveRoles()
+	RemoveTenantEntitlements()
+	RemoveTenants()
+	UndeployModules()
+	UndeployManagement()
 }
 
 func init() {
-	rootCmd.AddCommand(undeploySystemCmd)
+	rootCmd.AddCommand(undeployApplicationCmd)
 }

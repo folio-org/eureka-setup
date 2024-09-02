@@ -33,7 +33,8 @@ const (
 const (
 	ProfileNameKey string = "profile.name"
 
-	ApplicationKey string = "application"
+	ApplicationKey       string = "application"
+	ApplicationPortRange string = "application.port-range"
 
 	RegistryUrlKey                  string = "registry.registry-url"
 	RegistrySidecarImageKey         string = "registry.sidecar-image"

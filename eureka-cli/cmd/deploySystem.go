@@ -33,13 +33,6 @@ var deploySystemCmd = &cobra.Command{
 	Long:  `Undeploy all system containers.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		DeploySystem()
-		DeployManagement()
-		DeployModules()
-		CreateTenants()
-		CreateTenantEntitlements()
-		CreateRoles()
-		CreateCapabilities()
-		CreateUsers()
 	},
 }
 

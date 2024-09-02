@@ -31,8 +31,6 @@ var undeployManagementCmd = &cobra.Command{
 	Short: "Undeploy management",
 	Long:  `Undeploy all management modules.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RemoveTenantEntitlements()
-		RemoveTenants()
 		UndeployModules()
 		UndeployManagement()
 	},

@@ -10,6 +10,7 @@ application:
   dependencies:
     name: app-minimal-1.0.0
     version: 1.0.0
+  port-range: 35000
 # Registry
 registry: 
   registry-url: https://folio-registry.dev.folio.org
@@ -113,7 +114,6 @@ backend-modules:
   mod-data-export-spring:
   mod-erm-usage:
   mod-calendar:
-  mod-notes: 
   mod-agreements:
   mod-sender:
   mod-email:

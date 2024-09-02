@@ -48,11 +48,6 @@ type RegistryModule struct {
 
 type RegistryModules []RegistryModule
 
-type Applications struct {
-	ApplicationDescriptors []map[string]interface{} `json:"applicationDescriptors"`
-	TotalRecords           int                      `json:"totalRecords"`
-}
-
 // ######## Auxiliary ########
 
 func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryModulesMap map[string][]RegistryModule) {
@@ -100,7 +95,7 @@ func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *s
 		} else {
 			slog.Info(commandName, fmt.Sprintf("Module container %s is unhealthy, out of attempts", moduleName), "")
 			waitMutex.Done()
-			break
+			LogErrorPanic(commandName, fmt.Sprintf("internal.PerformModuleHealthcheck - Module container %s did not initialize, cannot continue", moduleName))
 		}
 	}
 }
@@ -113,6 +108,11 @@ func RemoveApplications(commandName string, moduleName string, enableDebug bool,
 		return
 	}
 	defer resp.Body.Close()
+
+	type Applications struct {
+		ApplicationDescriptors []map[string]interface{} `json:"applicationDescriptors"`
+		TotalRecords           int                      `json:"totalRecords"`
+	}
 
 	var applications Applications
 
@@ -144,7 +144,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 		frontendModules           []map[string]string
 		backendModuleDescriptors  []interface{}
 		frontendModuleDescriptors []interface{}
-		dependencies              []interface{}
+		dependencies              map[string]interface{}
 		discoveryModules          []map[string]string
 	)
 
@@ -155,7 +155,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 	applicationFetchDescriptors := applicationMap["fetch-descriptors"].(bool)
 
 	if applicationMap["dependencies"] != nil {
-		dependencies = applicationMap["dependencies"].([]interface{})
+		dependencies = applicationMap["dependencies"].(map[string]interface{})
 	}
 
 	for registryName, registryModules := range dto.RegistryModules {
@@ -244,7 +244,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 
 	DoPostReturnNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/modules/discovery"), enableDebug, applicationDiscoveryBytes, map[string]string{})
 
-	slog.Info(commandName, fmt.Sprintf(`Created "%d" entries of application module discovery`, len(discoveryModules)), "")
+	slog.Info(commandName, fmt.Sprintf(`Created '%d' entries of application module discovery`, len(discoveryModules)), "")
 }
 
 func UpdateApplicationModuleDiscovery(commandName string, enableDebug bool, id string, location string, restore bool) {
@@ -267,7 +267,7 @@ func UpdateApplicationModuleDiscovery(commandName string, enableDebug bool, id s
 	slog.Info(commandName, fmt.Sprintf(`Updated application module discovery for '%s' module with '%s' location`, name, location), "")
 }
 
-// ######## Tenant ########
+// ######## Tenants ########
 
 func GetTenants(commandName string, enableDebug bool, panicOnError bool) []interface{} {
 	var foundTenants []interface{}
@@ -512,7 +512,7 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 
 		DoPostReturnNoContent(commandName, postUserRoleRequestUrl, enableDebug, userRoleBytes, okapiBasedHeaders)
 
-		slog.Info(commandName, fmt.Sprintf(`Attached "%d" roles to '%s' user in '%s' realm`, len(roleIds), username, tenant), "")
+		slog.Info(commandName, fmt.Sprintf(`Attached '%d' roles to '%s' user in '%s' realm`, len(roleIds), username, tenant), "")
 	}
 }
 
