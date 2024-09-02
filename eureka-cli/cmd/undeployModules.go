@@ -43,6 +43,7 @@ func UndeployModules() {
 	client := internal.CreateClient(undeployModulesCommand)
 	defer client.Close()
 
+	// TODO Undeploy only the current application
 	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: internal.MultipleModulesContainerPattern})
 	deployedModules := internal.GetDeployedModules(undeployModulesCommand, client, filters)
 	for _, deployedModule := range deployedModules {
