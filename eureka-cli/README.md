@@ -14,6 +14,7 @@
   - [AWS CLI](<https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html>)
 - Configure hosts:
   - Add `127.0.0.1 keycloak.eureka` entry to `/etc/hosts`
+  - Add `127.0.0.1 kafka.eureka` entry to `/etc/hosts`
 - Monitor using below system components:
   - [Keycloak](<http://keycloak.eureka:8080>): admin:admin
   - [Vault](<http://localhost:8200>): Vault token

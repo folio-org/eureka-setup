@@ -260,6 +260,33 @@ func DoPostFormDataReturnMapStringInteface(commandName string, url string, enabl
 	return respMap
 }
 
+// ####### PUT ########
+
+func DoPutReturnNoContent(commandName string, url string, enableDebug bool, bodyBytes []byte, headers map[string]string) {
+	DumpHttpBody(commandName, enableDebug, bodyBytes)
+
+	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		slog.Error(commandName, "http.NewRequest error", "")
+		panic(err)
+	}
+
+	AddRequestHeaders(req, headers)
+	DumpHttpRequest(commandName, req, enableDebug)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		slog.Error(commandName, "http.DefaultClient.Do error", "")
+		panic(err)
+	}
+	defer func() {
+		CheckStatusCodes(commandName, resp)
+		resp.Body.Close()
+	}()
+
+	DumpHttpResponse(commandName, resp, enableDebug)
+}
+
 // ####### DELETE ########
 
 func DoDelete(commandName string, url string, enableDebug bool, headers map[string]string) {

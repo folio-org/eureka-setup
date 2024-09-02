@@ -16,7 +16,18 @@ limitations under the License.
 package cmd
 
 import (
+	"log/slog"
+
+	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
+)
+
+const redirectModuleCommand = "Redirect Module"
+
+var (
+	id       string
+	location string
+	restore  bool
 )
 
 // redirectCmd represents the redirect command
@@ -29,11 +40,15 @@ var redirectCmd = &cobra.Command{
 	},
 }
 
-// TODO
 func RedirectModules() {
-
+	slog.Info(redirectModuleCommand, "### REDIRECT MODULE ###", "")
+	internal.UpdateApplicationModuleDiscovery(redirectModuleCommand, enableDebug, id, location, restore)
 }
 
 func init() {
 	rootCmd.AddCommand(redirectCmd)
+	redirectCmd.PersistentFlags().StringVarP(&id, "id", "i", "", "Module id (required)")
+	redirectCmd.PersistentFlags().StringVarP(&location, "location", "l", "", "Location")
+	redirectCmd.PersistentFlags().BoolVarP(&restore, "restore", "r", false, "Restore location")
+	redirectCmd.MarkPersistentFlagRequired("id")
 }
