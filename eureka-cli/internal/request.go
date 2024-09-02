@@ -72,7 +72,6 @@ func DoGetDecodeReturnString(commandName string, url string, enableDebug bool, p
 			slog.Error(commandName, "io.ReadAll error", "")
 			panic(err)
 		} else {
-			LogWarn(commandName, fmt.Sprintf("io.ReadAll warn - Cannot parse response: %s", url))
 			return ""
 		}
 	}
@@ -115,7 +114,6 @@ func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool
 			slog.Error(commandName, "json.NewDecoder error", "")
 			panic(err)
 		} else {
-			LogWarn(commandName, fmt.Sprintf("json.NewDecoder warn - Cannot parse response: %s", url))
 			return nil
 		}
 	}
@@ -158,7 +156,6 @@ func DoGetDecodeReturnMapStringInteface(commandName string, url string, enableDe
 			slog.Error(commandName, "json.NewDecoder error", "")
 			panic(err)
 		} else {
-			LogWarn(commandName, fmt.Sprintf("json.NewDecoder warn - Cannot parse response: %s", url))
 			return nil
 		}
 	}
@@ -193,7 +190,42 @@ func DoPostReturnNoContent(commandName string, url string, enableDebug bool, bod
 	DumpHttpResponse(commandName, resp, enableDebug)
 }
 
-func DoPostReturnMapStringInteface(commandName string, url string, enableDebug bool, formData url.Values, headers map[string]string) map[string]interface{} {
+func DoPostReturnMapStringInteface(commandName string, url string, enableDebug bool, bodyBytes []byte, headers map[string]string) map[string]interface{} {
+	var respMap map[string]interface{}
+
+	DumpHttpBody(commandName, enableDebug, bodyBytes)
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		slog.Error(commandName, "http.NewRequest error", "")
+		panic(err)
+	}
+
+	AddRequestHeaders(req, headers)
+	DumpHttpRequest(commandName, req, enableDebug)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		slog.Error(commandName, "http.DefaultClient.Do error", "")
+		panic(err)
+	}
+	defer func() {
+		CheckStatusCodes(commandName, resp)
+		resp.Body.Close()
+	}()
+
+	DumpHttpResponse(commandName, resp, enableDebug)
+
+	err = json.NewDecoder(resp.Body).Decode(&respMap)
+	if err != nil {
+		slog.Error(commandName, "json.NewDecoder error", "")
+		panic(err)
+	}
+
+	return respMap
+}
+
+func DoPostFormDataReturnMapStringInteface(commandName string, url string, enableDebug bool, formData url.Values, headers map[string]string) map[string]interface{} {
 	var respMap map[string]interface{}
 
 	DumpHttpFormData(commandName, enableDebug, formData)

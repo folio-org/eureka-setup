@@ -15,6 +15,7 @@ func GetKeycloakAccessToken(commandName string, enableDebug bool, vaultRootToken
 	systemUser := fmt.Sprintf("%s-system-user", tenant)
 	systemUserPassword := secretMap[systemUser].(string)
 	requestUrl := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", viper.GetString(ResourcesKeycloakKey), tenant)
+	headers := map[string]string{ContentTypeHeader: FormUrlEncodedContentType}
 
 	formData := url.Values{}
 	formData.Set("grant_type", "password")
@@ -23,7 +24,7 @@ func GetKeycloakAccessToken(commandName string, enableDebug bool, vaultRootToken
 	formData.Set("username", systemUser)
 	formData.Set("password", systemUserPassword)
 
-	tokensMap := DoPostReturnMapStringInteface(commandName, requestUrl, enableDebug, formData, map[string]string{ContentTypeHeader: FormUrlEncodedContentType})
+	tokensMap := DoPostFormDataReturnMapStringInteface(commandName, requestUrl, enableDebug, formData, headers)
 	if tokensMap["access_token"] == nil {
 		LogErrorPanic(commandName, "")
 	}

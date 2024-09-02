@@ -361,6 +361,7 @@ func RemoveUsers(commandName string, enableDebug bool, panicOnError bool, tenant
 func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 	postUserRequestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/users-keycloak/users")
 	postUserPasswordRequestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/authn/credentials")
+	postUserRoleRequestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/roles/users")
 	usersMap := viper.GetStringMap(UsersKey)
 
 	for username, value := range usersMap {
@@ -369,6 +370,7 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 		password := mapEntry["password"].(string)
 		firstName := mapEntry["first-name"].(string)
 		lastName := mapEntry["last-name"].(string)
+		userRoles := mapEntry["roles"].([]interface{})
 
 		userBytes, err := json.Marshal(map[string]any{
 			"username": username,
@@ -386,29 +388,58 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 			panic(err)
 		}
 
-		headers := map[string]string{
+		okapiBasedHeaders := map[string]string{
 			ContentTypeHeader: JsonContentType,
 			TenantHeader:      tenant,
 			TokenHeader:       accessToken,
 		}
 
-		DoPostReturnNoContent(commandName, postUserRequestUrl, enableDebug, userBytes, headers)
-
-		userPasswordBytes, err := json.Marshal(map[string]any{"username": username, "password": password})
-		if err != nil {
-			slog.Error(commandName, "json.Marshal error", "")
-			panic(err)
-		}
-
-		headers = map[string]string{
+		nonOkapiBasedHeaders := map[string]string{
 			ContentTypeHeader:   JsonContentType,
 			TenantHeader:        tenant,
 			AuthorizationHeader: fmt.Sprintf("Bearer %s", accessToken),
 		}
 
-		DoPostReturnNoContent(commandName, postUserPasswordRequestUrl, enableDebug, userPasswordBytes, headers)
+		createdUserMap := DoPostReturnMapStringInteface(commandName, postUserRequestUrl, enableDebug, userBytes, okapiBasedHeaders)
 
-		slog.Info(commandName, fmt.Sprintf("Created user %s with password %s in %s realm", username, password, tenant), "")
+		userId := createdUserMap["id"].(string)
+
+		slog.Info(commandName, fmt.Sprintf("Created user %s (%s) with password %s in %s realm", username, userId, password, tenant), "")
+
+		userPasswordBytes, err := json.Marshal(map[string]any{"userId": userId, "username": username, "password": password})
+		if err != nil {
+			slog.Error(commandName, "json.Marshal error", "")
+			panic(err)
+		}
+
+		DoPostReturnNoContent(commandName, postUserPasswordRequestUrl, enableDebug, userPasswordBytes, nonOkapiBasedHeaders)
+
+		slog.Info(commandName, fmt.Sprintf("Attached password %s to user %s (%s) in %s realm", password, username, userId, tenant), "")
+
+		var roleIds []string
+		for _, userRole := range userRoles {
+			role := GetRoleByName(commandName, enableDebug, userRole.(string), okapiBasedHeaders)
+
+			roleId := role["id"].(string)
+			roleName := role["name"].(string)
+
+			if roleId == "" {
+				slog.Warn(commandName, fmt.Sprintf("internal.GetRoleIdByName warn - Did not find role %s by name", roleName), "")
+				continue
+			}
+
+			roleIds = append(roleIds, roleId)
+		}
+
+		userRoleBytes, err := json.Marshal(map[string]any{"userId": userId, "roleIds": roleIds})
+		if err != nil {
+			slog.Error(commandName, "json.Marshal error", "")
+			panic(err)
+		}
+
+		DoPostReturnNoContent(commandName, postUserRoleRequestUrl, enableDebug, userRoleBytes, okapiBasedHeaders)
+
+		slog.Info(commandName, fmt.Sprintf("Attached %d roles to user %s (%s) in %s realm", len(roleIds), username, userId, tenant), "")
 	}
 }
 
@@ -431,6 +462,22 @@ func GetRoles(commandName string, enableDebug bool, panicOnError bool, tenant st
 	foundRoles = foundTenantsMap["roles"].([]interface{})
 
 	return foundRoles
+}
+
+func GetRoleByName(commandName string, enableDebug bool, roleName string, headers map[string]string) map[string]interface{} {
+	requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, fmt.Sprintf("/roles?query=name==%s", roleName))
+
+	foundRolesMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, true, headers)
+	if foundRolesMap["roles"] == nil {
+		return nil
+	}
+
+	foundRoles := foundRolesMap["roles"].([]interface{})
+	if len(foundRoles) != 1 {
+		LogErrorPanic(commandName, fmt.Sprintf("internal.DoGetDecodeReturnMapStringInteface - Found more than 1 role by %s role name", roleName))
+	}
+
+	return foundRoles[0].(map[string]interface{})
 }
 
 func RemoveRoles(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) {
@@ -465,7 +512,7 @@ func CreateRoles(commandName string, enableDebug bool, accessToken string) {
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["tenant"].(string)
 
-		roleBytes, err := json.Marshal(map[string]string{"name": role, "description": "Default"})
+		roleBytes, err := json.Marshal(map[string]string{"name": strings.Title(role), "description": "Default"})
 		if err != nil {
 			slog.Error(commandName, "json.Marshal error", "")
 			panic(err)
@@ -484,7 +531,7 @@ func CreateRoles(commandName string, enableDebug bool, accessToken string) {
 }
 
 func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *sync.WaitGroup, moduleName string, port int) {
-	slog.Info(commandName, fmt.Sprintf("Waiting for module container %s on port %d", moduleName, port), "")
+	slog.Info(commandName, fmt.Sprintf("Waiting for module container %s on port %d to initialize", moduleName, port), "")
 	requestUrl := fmt.Sprintf(DockerInternalUrl, port, HealtcheckUri)
 	healthcheckAttempts := HealtcheckMaxAttempts
 	for {
