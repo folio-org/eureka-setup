@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -38,7 +39,48 @@ func DoGetReturnResponse(commandName string, url string, enableDebug bool, panic
 	return resp
 }
 
-func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool, headers map[string]string) interface{} {
+func DoGetDecodeReturnString(commandName string, url string, enableDebug bool, panicOnError bool, headers map[string]string) string {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		slog.Error(commandName, "http.NewRequest error", "")
+		panic(err)
+	}
+
+	AddRequestHeaders(req, headers)
+	DumpHttpRequest(commandName, req, enableDebug)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		if panicOnError {
+			slog.Error(commandName, "http.DefaultClient.Do error", "")
+			panic(err)
+		} else {
+			LogWarn(commandName, fmt.Sprintf("http.DefaultClient.Do warn - Endpoint is unreachable: %s", url))
+			return ""
+		}
+	}
+	defer func() {
+		CheckStatusCodes(commandName, resp)
+		resp.Body.Close()
+	}()
+
+	DumpHttpResponse(commandName, resp, enableDebug)
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		if panicOnError {
+			slog.Error(commandName, "io.ReadAll error", "")
+			panic(err)
+		} else {
+			LogWarn(commandName, fmt.Sprintf("io.ReadAll warn - Cannot parse response: %s", url))
+			return ""
+		}
+	}
+
+	return string(body)
+}
+
+func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool, panicOnError bool, headers map[string]string) interface{} {
 	var respMap interface{}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
@@ -52,8 +94,13 @@ func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		slog.Error(commandName, "http.DefaultClient.Do error", "")
-		panic(err)
+		if panicOnError {
+			slog.Error(commandName, "http.DefaultClient.Do error", "")
+			panic(err)
+		} else {
+			LogWarn(commandName, fmt.Sprintf("http.DefaultClient.Do warn - Endpoint is unreachable: %s", url))
+			return nil
+		}
 	}
 	defer func() {
 		CheckStatusCodes(commandName, resp)
@@ -64,8 +111,13 @@ func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool
 
 	err = json.NewDecoder(resp.Body).Decode(&respMap)
 	if err != nil {
-		slog.Error(commandName, "json.NewDecoder error", "")
-		panic(err)
+		if panicOnError {
+			slog.Error(commandName, "json.NewDecoder error", "")
+			panic(err)
+		} else {
+			LogWarn(commandName, fmt.Sprintf("json.NewDecoder warn - Cannot parse response: %s", url))
+			return nil
+		}
 	}
 
 	return respMap
@@ -102,8 +154,13 @@ func DoGetDecodeReturnMapStringInteface(commandName string, url string, enableDe
 
 	err = json.NewDecoder(resp.Body).Decode(&respMap)
 	if err != nil {
-		slog.Error(commandName, "json.NewDecoder error", "")
-		panic(err)
+		if panicOnError {
+			slog.Error(commandName, "json.NewDecoder error", "")
+			panic(err)
+		} else {
+			LogWarn(commandName, fmt.Sprintf("json.NewDecoder warn - Cannot parse response: %s", url))
+			return nil
+		}
 	}
 
 	return respMap

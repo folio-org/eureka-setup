@@ -37,9 +37,9 @@ var deploySystemCmd = &cobra.Command{
 		DeployModules()
 		CreateTenants()
 		CreateTenantEntitlements()
-		CreateUsers()
 		CreateRoles()
 		CreateCapabilities()
+		CreateUsers()
 	},
 }
 

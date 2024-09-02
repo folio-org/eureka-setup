@@ -16,8 +16,15 @@ limitations under the License.
 package cmd
 
 import (
+	"log/slog"
+	"slices"
+
+	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
+
+const createRolesCommand string = "Create Roles"
 
 // createRolesCmd represents the createRoles command
 var createRolesCmd = &cobra.Command{
@@ -29,9 +36,26 @@ var createRolesCmd = &cobra.Command{
 	},
 }
 
-// TODO
 func CreateRoles() {
+	slog.Info(createRolesCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	client := internal.CreateClient(createRolesCommand)
+	defer client.Close()
+	vaultRootToken := internal.GetRootVaultToken(createRolesCommand, client)
 
+	for _, value := range internal.GetTenants(createRolesCommand, enableDebug, false) {
+		mapEntry := value.(map[string]interface{})
+		tenant := mapEntry["name"].(string)
+
+		if !slices.Contains(viper.GetStringSlice(internal.TenantsKey), tenant) {
+			continue
+		}
+
+		slog.Info(createRolesCommand, "### ACQUIRING KEYCLOAK ACCESS TOKEN ###", "")
+		accessToken := internal.GetKeycloakAccessToken(createRolesCommand, enableDebug, vaultRootToken, tenant)
+
+		slog.Info(createRolesCommand, "### CREATING ROLES ###", "")
+		internal.CreateRoles(createRolesCommand, enableDebug, accessToken)
+	}
 }
 
 func init() {

@@ -31,9 +31,9 @@ var undeploySystemCmd = &cobra.Command{
 	Short: "Undeploy system",
 	Long:  `Undeploy all system containers.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		RemoveUsers()
 		RemoveCapabilities()
 		RemoveRoles()
-		RemoveUsers()
 		RemoveTenantEntitlements()
 		RemoveTenants()
 		UndeployModules()

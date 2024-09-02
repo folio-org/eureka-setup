@@ -42,11 +42,12 @@ type DeployModulesDto struct {
 }
 
 type BackendModule struct {
-	DeployModule       bool
-	ModuleName         string
-	ModuleExposedPorts *nat.PortSet
-	ModulePortBindings *nat.PortMap
-	ModuleEnvironment  map[string]interface{}
+	DeployModule            bool
+	ModuleName              string
+	ModuleExposedServerPort int
+	ModuleExposedPorts      *nat.PortSet
+	ModulePortBindings      *nat.PortMap
+	ModuleEnvironment       map[string]interface{}
 
 	DeploySidecar       bool
 	SidecarExposedPorts *nat.PortSet
@@ -73,14 +74,14 @@ func NewBackendModuleAndSidecar(name string, port int, deploySidecar bool, modul
 	modulePortBindings := CreatePortBindings(port, port+1000)
 	sidecarPortBindings := CreatePortBindings(port+2000, port+3000)
 
-	return &BackendModule{true, name, exposedPorts, modulePortBindings, moduleEnvironment, deploySidecar, exposedPorts, sidecarPortBindings}
+	return &BackendModule{true, name, port, exposedPorts, modulePortBindings, moduleEnvironment, deploySidecar, exposedPorts, sidecarPortBindings}
 }
 
 func NewBackendModule(name string, port int, moduleEnvironment map[string]interface{}) *BackendModule {
 	exposedPorts := CreateExposedPorts()
 	modulePortBindings := CreatePortBindings(port, port+1000)
 
-	return &BackendModule{true, name, exposedPorts, modulePortBindings, moduleEnvironment, false, nil, nil}
+	return &BackendModule{true, name, port, exposedPorts, modulePortBindings, moduleEnvironment, false, nil, nil}
 }
 
 func NewFrontendModule(name string) *FrontendModule {
@@ -326,7 +327,9 @@ func UndeployModule(commandName string, client *client.Client, deployedModule ty
 	slog.Info(commandName, "Undeployed module container", fmt.Sprintf("%s %s %s", deployedModule.ID, strings.ReplaceAll(deployedModule.Names[0], "/", ""), deployedModule.Status))
 }
 
-func DeployModules(commandName string, client *client.Client, dto *DeployModulesDto) {
+func DeployModules(commandName string, client *client.Client, dto *DeployModulesDto) map[string]int {
+	deployedModules := make(map[string]int)
+
 	sidecarImage := viper.GetString(RegistrySidecarImageKey)
 	resourceUrlVault := viper.GetString(ResourcesVaultKey)
 	networkConfig := NewModuleNetworkConfig()
@@ -361,6 +364,8 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 
 			DeployModule(commandName, client, deployModuleDto)
 
+			deployedModules[module.Name] = backendModule.ModuleExposedServerPort
+
 			if !backendModule.DeploySidecar {
 				continue
 			}
@@ -378,4 +383,6 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			pullSidecarImage = false
 		}
 	}
+
+	return deployedModules
 }

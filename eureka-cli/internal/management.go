@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"slices"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -20,11 +22,18 @@ const (
 	JsonContentType           string = "application/json"
 	FormUrlEncodedContentType string = "application/x-www-form-urlencoded"
 
-	ContentTypeHeader   = "Content-Type"
-	AuthorizationHeader = "Authorization"
-	TenantHeader        = "X-Okapi-Tenant"
-	TokenHeader         = "X-Okapi-Token"
+	ContentTypeHeader   string = "Content-Type"
+	AuthorizationHeader string = "Authorization"
+	TenantHeader        string = "X-Okapi-Tenant"
+	TokenHeader         string = "X-Okapi-Token"
+
+	RemoveRoleUnsupported bool = true
+
+	HealtcheckUri         string = "/admin/health"
+	HealtcheckMaxAttempts int    = 50
 )
+
+var HealthcheckDefaultDuration time.Duration = 30 * time.Second
 
 type RegistryModule struct {
 	Id     string `json:"id"`
@@ -132,7 +141,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 			moduleDescriptorUrl := fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls["folio"], module.Id)
 
 			if applicationFetchDescriptors {
-				dto.ModuleDescriptorsMap[module.Id] = DoGetDecodeReturnInterface(commandName, moduleDescriptorUrl, enableDebug, map[string]string{})
+				dto.ModuleDescriptorsMap[module.Id] = DoGetDecodeReturnInterface(commandName, moduleDescriptorUrl, enableDebug, true, map[string]string{})
 			}
 
 			if okBackend {
@@ -180,7 +189,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 		panic(err)
 	}
 
-	DoPostReturnNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/applications?check=true"), enableDebug, applicationBytes, map[string]string{ContentTypeHeader: JsonContentType})
+	DoPostReturnNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/applications?check=true"), enableDebug, applicationBytes, map[string]string{})
 
 	applicationDiscoveryBytes, err := json.Marshal(map[string]interface{}{"discovery": discoveryModules})
 	if err != nil {
@@ -188,7 +197,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 		panic(err)
 	}
 
-	DoPostReturnNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/modules/discovery"), enableDebug, applicationDiscoveryBytes, map[string]string{ContentTypeHeader: JsonContentType})
+	DoPostReturnNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/modules/discovery"), enableDebug, applicationDiscoveryBytes, map[string]string{})
 }
 
 func GetTenants(commandName string, enableDebug bool, panicOnError bool) []interface{} {
@@ -234,7 +243,7 @@ func CreateTenants(commandName string, enableDebug bool) {
 			panic(err)
 		}
 
-		DoPostReturnNoContent(commandName, requestUrl, enableDebug, tenantBytes, map[string]string{ContentTypeHeader: JsonContentType})
+		DoPostReturnNoContent(commandName, requestUrl, enableDebug, tenantBytes, map[string]string{})
 
 		slog.Info(commandName, fmt.Sprintf("Created %s tenant", tenant), "")
 	}
@@ -297,7 +306,7 @@ func CreateTenantEntitlement(commandName string, enableDebug bool) {
 			panic(err)
 		}
 
-		DoPostReturnNoContent(commandName, requestUrl, enableDebug, tenantEntitlementBytes, map[string]string{ContentTypeHeader: JsonContentType})
+		DoPostReturnNoContent(commandName, requestUrl, enableDebug, tenantEntitlementBytes, map[string]string{})
 
 		slog.Info(commandName, fmt.Sprintf("Created tenant entitlement for %s tenant (%s)", tenant, tenantId), "")
 
@@ -354,10 +363,9 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 	postUserPasswordRequestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/authn/credentials")
 	usersMap := viper.GetStringMap(UsersKey)
 
-	for _, value := range usersMap {
+	for username, value := range usersMap {
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["tenant"].(string)
-		username := mapEntry["username"].(string)
 		password := mapEntry["password"].(string)
 		firstName := mapEntry["first-name"].(string)
 		lastName := mapEntry["last-name"].(string)
@@ -400,6 +408,113 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 
 		DoPostReturnNoContent(commandName, postUserPasswordRequestUrl, enableDebug, userPasswordBytes, headers)
 
-		slog.Info(commandName, fmt.Sprintf("Create user %s with password %s in %s realm", username, password, tenant), "")
+		slog.Info(commandName, fmt.Sprintf("Created user %s with password %s in %s realm", username, password, tenant), "")
+	}
+}
+
+func GetRoles(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) []interface{} {
+	var foundRoles []interface{}
+
+	requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/roles")
+
+	headers := map[string]string{
+		ContentTypeHeader: JsonContentType,
+		TenantHeader:      tenant,
+		TokenHeader:       accessToken,
+	}
+
+	foundTenantsMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, panicOnError, headers)
+	if foundTenantsMap["roles"] == nil || len(foundTenantsMap["roles"].([]interface{})) == 0 {
+		return nil
+	}
+
+	foundRoles = foundTenantsMap["roles"].([]interface{})
+
+	return foundRoles
+}
+
+func RemoveRoles(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) {
+	for _, value := range GetRoles(commandName, enableDebug, panicOnError, tenant, accessToken) {
+		mapEntry := value.(map[string]interface{})
+		roleName := mapEntry["name"].(string)
+
+		rolesMap := viper.GetStringMap(RolesKey)
+		if rolesMap[roleName] == nil {
+			continue
+		}
+
+		headers := map[string]string{
+			ContentTypeHeader: JsonContentType,
+			TenantHeader:      tenant,
+			TokenHeader:       accessToken,
+		}
+
+		requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, fmt.Sprintf("/roles-keycloak/roles/%s", mapEntry["id"].(string)))
+
+		DoDelete(commandName, requestUrl, enableDebug, headers)
+
+		slog.Info(commandName, fmt.Sprintf("Removed role %s", roleName), "")
+	}
+}
+
+func CreateRoles(commandName string, enableDebug bool, accessToken string) {
+	requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/roles")
+	rolesMap := viper.GetStringMap(RolesKey)
+
+	for role, value := range rolesMap {
+		mapEntry := value.(map[string]interface{})
+		tenant := mapEntry["tenant"].(string)
+
+		roleBytes, err := json.Marshal(map[string]string{"name": role, "description": "Default"})
+		if err != nil {
+			slog.Error(commandName, "json.Marshal error", "")
+			panic(err)
+		}
+
+		headers := map[string]string{
+			ContentTypeHeader: JsonContentType,
+			TenantHeader:      tenant,
+			TokenHeader:       accessToken,
+		}
+
+		DoPostReturnNoContent(commandName, requestUrl, enableDebug, roleBytes, headers)
+
+		slog.Info(commandName, fmt.Sprintf("Created %s role", role), "")
+	}
+}
+
+func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *sync.WaitGroup, moduleName string, port int) {
+	slog.Info(commandName, fmt.Sprintf("Waiting for module container %s on port %d", moduleName, port), "")
+	requestUrl := fmt.Sprintf(DockerInternalUrl, port, HealtcheckUri)
+	healthcheckAttempts := HealtcheckMaxAttempts
+	for {
+		time.Sleep(HealthcheckDefaultDuration)
+
+		isHealthyVertx := false
+		actuatorHealthStr := DoGetDecodeReturnString(commandName, requestUrl, enableDebug, false, map[string]string{})
+		if strings.Contains(actuatorHealthStr, "OK") {
+			isHealthyVertx = !isHealthyVertx
+		}
+
+		isHealthySpringBoot := false
+		actuatorHealthMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, false, map[string]string{})
+		if actuatorHealthMap != nil && strings.Contains(actuatorHealthMap["status"].(string), "UP") {
+			isHealthySpringBoot = !isHealthySpringBoot
+		}
+
+		if isHealthyVertx || isHealthySpringBoot {
+			slog.Info(commandName, fmt.Sprintf("Module container %s is healthy", moduleName), "")
+			waitMutex.Done()
+			break
+		}
+
+		healthcheckAttempts--
+		if healthcheckAttempts > 0 {
+			slog.Info(commandName, fmt.Sprintf("Module container %s is unhealthy, %d/%d attempts left", moduleName, healthcheckAttempts, HealtcheckMaxAttempts), "")
+		} else {
+			slog.Info(commandName, fmt.Sprintf("Module container %s is unhealthy, out of attempts", moduleName), "")
+			waitMutex.Done()
+			break
+		}
 	}
 }

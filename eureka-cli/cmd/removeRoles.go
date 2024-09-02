@@ -16,8 +16,15 @@ limitations under the License.
 package cmd
 
 import (
+	"log/slog"
+	"slices"
+
+	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
+
+const removeRolesCommand string = "Remove Roles"
 
 // removeRolesCmd represents the removeRoles command
 var removeRolesCmd = &cobra.Command{
@@ -29,9 +36,31 @@ var removeRolesCmd = &cobra.Command{
 	},
 }
 
-// TODO
 func RemoveRoles() {
+	if internal.RemoveRoleUnsupported {
+		slog.Info(removeRolesCommand, "### REMOVAL OF ROLES IS UNSUPPORTED BY CURRENT GATEWAY SETUP ###", "")
+		return
+	}
 
+	slog.Info(removeRolesCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	client := internal.CreateClient(removeRolesCommand)
+	defer client.Close()
+	vaultRootToken := internal.GetRootVaultToken(removeRolesCommand, client)
+
+	for _, value := range internal.GetTenants(removeRolesCommand, enableDebug, false) {
+		mapEntry := value.(map[string]interface{})
+		tenant := mapEntry["name"].(string)
+
+		if !slices.Contains(viper.GetStringSlice(internal.TenantsKey), tenant) {
+			continue
+		}
+
+		slog.Info(removeRolesCommand, "### ACQUIRING KEYCLOAK ACCESS TOKEN ###", "")
+		accessToken := internal.GetKeycloakAccessToken(removeRolesCommand, enableDebug, vaultRootToken, tenant)
+
+		slog.Info(removeRolesCommand, "### REMOVING ROLES ###", "")
+		internal.RemoveRoles(removeRolesCommand, enableDebug, false, tenant, accessToken)
+	}
 }
 
 func init() {

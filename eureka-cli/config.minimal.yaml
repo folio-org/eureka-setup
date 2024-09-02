@@ -79,19 +79,25 @@ tenants:
 users:
   diku_admin: 
     tenant: diku
-    username: diku_admin
     password: admin
-    last-name: admin
-    first-name: admin
+    last-name: admin last name
+    first-name: admin first name
+    roles: 
+      - Admin
+      - User
   diku_user: 
     tenant: diku
-    username: diku_user
     password: user
-    last-name: user
-    first-name: user
+    last-name: user last name
+    first-name: user first name
+    roles: 
+      - User
 # Roles
 roles:
-  - name: admin
+  Admin: 
+    tenant: diku
+  User: 
+    tenant: diku
 # Sidecar module
 sidecar-module:
   environment:

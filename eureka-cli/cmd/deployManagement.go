@@ -17,7 +17,7 @@ package cmd
 
 import (
 	"log/slog"
-	"time"
+	"sync"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
@@ -62,10 +62,16 @@ func DeployManagement() {
 	slog.Info(deployManagementCommand, "### DEPLOYING MANAGEMENT MODULES ###", "")
 	registryHostname := map[string]string{"folio": "", "eureka": ""}
 	deployModulesDto := internal.NewDeployManagementModulesDto(vaultRootToken, registryHostname, registryModules, backendModulesMap, environment)
-	internal.DeployModules(deployManagementCommand, client, deployModulesDto)
+	deployedModules := internal.DeployModules(deployManagementCommand, client, deployModulesDto)
 
 	slog.Info(deployManagementCommand, "### WAITING FOR MANAGEMENT MODULES TO INITIALIZE ###", "")
-	time.Sleep(150 * time.Second)
+	var waitMutex sync.WaitGroup
+	waitMutex.Add(len(deployedModules))
+	for deployedModule := range deployedModules {
+		go internal.PerformModuleHealthcheck(deployManagementCommand, enableDebug, &waitMutex, deployedModule, deployedModules[deployedModule])
+	}
+	waitMutex.Wait()
+	slog.Info(deployManagementCommand, "All management modules have initialized", "")
 }
 
 func init() {
