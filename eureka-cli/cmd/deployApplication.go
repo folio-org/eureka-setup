@@ -36,7 +36,7 @@ func DeployApplication() {
 	CreateTenants()
 	CreateTenantEntitlements()
 	CreateRoles()
-	CreateCapabilities()
+	AttachCapabilitySets()
 	CreateUsers()
 }
 

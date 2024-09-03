@@ -1,6 +1,3 @@
-x-core-service: &core-service
-  networks: [ fpm-net ]
-
 networks:
   fpm-net:
     name: eureka
@@ -17,13 +14,24 @@ volumes:
 services:
   ### Postgres ###
   db:
-    <<: *core-service
     container_name: db
     image: postgres:13.4-alpine
-    env_file: [ env/db.env ]
+    environment:
+      PGUSER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: superAdmin
+      OKAPI_DB_PASSWORD: superAdmin
+      MGR_APPLICATIONS_DB_PASSWORD: superAdmin
+      MGR_TENANTS_DB_PASSWORD: superAdmin
+      MGR_TENANT_ENTITLEMENTS_DB_PASSWORD: superAdmin
+      KC_DB_PASSWORD: superAdmin
+      KONG_DB_PASSWORD: superAdmin
     volumes:
       - db:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks: 
+      - fpm-net
     ports:
       - "5432:5432"
     healthcheck:
@@ -34,12 +42,13 @@ services:
 
   ### Kafka ###
   kafka-ui:
-    <<: *core-service
     container_name: kafka-ui
     image: provectuslabs/kafka-ui:latest
     depends_on:
       - zookeeper
       - kafka
+    networks: 
+      - fpm-net
     ports:
       - "9080:8080"
     healthcheck:
@@ -52,9 +61,10 @@ services:
       KAFKA_CLUSTERS_0_JMXPORT: 9997
 
   zookeeper:
-    <<: *core-service
     container_name: zookeeper
     image: zookeeper:latest
+    networks: 
+      - fpm-net
     ports:
       - "2181:2181"
     healthcheck:
@@ -65,16 +75,26 @@ services:
       start_period: 5s
 
   kafka:
-    <<: *core-service
     container_name: kafka
     image: wurstmeister/kafka:2.13-2.8.1
-    env_file: [ env/kafka.env ]
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_LISTENERS: INSIDE://:9091,OUTSIDE://:9092
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://:9091,OUTSIDE://kafka.eureka:9092
+      KAFKA_ADVERTISED_HOST_NAME: kafka.eureka
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper.eureka:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_MESSAGE_MAX_BYTES: 1000000
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     depends_on:
       zookeeper:
         condition: service_healthy
     volumes:
       - kafka-data:/kafka
     restart: always
+    networks: 
+      - fpm-net
     ports:
       - "9092:9092"
     healthcheck:
@@ -86,16 +106,19 @@ services:
 
   ### Vault ###
   vault:
-    <<: *core-service
     container_name: vault
     image: folio-vault:1.13.3
     build:
       context: vault
       dockerfile: Dockerfile
-    env_file: [ env/vault.env ]
+    environment:
+      VAULT_ADDR: http://0.0.0.0:8200
+      VAULT_API_ADDR: http://0.0.0.0:8200
     volumes:
       - vault-data:/vault/data:rw
     cap_add: [ IPC_LOCK ]
+    networks: 
+      - fpm-net
     ports:
       - "8200:8200"
     healthcheck:
@@ -106,13 +129,14 @@ services:
 
   ### Keycloak ###
   keycloak:
-    <<: *core-service
     container_name: keycloak
     image: nginx:latest
     depends_on:
       - keycloak-internal
     volumes:
       - ./nginx/keycloak-nginx.conf:/etc/nginx/nginx.conf:ro
+    networks: 
+      - fpm-net
     ports:
       - "8080:8080"
     healthcheck:
@@ -122,18 +146,36 @@ services:
       retries: 15
 
   keycloak-internal:
-    <<: *core-service
     container_name: keycloak-internal
     image: $ECR_REGISTRY/folio-keycloak:23.0.3
     build:
       context: ./keycloak
       dockerfile: Dockerfile
-    env_file: [ env/keycloak.env ]
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_FOLIO_BE_ADMIN_CLIENT_ID: superAdmin
+      KC_FOLIO_BE_ADMIN_CLIENT_SECRET: superAdmin
+      KC_DB_URL_HOST: db.eureka
+      KC_DB_URL_PORT: 5432
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: keycloak_rw
+      KC_DB_PASSWORD: superAdmin
+      KC_HTTPS_KEY_STORE_PASSWORD: superAdmin
+      KC_PROXY: edge
+      KC_HOSTNAME: keycloak.eureka
+      KC_HOSTNAME_PORT: 8080
+      KC_HTTP_ENABLED: true
+      KC_HOSTNAME_STRICT: true
+      KC_HOSTNAME_STRICT_HTTPS: false
+      JAVA_OPTS_APPEND: "-Xms768m -Xmx1024m"
     depends_on:
       db:
         condition: service_healthy
       vault:
         condition: service_healthy
+    networks: 
+      - fpm-net
     ports:
       - "18081:8080"
     deploy:
@@ -147,16 +189,34 @@ services:
 
   ### Kong ###
   api-gateway:
-    <<: *core-service
     container_name: api-gateway
     image: folio-kong:3.4.1-ubuntu
     build:
       context: ./kong
       dockerfile: Dockerfile
-    env_file: [ env/kong.env ]
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_DATABASE: kong
+      KONG_NGINX_HTTP_LARGE_CLIENT_HEADER_BUFFERS: 4 200k
+      KONG_PG_HOST: db
+      KONG_PG_PORT: 5432
+      KONG_PG_USER: kong_rw
+      KONG_PG_PASSWORD: superAdmin
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_GUI_URL: http://localhost:8002
+      KONG_PROXY_LISTEN: "0.0.0.0:8000, 0.0.0.0:8443 ssl"
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001, 0.0.0.0:8444 ssl"
+      KONG_PLUGINS: bundled
+      KONG_LOG_LEVEL: debug
+      ENV: local
     depends_on:
       db:
         condition: service_healthy
+    networks: 
+      - fpm-net
     ports:
       - "8000:8000"
       - "8001:8001"
@@ -171,12 +231,15 @@ services:
       
   ### Netcat ###
   netcat:
-    <<: *core-service
     container_name: netcat
     build:
-      context: netcat
-      dockerfile: Dockerfile
+      context: .
+      dockerfile_inline: |
+        FROM nginx:latest
+        RUN apt update; apt install netcat-traditional -y 
     image: netcat:latest
+    networks: 
+      - fpm-net
     ports:
       - "8445:80"
     healthcheck:

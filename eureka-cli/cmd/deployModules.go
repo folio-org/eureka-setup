@@ -102,7 +102,7 @@ func DeployModules() {
 	var waitMutex sync.WaitGroup
 	waitMutex.Add(len(deployedModules))
 	for deployedModule := range deployedModules {
-		go internal.PerformModuleHealthcheck(deployManagementCommand, enableDebug, &waitMutex, deployedModule, deployedModules[deployedModule])
+		go internal.PerformModuleHealthcheck(deployModulesCommand, enableDebug, &waitMutex, deployedModule, deployedModules[deployedModule])
 	}
 	waitMutex.Wait()
 	slog.Info(deployModulesCommand, "All modules have initialized", "")

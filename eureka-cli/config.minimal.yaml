@@ -76,29 +76,34 @@ resources:
 # Tenants
 tenants:
   - diku
+# Roles
+roles:
+  Admin: 
+    tenant: diku
+    capability-sets: 
+      - all
+  User: 
+    tenant: diku
+    capability-sets:
+      - login.manage
+      - mod-settings_entries.manage
 # Users
 users:
   diku_admin: 
     tenant: diku
     password: admin
-    last-name: admin last name
-    first-name: admin first name
+    last-name: John
+    first-name: Doe
     roles: 
       - Admin
       - User
   diku_user: 
     tenant: diku
     password: user
-    last-name: user last name
-    first-name: user first name
+    last-name: John
+    first-name: Smith
     roles: 
       - User
-# Roles
-roles:
-  Admin: 
-    tenant: diku
-  User: 
-    tenant: diku
 # Sidecar module
 sidecar-module:
   environment:

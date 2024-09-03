@@ -29,7 +29,7 @@ func DoGetReturnResponse(commandName string, url string, enableDebug bool, panic
 			slog.Error(commandName, "http.DefaultClient.Do error", "")
 			panic(err)
 		} else {
-			LogWarn(commandName, fmt.Sprintf("http.DefaultClient.Do warn - Endpoint is unreachable: %s", url))
+			LogWarn(commandName, enableDebug, fmt.Sprintf("http.DefaultClient.Do warn - Endpoint is unreachable: %s", url))
 			return nil
 		}
 	}
@@ -55,7 +55,7 @@ func DoGetDecodeReturnString(commandName string, url string, enableDebug bool, p
 			slog.Error(commandName, "http.DefaultClient.Do error", "")
 			panic(err)
 		} else {
-			LogWarn(commandName, fmt.Sprintf("http.DefaultClient.Do warn - Endpoint is unreachable: %s", url))
+			LogWarn(commandName, enableDebug, fmt.Sprintf("http.DefaultClient.Do warn - Endpoint is unreachable: %s", url))
 			return ""
 		}
 	}
@@ -72,6 +72,7 @@ func DoGetDecodeReturnString(commandName string, url string, enableDebug bool, p
 			slog.Error(commandName, "io.ReadAll error", "")
 			panic(err)
 		} else {
+			LogWarn(commandName, enableDebug, fmt.Sprintf("json.NewDecoder warn - Cannot decode response from url: %s", url))
 			return ""
 		}
 	}
@@ -97,7 +98,7 @@ func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool
 			slog.Error(commandName, "http.DefaultClient.Do error", "")
 			panic(err)
 		} else {
-			LogWarn(commandName, fmt.Sprintf("http.DefaultClient.Do warn - Endpoint is unreachable: %s", url))
+			LogWarn(commandName, enableDebug, fmt.Sprintf("http.DefaultClient.Do warn - Endpoint is unreachable: %s", url))
 			return nil
 		}
 	}
@@ -114,6 +115,7 @@ func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool
 			slog.Error(commandName, "json.NewDecoder error", "")
 			panic(err)
 		} else {
+			LogWarn(commandName, enableDebug, fmt.Sprintf("json.NewDecoder warn - Cannot decode response from url: %s", url))
 			return nil
 		}
 	}
@@ -139,7 +141,7 @@ func DoGetDecodeReturnMapStringInteface(commandName string, url string, enableDe
 			slog.Error(commandName, "http.DefaultClient.Do error", "")
 			panic(err)
 		} else {
-			LogWarn(commandName, fmt.Sprintf("http.DefaultClient.Do warn - Endpoint is unreachable: %s", url))
+			LogWarn(commandName, enableDebug, fmt.Sprintf("http.DefaultClient.Do warn - Endpoint is unreachable: %s", url))
 			return nil
 		}
 	}
@@ -156,6 +158,7 @@ func DoGetDecodeReturnMapStringInteface(commandName string, url string, enableDe
 			slog.Error(commandName, "json.NewDecoder error", "")
 			panic(err)
 		} else {
+			LogWarn(commandName, enableDebug, fmt.Sprintf("json.NewDecoder warn - Cannot decode response from url: %s", url))
 			return nil
 		}
 	}
@@ -289,7 +292,7 @@ func DoPutReturnNoContent(commandName string, url string, enableDebug bool, body
 
 // ####### DELETE ########
 
-func DoDelete(commandName string, url string, enableDebug bool, headers map[string]string) {
+func DoDelete(commandName string, url string, enableDebug bool, panicOnError bool, headers map[string]string) {
 	req, err := http.NewRequest(http.MethodDelete, url, nil)
 	if err != nil {
 		slog.Error(commandName, "http.NewRequest error", "")
@@ -301,11 +304,18 @@ func DoDelete(commandName string, url string, enableDebug bool, headers map[stri
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		slog.Error(commandName, "http.DefaultClient.Do error", "")
-		panic(err)
+		if panicOnError {
+			slog.Error(commandName, "http.DefaultClient.Do error", "")
+			panic(err)
+		} else {
+			LogWarn(commandName, enableDebug, err.Error())
+			return
+		}
 	}
 	defer func() {
-		CheckStatusCodes(commandName, resp)
+		if panicOnError {
+			CheckStatusCodes(commandName, resp)
+		}
 		resp.Body.Close()
 	}()
 

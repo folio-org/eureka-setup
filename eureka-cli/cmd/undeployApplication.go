@@ -31,12 +31,13 @@ var undeployApplicationCmd = &cobra.Command{
 
 func UndeployApplication() {
 	RemoveUsers()
-	RemoveCapabilities()
+	DetachCapabilitySets()
 	RemoveRoles()
 	RemoveTenantEntitlements()
 	RemoveTenants()
 	UndeployModules()
 	UndeployManagement()
+	UndeploySystem()
 }
 
 func init() {

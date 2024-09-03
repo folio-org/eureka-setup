@@ -94,6 +94,10 @@ func LogErrorPanic(commandName string, errorMessage string) {
 	panic(errors.New(errorMessage))
 }
 
-func LogWarn(commandName string, errorMessage string) {
+func LogWarn(commandName string, enableDebug bool, errorMessage string) {
+	if !enableDebug {
+		return
+
+	}
 	slog.Warn(commandName, errorMessage, "")
 }
