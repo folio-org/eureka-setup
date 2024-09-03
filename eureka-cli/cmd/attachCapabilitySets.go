@@ -50,10 +50,10 @@ func AttachCapabilitySets() {
 			continue
 		}
 
-		slog.Info(detachCapabilitySetsCommand, "### ACQUIRING KEYCLOAK ACCESS TOKEN ###", "")
-		accessToken := internal.GetKeycloakAccessToken(detachCapabilitySetsCommand, enableDebug, vaultRootToken, tenant)
+		slog.Info(attachCapabilitySetsCommand, "### ACQUIRING KEYCLOAK ACCESS TOKEN ###", "")
+		accessToken := internal.GetKeycloakAccessToken(attachCapabilitySetsCommand, enableDebug, vaultRootToken, tenant)
 
-		slog.Info(detachCapabilitySetsCommand, "### ATTACHING CAPABILITY SETS TO ROLES ###", "")
+		slog.Info(attachCapabilitySetsCommand, "### ATTACHING CAPABILITY SETS TO ROLES ###", "")
 		internal.AttachCapabilitySetsToRoles(attachCapabilitySetsCommand, enableDebug, tenant, accessToken)
 	}
 }

@@ -630,7 +630,6 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 	rolesMapConfig := viper.GetStringMap(RolesKey)
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 
-	var capabilitySetsMapList []map[string]interface{}
 	for _, roleValue := range GetRoles(commandName, enableDebug, true, headers) {
 		roleMapEntry := roleValue.(map[string]interface{})
 		roleId := roleMapEntry["id"].(string)
@@ -647,6 +646,7 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 
 		capabilitySetsConfig := roleConfigMapEntry["capability-sets"].([]interface{})
 
+		var capabilitySetsMapList []map[string]interface{}
 		if len(capabilitySetsConfig) == 1 && slices.Contains(capabilitySetsConfig, "all") {
 			for _, capabilityValue := range GetCapabilitySets(commandName, enableDebug, true, headers) {
 				capabilityMapEntry := capabilityValue.(map[string]interface{})
