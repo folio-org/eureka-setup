@@ -7,11 +7,10 @@ application:
   version: 1.0.0
   platform: base
   fetch-descriptors: false
-  port-range: 30000
+  port-start: 30000
 # Registry
 registry: 
   registry-url: https://folio-registry.dev.folio.org
-  sidecar-image: folioci/folio-module-sidecar:1.1.0-SNAPSHOT.90
   folio-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
   eureka-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
 # Environment
@@ -106,6 +105,8 @@ users:
       - User
 # Sidecar module
 sidecar-module:
+  image: folio-module-sidecar
+  version: 1.1.0-SNAPSHOT.90
   environment:
     JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms50m -Xmx128m"
 # Backend modules
@@ -157,8 +158,14 @@ backend-modules:
   mod-roles-keycloak:
     port: 9906
     sidecar: true
+    version: 1.4.4
   mod-scheduler:
     port: 9907
+    sidecar: true
+  # Keycloak Consoria modules
+  mod-consortia-keycloak:
+    deploy-module: true
+    port: 9908
     sidecar: true
   # Core Modules
   mod-permissions:

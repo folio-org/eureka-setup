@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -34,10 +35,9 @@ const (
 	ProfileNameKey string = "profile.name"
 
 	ApplicationKey       string = "application"
-	ApplicationPortRange string = "application.port-range"
+	ApplicationPortStart string = "application.port-start"
 
 	RegistryUrlKey                  string = "registry.registry-url"
-	RegistrySidecarImageKey         string = "registry.sidecar-image"
 	RegistryFolioInstallJsonUrlKey  string = "registry.folio-install-json-url"
 	RegistryEurekaInstallJsonUrlKey string = "registry.eureka-install-json-url"
 
@@ -56,13 +56,16 @@ const (
 	UsersKey   string = "users"
 	RolesKey   string = "roles"
 
+	SidecarModule               string = "sidecar-module"
 	SidecarModuleEnvironmentKey string = "sidecar-module.environment"
 	BackendModuleKey            string = "backend-modules"
 	FrontendModuleKey           string = "frontend-modules"
 
-	PortKey      string = "port"
-	SidecarKey   string = "sidecar"
-	ModuleEnvKey string = "environment"
+	DeployModuleKey string = "deploy-module"
+	VersionKey      string = "version"
+	PortKey         string = "port"
+	SidecarKey      string = "sidecar"
+	ModuleEnvKey    string = "environment"
 )
 
 var (
@@ -116,13 +119,30 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 
 	for name, value := range backendModulesAnyMap {
 		var (
-			port        *int
-			sidecar     *bool
-			environment map[string]interface{}
+			deployModule bool = true
+			version      *string
+			port         *int
+			sidecar      *bool
+			environment  map[string]interface{}
 		)
 
 		if value != nil {
 			mapEntry := value.(map[string]interface{})
+
+			if mapEntry[DeployModuleKey] != nil {
+				deployModule = mapEntry[DeployModuleKey].(bool)
+			}
+
+			if mapEntry[VersionKey] != nil {
+				var versionValue string
+				_, ok := mapEntry[VersionKey].(float64)
+				if ok {
+					versionValue = strconv.FormatFloat(mapEntry[VersionKey].(float64), 'f', -1, 64)
+				} else {
+					versionValue = mapEntry[VersionKey].(string)
+				}
+				version = &versionValue
+			}
 
 			if mapEntry[PortKey] != nil {
 				portValue := mapEntry[PortKey].(int)
@@ -150,12 +170,17 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 		}
 
 		if sidecar != nil && *sidecar {
-			backendModulesMap[name] = *NewBackendModuleAndSidecar(name, *port, *sidecar, environment)
+			backendModulesMap[name] = *NewBackendModuleAndSidecar(deployModule, name, version, *port, *sidecar, environment)
 		} else {
 			backendModulesMap[name] = *NewBackendModule(name, *port, environment)
 		}
 
-		slog.Info(commandName, "Found backend module", name)
+		moduleInfo := name
+		if version != nil {
+			moduleInfo = fmt.Sprintf("%s with fixed version %s", name, *version)
+		}
+
+		slog.Info(commandName, "Found backend module in config", moduleInfo)
 	}
 
 	return backendModulesMap
@@ -164,10 +189,33 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMap map[string]any) map[string]FrontendModule {
 	frontendModulesMap := make(map[string]FrontendModule)
 
-	for name := range frontendModulesAnyMap {
-		frontendModulesMap[name] = *NewFrontendModule(name)
+	for name, value := range frontendModulesAnyMap {
+		var (
+			deployModule bool = true
+			version      *string
+		)
 
-		slog.Info(commandName, "Found frontend module", name)
+		if value != nil {
+			mapEntry := value.(map[string]interface{})
+
+			if mapEntry[DeployModuleKey] != nil {
+				deployModule = mapEntry[DeployModuleKey].(bool)
+			}
+
+			if mapEntry[VersionKey] != nil {
+				versionValue := mapEntry[VersionKey].(string)
+				version = &versionValue
+			}
+		}
+
+		frontendModulesMap[name] = *NewFrontendModule(deployModule, name, version)
+
+		moduleInfo := name
+		if version != nil {
+			moduleInfo = fmt.Sprintf("name %s with version %s", name, *version)
+		}
+
+		slog.Info(commandName, "Found frontend module in config", moduleInfo)
 	}
 
 	return frontendModulesMap
@@ -176,7 +224,7 @@ func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMap map[
 func CreateModuleEnvFile(commandName string, fileModuleEnv string) *os.File {
 	err := os.Remove(fileModuleEnv)
 	if err != nil {
-		slog.Warn(commandName, fmt.Sprintf("os.Remove warn=\"%s\"", err.Error()), "")
+		slog.Warn(commandName, fmt.Sprintf("os.Remove warning, '%s'", err.Error()), "")
 	}
 
 	fileModuleEnvPointer, err := os.OpenFile(fileModuleEnv, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -191,7 +239,7 @@ func CreateModuleEnvFile(commandName string, fileModuleEnv string) *os.File {
 func CreateModuleDescriptorsFile(commandName string, fileModuleDescriptors string) *os.File {
 	err := os.Remove(fileModuleDescriptors)
 	if err != nil {
-		slog.Warn(commandName, fmt.Sprintf("os.Remove warn=\"%s\"", err.Error()), "")
+		slog.Warn(commandName, fmt.Sprintf("os.Remove warning, '%s'", err.Error()), "")
 	}
 
 	moduleDescriptorsFile, err := os.OpenFile(fileModuleDescriptors, os.O_CREATE, 0644)

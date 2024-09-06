@@ -21,7 +21,7 @@ const (
 
 type RegisterModuleDto struct {
 	RegistryUrls         map[string]string
-	RegistryModules      map[string][]RegistryModule
+	RegistryModules      map[string][]*RegistryModule
 	BackendModulesMap    map[string]BackendModule
 	FrontendModulesMap   map[string]FrontendModule
 	ModuleDescriptorsMap map[string]interface{}
@@ -30,7 +30,7 @@ type RegisterModuleDto struct {
 }
 
 func NewRegisterModuleDto(registryUrls map[string]string,
-	registryModules map[string][]RegistryModule,
+	registryModules map[string][]*RegistryModule,
 	backendModulesMap map[string]BackendModule,
 	frontendModulesMap map[string]FrontendModule,
 	moduleDescriptorsMap map[string]interface{},
@@ -80,11 +80,11 @@ func GetEurekaRegistryAuthToken(commandName string) string {
 	return encodedAuth
 }
 
-func GetModulesFromRegistries(commandName string, installJsonUrls map[string]string) map[string][]RegistryModule {
-	registryModulesMap := make(map[string][]RegistryModule)
+func GetModulesFromRegistries(commandName string, installJsonUrls map[string]string) map[string][]*RegistryModule {
+	registryModulesMap := make(map[string][]*RegistryModule)
 
 	for registryName, installJsonUrl := range installJsonUrls {
-		var registryModules []RegistryModule
+		var registryModules []*RegistryModule
 
 		installJsonResp, err := http.Get(installJsonUrl)
 		if err != nil {

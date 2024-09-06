@@ -53,10 +53,10 @@ func AppendModuleEnvironment(extraEnvironmentMap map[string]interface{}, environ
 	return environment
 }
 
-func AppendSidecarEnvironment(environment []string, module RegistryModule) []string {
+func AppendSidecarEnvironment(environment []string, module *RegistryModule) []string {
 	extraEnvironment := []string{
 		fmt.Sprintf("MODULE_NAME=%s", module.Name),
-		fmt.Sprintf("MODULE_VERSION=%s", module.Version),
+		fmt.Sprintf("MODULE_VERSION=%s", *module.Version),
 		fmt.Sprintf("MODULE_URL=http://%s.eureka:%s", module.Name, ServerPort),
 		fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%s", module.SidecarName, ServerPort),
 	}

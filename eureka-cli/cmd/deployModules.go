@@ -50,7 +50,7 @@ func DeployModules() {
 	fileModuleDescriptors := path.Join(home, configDir, viper.GetString(internal.FilesModuleDescriptorsKey))
 	backendModulesAnyMap := viper.GetStringMap(internal.BackendModuleKey)
 	frontendModulesAnyMap := viper.GetStringMap(internal.FrontendModuleKey)
-	internal.PortIndex = viper.GetInt(internal.ApplicationPortRange)
+	internal.PortIndex = viper.GetInt(internal.ApplicationPortStart)
 
 	slog.Info(deployModulesCommand, "### READING ENVIRONMENT FROM CONFIG ###", "")
 	environment := internal.GetEnvironmentFromConfig(deployModulesCommand)

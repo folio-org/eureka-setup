@@ -39,8 +39,8 @@ var deploySystemCmd = &cobra.Command{
 func DeploySystem() {
 	slog.Info(deploySystemCommand, "### DEPLOYING SYSTEM CONTAINERS ###", "")
 	preparedCommands := []*exec.Cmd{
-		exec.Command("docker", "compose", "-p", "eureka", "build", "--quiet"),
-		exec.Command("docker", "compose", "-p", "eureka", "up", "--detach", "--quiet-pull"),
+		exec.Command("docker", "compose", "-p", "eureka", "build"),
+		exec.Command("docker", "compose", "-p", "eureka", "up", "--detach"),
 	}
 	for _, preparedCommand := range preparedCommands {
 		internal.RunCommandFromDir(deployManagementCommand, preparedCommand, internal.ComposeWorkDir)

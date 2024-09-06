@@ -43,20 +43,21 @@ type RegistryModule struct {
 
 	Name        string
 	SidecarName string
-	Version     string
+	Version     *string
 }
 
 type RegistryModules []RegistryModule
 
 // ######## Auxiliary ########
 
-func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryModulesMap map[string][]RegistryModule) {
+func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryModulesMap map[string][]*RegistryModule) {
 	for registryName, registryModules := range registryModulesMap {
 		slog.Info(commandName, fmt.Sprintf("Registering %s registry modules", registryName), "")
 
 		for moduleIndex, module := range registryModules {
 			module.Name = TrimModuleName(ModuleIdRegexp.ReplaceAllString(module.Id, `$1`))
-			module.Version = ModuleIdRegexp.ReplaceAllString(module.Id, `$2$3`)
+			moduleVersion := ModuleIdRegexp.ReplaceAllString(module.Id, `$2$3`)
+			module.Version = &moduleVersion
 			module.SidecarName = fmt.Sprintf("%s-sc", module.Name)
 
 			registryModules[moduleIndex] = module
@@ -136,7 +137,7 @@ func RemoveApplications(commandName string, moduleName string, enableDebug bool,
 
 		DoDelete(commandName, requestUrl, enableDebug, false, map[string]string{})
 
-		slog.Info(commandName, fmt.Sprintf(`Remove '%s' application`, id), "")
+		slog.Info(commandName, fmt.Sprintf(`Removed '%s' application`, id), "")
 	}
 }
 
@@ -161,21 +162,42 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 	}
 
 	for registryName, registryModules := range dto.RegistryModules {
-		slog.Info(commandName, fmt.Sprintf("Registering %s registry modules", registryName), "")
+		slog.Info(commandName, fmt.Sprintf("Registering %s modules", registryName), "")
 
 		for _, module := range registryModules {
 			if strings.Contains(module.Name, ManagementModulePattern) {
-				slog.Info(commandName, fmt.Sprintf("Ignoring %s module", module.Name), "")
+				slog.Info(commandName, fmt.Sprintf("Ignoring %s management module registration", module.Name), "")
 				continue
 			}
 
-			_, okBackend := dto.BackendModulesMap[module.Name]
-			_, okFrontend := dto.FrontendModulesMap[module.Name]
+			backendModule, okBackend := dto.BackendModulesMap[module.Name]
+			frontendModule, okFrontend := dto.FrontendModulesMap[module.Name]
 			if !okBackend && !okFrontend {
 				continue
 			}
 
-			_, err := dto.FileModuleEnvPointer.WriteString(fmt.Sprintf("export %s_VERSION=%s\r\n", TransformToEnvVar(module.Name), module.Version))
+			if okBackend && !backendModule.DeployModule {
+				continue
+			}
+			if okFrontend && !frontendModule.DeployModule {
+				continue
+			}
+
+			if okBackend && !backendModule.DeployModule || okFrontend && !frontendModule.DeployModule {
+				slog.Info(commandName, fmt.Sprintf("Ignoring %s module registration", module.Name), "")
+				continue
+			}
+
+			if okBackend && backendModule.ModuleVersion != nil || okFrontend && frontendModule.ModuleVersion != nil {
+				if backendModule.ModuleVersion != nil {
+					module.Version = backendModule.ModuleVersion
+				} else if frontendModule.ModuleVersion != nil {
+					module.Version = frontendModule.ModuleVersion
+				}
+				module.Id = fmt.Sprintf("%s-%s", module.Name, *module.Version)
+			}
+
+			_, err := dto.FileModuleEnvPointer.WriteString(fmt.Sprintf("export %s_VERSION=%s\r\n", TransformToEnvVar(module.Name), *module.Version))
 			if err != nil {
 				slog.Error(commandName, "dto.FileModuleEnvPointer.WriteString error", "")
 				panic(err)
@@ -188,7 +210,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 			}
 
 			if okBackend {
-				backendModule := map[string]string{"id": module.Id, "name": module.Name, "version": module.Version}
+				backendModule := map[string]string{"id": module.Id, "name": module.Name, "version": *module.Version}
 				if applicationFetchDescriptors {
 					backendModuleDescriptors = append(backendModuleDescriptors, dto.ModuleDescriptorsMap[module.Id])
 				} else {
@@ -199,9 +221,9 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 
 				sidecarUrl := fmt.Sprintf("http://%s.eureka:%s", module.SidecarName, ServerPort)
 
-				discoveryModules = append(discoveryModules, map[string]string{"id": module.Id, "name": module.Name, "version": module.Version, "location": sidecarUrl})
+				discoveryModules = append(discoveryModules, map[string]string{"id": module.Id, "name": module.Name, "version": *module.Version, "location": sidecarUrl})
 			} else if okFrontend {
-				frontendModule := map[string]string{"id": module.Id, "name": module.Name, "version": module.Version}
+				frontendModule := map[string]string{"id": module.Id, "name": module.Name, "version": *module.Version}
 				if applicationFetchDescriptors {
 					frontendModuleDescriptors = append(frontendModuleDescriptors, dto.ModuleDescriptorsMap[module.Id])
 				} else {
@@ -211,7 +233,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 				frontendModules = append(frontendModules, frontendModule)
 			}
 
-			slog.Info(commandName, "Found module", module.Name)
+			slog.Info(commandName, "Found module for registration", fmt.Sprintf("%s with version %s", module.Name, *module.Version))
 		}
 	}
 
@@ -354,6 +376,7 @@ func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError
 	}
 }
 
+// TODO Add depCheck=false flag
 func CreateTenantEntitlement(commandName string, enableDebug bool) {
 	requestUrl := fmt.Sprintf(DockerInternalUrl, TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=false,loadSample=false")
 	applicationMap := viper.GetStringMap(ApplicationKey)
