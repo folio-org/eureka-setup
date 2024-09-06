@@ -172,14 +172,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 
 			backendModule, okBackend := dto.BackendModulesMap[module.Name]
 			frontendModule, okFrontend := dto.FrontendModulesMap[module.Name]
-			if !okBackend && !okFrontend {
-				continue
-			}
-
-			if okBackend && !backendModule.DeployModule {
-				continue
-			}
-			if okFrontend && !frontendModule.DeployModule {
+			if (!okBackend && !okFrontend) || (okBackend && !backendModule.DeployModule || okFrontend && !frontendModule.DeployModule) {
 				continue
 			}
 

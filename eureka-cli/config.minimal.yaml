@@ -164,7 +164,7 @@ backend-modules:
     sidecar: true
   # Keycloak Consoria modules
   mod-consortia-keycloak:
-    deploy-module: true
+    deploy-module: false
     port: 9908
     sidecar: true
   # Core Modules
