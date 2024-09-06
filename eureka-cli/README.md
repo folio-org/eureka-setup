@@ -41,11 +41,14 @@ aws ecr get-login-password --region [region] | docker login --username [username
 aws ecr list-images --repository-name [project_name] --no-paginate --output table
 ```
 
-### Build binary
+### Build a binary
   
 ```shell
-go build -o ./bin/eureka-cli.exe .
+mkdir -p ./bin
+env GOOS=windows GOARCH=amd64 go build -o ./bin .
 ```
+
+> See BUILD.md to build a platform-specific binary
 
 ### (Optional) Setup config in home folder
 
@@ -64,6 +67,6 @@ go build -o ./bin/eureka-cli.exe .
 ./bin/eureka-cli.exe -c ./config.minimal.yaml deployApplication
 ```
 
-- undeploy using:
+- Undeploy using:
 
 > ./bin/eureka-cli.exe -c ./config.minimal.yaml undeployApplication
