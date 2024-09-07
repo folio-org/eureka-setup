@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	VaultServerPort = 8200
-	VaultTimeout    = 30 * time.Second
+	VaultServerPort int = 8200
+
+	VaultTimeout time.Duration = 30 * time.Second
 )
 
 func GetVaultSecretKey(commandName string, enableDebug bool, vaultRootToken string, secretPath string) map[string]interface{} {

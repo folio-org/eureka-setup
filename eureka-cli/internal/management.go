@@ -15,11 +15,11 @@ import (
 )
 
 const (
-	GatewayPort = 8000
+	GatewayPort int = 8000
 
-	ApplicationsPort       = 9901
-	TenantsPort            = 9902
-	TenantEntitlementsPort = 9903
+	ApplicationsPort       int = 9901
+	TenantsPort            int = 9902
+	TenantEntitlementsPort int = 9903
 
 	JsonContentType           string = "application/json"
 	FormUrlEncodedContentType string = "application/x-www-form-urlencoded"

@@ -22,7 +22,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const getAccessToken string = "Get Access Token"
+const getAccessTokenCommand string = "Get Access Token"
 
 var (
 	tenant string
@@ -39,15 +39,14 @@ var getAccessTokenCmd = &cobra.Command{
 }
 
 func GetAccessToken() {
-	slog.Info(getAccessToken, "### ACQUIRING VAULT ROOT TOKEN ###", "")
-	client := internal.CreateClient(getAccessToken)
+	slog.Info(getAccessTokenCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	client := internal.CreateClient(getAccessTokenCommand)
 	defer client.Close()
-	vaultRootToken := internal.GetRootVaultToken(getAccessToken, client)
+	vaultRootToken := internal.GetRootVaultToken(getAccessTokenCommand, client)
 
-	slog.Info(getAccessToken, "### ACQUIRING KEYCLOAK ACCESS TOKEN ###", "")
+	slog.Info(getAccessTokenCommand, "### ACQUIRING KEYCLOAK ACCESS TOKEN ###", "")
 	accessToken := internal.GetKeycloakAccessToken(createUsersCommand, enableDebug, vaultRootToken, tenant)
-	slog.Info(getAccessToken, "Access token", accessToken)
-
+	slog.Info(getAccessTokenCommand, "Access token", accessToken)
 }
 
 func init() {

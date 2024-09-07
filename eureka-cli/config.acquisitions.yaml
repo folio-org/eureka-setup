@@ -22,7 +22,7 @@ environment:
   # General
   ENV: folio
   # PostgreSQL
-  DB_HOST: db.eureka
+  DB_HOST: postgres.eureka
   DB_PORT: 5432
   DB_DATABASE: okapi
   DB_USERNAME: okapi_rw

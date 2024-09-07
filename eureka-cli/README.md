@@ -15,8 +15,8 @@
   - Add `127.0.0.1 keycloak.eureka` entry to `/etc/hosts`
   - Add `127.0.0.1 kafka.eureka` entry to `/etc/hosts`
 - Git clone:
-  - [folio-kong](<https://github.com/folio-org/folio-kong>) into `./misc` folder using a `master`
-  - [folio-keycloak](<https://github.com/folio-org/folio-keycloak>) into `./misc` folder using a `master`
+  - [folio-kong](<https://github.com/folio-org/folio-kong>) into `./misc` folder using a `master` branch
+  - [folio-keycloak](<https://github.com/folio-org/folio-keycloak>) into `./misc` folder using a `master` branch
 - Monitor using below system components:
   - [Keycloak](<http://keycloak.eureka:8080>): admin:admin
   - [Vault](<http://localhost:8200>): Vault token from the container logs using `docker logs vault`
@@ -52,3 +52,7 @@ env GOOS=windows GOARCH=amd64 go build -o ./bin .
 - Undeploy using:
 
 > ./bin/eureka-cli.exe -c ./config.minimal.yaml undeployApplication
+
+- Test Keycloak authentication on the UI using created `diku` realm and `diku-login-app` public client
+
+> Open in browser `http://keycloak.eureka:8080/realms/diku/protocol/openid-connect/auth?client_id=diku-login-app&response_type=code&redirect_uri=http://localhost:3000&scope=openid`

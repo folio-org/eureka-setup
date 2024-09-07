@@ -8,8 +8,7 @@ import (
 )
 
 func AppendVaultEnvironment(environment []string, vaultRootToken string, vaultUrl string) []string {
-	extraEnvironment := []string{
-		"SECRET_STORE_TYPE=VAULT",
+	extraEnvironment := []string{"SECRET_STORE_TYPE=VAULT",
 		fmt.Sprintf("SECRET_STORE_VAULT_TOKEN=%s", vaultRootToken),
 		fmt.Sprintf("SECRET_STORE_VAULT_ADDRESS=%s", vaultUrl),
 	}
@@ -19,11 +18,10 @@ func AppendVaultEnvironment(environment []string, vaultRootToken string, vaultUr
 }
 
 func AppendKeycloakEnvironment(commandName string, environment []string) []string {
-	extraEnvironment := []string{
-		fmt.Sprintf("KC_URL=%s", viper.GetString(ResourcesKeycloakKey)),
-		fmt.Sprintf("KC_ADMIN_CLIENT_ID=%s", GetEnvironmentFromMapByKey(commandName, "KC_ADMIN_CLIENT_ID")),
-		fmt.Sprintf("KC_SERVICE_CLIENT_ID=%s", GetEnvironmentFromMapByKey(commandName, "KC_SERVICE_CLIENT_ID")),
-		fmt.Sprintf("KC_LOGIN_CLIENT_SUFFIX=%s", GetEnvironmentFromMapByKey(commandName, "KC_LOGIN_CLIENT_SUFFIX")),
+	extraEnvironment := []string{fmt.Sprintf("KC_URL=%s", viper.GetString(ResourcesKeycloakKey)),
+		fmt.Sprintf("KC_ADMIN_CLIENT_ID=%s", GetEnvironmentFromMapByKey("KC_ADMIN_CLIENT_ID")),
+		fmt.Sprintf("KC_SERVICE_CLIENT_ID=%s", GetEnvironmentFromMapByKey("KC_SERVICE_CLIENT_ID")),
+		fmt.Sprintf("KC_LOGIN_CLIENT_SUFFIX=%s", GetEnvironmentFromMapByKey("KC_LOGIN_CLIENT_SUFFIX")),
 	}
 	environment = append(environment, extraEnvironment...)
 
@@ -31,8 +29,7 @@ func AppendKeycloakEnvironment(commandName string, environment []string) []strin
 }
 
 func AppendManagementEnvironment(environment []string) []string {
-	extraEnvironment := []string{
-		fmt.Sprintf("TM_CLIENT_URL=%s", viper.GetString(ResourcesMgrTenantsKey)),
+	extraEnvironment := []string{fmt.Sprintf("TM_CLIENT_URL=%s", viper.GetString(ResourcesMgrTenantsKey)),
 		fmt.Sprintf("AM_CLIENT_URL=%s", viper.GetString(ResourcesMgrApplicationsKey)),
 		fmt.Sprintf("TE_CLIENT_URL=%s", viper.GetString(ResourcesMgrTenantEntitlements)),
 	}
@@ -54,8 +51,7 @@ func AppendModuleEnvironment(extraEnvironmentMap map[string]interface{}, environ
 }
 
 func AppendSidecarEnvironment(environment []string, module *RegistryModule) []string {
-	extraEnvironment := []string{
-		fmt.Sprintf("MODULE_NAME=%s", module.Name),
+	extraEnvironment := []string{fmt.Sprintf("MODULE_NAME=%s", module.Name),
 		fmt.Sprintf("MODULE_VERSION=%s", *module.Version),
 		fmt.Sprintf("MODULE_URL=http://%s.eureka:%s", module.Name, ServerPort),
 		fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%s", module.SidecarName, ServerPort),

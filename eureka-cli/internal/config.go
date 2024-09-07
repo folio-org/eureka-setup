@@ -104,7 +104,7 @@ func GetSidecarEnvironmentFromConfig(commandName string) []string {
 	return environmentVariables
 }
 
-func GetEnvironmentFromMapByKey(commandName string, requestKey string) string {
+func GetEnvironmentFromMapByKey(requestKey string) string {
 	for key, value := range viper.GetStringMapString(EnvironmentKey) {
 		if strings.ToUpper(key) == requestKey {
 			return value

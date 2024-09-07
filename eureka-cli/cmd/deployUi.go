@@ -16,8 +16,16 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+	"log/slog"
+	"slices"
+
+	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
+
+const addUiCommand string = "Add UI command"
 
 // deployUiCmd represents the deployUi command
 var deployUiCmd = &cobra.Command{
@@ -29,8 +37,23 @@ var deployUiCmd = &cobra.Command{
 	},
 }
 
-// TODO Add single UI deployment
 func DeployUi() {
+	// TODO Deploy UI module
+
+	for _, value := range internal.GetTenants(addUiCommand, enableDebug, false) {
+		mapEntry := value.(map[string]interface{})
+		tenant := mapEntry["name"].(string)
+
+		if !slices.Contains(viper.GetStringSlice(internal.TenantsKey), tenant) {
+			continue
+		}
+
+		slog.Info(createUsersCommand, "### ACQUIRING KEYCLOAK MASTER ACCESS TOKEN ###", "")
+		masterAccessToken := internal.GetKeycloakMasterRealmAccessToken(createUsersCommand, enableDebug)
+
+		slog.Info(addUiCommand, fmt.Sprintf("### UPDATING KEYCLOAK PUBLIC CLIENT FOR TENANT %s ###", tenant), "")
+		internal.UpdateKeycloakPublicClientParams(addUiCommand, enableDebug, tenant, masterAccessToken)
+	}
 
 }
 

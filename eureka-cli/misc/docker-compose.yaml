@@ -4,7 +4,7 @@ networks:
     driver: bridge
 
 volumes:
-  db: 
+  postgres: 
     name: eureka_db
   vault-data: 
     name: eureka_vault_data
@@ -13,8 +13,8 @@ volumes:
 
 services:
   ### Postgres ###
-  db:
-    container_name: db
+  postgres:
+    container_name: postgres
     image: postgres:13.4-alpine
     environment:
       PGUSER: postgres
@@ -28,8 +28,8 @@ services:
       KC_DB_PASSWORD: supersecret
       KONG_DB_PASSWORD: supersecret
     volumes:
-      - db:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks: 
       - fpm-net
     ports:
@@ -157,7 +157,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
       KC_FOLIO_BE_ADMIN_CLIENT_ID: supersecret
       KC_FOLIO_BE_ADMIN_CLIENT_SECRET: supersecret
-      KC_DB_URL_HOST: db.eureka
+      KC_DB_URL_HOST: postgres.eureka
       KC_DB_URL_PORT: 5432
       KC_DB_URL_DATABASE: keycloak
       KC_DB_USERNAME: keycloak_rw
@@ -170,7 +170,7 @@ services:
       KC_HOSTNAME_STRICT_HTTPS: false
       JAVA_OPTS_APPEND: "-Xms768m -Xmx1024m"
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
       vault:
         condition: service_healthy
@@ -199,7 +199,7 @@ services:
       KONG_DATABASE: postgres
       KONG_PG_DATABASE: kong
       KONG_NGINX_HTTP_LARGE_CLIENT_HEADER_BUFFERS: 4 200k
-      KONG_PG_HOST: db
+      KONG_PG_HOST: postgres
       KONG_PG_PORT: 5432
       KONG_PG_USER: kong_rw
       KONG_PG_PASSWORD: supersecret
@@ -214,7 +214,7 @@ services:
       KONG_LOG_LEVEL: debug
       ENV: local
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
     networks: 
       - fpm-net

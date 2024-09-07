@@ -16,31 +16,31 @@ limitations under the License.
 package cmd
 
 import (
+	"log/slog"
+
+	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
 )
 
-// deployApplicationCmd represents the deployApplication command
-var deployApplicationCmd = &cobra.Command{
-	Use:   "deployApplication",
-	Short: "Deploy application",
-	Long:  `Deploy platform application.`,
+const getVaultRootTokenCommand string = "Get vault root token"
+
+// getVaultRootTokenCmd represents the getVaultRootToken command
+var getVaultRootTokenCmd = &cobra.Command{
+	Use:   "getVaultRootToken",
+	Short: "Get vault root token",
+	Long:  `Get vault root token from the server.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		DeployApplication()
+		GetVaultRootToken()
 	},
 }
 
-func DeployApplication() {
-	DeploySystem()
-	DeployManagement()
-	DeployModules()
-	CreateTenants()
-	CreateTenantEntitlements()
-	CreateRoles()
-	AttachCapabilitySets(true)
-	CreateUsers()
-	DeployUi()
+func GetVaultRootToken() {
+	slog.Info(getVaultRootTokenCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	client := internal.CreateClient(getVaultRootTokenCommand)
+	defer client.Close()
+	_ = internal.GetRootVaultToken(getVaultRootTokenCommand, client)
 }
 
 func init() {
-	rootCmd.AddCommand(deployApplicationCmd)
+	rootCmd.AddCommand(getVaultRootTokenCmd)
 }
