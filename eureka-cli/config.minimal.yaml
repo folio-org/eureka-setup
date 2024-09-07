@@ -22,7 +22,7 @@ environment:
   DB_PORT: 5432
   DB_DATABASE: okapi
   DB_USERNAME: okapi_rw
-  DB_PASSWORD: superAdmin
+  DB_PASSWORD: supersecret
   # Kafka
   KAFKA_HOST: kafka.eureka
   KAFKA_PORT: 9092
@@ -49,7 +49,7 @@ environment:
   KONG_ADMIN_URL: http://api-gateway.eureka:8001
   # Keycloak 
   KC_URL: http://keycloak.eureka:8080
-  KC_ADMIN_CLIENT_ID: superAdmin
+  KC_ADMIN_CLIENT_ID: supersecret
   KC_ADMIN_USERNAME: admin
   KC_ADMIN_PASSWORD: admin
   SECURITY_ENABLED: false
@@ -116,9 +116,9 @@ backend-modules:
     port: 9901
     environment:
       # DB
-      DB_DATABASE: app_manager
-      DB_USERNAME: app_manager_rw
-      DB_PASSWORD: superAdmin
+      DB_DATABASE: mgr_applications
+      DB_USERNAME: mgr_applications_rw
+      DB_PASSWORD: supersecret
       # Management
       MODULE_URL: http://mgr-applications.eureka:8081
       TE_URL: http://mgr-tenant-entitlements.eureka:8081
@@ -127,9 +127,9 @@ backend-modules:
     port: 9902
     environment:
       # DB
-      DB_DATABASE: tenant_manager
-      DB_USERNAME: tenant_manager_rw
-      DB_PASSWORD: superAdmin
+      DB_DATABASE: mgr_tenant
+      DB_USERNAME: mgr_tenant_rw
+      DB_PASSWORD: supersecret
       # Management
       MODULE_URL: http://mgr-tenants.eureka:8081
       CACHE_EXPIRATION_TTL: 55s
@@ -137,9 +137,9 @@ backend-modules:
     port: 9903
     environment:
       # DB
-      DB_DATABASE: tenant_entitlement
-      DB_USERNAME: tenant_entitlement_rw
-      DB_PASSWORD: superAdmin
+      DB_DATABASE: mgr_tenant_entitlements
+      DB_USERNAME: mgr_tenant_entitlements_rw
+      DB_PASSWORD: supersecret
       # Management
       MODULE_URL: http://mgr-tenant-entitlements.eureka:8081
       TENANT_URL: http://mgr-tenants.eureka:8081
