@@ -381,7 +381,6 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 		for _, module := range registryModules {
 			managementModule := strings.Contains(module.Name, ManagementModulePattern)
 			if dto.ManagementOnly && !managementModule || !dto.ManagementOnly && managementModule {
-				slog.Info(commandName, fmt.Sprintf("Ignoring %s management-only or non-managment module deployment", module.Name), "")
 				continue
 			}
 

@@ -72,19 +72,19 @@ func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *s
 	for {
 		time.Sleep(HealthcheckDefaultDuration)
 
-		isHealthyVertx := false
+		isHealthyVertxContainer := false
 		actuatorHealthStr := DoGetDecodeReturnString(commandName, requestUrl, enableDebug, false, map[string]string{})
 		if strings.Contains(actuatorHealthStr, "OK") {
-			isHealthyVertx = !isHealthyVertx
+			isHealthyVertxContainer = !isHealthyVertxContainer
 		}
 
-		isHealthySpringBoot := false
+		isHealthySpringBootContainer := false
 		actuatorHealthMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, false, map[string]string{})
 		if actuatorHealthMap != nil && strings.Contains(actuatorHealthMap["status"].(string), "UP") {
-			isHealthySpringBoot = !isHealthySpringBoot
+			isHealthySpringBootContainer = !isHealthySpringBootContainer
 		}
 
-		if isHealthyVertx || isHealthySpringBoot {
+		if isHealthyVertxContainer || isHealthySpringBootContainer {
 			slog.Info(commandName, fmt.Sprintf("Module container %s is healthy", moduleName), "")
 			waitMutex.Done()
 			break
@@ -173,11 +173,6 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 			backendModule, okBackend := dto.BackendModulesMap[module.Name]
 			frontendModule, okFrontend := dto.FrontendModulesMap[module.Name]
 			if (!okBackend && !okFrontend) || (okBackend && !backendModule.DeployModule || okFrontend && !frontendModule.DeployModule) {
-				continue
-			}
-
-			if okBackend && !backendModule.DeployModule || okFrontend && !frontendModule.DeployModule {
-				slog.Info(commandName, fmt.Sprintf("Ignoring %s module registration", module.Name), "")
 				continue
 			}
 

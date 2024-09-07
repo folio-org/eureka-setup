@@ -30,11 +30,6 @@ var undeployApplicationCmd = &cobra.Command{
 }
 
 func UndeployApplication() {
-	RemoveUsers()
-	DetachCapabilitySets()
-	RemoveRoles()
-	RemoveTenantEntitlements()
-	RemoveTenants()
 	UndeployModules()
 	UndeployManagement()
 	UndeploySystem()
