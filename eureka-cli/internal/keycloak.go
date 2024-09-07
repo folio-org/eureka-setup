@@ -11,6 +11,9 @@ import (
 
 const (
 	platformCompleteUrl string = "http://localhost:3000"
+
+	adminCliUsername string = "admin"
+	adminCliPassword string = "admin"
 )
 
 func GetKeycloakAccessToken(commandName string, enableDebug bool, vaultRootToken string, tenant string) string {
@@ -32,37 +35,43 @@ func GetKeycloakAccessToken(commandName string, enableDebug bool, vaultRootToken
 
 	tokensMap := DoPostFormDataReturnMapStringInteface(commandName, requestUrl, enableDebug, formData, headers)
 	if tokensMap["access_token"] == nil {
-		LogErrorPanic(commandName, "")
+		LogErrorPanic(commandName, "internal.GetKeycloakAccessToken - Access token not found")
 	}
 
 	return tokensMap["access_token"].(string)
 }
 
 func GetKeycloakMasterRealmAccessToken(commandName string, enableDebug bool) string {
-	adminCliRequestUrl := fmt.Sprintf("%s/realms/master/protocol/openid-connect/token", viper.GetString(ResourcesKeycloakKey))
-	adminCliHeaders := map[string]string{ContentTypeHeader: FormUrlEncodedContentType}
+	requestUrl := fmt.Sprintf("%s/realms/master/protocol/openid-connect/token", viper.GetString(ResourcesKeycloakKey))
+	headers := map[string]string{ContentTypeHeader: FormUrlEncodedContentType}
 
 	formData := url.Values{}
 	formData.Set("grant_type", "password")
 	formData.Set("client_id", "admin-cli")
-	formData.Set("username", "admin")
-	formData.Set("password", "admin")
+	formData.Set("username", adminCliUsername)
+	formData.Set("password", adminCliPassword)
 
-	tokensMap := DoPostFormDataReturnMapStringInteface(commandName, adminCliRequestUrl, enableDebug, formData, adminCliHeaders)
+	tokensMap := DoPostFormDataReturnMapStringInteface(commandName, requestUrl, enableDebug, formData, headers)
 	if tokensMap["access_token"] == nil {
-		LogErrorPanic(commandName, "")
+		LogErrorPanic(commandName, "internal.GetKeycloakAccessToken - Access token not found")
 	}
 
 	return tokensMap["access_token"].(string)
 }
 
 func UpdateKeycloakPublicClientParams(commandName string, enableDebug bool, tenant string, accessToken string) {
-	clientId := fmt.Sprintf("%s%s", tenant, GetEnvironmentFromMapByKey("KC_LOGIN_CLIENT_SUFFIX"))
-	clientGetRequestUrl := fmt.Sprintf("%s/admin/realms/%s/clients?clientId=%s", viper.GetString(ResourcesKeycloakKey), tenant, clientId)
-	clientHeaders := map[string]string{ContentTypeHeader: JsonContentType, AuthorizationHeader: fmt.Sprintf("Bearer %s", accessToken)}
-	clientUuid := DoGetDecodeReturnInterface(commandName, clientGetRequestUrl, enableDebug, true, clientHeaders).([]interface{})[0].(map[string]interface{})["id"].(string)
+	headers := map[string]string{ContentTypeHeader: JsonContentType, AuthorizationHeader: fmt.Sprintf("Bearer %s", accessToken)}
 
-	clientPutRequestUrl := fmt.Sprintf("%s/admin/realms/%s/clients/%s", viper.GetString(ResourcesKeycloakKey), tenant, clientUuid)
+	clientId := fmt.Sprintf("%s%s", tenant, GetEnvironmentFromMapByKey("KC_LOGIN_CLIENT_SUFFIX"))
+	getRequestUrl := fmt.Sprintf("%s/admin/realms/%s/clients?clientId=%s", viper.GetString(ResourcesKeycloakKey), tenant, clientId)
+	foundClients := DoGetDecodeReturnInterface(commandName, getRequestUrl, enableDebug, true, headers).([]interface{})
+	if len(foundClients) != 1 {
+		LogErrorPanic(commandName, fmt.Sprintf("internal.UpdateKeycloakPublicClientParams - Number of found cliends by %s client id is not 1", clientId))
+	}
+
+	clientUuid := foundClients[0].(map[string]interface{})["id"].(string)
+
+	putRequestUrl := fmt.Sprintf("%s/admin/realms/%s/clients/%s", viper.GetString(ResourcesKeycloakKey), tenant, clientUuid)
 	clientParamsBytes, err := json.Marshal(map[string]interface{}{
 		"rootUrl":                      platformCompleteUrl,
 		"baseUrl":                      platformCompleteUrl,
@@ -81,5 +90,5 @@ func UpdateKeycloakPublicClientParams(commandName string, enableDebug bool, tena
 		panic(err)
 	}
 
-	DoPutReturnNoContent(commandName, clientPutRequestUrl, enableDebug, clientParamsBytes, clientHeaders)
+	DoPutReturnNoContent(commandName, putRequestUrl, enableDebug, clientParamsBytes, headers)
 }

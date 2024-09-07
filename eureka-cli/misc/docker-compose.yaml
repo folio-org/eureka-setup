@@ -4,8 +4,8 @@ networks:
     driver: bridge
 
 volumes:
-  postgres: 
-    name: eureka_db
+  postgres-data: 
+    name: eureka_postgres_data
   vault-data: 
     name: eureka_vault_data
   kafka-data: 
@@ -28,7 +28,7 @@ services:
       KC_DB_PASSWORD: supersecret
       KONG_DB_PASSWORD: supersecret
     volumes:
-      - postgres:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks: 
       - fpm-net
@@ -249,3 +249,5 @@ services:
       timeout: 5s
       retries: 15
       start_period: 5s
+
+  # TODO Add Elasticsearch, Kibana and Minio

@@ -39,6 +39,7 @@ var deploySystemCmd = &cobra.Command{
 func DeploySystem() {
 	slog.Info(deploySystemCommand, "### DEPLOYING SYSTEM CONTAINERS ###", "")
 	preparedCommands := []*exec.Cmd{
+		// TODO Add an optional --no-cache flag
 		exec.Command("docker", "compose", "-p", "eureka", "build", "--no-cache"),
 		exec.Command("docker", "compose", "-p", "eureka", "up", "--detach"),
 	}

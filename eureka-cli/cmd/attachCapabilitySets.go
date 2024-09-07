@@ -39,7 +39,7 @@ var attachCapabilitySetsCmd = &cobra.Command{
 
 func AttachCapabilitySets(ranInSequence bool) {
 	if ranInSequence {
-		slog.Info(attachCapabilitySetsCommand, "### WAITING FOR CAPABILITY AND CAPABILITY SETS To SYNCHRONIZE ###", "")
+		slog.Info(attachCapabilitySetsCommand, "### WAITING FOR CAPABILITY AND CAPABILITY SETS TO SYNCHRONIZE ###", "")
 		time.Sleep(60 * time.Second)
 	}
 

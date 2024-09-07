@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const addUiCommand string = "Add UI command"
+const deployUiCommand string = "Deploy UI command"
 
 // deployUiCmd represents the deployUi command
 var deployUiCmd = &cobra.Command{
@@ -40,7 +40,10 @@ var deployUiCmd = &cobra.Command{
 func DeployUi() {
 	// TODO Deploy UI module
 
-	for _, value := range internal.GetTenants(addUiCommand, enableDebug, false) {
+	slog.Info(createUsersCommand, "### ACQUIRING KEYCLOAK MASTER ACCESS TOKEN ###", "")
+	masterAccessToken := internal.GetKeycloakMasterRealmAccessToken(createUsersCommand, enableDebug)
+
+	for _, value := range internal.GetTenants(deployUiCommand, enableDebug, false) {
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["name"].(string)
 
@@ -48,11 +51,8 @@ func DeployUi() {
 			continue
 		}
 
-		slog.Info(createUsersCommand, "### ACQUIRING KEYCLOAK MASTER ACCESS TOKEN ###", "")
-		masterAccessToken := internal.GetKeycloakMasterRealmAccessToken(createUsersCommand, enableDebug)
-
-		slog.Info(addUiCommand, fmt.Sprintf("### UPDATING KEYCLOAK PUBLIC CLIENT FOR TENANT %s ###", tenant), "")
-		internal.UpdateKeycloakPublicClientParams(addUiCommand, enableDebug, tenant, masterAccessToken)
+		slog.Info(deployUiCommand, fmt.Sprintf("### UPDATING KEYCLOAK PUBLIC CLIENT FOR TENANT %s ###", tenant), "")
+		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, tenant, masterAccessToken)
 	}
 
 }
