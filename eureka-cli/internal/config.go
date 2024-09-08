@@ -20,7 +20,7 @@ const (
 	ServerPort           string = "8081"
 	DebugPort            string = "5005"
 
-	PlatformCompleteUrl           string = "http://ui.eureka:80"
+	PlatformCompleteUrl           string = "http://ui.eureka"
 	PlatformCompleteRepositoryUrl string = "https://github.com/folio-org/platform-complete.git"
 
 	VaultRootTokenPattern               string = ".*:"
@@ -276,6 +276,8 @@ func PrepareStripesConfigJson(commandName string, configPath string, tenant stri
 	for key, value := range replaceMap {
 		newReadFileStr = strings.Replace(newReadFileStr, key, value, -1)
 	}
+
+	fmt.Println(newReadFileStr)
 
 	err = os.WriteFile(stripesConfigJsFilePath, []byte(newReadFileStr), 0)
 	if err != nil {

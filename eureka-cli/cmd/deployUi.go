@@ -22,6 +22,7 @@ import (
 	"slices"
 
 	"github.com/folio-org/eureka-cli/internal"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -29,6 +30,8 @@ import (
 const (
 	deployUiCommand     string = "Deploy UI"
 	platformCompleteDir string = "platform-complete"
+
+	branchName plumbing.ReferenceName = "snapshot"
 )
 
 // deployUiCmd represents the deployUi command
@@ -58,7 +61,7 @@ func DeployUi() {
 
 		slog.Info(deployUiCommand, "### CLONING PLATFORM COMPLETE UI FROM A SNAPSHOT BRANCH ###", "")
 		outputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
-		internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, outputDir, false)
+		internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, branchName, outputDir, false)
 
 		slog.Info(deployUiCommand, "### COPYING PLATFORM COMPLETE UI CONFIGS ###", "")
 		internal.RunCommandFromDir(deployUiCommand, exec.Command("cp", "-R", "-f", "eureka-tpl/*", "."), outputDir)
@@ -68,10 +71,10 @@ func DeployUi() {
 
 		slog.Info(deployUiCommand, "### BUILDING PLATFORM COMPLETE UI FROM A DOCKERFILE ###", "")
 		internal.RunCommandFromDir(deployUiCommand, exec.Command("docker", "build", "--tag", "platform-complete-ui",
-			"--build-arg", fmt.Sprintf("OKAPI_URL=%s", internal.PlatformCompleteUrl),
+			"--build-arg", fmt.Sprintf("OKAPI_URL=%s", viper.GetString(internal.ResourcesKongKey)),
 			"--build-arg", fmt.Sprintf("TENANT_ID=%s", tenant),
 			"--file", "./docker/Dockerfile",
-			"--no-cache",
+			// "--no-cache",
 			".",
 		), outputDir)
 

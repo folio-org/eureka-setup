@@ -14,7 +14,6 @@ application:
 # Registry
 registry: 
   registry-url: https://folio-registry.dev.folio.org
-  sidecar-image: folioci/folio-module-sidecar:1.1.0-SNAPSHOT.90
   folio-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
   eureka-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
 # Environment
@@ -71,7 +70,7 @@ files:
   module-descriptors: .module-descriptors.json
 # Resources
 resources: 
-  kong: http://api-gateway.eureka:8001
+  kong: http://api-gateway.eureka:8000
   vault: http://vault.eureka:8200
   keycloak: http://keycloak.eureka:8080
   mgr-tenants: http://mgr-tenants.eureka:8081
@@ -79,6 +78,8 @@ resources:
   mgr-tenant-entitlements: http://mgr-tenant-entitlements.eureka:8081
 # Sidecar module
 sidecar-module:
+  image: folio-module-sidecar
+  version: 1.1.0-SNAPSHOT.90
   environment:
     JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms50m -Xmx128m"
 # Backend modules

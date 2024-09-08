@@ -6,10 +6,11 @@ import (
 	"os"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
-func GitCloneRepository(commandName string, enableDebug bool, repositoryUrl string, outputDir string, panicIfExists bool) {
-	targetRepository, err := git.PlainClone(outputDir, false, &git.CloneOptions{URL: repositoryUrl, Progress: os.Stdout, ReferenceName: "snapshot"})
+func GitCloneRepository(commandName string, enableDebug bool, repositoryUrl string, branchName plumbing.ReferenceName, outputDir string, panicIfExists bool) {
+	targetRepository, err := git.PlainClone(outputDir, false, &git.CloneOptions{URL: repositoryUrl, Progress: os.Stdout, ReferenceName: branchName})
 	if err != nil {
 		if panicIfExists {
 			slog.Error(commandName, "git.PlainClone error", "")
