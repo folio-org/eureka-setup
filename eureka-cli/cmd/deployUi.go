@@ -16,7 +16,9 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
+	"os/exec"
 	"slices"
 
 	"github.com/folio-org/eureka-cli/internal"
@@ -24,7 +26,10 @@ import (
 	"github.com/spf13/viper"
 )
 
-const deployUiCommand string = "Deploy UI"
+const (
+	deployUiCommand     string = "Deploy UI"
+	platformCompleteDir string = "platform-complete"
+)
 
 // deployUiCmd represents the deployUi command
 var deployUiCmd = &cobra.Command{
@@ -37,9 +42,7 @@ var deployUiCmd = &cobra.Command{
 }
 
 func DeployUi() {
-	// TODO Deploy UI module
-
-	slog.Info(createUsersCommand, "### ACQUIRING KEYCLOAK MASTER ACCESS TOKEN ###", "")
+	slog.Info(deployUiCommand, "### ACQUIRING KEYCLOAK MASTER ACCESS TOKEN ###", "")
 	masterAccessToken := internal.GetKeycloakMasterRealmAccessToken(createUsersCommand, enableDebug)
 
 	for _, value := range internal.GetTenants(deployUiCommand, enableDebug, false) {
@@ -50,10 +53,41 @@ func DeployUi() {
 			continue
 		}
 
-		slog.Info(deployUiCommand, "### UPDATING KEYCLOAK PUBLIC CLIENT", "")
+		slog.Info(deployUiCommand, "### UPDATING KEYCLOAK PUBLIC CLIENTS", "")
 		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, tenant, masterAccessToken)
-	}
 
+		slog.Info(deployUiCommand, "### CLONING PLATFORM COMPLETE FROM A SNAPSHOT BRANCH ###", "")
+		outputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
+		internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, outputDir, false)
+
+		slog.Info(deployUiCommand, "### BUILDING PLATFORM COMPLETE FROM A DOCKERFILE ###", "")
+		internal.RunCommandFromDir(deployUiCommand, exec.Command("cp", "-R", "-f", "eureka-tpl/*", "."), outputDir)
+
+		slog.Info(deployUiCommand, "### PREPARING PLATFORM COMPLETE CONFIGS ###", "")
+		internal.PrepareStripesConfigJson(deployUiCommand, outputDir, tenant)
+
+		slog.Info(deployUiCommand, "### BUILDING PLATFORM COMPLETE FROM A DOCKERFILE ###", "")
+		internal.RunCommandFromDir(deployUiCommand, exec.Command("docker", "build", "--tag", "platform-complete-ui",
+			"--build-arg", fmt.Sprintf("OKAPI_URL=%s", internal.PlatformCompleteUrl),
+			"--build-arg", fmt.Sprintf("TENANT_ID=%s", tenant),
+			"--file", "./docker/Dockerfile",
+			"--no-cache",
+			".",
+		), outputDir)
+
+		slog.Info(deployUiCommand, "### RUNNING PLATFORM COMPLETE CONTAINER ###", "")
+		containerName := fmt.Sprintf("eureka-platform-complete-ui-%s", tenant)
+		internal.RunCommand(deployUiCommand, exec.Command("docker", "run", "--name", containerName,
+			"--hostname", containerName,
+			"--publish", "80:80",
+			"--restart", "unless-stopped",
+			"--detach",
+			"platform-complete-ui:latest",
+		))
+
+		slog.Info(deployUiCommand, "### CONNECTING PLATFORM COMPLETE CONTAINER TO EUREKA NETWORK ###", "")
+		internal.RunCommand(deployUiCommand, exec.Command("docker", "network", "connect", "eureka", containerName))
+	}
 }
 
 func init() {

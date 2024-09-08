@@ -16,8 +16,15 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
+	"log/slog"
+
+	"github.com/docker/docker/api/types/filters"
+	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
 )
+
+const undeployUiCommand string = "Undeploy UI"
 
 // undeployUiCmd represents the undeployUi command
 var undeployUiCmd = &cobra.Command{
@@ -29,11 +36,20 @@ var undeployUiCmd = &cobra.Command{
 	},
 }
 
-// TODO Add UI undeployment
 func UndeployUi() {
+	slog.Info(undeployModuleCommand, "### UNDEPLOYING UI CONTAINER ###", "")
+	client := internal.CreateClient(undeployUiCommand)
+	defer client.Close()
 
+	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.SingleUiContainerPattern, tenant)})
+	deployedModules := internal.GetDeployedModules(undeployUiCommand, client, filters)
+	for _, deployedModule := range deployedModules {
+		internal.UndeployModule(undeployUiCommand, client, deployedModule)
+	}
 }
 
 func init() {
 	rootCmd.AddCommand(undeployUiCmd)
+	undeployUiCmd.PersistentFlags().StringVarP(&tenant, "tenant", "t", "", "Tenant (required)")
+	undeployUiCmd.MarkPersistentFlagRequired("tenant")
 }

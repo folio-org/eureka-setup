@@ -14,6 +14,7 @@
 - Configure hosts:
   - Add `127.0.0.1 keycloak.eureka` entry to `/etc/hosts`
   - Add `127.0.0.1 kafka.eureka` entry to `/etc/hosts`
+  - Add `127.0.0.1 ui.eureka` entry to `/etc/hosts`
 - Git clone:
   - [folio-kong](<https://github.com/folio-org/folio-kong>) into `./misc` folder using a `master` branch
   - [folio-keycloak](<https://github.com/folio-org/folio-keycloak>) into `./misc` folder using a `master` branch

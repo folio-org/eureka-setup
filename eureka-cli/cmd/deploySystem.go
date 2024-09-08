@@ -38,13 +38,12 @@ var deploySystemCmd = &cobra.Command{
 
 func DeploySystem() {
 	slog.Info(deploySystemCommand, "### DEPLOYING SYSTEM CONTAINERS ###", "")
-	preparedCommands := []*exec.Cmd{
-		// TODO Add an optional --no-cache flag
-		exec.Command("docker", "compose", "-p", "eureka", "build", "--no-cache"),
+	// TODO Add an optional --no-cache flag
+	preparedCommands := []*exec.Cmd{exec.Command("docker", "compose", "-p", "eureka", "build", "--no-cache"),
 		exec.Command("docker", "compose", "-p", "eureka", "up", "--detach"),
 	}
 	for _, preparedCommand := range preparedCommands {
-		internal.RunCommandFromDir(deployManagementCommand, preparedCommand, internal.ComposeWorkDir)
+		internal.RunCommandFromDir(deployManagementCommand, preparedCommand, internal.DockerComposeWorkDir)
 	}
 	slog.Info(deploySystemCommand, "### WAITING FOR SYSTEM TO INITIALIZE ###", "")
 	time.Sleep(150 * time.Second)

@@ -10,8 +10,6 @@ import (
 )
 
 const (
-	platformCompleteUrl string = "http://localhost:3000"
-
 	adminUsername string = "admin"
 	adminPassword string = "admin"
 )
@@ -73,15 +71,15 @@ func UpdateKeycloakPublicClientParams(commandName string, enableDebug bool, tena
 
 	putRequestUrl := fmt.Sprintf("%s/admin/realms/%s/clients/%s", viper.GetString(ResourcesKeycloakKey), tenant, clientUuid)
 	clientParamsBytes, err := json.Marshal(map[string]interface{}{
-		"rootUrl":                      platformCompleteUrl,
-		"baseUrl":                      platformCompleteUrl,
-		"adminUrl":                     platformCompleteUrl,
-		"redirectUris":                 []string{fmt.Sprintf("%s/*", platformCompleteUrl)},
+		"rootUrl":                      PlatformCompleteUrl,
+		"baseUrl":                      PlatformCompleteUrl,
+		"adminUrl":                     PlatformCompleteUrl,
+		"redirectUris":                 []string{fmt.Sprintf("%s/*", PlatformCompleteUrl)},
 		"webOrigins":                   []string{"/*"},
 		"authorizationServicesEnabled": true,
 		"serviceAccountsEnabled":       true,
 		"attributes": map[string]string{
-			"post.logout.redirect.uris": fmt.Sprintf("%s/*", platformCompleteUrl),
+			"post.logout.redirect.uris": fmt.Sprintf("%s/*", PlatformCompleteUrl),
 			"login_theme":               "custom-theme",
 		},
 	})

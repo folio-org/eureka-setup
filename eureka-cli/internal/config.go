@@ -12,13 +12,16 @@ import (
 )
 
 const (
-	ComposeWorkDir    string = "./misc"
-	NetworkName       string = "fpm-net"
-	NetworkId         string = "eureka"
-	DockerInternalUrl string = "http://host.docker.internal:%d%s"
-	HostIp            string = "0.0.0.0"
-	ServerPort        string = "8081"
-	DebugPort         string = "5005"
+	DockerComposeWorkDir string = "./misc"
+	NetworkName          string = "fpm-net"
+	NetworkId            string = "eureka"
+	DockerInternalUrl    string = "http://host.docker.internal:%d%s"
+	HostIp               string = "0.0.0.0"
+	ServerPort           string = "8081"
+	DebugPort            string = "5005"
+
+	PlatformCompleteUrl           string = "http://ui.eureka:80"
+	PlatformCompleteRepositoryUrl string = "https://github.com/folio-org/platform-complete.git"
 
 	VaultRootTokenPattern               string = ".*:"
 	ModuleIdPattern                     string = "([a-z-_]+)([\\d-_.]+)([a-zA-Z0-9-_.]+)"
@@ -29,6 +32,7 @@ const (
 	MultipleModulesContainerPattern     string = "eureka-mod-"
 	ManagementOrModulesContainerPattern string = "^(eureka-)(mod|mgr)-(.+)"
 	SingleModuleContainerPattern        string = "^(eureka-)(%[1]s|%[1]s-sc)$"
+	SingleUiContainerPattern            string = "eureka-platform-complete-ui-%s"
 )
 
 const (
@@ -46,6 +50,7 @@ const (
 	FilesModuleEnvKey         string = "files.module-env"
 	FilesModuleDescriptorsKey string = "files.module-descriptors"
 
+	ResourcesKongKey               string = "resources.kong"
 	ResourcesVaultKey              string = "resources.vault"
 	ResourcesKeycloakKey           string = "resources.keycloak"
 	ResourcesMgrTenantsKey         string = "resources.mgr-tenants"
@@ -249,4 +254,32 @@ func CreateModuleDescriptorsFile(commandName string, fileModuleDescriptors strin
 	}
 
 	return moduleDescriptorsFile
+}
+
+func PrepareStripesConfigJson(commandName string, configPath string, tenant string) {
+	stripesConfigJsFilePath := fmt.Sprintf("%s/stripes.config.js", configPath)
+	readFileBytes, err := os.ReadFile(stripesConfigJsFilePath)
+	if err != nil {
+		slog.Error(commandName, "os.ReadFile error", "")
+		panic(err)
+	}
+
+	replaceMap := map[string]string{"${kongUrl}": viper.GetString(ResourcesKongKey),
+		"${tenantUrl}":      PlatformCompleteUrl,
+		"${keycloakUrl}":    viper.GetString(ResourcesKeycloakKey),
+		"${hasAllPerms}":    `true`,
+		"${isSingleTenant}": `true`,
+		"${tenantOptions}":  fmt.Sprintf(`{%[1]s: {name: "%[1]s", clientId: "%[1]s%s"}}`, tenant, GetEnvironmentFromMapByKey("KC_LOGIN_CLIENT_SUFFIX")),
+	}
+
+	var newReadFileStr string = string(readFileBytes)
+	for key, value := range replaceMap {
+		newReadFileStr = strings.Replace(newReadFileStr, key, value, -1)
+	}
+
+	err = os.WriteFile(stripesConfigJsFilePath, []byte(newReadFileStr), 0)
+	if err != nil {
+		slog.Error(commandName, "os.WriteFile error", "")
+		panic(err)
+	}
 }

@@ -67,6 +67,7 @@ files:
   module-descriptors: .module-descriptors.json
 # Resources
 resources: 
+  kong: http://api-gateway.eureka:8001
   vault: http://vault.eureka:8200
   keycloak: http://keycloak.eureka:8080
   mgr-tenants: http://mgr-tenants.eureka:8081
