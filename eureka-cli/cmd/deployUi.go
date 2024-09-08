@@ -53,20 +53,20 @@ func DeployUi() {
 			continue
 		}
 
-		slog.Info(deployUiCommand, "### UPDATING KEYCLOAK PUBLIC CLIENTS", "")
+		slog.Info(deployUiCommand, "### UPDATING KEYCLOAK PUBLIC CLIENT", "")
 		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, tenant, masterAccessToken)
 
-		slog.Info(deployUiCommand, "### CLONING PLATFORM COMPLETE FROM A SNAPSHOT BRANCH ###", "")
+		slog.Info(deployUiCommand, "### CLONING PLATFORM COMPLETE UI FROM A SNAPSHOT BRANCH ###", "")
 		outputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
 		internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, outputDir, false)
 
-		slog.Info(deployUiCommand, "### BUILDING PLATFORM COMPLETE FROM A DOCKERFILE ###", "")
+		slog.Info(deployUiCommand, "### COPYING PLATFORM COMPLETE UI CONFIGS ###", "")
 		internal.RunCommandFromDir(deployUiCommand, exec.Command("cp", "-R", "-f", "eureka-tpl/*", "."), outputDir)
 
-		slog.Info(deployUiCommand, "### PREPARING PLATFORM COMPLETE CONFIGS ###", "")
+		slog.Info(deployUiCommand, "### PREPARING PLATFORM COMPLETE UI CONFIGS ###", "")
 		internal.PrepareStripesConfigJson(deployUiCommand, outputDir, tenant)
 
-		slog.Info(deployUiCommand, "### BUILDING PLATFORM COMPLETE FROM A DOCKERFILE ###", "")
+		slog.Info(deployUiCommand, "### BUILDING PLATFORM COMPLETE UI FROM A DOCKERFILE ###", "")
 		internal.RunCommandFromDir(deployUiCommand, exec.Command("docker", "build", "--tag", "platform-complete-ui",
 			"--build-arg", fmt.Sprintf("OKAPI_URL=%s", internal.PlatformCompleteUrl),
 			"--build-arg", fmt.Sprintf("TENANT_ID=%s", tenant),
@@ -75,7 +75,7 @@ func DeployUi() {
 			".",
 		), outputDir)
 
-		slog.Info(deployUiCommand, "### RUNNING PLATFORM COMPLETE CONTAINER ###", "")
+		slog.Info(deployUiCommand, "### RUNNING PLATFORM COMPLETE UI CONTAINER ###", "")
 		containerName := fmt.Sprintf("eureka-platform-complete-ui-%s", tenant)
 		internal.RunCommand(deployUiCommand, exec.Command("docker", "run", "--name", containerName,
 			"--hostname", containerName,
@@ -85,7 +85,7 @@ func DeployUi() {
 			"platform-complete-ui:latest",
 		))
 
-		slog.Info(deployUiCommand, "### CONNECTING PLATFORM COMPLETE CONTAINER TO EUREKA NETWORK ###", "")
+		slog.Info(deployUiCommand, "### CONNECTING PLATFORM COMPLETE UI CONTAINER TO EUREKA NETWORK ###", "")
 		internal.RunCommand(deployUiCommand, exec.Command("docker", "network", "connect", "eureka", containerName))
 	}
 }
