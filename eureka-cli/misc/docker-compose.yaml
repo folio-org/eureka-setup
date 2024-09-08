@@ -109,7 +109,7 @@ services:
     container_name: vault
     image: folio-vault:latest
     build:
-      context: folio-vault
+      context: ./folio-vault
       dockerfile: Dockerfile
     environment:
       VAULT_ADDR: http://0.0.0.0:8200
