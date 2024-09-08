@@ -12,8 +12,8 @@ import (
 const (
 	platformCompleteUrl string = "http://localhost:3000"
 
-	adminCliUsername string = "admin"
-	adminCliPassword string = "admin"
+	adminUsername string = "admin"
+	adminPassword string = "admin"
 )
 
 func GetKeycloakAccessToken(commandName string, enableDebug bool, vaultRootToken string, tenant string) string {
@@ -48,8 +48,8 @@ func GetKeycloakMasterRealmAccessToken(commandName string, enableDebug bool) str
 	formData := url.Values{}
 	formData.Set("grant_type", "password")
 	formData.Set("client_id", "admin-cli")
-	formData.Set("username", adminCliUsername)
-	formData.Set("password", adminCliPassword)
+	formData.Set("username", adminUsername)
+	formData.Set("password", adminPassword)
 
 	tokensMap := DoPostFormDataReturnMapStringInteface(commandName, requestUrl, enableDebug, formData, headers)
 	if tokensMap["access_token"] == nil {

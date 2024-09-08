@@ -2,9 +2,11 @@
 
 ## Purpose
 
-- Example build commands to create multiple platform-specific binaries
+- Build commands to create multiple platform-specific binaries
   
 ## Commands
+
+- Build four different binaries under `./bin` folder for the Windows, Linux and MacOS x86 and ARM architectures
 
 ```bash
 mkdir -p ./bin/eureka-cli-windows-x86 ./bin/eureka-cli-linux-x86 ./bin/eureka-cli-darwin-x86 ./bin/eureka-cli-darwin-arm 

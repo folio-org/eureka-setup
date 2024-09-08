@@ -123,8 +123,8 @@ func RemoveApplications(commandName string, moduleName string, enableDebug bool,
 		panic(err)
 	}
 
-	for _, v := range applications.ApplicationDescriptors {
-		id := v["id"].(string)
+	for _, value := range applications.ApplicationDescriptors {
+		id := value["id"].(string)
 
 		if moduleName != "" {
 			moduleNameFiltered := ModuleIdRegexp.ReplaceAllString(id, `$1`)

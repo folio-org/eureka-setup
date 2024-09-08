@@ -47,6 +47,6 @@ func ListModules() {
 
 func init() {
 	rootCmd.AddCommand(listModulesCmd)
-	listModulesCmd.Flags().StringVarP(&moduleName, "moduleName", "m", "", "Module name (required)")
+	listModulesCmd.Flags().StringVarP(&moduleName, "moduleName", "m", "", "Module name")
 	listModulesCmd.MarkPersistentFlagRequired("moduleName")
 }

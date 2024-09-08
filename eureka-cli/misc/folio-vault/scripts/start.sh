@@ -2,6 +2,6 @@
 
 set -e
 
-/usr/local/bin/ebsco/scripts/init.sh &
+/usr/local/bin/folio/scripts/init.sh &
 
-vault server --config "/usr/local/bin/ebsco/config/vault-server.json"
+vault server --config "/usr/local/bin/folio/config/vault-server.json"

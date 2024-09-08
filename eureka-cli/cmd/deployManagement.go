@@ -54,7 +54,7 @@ func DeployManagement() {
 	slog.Info(deployManagementCommand, "### EXTRACTING MODULE NAME AND VERSION ###", "")
 	internal.ExtractModuleNameAndVersion(deployManagementCommand, enableDebug, registryModules)
 
-	slog.Info(deployModulesCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	slog.Info(deployManagementCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
 	client := internal.CreateClient(deployManagementCommand)
 	defer client.Close()
 	vaultRootToken := internal.GetRootVaultToken(deployManagementCommand, client)

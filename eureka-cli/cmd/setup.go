@@ -63,7 +63,7 @@ func Setup() {
 	dstConfigDir := path.Join(home, configDir)
 	err = os.MkdirAll(dstConfigDir, 0700)
 	if err != nil {
-		slog.Error(setupCommand, "os.MkdirAll", "")
+		slog.Error(setupCommand, "os.MkdirAll error", "")
 		panic(err)
 	}
 

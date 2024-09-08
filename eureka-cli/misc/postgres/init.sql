@@ -28,6 +28,6 @@ grant connect on database mgr_tenant_entitlements to mgr_tenant_entitlements_rw;
 grant all privileges on database mgr_tenant_entitlements to mgr_tenant_entitlements_rw;
 
 -- Core and other modules
-create database okapi;
-create user okapi_rw with password 'supersecret';
-alter user okapi_rw with superuser;
+create database folio;
+create user folio_rw with password 'supersecret';
+alter user folio_rw with superuser;

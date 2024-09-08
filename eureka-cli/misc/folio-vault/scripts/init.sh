@@ -16,12 +16,12 @@ if [ ! -f "$vaultInitFile" ]; then
   echo "$(date -u +%FT%T.%3NZ) [INFO] init.sh: Initializing vault..."
   vault operator init -format=json -n 1 -t 1 > ${vaultInitFile}
   printRootToken
-  /usr/local/bin/ebsco/scripts/unseal.sh "$vaultInitFile"
+  /usr/local/bin/folio/scripts/unseal.sh "$vaultInitFile"
   echo "$(date -u +%FT%T.%3NZ) [INFO] init.sh: Adding predefined secrets..."
-  . /usr/local/bin/ebsco/scripts/add-secrets.sh
+  . /usr/local/bin/folio/scripts/add-secrets.sh
 else
   printRootToken
-  /usr/local/bin/ebsco/scripts/unseal.sh "$vaultInitFile"
+  /usr/local/bin/folio/scripts/unseal.sh "$vaultInitFile"
 fi
 
 

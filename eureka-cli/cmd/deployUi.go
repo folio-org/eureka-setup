@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 	"slices"
 
@@ -25,7 +24,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const deployUiCommand string = "Deploy UI command"
+const deployUiCommand string = "Deploy UI"
 
 // deployUiCmd represents the deployUi command
 var deployUiCmd = &cobra.Command{
@@ -51,7 +50,7 @@ func DeployUi() {
 			continue
 		}
 
-		slog.Info(deployUiCommand, fmt.Sprintf("### UPDATING KEYCLOAK PUBLIC CLIENT FOR TENANT %s ###", tenant), "")
+		slog.Info(deployUiCommand, "### UPDATING KEYCLOAK PUBLIC CLIENT", "")
 		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, tenant, masterAccessToken)
 	}
 
