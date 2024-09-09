@@ -48,6 +48,10 @@ func DeployUi() {
 	slog.Info(deployUiCommand, "### ACQUIRING KEYCLOAK MASTER ACCESS TOKEN ###", "")
 	masterAccessToken := internal.GetKeycloakMasterRealmAccessToken(createUsersCommand, enableDebug)
 
+	slog.Info(deployUiCommand, "### CLONING PLATFORM COMPLETE UI FROM A SNAPSHOT BRANCH ###", "")
+	outputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
+	internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, branchName, outputDir, false)
+
 	for _, value := range internal.GetTenants(deployUiCommand, enableDebug, false) {
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["name"].(string)
@@ -58,10 +62,6 @@ func DeployUi() {
 
 		slog.Info(deployUiCommand, "### UPDATING KEYCLOAK PUBLIC CLIENT", "")
 		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, tenant, masterAccessToken)
-
-		slog.Info(deployUiCommand, "### CLONING PLATFORM COMPLETE UI FROM A SNAPSHOT BRANCH ###", "")
-		outputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
-		internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, branchName, outputDir, false)
 
 		slog.Info(deployUiCommand, "### COPYING PLATFORM COMPLETE UI CONFIGS ###", "")
 		internal.RunCommandFromDir(deployUiCommand, exec.Command("cp", "-R", "-f", "eureka-tpl/*", "."), outputDir)
@@ -74,7 +74,7 @@ func DeployUi() {
 			"--build-arg", fmt.Sprintf("OKAPI_URL=%s", viper.GetString(internal.ResourcesKongKey)),
 			"--build-arg", fmt.Sprintf("TENANT_ID=%s", tenant),
 			"--file", "./docker/Dockerfile",
-			// "--no-cache",
+			"--no-cache",
 			".",
 		), outputDir)
 
