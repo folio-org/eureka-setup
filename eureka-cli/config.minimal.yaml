@@ -107,8 +107,9 @@ users:
 # Sidecar module
 sidecar-module:
   image: folio-module-sidecar
-  version: 1.1.0-SNAPSHOT.90
+  version: 1.1.0-SNAPSHOT.97
   environment:
+    ALLOW_CROSS_TENANT_REQUESTS: true
     JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms50m -Xmx128m"
 # Backend modules
 backend-modules:
@@ -151,6 +152,7 @@ backend-modules:
     sidecar: true
     environment:
       OKAPI_URL: http://mod-users-keycloak-sc.eureka:8081
+      INCLUDE_ONLY_VISIBLE_PERMISSIONS: false
   mod-login-keycloak:
     port: 9905
     sidecar: true

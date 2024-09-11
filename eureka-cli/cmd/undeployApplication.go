@@ -30,6 +30,7 @@ var undeployApplicationCmd = &cobra.Command{
 }
 
 func UndeployApplication() {
+	UndeployUi()
 	UndeployModules()
 	UndeployManagement()
 	UndeploySystem()

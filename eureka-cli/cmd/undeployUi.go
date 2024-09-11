@@ -30,26 +30,29 @@ const undeployUiCommand string = "Undeploy UI"
 var undeployUiCmd = &cobra.Command{
 	Use:   "undeployUi",
 	Short: "Undeploy UI",
-	Long:  `Undeploy the UI container.`,
+	Long:  `Undeploy the UI containers.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		UndeployUi()
 	},
 }
 
 func UndeployUi() {
-	slog.Info(undeployModuleCommand, "### UNDEPLOYING UI CONTAINER ###", "")
+	slog.Info(undeployUiCommand, "### UNDEPLOYING UI CONTAINERS ###", "")
 	client := internal.CreateClient(undeployUiCommand)
 	defer client.Close()
 
-	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.SingleUiContainerPattern, tenant)})
-	deployedModules := internal.GetDeployedModules(undeployUiCommand, client, filters)
-	for _, deployedModule := range deployedModules {
-		internal.UndeployModule(undeployUiCommand, client, deployedModule)
+	for _, value := range internal.GetTenants(undeployUiCommand, enableDebug, false) {
+		mapEntry := value.(map[string]interface{})
+		tenant := mapEntry["name"].(string)
+
+		filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.SingleUiContainerPattern, tenant)})
+		deployedModules := internal.GetDeployedModules(undeployUiCommand, client, filters)
+		for _, deployedModule := range deployedModules {
+			internal.UndeployModule(undeployUiCommand, client, deployedModule)
+		}
 	}
 }
 
 func init() {
 	rootCmd.AddCommand(undeployUiCmd)
-	undeployUiCmd.PersistentFlags().StringVarP(&tenant, "tenant", "t", "", "Tenant (required)")
-	undeployUiCmd.MarkPersistentFlagRequired("tenant")
 }
