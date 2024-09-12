@@ -82,7 +82,7 @@ func DeployUi() {
 		containerName := fmt.Sprintf("eureka-platform-complete-ui-%s", tenant)
 		internal.RunCommand(deployUiCommand, exec.Command("docker", "run", "--name", containerName,
 			"--hostname", containerName,
-			"--publish", "80:80",
+			"--publish", "3000:80",
 			"--restart", "unless-stopped",
 			"--detach",
 			"platform-complete-ui:latest",

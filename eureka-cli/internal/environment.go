@@ -50,16 +50,15 @@ func AppendModuleEnvironment(extraEnvironmentMap map[string]interface{}, environ
 	return environment
 }
 
-// TODO Move the hardcoded environment to config
 func AppendSidecarEnvironment(environment []string, module *RegistryModule) []string {
 	extraEnvironment := []string{fmt.Sprintf("MODULE_NAME=%s", module.Name),
 		fmt.Sprintf("MODULE_VERSION=%s", *module.Version),
 		fmt.Sprintf("MODULE_URL=http://%s.eureka:%s", module.Name, ServerPort),
 		fmt.Sprintf("SIDECAR_NAME=%s", module.SidecarName),
 		fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%s", module.SidecarName, ServerPort),
-		"MOD_USERS_KEYCLOAK_URL=http://mod-users-keycloak.eureka:8081",
-		"SIDECAR_FORWARD_UNKNOWN_REQUESTS=true",
-		"SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION=http://api-gateway.eureka:8000",
+		fmt.Sprintf("MOD_USERS_KEYCLOAK_URL=%s", viper.GetString(ResourcesModUsersKeycloakKey)),
+		"SIDECAR_FORWARD_UNKNOWN_REQUESTS='true'",
+		fmt.Sprintf("SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION=%s", viper.GetString(ResourcesKongKey)),
 	}
 	environment = append(environment, extraEnvironment...)
 

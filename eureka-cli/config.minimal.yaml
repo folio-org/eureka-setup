@@ -70,6 +70,7 @@ resources:
   kong: http://api-gateway.eureka:8000
   vault: http://vault.eureka:8200
   keycloak: http://keycloak.eureka:8080
+  mod-users-keycloak: http://mod-users-keycloak.eureka:8081
   mgr-tenants: http://mgr-tenants.eureka:8081
   mgr-applications: http://mgr-applications.eureka:8081
   mgr-tenant-entitlements: http://mgr-tenant-entitlements.eureka:8081
@@ -107,7 +108,7 @@ users:
 # Sidecar module
 sidecar-module:
   image: folio-module-sidecar
-  version: 1.1.0-SNAPSHOT.97
+  version: 1.1.0-SNAPSHOT.96
   environment:
     ALLOW_CROSS_TENANT_REQUESTS: true
     JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms50m -Xmx128m"
@@ -152,7 +153,7 @@ backend-modules:
     sidecar: true
     environment:
       OKAPI_URL: http://mod-users-keycloak-sc.eureka:8081
-      INCLUDE_ONLY_VISIBLE_PERMISSIONS: false
+      INCLUDE_ONLY_VISIBLE_PERMISSIONS: 'false'
   mod-login-keycloak:
     port: 9905
     sidecar: true

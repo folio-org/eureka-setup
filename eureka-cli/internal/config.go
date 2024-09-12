@@ -20,7 +20,7 @@ const (
 	ServerPort           string = "8081"
 	DebugPort            string = "5005"
 
-	PlatformCompleteUrl           string = "http://ui.eureka"
+	PlatformCompleteUrl           string = "http://localhost:3000"
 	PlatformCompleteRepositoryUrl string = "https://github.com/folio-org/platform-complete.git"
 
 	VaultRootTokenPattern               string = ".*:"
@@ -53,6 +53,7 @@ const (
 	ResourcesKongKey               string = "resources.kong"
 	ResourcesVaultKey              string = "resources.vault"
 	ResourcesKeycloakKey           string = "resources.keycloak"
+	ResourcesModUsersKeycloakKey   string = "resources.mod-users-keycloak"
 	ResourcesMgrTenantsKey         string = "resources.mgr-tenants"
 	ResourcesMgrApplicationsKey    string = "resources.mgr-applications"
 	ResourcesMgrTenantEntitlements string = "resources.mgr-tenant-entitlements"
@@ -110,13 +111,7 @@ func GetSidecarEnvironmentFromConfig(commandName string) []string {
 }
 
 func GetEnvironmentFromMapByKey(requestKey string) string {
-	for key, value := range viper.GetStringMapString(EnvironmentKey) {
-		if strings.ToUpper(key) == requestKey {
-			return value
-		}
-	}
-
-	panic(fmt.Errorf("internal.GetEnvironmentFromMapByKey error - Cannnot find environment value key by %s", requestKey))
+	return viper.GetStringMapString(EnvironmentKey)[strings.ToLower(requestKey)]
 }
 
 func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[string]any) map[string]BackendModule {
@@ -264,7 +259,7 @@ func PrepareStripesConfigJson(commandName string, configPath string, tenant stri
 		panic(err)
 	}
 
-	replaceMap := map[string]string{"${kongUrl}": viper.GetString(ResourcesKongKey),
+	replaceMap := map[string]string{"${kongUrl}": "localhost:8000",
 		"${tenantUrl}":      PlatformCompleteUrl,
 		"${keycloakUrl}":    viper.GetString(ResourcesKeycloakKey),
 		"${hasAllPerms}":    `true`,

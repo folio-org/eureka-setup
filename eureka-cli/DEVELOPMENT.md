@@ -4,7 +4,7 @@
 
 - Auxiliary commands and settings for development
 
-## Comamnds
+## Commands
 
 ### Enable live compilation
 
