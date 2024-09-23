@@ -16,15 +16,23 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"os/exec"
 	"time"
 
 	"github.com/folio-org/eureka-cli/internal"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/spf13/cobra"
 )
 
-const deploySystemCommand string = "Deploy System"
+const (
+	deploySystemCommand string = "Deploy System"
+	folioKeycloakDir    string = "folio-keycloak"
+	folioKongDir        string = "folio-kong"
+
+	masterBranchName plumbing.ReferenceName = "master"
+)
 
 // deploySystemCmd represents the deploySystem command
 var deploySystemCmd = &cobra.Command{
@@ -37,6 +45,23 @@ var deploySystemCmd = &cobra.Command{
 }
 
 func DeploySystem() {
+	folioKeycloakOutputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, folioKeycloakDir)
+	folioKongOutputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, folioKongDir)
+
+	slog.Info(deploySystemCommand, "### CLONING & UPDATING SYSTEM COMPONENTS ###", "")
+
+	slog.Info(deploySystemCommand, fmt.Sprintf("Cloning %s from a %s branch", folioKeycloakDir, masterBranchName), "")
+	internal.GitCloneRepository(deploySystemCommand, enableDebug, internal.FolioKeycloakRepositoryUrl, masterBranchName, folioKeycloakOutputDir, false)
+
+	slog.Info(deploySystemCommand, fmt.Sprintf("Pulling updates for %s from origin", folioKeycloakDir), "")
+	internal.GitResetHardPullFromOriginRepository(deploySystemCommand, enableDebug, internal.FolioKeycloakRepositoryUrl, masterBranchName, folioKeycloakOutputDir)
+
+	slog.Info(deploySystemCommand, fmt.Sprintf("Cloning %s from a %s branch", folioKongDir, masterBranchName), "")
+	internal.GitCloneRepository(deploySystemCommand, enableDebug, internal.FolioKongRepositoryUrl, masterBranchName, folioKongOutputDir, false)
+
+	slog.Info(deploySystemCommand, fmt.Sprintf("Pulling updates for %s from origin", folioKongDir), "")
+	internal.GitResetHardPullFromOriginRepository(deploySystemCommand, enableDebug, internal.FolioKongRepositoryUrl, masterBranchName, folioKongOutputDir)
+
 	slog.Info(deploySystemCommand, "### DEPLOYING SYSTEM CONTAINERS ###", "")
 	// TODO Add an optional --no-cache flag
 	preparedCommands := []*exec.Cmd{exec.Command("docker", "compose", "-p", "eureka", "build", "--no-cache"),
@@ -46,7 +71,8 @@ func DeploySystem() {
 		internal.RunCommandFromDir(deployManagementCommand, preparedCommand, internal.DockerComposeWorkDir)
 	}
 	slog.Info(deploySystemCommand, "### WAITING FOR SYSTEM TO INITIALIZE ###", "")
-	time.Sleep(150 * time.Second)
+	time.Sleep(10 * time.Second)
+	slog.Info(deployModulesCommand, "System has initialized", "")
 }
 
 func init() {

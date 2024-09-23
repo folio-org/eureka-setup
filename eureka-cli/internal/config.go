@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -21,6 +22,8 @@ const (
 	DebugPort            string = "5005"
 
 	PlatformCompleteUrl           string = "http://localhost:3000"
+	FolioKeycloakRepositoryUrl    string = "https://github.com/folio-org/folio-keycloak"
+	FolioKongRepositoryUrl        string = "https://github.com/folio-org/folio-kong"
 	PlatformCompleteRepositoryUrl string = "https://github.com/folio-org/platform-complete.git"
 
 	VaultRootTokenPattern               string = ".*:"
@@ -53,7 +56,6 @@ const (
 	ResourcesKongKey               string = "resources.kong"
 	ResourcesVaultKey              string = "resources.vault"
 	ResourcesKeycloakKey           string = "resources.keycloak"
-	ResourcesModUsersKeycloakKey   string = "resources.mod-users-keycloak"
 	ResourcesMgrTenantsKey         string = "resources.mgr-tenants"
 	ResourcesMgrApplicationsKey    string = "resources.mgr-applications"
 	ResourcesMgrTenantEntitlements string = "resources.mgr-tenant-entitlements"
@@ -81,38 +83,6 @@ var (
 
 	PortIndex int = 30000
 )
-
-func GetEnvironmentFromConfig(commandName string) []string {
-	var environmentVariables []string
-
-	for key, value := range viper.GetStringMapString(EnvironmentKey) {
-		environment := fmt.Sprintf("%s=%s", strings.ToUpper(key), value)
-
-		slog.Info(commandName, "Found environment", environment)
-
-		environmentVariables = append(environmentVariables, environment)
-	}
-
-	return environmentVariables
-}
-
-func GetSidecarEnvironmentFromConfig(commandName string) []string {
-	var environmentVariables []string
-
-	for key, value := range viper.GetStringMapString(SidecarModuleEnvironmentKey) {
-		environment := fmt.Sprintf("%s=%s", strings.ToUpper(key), value)
-
-		slog.Info(commandName, "Found sidecar environment", environment)
-
-		environmentVariables = append(environmentVariables, environment)
-	}
-
-	return environmentVariables
-}
-
-func GetEnvironmentFromMapByKey(requestKey string) string {
-	return viper.GetStringMapString(EnvironmentKey)[strings.ToLower(requestKey)]
-}
 
 func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[string]any) map[string]BackendModule {
 	backendModulesMap := make(map[string]BackendModule)
@@ -259,7 +229,7 @@ func PrepareStripesConfigJson(commandName string, configPath string, tenant stri
 		panic(err)
 	}
 
-	replaceMap := map[string]string{"${kongUrl}": "localhost:8000",
+	replaceMap := map[string]string{"${kongUrl}": viper.GetString(ResourcesKongKey),
 		"${tenantUrl}":      PlatformCompleteUrl,
 		"${keycloakUrl}":    viper.GetString(ResourcesKeycloakKey),
 		"${hasAllPerms}":    `true`,
@@ -279,4 +249,18 @@ func PrepareStripesConfigJson(commandName string, configPath string, tenant stri
 		slog.Error(commandName, "os.WriteFile error", "")
 		panic(err)
 	}
+}
+
+func HasTenant(tenant string) bool {
+	return slices.Contains(ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey)), tenant)
+}
+
+func DeployUi(tenant string) bool {
+	deployUi := viper.GetStringMap(TenantsKey)[tenant].(map[string]interface{})["deploy-ui"]
+
+	if deployUi == nil || !deployUi.(bool) {
+		return false
+	}
+
+	return true
 }

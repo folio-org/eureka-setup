@@ -2,10 +2,26 @@ package internal
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/spf13/viper"
 )
+
+func GetEnvironmentFromConfig(commandName string, keyType string) []string {
+	var environmentVariables []string
+	for key, value := range viper.GetStringMapString(keyType) {
+		environment := fmt.Sprintf("%s=%s", strings.ToUpper(key), value)
+		slog.Info(commandName, "Found environment", environment)
+		environmentVariables = append(environmentVariables, environment)
+	}
+
+	return environmentVariables
+}
+
+func GetEnvironmentFromMapByKey(requestKey string) string {
+	return viper.GetStringMapString(EnvironmentKey)[strings.ToLower(requestKey)]
+}
 
 func AppendVaultEnvironment(environment []string, vaultRootToken string, vaultUrl string) []string {
 	extraEnvironment := []string{"SECRET_STORE_TYPE=VAULT",
@@ -56,9 +72,6 @@ func AppendSidecarEnvironment(environment []string, module *RegistryModule) []st
 		fmt.Sprintf("MODULE_URL=http://%s.eureka:%s", module.Name, ServerPort),
 		fmt.Sprintf("SIDECAR_NAME=%s", module.SidecarName),
 		fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%s", module.SidecarName, ServerPort),
-		fmt.Sprintf("MOD_USERS_KEYCLOAK_URL=%s", viper.GetString(ResourcesModUsersKeycloakKey)),
-		"SIDECAR_FORWARD_UNKNOWN_REQUESTS='true'",
-		fmt.Sprintf("SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION=%s", viper.GetString(ResourcesKongKey)),
 	}
 	environment = append(environment, extraEnvironment...)
 

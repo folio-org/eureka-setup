@@ -346,13 +346,3 @@ func DoDeleteWithBody(commandName string, url string, enableDebug bool, bodyByte
 
 	DumpHttpResponse(commandName, resp, enableDebug)
 }
-
-func AddRequestHeaders(req *http.Request, headers map[string]string) {
-	if len(headers) > 0 {
-		for key, value := range headers {
-			req.Header.Add(key, value)
-		}
-	} else {
-		req.Header.Add(ContentTypeHeader, JsonContentType)
-	}
-}

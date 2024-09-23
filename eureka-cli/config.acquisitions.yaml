@@ -52,6 +52,7 @@ environment:
   KONG_ADMIN_URL: http://api-gateway.eureka:8001
   # Keycloak 
   KC_URL: http://keycloak.eureka:8080
+  KC_CONFIG_TTL: 3600s
   KC_ADMIN_CLIENT_ID: supersecret
   KC_ADMIN_USERNAME: admin
   KC_ADMIN_PASSWORD: admin
@@ -62,8 +63,10 @@ environment:
   KC_SERVICE_CLIENT_ID: m2m-client
   KONG_INTEGRATION_ENABLED: true
   OKAPI_INTEGRATION_ENABLED: false
+  MOD_USERS_BL: http://mod-users-bl.eureka:8081
+  MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak.eureka:8081
   # Java
-  JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms128m -Xmx256m"
+  JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms256m -Xmx512m"
 # Files
 files: 
   module-env: .module.env
@@ -73,7 +76,6 @@ resources:
   kong: http://api-gateway.eureka:8000
   vault: http://vault.eureka:8200
   keycloak: http://keycloak.eureka:8080
-  mod-users-keycloak: http://mod-users-keycloak.eureka:8081
   mgr-tenants: http://mgr-tenants.eureka:8081
   mgr-applications: http://mgr-applications.eureka:8081
   mgr-tenant-entitlements: http://mgr-tenant-entitlements.eureka:8081
@@ -82,8 +84,21 @@ sidecar-module:
   image: folio-module-sidecar
   version: 1.1.0-SNAPSHOT.96
   environment:
+    SIDECAR: true
+    SC_LOG_LEVEL: DEBUG
+    ROOT_LOG_LEVEL: DEBUG
+    REQUEST_TIMEOUT: 604800000
+    KC_URI_VALIDATION_ENABLED: false
     ALLOW_CROSS_TENANT_REQUESTS: true
-    JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms50m -Xmx128m"
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS: true
+    QUARKUS_HTTP_LIMITS_MAX_INITIAL_LINE_LENGTH: 8192
+    MOD_USERS_BL: http://mod-users-bl.eureka:8081
+    MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak.eureka:8081
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://api-gateway.eureka:8000
+    JAVA_OPTIONS: | 
+      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=DEBUG -Dquarkus.log.category.'org.apache.kafka'.level=DEBUG -Djava.util.logging.manager=org.jboss.logmanager.LogManager
+      -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+      -XX:+UseZGC -XX:MaxRAMPercentage=90.0 -Xms50m -Xmx128m
 # Backend modules
 backend-modules:
   # Other modules

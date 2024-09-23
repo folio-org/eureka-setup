@@ -14,9 +14,6 @@
 - Configure hosts:
   - Add `127.0.0.1 keycloak.eureka` entry to `/etc/hosts`
   - Add `127.0.0.1 kafka.eureka` entry to `/etc/hosts`
-- Git clone:
-  - [folio-kong](<https://github.com/folio-org/folio-kong>) into `./misc` folder using a `master` branch
-  - [folio-keycloak](<https://github.com/folio-org/folio-keycloak>) into `./misc` folder using a `master` branch
 - Monitor using below system components:
   - [Keycloak](<http://keycloak.eureka:8080>): admin:admin
   - [Vault](<http://localhost:8200>): Find a Vault root token in the container logs using `docker logs vault` or use `getVaultRootToken` command

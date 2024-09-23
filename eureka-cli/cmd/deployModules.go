@@ -53,10 +53,10 @@ func DeployModules() {
 	internal.PortIndex = viper.GetInt(internal.ApplicationPortStart)
 
 	slog.Info(deployModulesCommand, "### READING ENVIRONMENT FROM CONFIG ###", "")
-	environment := internal.GetEnvironmentFromConfig(deployModulesCommand)
+	environment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.EnvironmentKey)
 
 	slog.Info(deployModulesCommand, "### READING SIDECAR ENVIRONMENT FROM CONFIG ###", "")
-	sidecarEnvironment := internal.GetSidecarEnvironmentFromConfig(deployModulesCommand)
+	sidecarEnvironment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.SidecarModuleEnvironmentKey)
 
 	slog.Info(deployModulesCommand, "### READING BACKEND MODULES FROM CONFIG ###", "")
 	backendModulesMap := internal.GetBackendModulesFromConfig(deployModulesCommand, backendModulesAnyMap)

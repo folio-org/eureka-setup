@@ -301,7 +301,7 @@ func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["name"].(string)
 
-		if !slices.Contains(viper.GetStringSlice(TenantsKey), tenant) {
+		if !slices.Contains(ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey)), tenant) {
 			continue
 		}
 
@@ -315,7 +315,7 @@ func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 
 func CreateTenants(commandName string, enableDebug bool) {
 	requestUrl := fmt.Sprintf(DockerInternalUrl, TenantsPort, "/tenants")
-	tenants := viper.GetStringSlice(TenantsKey)
+	tenants := ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey))
 
 	for _, tenant := range tenants {
 		tenantBytes, err := json.Marshal(map[string]string{"name": tenant, "description": "Default"})
@@ -342,7 +342,7 @@ func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["name"].(string)
 
-		if !slices.Contains(viper.GetStringSlice(TenantsKey), tenant) {
+		if !slices.Contains(ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey)), tenant) {
 			continue
 		}
 
@@ -375,7 +375,7 @@ func CreateTenantEntitlement(commandName string, enableDebug bool) {
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["name"].(string)
 
-		if !slices.Contains(viper.GetStringSlice(TenantsKey), tenant) {
+		if !slices.Contains(ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey)), tenant) {
 			continue
 		}
 

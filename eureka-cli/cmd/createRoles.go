@@ -17,11 +17,9 @@ package cmd
 
 import (
 	"log/slog"
-	"slices"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const createRolesCommand string = "Create Roles"
@@ -46,7 +44,7 @@ func CreateRoles() {
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["name"].(string)
 
-		if !slices.Contains(viper.GetStringSlice(internal.TenantsKey), tenant) {
+		if !internal.HasTenant(tenant) {
 			continue
 		}
 

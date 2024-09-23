@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os/exec"
-	"slices"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -31,7 +30,7 @@ const (
 	deployUiCommand     string = "Deploy UI"
 	platformCompleteDir string = "platform-complete"
 
-	branchName plumbing.ReferenceName = "snapshot"
+	snapshotBranchName plumbing.ReferenceName = "snapshot"
 )
 
 // deployUiCmd represents the deployUi command
@@ -45,18 +44,23 @@ var deployUiCmd = &cobra.Command{
 }
 
 func DeployUi() {
+	slog.Info(deployUiCommand, "### CLONING & UPDATING UI ###", "")
+
+	slog.Info(deployUiCommand, fmt.Sprintf("Cloning %s from a %s branch", platformCompleteDir, snapshotBranchName), "")
+	outputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
+	internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, snapshotBranchName, outputDir, false)
+
+	slog.Info(deployUiCommand, fmt.Sprintf("Pulling updates for %s from origin", platformCompleteDir), "")
+	internal.GitResetHardPullFromOriginRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, snapshotBranchName, outputDir)
+
 	slog.Info(deployUiCommand, "### ACQUIRING KEYCLOAK MASTER ACCESS TOKEN ###", "")
 	masterAccessToken := internal.GetKeycloakMasterRealmAccessToken(createUsersCommand, enableDebug)
-
-	slog.Info(deployUiCommand, "### CLONING PLATFORM COMPLETE UI FROM A SNAPSHOT BRANCH ###", "")
-	outputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
-	internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, branchName, outputDir, false)
 
 	for _, value := range internal.GetTenants(deployUiCommand, enableDebug, false) {
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["name"].(string)
 
-		if !slices.Contains(viper.GetStringSlice(internal.TenantsKey), tenant) {
+		if !internal.HasTenant(tenant) || !internal.DeployUi(tenant) {
 			continue
 		}
 

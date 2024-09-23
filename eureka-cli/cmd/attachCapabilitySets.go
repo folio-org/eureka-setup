@@ -17,12 +17,10 @@ package cmd
 
 import (
 	"log/slog"
-	"slices"
 	"time"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const attachCapabilitySetsCommand string = "Attach Capability Sets"
@@ -52,7 +50,7 @@ func AttachCapabilitySets(ranInSequence bool) {
 		tenantMapEntry := tenantValue.(map[string]interface{})
 		tenant := tenantMapEntry["name"].(string)
 
-		if !slices.Contains(viper.GetStringSlice(internal.TenantsKey), tenant) {
+		if !internal.HasTenant(tenant) {
 			continue
 		}
 

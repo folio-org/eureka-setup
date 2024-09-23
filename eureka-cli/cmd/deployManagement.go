@@ -42,7 +42,7 @@ func DeployManagement() {
 	backendModulesAnyMap := viper.GetStringMap(internal.BackendModuleKey)
 
 	slog.Info(deployManagementCommand, "### READING ENVIRONMENT FROM CONFIG ###", "")
-	environment := internal.GetEnvironmentFromConfig(deployManagementCommand)
+	environment := internal.GetEnvironmentFromConfig(deployManagementCommand, internal.EnvironmentKey)
 
 	slog.Info(deployManagementCommand, "### READING BACKEND MODULES FROM CONFIG ###", "")
 	backendModulesMap := internal.GetBackendModulesFromConfig(deployManagementCommand, backendModulesAnyMap)

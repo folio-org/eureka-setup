@@ -72,7 +72,18 @@ func CheckStatusCodes(commandName string, resp *http.Response) {
 	LogErrorPanic(commandName, fmt.Sprintf("internal.CheckStatusCodes error - Unacceptable request status %d", resp.StatusCode))
 }
 
-// ####### STRING ########
+func AddRequestHeaders(req *http.Request, headers map[string]string) {
+	if len(headers) == 0 {
+		req.Header.Add(ContentTypeHeader, JsonContentType)
+		return
+	}
+
+	for key, value := range headers {
+		req.Header.Add(key, value)
+	}
+}
+
+// ####### STRINGS ########
 
 func TrimModuleName(name string) string {
 	charIndex := strings.LastIndex(name, "-")
@@ -100,4 +111,16 @@ func LogWarn(commandName string, enableDebug bool, errorMessage string) {
 
 	}
 	slog.Warn(commandName, errorMessage, "")
+}
+
+// ######## SLICES ########
+
+func ConvertMapKeysToSlice(inputMap map[string]any) []string {
+	keys := make([]string, 0, len(inputMap))
+
+	for key := range inputMap {
+		keys = append(keys, key)
+	}
+
+	return keys
 }
