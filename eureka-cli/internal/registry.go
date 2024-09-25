@@ -47,6 +47,7 @@ func NewRegisterModuleDto(registryUrls map[string]string,
 	}
 }
 
+// TODO wire this up the right way
 func GetEurekaRegistryAuthToken(commandName string) string {
 	session, err := session.NewSession()
 	if err != nil {

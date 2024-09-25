@@ -1,1 +1,4 @@
 .vscode
+.idea
+eureka-cli/misc/folio-keycloak
+eureka-cli/misc/folio-kong

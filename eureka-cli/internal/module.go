@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"strconv"
 	"strings"
 
@@ -154,12 +155,13 @@ func NewDeployModuleDto(name string,
 	image string,
 	env []string,
 	backendModule BackendModule,
-	networkConfig *network.NetworkingConfig) *DeployModuleDto {
+	networkConfig *network.NetworkingConfig,
+	authToken string) *DeployModuleDto {
 	return &DeployModuleDto{
 		Name:         name,
 		Version:      version,
 		Image:        image,
-		RegistryAuth: "",
+		RegistryAuth: authToken,
 		Config: &container.Config{
 			Image:        image,
 			Hostname:     name,
@@ -250,6 +252,8 @@ func CreateClient(commandName string) *client.Client {
 }
 
 func GetRootVaultToken(commandName string, client *client.Client) string {
+	os.Setenv("DOCKER_HOST", "unix:///System/Volumes/Data/Users/sellis/.rd/docker.sock")
+
 	logStream, err := client.ContainerLogs(context.Background(), "vault", container.LogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
 		slog.Error(commandName, "cli.ContainerLogs error", "")
@@ -400,7 +404,14 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			combinedModuleEnvironment = append(combinedModuleEnvironment, dto.GlobalEnvironment...)
 			combinedModuleEnvironment = AppendModuleEnvironment(backendModule.ModuleEnvironment, combinedModuleEnvironment)
 			combinedModuleEnvironment = AppendVaultEnvironment(combinedModuleEnvironment, dto.VaultRootToken, resourceUrlVault)
-			deployModuleDto := NewDeployModuleDto(module.Name, *module.Version, image, combinedModuleEnvironment, backendModule, networkConfig)
+
+			// TODO Get RegistryAuth string here by calling registry.GetEurekaRegistryAuthToken
+			// TODO and pass it into a param here to populate RegistryAuth
+			authToken := GetEurekaRegistryAuthToken(commandName)
+
+			slog.Info(commandName, fmt.Sprint("image: ", image, " Token: ", authToken))
+
+			deployModuleDto := NewDeployModuleDto(module.Name, *module.Version, image, combinedModuleEnvironment, backendModule, networkConfig, authToken)
 
 			DeployModule(commandName, client, deployModuleDto)
 
@@ -430,11 +441,13 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 
 func DetermineImageRegistryNamespace(version string) string {
 	var registryNamespace string
-	if strings.Contains(version, "SNAPSHOT") {
-		registryNamespace = SnapshotRegistry
-	} else {
-		registryNamespace = ReleaseRegistry
-	}
+	//if strings.Contains(version, "SNAPSHOT") {
+	//	registryNamespace = SnapshotRegistry
+	//} else {
+	//	registryNamespace = ReleaseRegistry
+	//}
+
+	registryNamespace = os.Getenv("AWS_ECR_FOLIO_REPO")
 
 	return registryNamespace
 }

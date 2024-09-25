@@ -46,7 +46,8 @@ func DeploySystem() {
 		internal.RunCommandFromDir(deployManagementCommand, preparedCommand, internal.DockerComposeWorkDir)
 	}
 	slog.Info(deploySystemCommand, "### WAITING FOR SYSTEM TO INITIALIZE ###", "")
-	time.Sleep(150 * time.Second)
+	// TODO Make this configurable via env
+	time.Sleep(15 * time.Second)
 }
 
 func init() {

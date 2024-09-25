@@ -30,15 +30,15 @@ var deployApplicationCmd = &cobra.Command{
 }
 
 func DeployApplication() {
-	DeploySystem()
+	//DeploySystem()
 	DeployManagement()
-	DeployModules()
-	CreateTenants()
-	CreateTenantEntitlements()
-	CreateRoles()
-	AttachCapabilitySets(true)
-	CreateUsers()
-	DeployUi()
+	//DeployModules()
+	//CreateTenants()
+	//CreateTenantEntitlements()
+	//CreateRoles()
+	//AttachCapabilitySets(true)
+	//CreateUsers()
+	//DeployUi()
 }
 
 func init() {
