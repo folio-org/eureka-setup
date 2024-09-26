@@ -31,8 +31,8 @@ var deployApplicationCmd = &cobra.Command{
 
 func DeployApplication() {
 	//DeploySystem()
-	DeployManagement()
-	//DeployModules()
+	//DeployManagement()
+	DeployModules()
 	//CreateTenants()
 	//CreateTenantEntitlements()
 	//CreateRoles()

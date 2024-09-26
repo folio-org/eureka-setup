@@ -71,6 +71,7 @@ func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *s
 	healthcheckAttempts := HealtcheckMaxAttempts
 	for {
 		time.Sleep(HealthcheckDefaultDuration)
+		slog.Info(commandName, fmt.Sprintf("After sleep at %s for %d", requestUrl, HealthcheckDefaultDuration), "")
 
 		isHealthyVertxContainer := false
 		actuatorHealthStr := DoGetDecodeReturnString(commandName, requestUrl, enableDebug, false, map[string]string{})

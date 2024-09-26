@@ -400,6 +400,9 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 
 			image := fmt.Sprintf("%s/%s:%s", DetermineImageRegistryNamespace(*module.Version), module.Name, *module.Version)
 
+			// TODO Strip out snapshot from the string
+			image = StripSnapshotFromImage(image)
+
 			var combinedModuleEnvironment []string
 			combinedModuleEnvironment = append(combinedModuleEnvironment, dto.GlobalEnvironment...)
 			combinedModuleEnvironment = AppendModuleEnvironment(backendModule.ModuleEnvironment, combinedModuleEnvironment)
@@ -409,7 +412,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			// TODO and pass it into a param here to populate RegistryAuth
 			authToken := GetEurekaRegistryAuthToken(commandName)
 
-			slog.Info(commandName, fmt.Sprint("image: ", image, " Token: ", authToken))
+			slog.Info(commandName, fmt.Sprint("image: ", image, " Token: ", len(authToken)), "")
 
 			deployModuleDto := NewDeployModuleDto(module.Name, *module.Version, image, combinedModuleEnvironment, backendModule, networkConfig, authToken)
 
@@ -450,4 +453,12 @@ func DetermineImageRegistryNamespace(version string) string {
 	registryNamespace = os.Getenv("AWS_ECR_FOLIO_REPO")
 
 	return registryNamespace
+}
+
+func StripSnapshotFromImage(str string) string {
+	if idx := strings.LastIndex(str, "-"); idx != -1 {
+		result := str[:idx]
+		return result
+	}
+	return str
 }

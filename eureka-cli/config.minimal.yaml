@@ -11,8 +11,8 @@ application:
 # Registry
 registry: 
   registry-url: https://folio-registry.dev.folio.org
-  folio-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
-  eureka-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
+  folio-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/refs/heads/R1-2024/install.json
+  eureka-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/refs/heads/R1-2024/eureka-platform.json
 # Environment
 environment:
   # General
