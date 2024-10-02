@@ -17,7 +17,7 @@ const (
 	NetworkId            string = "eureka"
 	DockerInternalUrl    string = "http://host.docker.internal:%d%s"
 	HostIp               string = "0.0.0.0"
-	ServerPort           string = "8081"
+	ServerPort           string = "8082"
 	DebugPort            string = "5005"
 
 	PlatformCompleteUrl           string = "http://localhost:3000"

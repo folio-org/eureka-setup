@@ -73,9 +73,13 @@ type Event struct {
 }
 
 func NewBackendModuleAndSidecar(deployModule bool, name string, version *string, port int, deploySidecar bool, moduleEnvironment map[string]interface{}) *BackendModule {
+	slog.Info("port: ", port)
+
 	exposedPorts := CreateExposedPorts()
 	modulePortBindings := CreatePortBindings(port, port+1000)
 	sidecarPortBindings := CreatePortBindings(port+2000, port+3000)
+
+	slog.Info("modulePortBindings: ", modulePortBindings)
 
 	return &BackendModule{
 		DeployModule:            deployModule,
@@ -184,12 +188,13 @@ func NewDeploySidecarDto(name string,
 	env []string,
 	backendModule BackendModule,
 	networkConfig *network.NetworkingConfig,
-	pullSidecarImage bool) *DeployModuleDto {
+	pullSidecarImage bool,
+	authToken string) *DeployModuleDto {
 	return &DeployModuleDto{
 		Name:         name,
 		Version:      version,
 		Image:        image,
-		RegistryAuth: "",
+		RegistryAuth: authToken,
 		Config: &container.Config{
 			Image:        image,
 			Hostname:     name,
@@ -233,6 +238,7 @@ func CreatePortBindings(hostServerPort int, hostServerDebugPort int) *nat.PortMa
 	serverDebugPortBinding = append(serverDebugPortBinding, nat.PortBinding{HostIP: HostIp, HostPort: strconv.Itoa(hostServerDebugPort)})
 
 	portBindings := make(map[nat.Port][]nat.PortBinding)
+	// TODO Need to get the ServerPort from the config and use it here if
 	portBindings[nat.Port(ServerPort)] = serverPortBinding
 	portBindings[nat.Port(DebugPort)] = serverDebugPortBinding
 
@@ -401,7 +407,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			image := fmt.Sprintf("%s/%s:%s", DetermineImageRegistryNamespace(*module.Version), module.Name, *module.Version)
 
 			// TODO Strip out snapshot from the string
-			image = StripSnapshotFromImage(image)
+			//image = StripSnapshotFromImage(image)
 
 			var combinedModuleEnvironment []string
 			combinedModuleEnvironment = append(combinedModuleEnvironment, dto.GlobalEnvironment...)
@@ -431,7 +437,9 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			combinedSidecarEnvironment = AppendVaultEnvironment(combinedSidecarEnvironment, dto.VaultRootToken, resourceUrlVault)
 			combinedSidecarEnvironment = AppendManagementEnvironment(combinedSidecarEnvironment)
 			combinedSidecarEnvironment = AppendSidecarEnvironment(combinedSidecarEnvironment, module)
-			deploySidecarDto := NewDeploySidecarDto(module.SidecarName, *module.Version, sidecarImage, combinedSidecarEnvironment, backendModule, networkConfig, pullSidecarImage)
+
+			// TODO Need to pass in auth token here too.
+			deploySidecarDto := NewDeploySidecarDto(module.SidecarName, *module.Version, sidecarImage, combinedSidecarEnvironment, backendModule, networkConfig, pullSidecarImage, authToken)
 
 			DeployModule(commandName, client, deploySidecarDto)
 
