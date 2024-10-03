@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"os"
 	"strconv"
@@ -72,14 +73,14 @@ type Event struct {
 	} `json:"progressDetail"`
 }
 
-func NewBackendModuleAndSidecar(deployModule bool, name string, version *string, port int, deploySidecar bool, moduleEnvironment map[string]interface{}) *BackendModule {
-	slog.Info("port: ", port)
+func NewBackendModuleAndSidecar(deployModule bool, name string, version *string, port int, portInternal int, deploySidecar bool, moduleEnvironment map[string]interface{}) *BackendModule {
+	log.Println("name:", name, "port:", port, "portInternal:", portInternal)
 
-	exposedPorts := CreateExposedPorts()
-	modulePortBindings := CreatePortBindings(port, port+1000)
-	sidecarPortBindings := CreatePortBindings(port+2000, port+3000)
+	exposedPorts := CreateExposedPorts(portInternal)
+	modulePortBindings := CreatePortBindings(port, port+1000, portInternal)
+	sidecarPortBindings := CreatePortBindings(port+2000, port+3000, portInternal)
 
-	slog.Info("modulePortBindings: ", modulePortBindings)
+	log.Println("modulePortBindings:", modulePortBindings)
 
 	return &BackendModule{
 		DeployModule:            deployModule,
@@ -95,9 +96,9 @@ func NewBackendModuleAndSidecar(deployModule bool, name string, version *string,
 	}
 }
 
-func NewBackendModule(name string, port int, moduleEnvironment map[string]interface{}) *BackendModule {
-	exposedPorts := CreateExposedPorts()
-	modulePortBindings := CreatePortBindings(port, port+1000)
+func NewBackendModule(name string, port int, portInternal int, moduleEnvironment map[string]interface{}) *BackendModule {
+	exposedPorts := CreateExposedPorts(portInternal)
+	modulePortBindings := CreatePortBindings(port, port+1000, portInternal)
 
 	return &BackendModule{
 		DeployModule:            true,
@@ -217,10 +218,11 @@ func NewModuleNetworkConfig() *network.NetworkingConfig {
 	}
 }
 
-func CreateExposedPorts() *nat.PortSet {
+func CreateExposedPorts(internalPort int) *nat.PortSet {
 	moduleExposedPorts := make(map[nat.Port]struct{})
 
-	moduleExposedPorts[nat.Port(ServerPort)] = struct{}{}
+	//moduleExposedPorts[nat.Port(ServerPort)] = struct{}{}
+	moduleExposedPorts[nat.Port(strconv.Itoa(internalPort))] = struct{}{}
 	moduleExposedPorts[nat.Port(DebugPort)] = struct{}{}
 
 	portSet := nat.PortSet(moduleExposedPorts)
@@ -228,7 +230,7 @@ func CreateExposedPorts() *nat.PortSet {
 	return &portSet
 }
 
-func CreatePortBindings(hostServerPort int, hostServerDebugPort int) *nat.PortMap {
+func CreatePortBindings(hostServerPort int, hostServerDebugPort int, internalPort int) *nat.PortMap {
 	var (
 		serverPortBinding      []nat.PortBinding
 		serverDebugPortBinding []nat.PortBinding
@@ -238,8 +240,9 @@ func CreatePortBindings(hostServerPort int, hostServerDebugPort int) *nat.PortMa
 	serverDebugPortBinding = append(serverDebugPortBinding, nat.PortBinding{HostIP: HostIp, HostPort: strconv.Itoa(hostServerDebugPort)})
 
 	portBindings := make(map[nat.Port][]nat.PortBinding)
-	// TODO Need to get the ServerPort from the config and use it here if
-	portBindings[nat.Port(ServerPort)] = serverPortBinding
+	portBindings[nat.Port(strconv.Itoa(internalPort))] = serverPortBinding
+	//portBindings[nat.Port(ServerPort)] = serverPortBinding
+	//portBindings[nat.Port(strconv.Itoa(8082))] = serverPortBinding
 	portBindings[nat.Port(DebugPort)] = serverDebugPortBinding
 
 	portMap := nat.PortMap(portBindings)
@@ -414,11 +417,10 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			combinedModuleEnvironment = AppendModuleEnvironment(backendModule.ModuleEnvironment, combinedModuleEnvironment)
 			combinedModuleEnvironment = AppendVaultEnvironment(combinedModuleEnvironment, dto.VaultRootToken, resourceUrlVault)
 
-			// TODO Get RegistryAuth string here by calling registry.GetEurekaRegistryAuthToken
-			// TODO and pass it into a param here to populate RegistryAuth
+			// TODO Make calling this configurable such that if the env var isn't present pass an empty authToken string.
 			authToken := GetEurekaRegistryAuthToken(commandName)
 
-			slog.Info(commandName, fmt.Sprint("image: ", image, " Token: ", len(authToken)), "")
+			slog.Info(commandName, fmt.Sprint("Deploying image: ", image, "Auth Token: ", len(authToken)), "")
 
 			deployModuleDto := NewDeployModuleDto(module.Name, *module.Version, image, combinedModuleEnvironment, backendModule, networkConfig, authToken)
 

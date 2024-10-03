@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"log"
 	"log/slog"
 	"os"
 	"regexp"
@@ -70,6 +71,7 @@ const (
 	DeployModuleKey string = "deploy-module"
 	VersionKey      string = "version"
 	PortKey         string = "port"
+	PortKeyInternal string = "port-internal"
 	SidecarKey      string = "sidecar"
 	ModuleEnvKey    string = "environment"
 )
@@ -118,61 +120,70 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 	backendModulesMap := make(map[string]BackendModule)
 
 	for name, value := range backendModulesAnyMap {
+		log.Println("name:", name, "value:", value)
+
 		var (
 			deployModule bool = true
 			version      *string
 			port         *int
+			portInternal *int
 			sidecar      *bool
 			environment  map[string]interface{}
 		)
 
-		if value != nil {
-			mapEntry := value.(map[string]interface{})
+		//		if value != nil {
+		mapEntry := value.(map[string]interface{})
 
-			if mapEntry[DeployModuleKey] != nil {
-				deployModule = mapEntry[DeployModuleKey].(bool)
-			}
+		if mapEntry[DeployModuleKey] != nil {
+			deployModule = mapEntry[DeployModuleKey].(bool)
+		}
 
-			if mapEntry[VersionKey] != nil {
-				var versionValue string
-				_, ok := mapEntry[VersionKey].(float64)
-				if ok {
-					versionValue = strconv.FormatFloat(mapEntry[VersionKey].(float64), 'f', -1, 64)
-				} else {
-					versionValue = mapEntry[VersionKey].(string)
-				}
-				version = &versionValue
-			}
-
-			if mapEntry[PortKey] != nil {
-				portValue := mapEntry[PortKey].(int)
-				port = &portValue
-			}
-
-			if mapEntry[SidecarKey] != nil {
-				sidecarValue := mapEntry[SidecarKey].(bool)
-				sidecar = &sidecarValue
-			}
-
-			if mapEntry[ModuleEnvKey] != nil {
-				environment = mapEntry[ModuleEnvKey].(map[string]interface{})
+		if mapEntry[VersionKey] != nil {
+			var versionValue string
+			_, ok := mapEntry[VersionKey].(float64)
+			if ok {
+				versionValue = strconv.FormatFloat(mapEntry[VersionKey].(float64), 'f', -1, 64)
 			} else {
-				environment = make(map[string]interface{})
+				versionValue = mapEntry[VersionKey].(string)
 			}
+			version = &versionValue
+		}
+
+		if mapEntry[PortKey] != nil {
+			portValue := mapEntry[PortKey].(int)
+			port = &portValue
 		} else {
 			PortIndex++
 			port = &PortIndex
+		}
 
+		if mapEntry[PortKeyInternal] != nil {
+			slog.Info("Assigning port internal")
+			portInternalValue := mapEntry[PortKeyInternal].(int)
+			portInternal = &portInternalValue
+		} else {
+			portInternalValue := 8081
+			portInternal = &portInternalValue
+		}
+
+		if mapEntry[SidecarKey] != nil {
+			sidecarValue := mapEntry[SidecarKey].(bool)
+			sidecar = &sidecarValue
+		} else {
 			sidecarDefaultValue := true
 			sidecar = &sidecarDefaultValue
+		}
 
+		if mapEntry[ModuleEnvKey] != nil {
+			environment = mapEntry[ModuleEnvKey].(map[string]interface{})
+		} else {
 			environment = make(map[string]interface{})
 		}
 
 		if sidecar != nil && *sidecar {
-			backendModulesMap[name] = *NewBackendModuleAndSidecar(deployModule, name, version, *port, *sidecar, environment)
+			backendModulesMap[name] = *NewBackendModuleAndSidecar(deployModule, name, version, *port, *portInternal, *sidecar, environment)
 		} else {
-			backendModulesMap[name] = *NewBackendModule(name, *port, environment)
+			backendModulesMap[name] = *NewBackendModule(name, *port, *portInternal, environment)
 		}
 
 		moduleInfo := name

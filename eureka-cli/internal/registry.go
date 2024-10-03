@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -87,6 +88,7 @@ func GetModulesFromRegistries(commandName string, installJsonUrls map[string]str
 	for registryName, installJsonUrl := range installJsonUrls {
 		var registryModules []*RegistryModule
 
+		log.Println("installJsonUrl ", installJsonUrl)
 		installJsonResp, err := http.Get(installJsonUrl)
 		if err != nil {
 			slog.Error(commandName, "http.Get error", "")
