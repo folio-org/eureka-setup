@@ -55,8 +55,6 @@ func DeployManagement() {
 	internal.ExtractModuleNameAndVersion(deployManagementCommand, enableDebug, registryModules)
 
 	slog.Info(deployManagementCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
-	// TODO on macOS if you're running Rancher Desktop you have to set your docker demon socket such as export DOCKER_HOST="unix:///System/Volumes/Data/Users/<your user>/.rd/docker.sock"
-	// TODO Otherwise the first use of the docker API client will fail here.
 	client := internal.CreateClient(deployManagementCommand)
 	defer client.Close()
 	vaultRootToken := internal.GetRootVaultToken(deployManagementCommand, client)
