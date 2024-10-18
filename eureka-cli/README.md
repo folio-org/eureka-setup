@@ -53,10 +53,27 @@ env GOOS=windows GOARCH=amd64 go build -o ./bin .
 
 > ./bin/eureka-cli.exe -c ./config.minimal.yaml undeployApplication
 
+### Use the environment
+
 - Test Keycloak authentication on the UI using the created `diku` realm and `diku-login-app` public client
 
 > Open in browser `http://keycloak.eureka:8080/realms/diku/protocol/openid-connect/auth?client_id=diku-login-app&response_type=code&redirect_uri=http://localhost:3000&scope=openid`
 
+- Gateway is available at`localhost:8000` or `api-gateway.eureka:8000`
+- Login and get a token:
+
+```shell
+curl --request POST \
+  --url localhost:8000/authn/login-with-expiry \
+  --header 'Content-Type: application/json' \
+  --header 'X-Okapi-Tenant: diku' \
+  --data '{"username":"diku_admin","password": "admin"}' \
+  --verbose
+```
+
 ### Troubleshooting
 
 - Verify that all shell scripts located under `./misc` folder are saved using the **LF** (Line Feed) line break
+- If you get a SIGKILL when trying to build the stripes container configure Rancher Desktop or other docker env with more RAM
+- If health checks are failing make sure localhost is mapped to host.docker.internal in your /etc/hosts file
+- If using Rancher Desktop on a system that also uses Docker Desktop, you may need to do set `DOCKER_HOST` in your env to where `docker.sock`is

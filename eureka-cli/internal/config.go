@@ -131,7 +131,6 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			environment  map[string]interface{}
 		)
 
-		//		if value != nil {
 		mapEntry := value.(map[string]interface{})
 
 		if mapEntry[DeployModuleKey] != nil {

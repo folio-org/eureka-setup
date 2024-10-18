@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os/exec"
+	"path/filepath"
 	"slices"
 
 	"github.com/folio-org/eureka-cli/internal"
@@ -31,7 +32,9 @@ const (
 	deployUiCommand     string = "Deploy UI"
 	platformCompleteDir string = "platform-complete"
 
-	branchName plumbing.ReferenceName = "snapshot"
+	// TODO Make configurable
+	//branchName plumbing.ReferenceName = "snapshot"
+	branchName plumbing.ReferenceName = "R1-2024"
 )
 
 // deployUiCmd represents the deployUi command
@@ -46,7 +49,6 @@ var deployUiCmd = &cobra.Command{
 
 func DeployUi() {
 	slog.Info(deployUiCommand, "### ACQUIRING KEYCLOAK MASTER ACCESS TOKEN ###", "")
-	masterAccessToken := internal.GetKeycloakMasterRealmAccessToken(createUsersCommand, enableDebug)
 
 	slog.Info(deployUiCommand, "### CLONING PLATFORM COMPLETE UI FROM A SNAPSHOT BRANCH ###", "")
 	outputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
@@ -61,13 +63,23 @@ func DeployUi() {
 		}
 
 		slog.Info(deployUiCommand, "### UPDATING KEYCLOAK PUBLIC CLIENT", "")
+		masterAccessToken := internal.GetKeycloakMasterRealmAccessToken(createUsersCommand, enableDebug)
 		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, tenant, masterAccessToken)
 
 		slog.Info(deployUiCommand, "### COPYING PLATFORM COMPLETE UI CONFIGS ###", "")
-		internal.RunCommandFromDir(deployUiCommand, exec.Command("cp", "-R", "-f", "eureka-tpl/*", "."), outputDir)
-
-		slog.Info(deployUiCommand, "### PREPARING PLATFORM COMPLETE UI CONFIGS ###", "")
-		internal.PrepareStripesConfigJson(deployUiCommand, outputDir, tenant)
+		files, err := filepath.Glob("eureka-tpl/*")
+		if err != nil {
+			// Handle error if the pattern doesn't match any files
+			slog.Info("Failed to glob files: %v", err)
+		}
+		if len(files) == 0 {
+			slog.Info("No files matched in eureka-tpl/*. Not copying.")
+		} else {
+			// Append the destination directory to the list of files
+			args := append([]string{"-R", "-f"}, files...)
+			args = append(args, ".")
+			internal.RunCommandFromDir(deployUiCommand, exec.Command("cp", args...), outputDir)
+		}
 
 		slog.Info(deployUiCommand, "### BUILDING PLATFORM COMPLETE UI FROM A DOCKERFILE ###", "")
 		internal.RunCommandFromDir(deployUiCommand, exec.Command("docker", "build", "--tag", "platform-complete-ui",
