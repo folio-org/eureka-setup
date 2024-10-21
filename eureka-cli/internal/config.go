@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"github.com/go-git/go-git/v5/plumbing"
 	"log"
 	"log/slog"
 	"os"
@@ -39,8 +40,9 @@ const (
 const (
 	ProfileNameKey string = "profile.name"
 
-	ApplicationKey       string = "application"
-	ApplicationPortStart string = "application.port-start"
+	ApplicationKey           string = "application"
+	ApplicationPortStart     string = "application.port-start"
+	ApplicationStripesBranch string = "application.stripes-branch"
 
 	RegistryUrlKey                  string = "registry.registry-url"
 	RegistryFolioInstallJsonUrlKey  string = "registry.folio-install-json-url"
@@ -289,4 +291,19 @@ func PrepareStripesConfigJson(commandName string, configPath string, tenant stri
 		slog.Error(commandName, "os.WriteFile error", "")
 		panic(err)
 	}
+}
+
+func GetStripesBranch(commandName string, defaultBranch plumbing.ReferenceName) plumbing.ReferenceName {
+	var stripesBranch plumbing.ReferenceName
+
+	if viper.IsSet(ApplicationStripesBranch) {
+		branchStr := viper.GetString(ApplicationStripesBranch)
+		stripesBranch = plumbing.ReferenceName(branchStr)
+	} else {
+		stripesBranch = defaultBranch
+	}
+
+	slog.Info(commandName, fmt.Sprintf("Stripes branch: %s", stripesBranch))
+
+	return stripesBranch
 }

@@ -381,7 +381,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 	var sidecarImage string
 	if sidecarImage == "" {
 		sidecarId := fmt.Sprintf("%s:%s", sidecarModule["image"], sidecarModule["version"])
-		sidecarImage = fmt.Sprintf("%s/%s", DetermineImageRegistryNamespace(sidecarModule["version"].(string)), sidecarId)
+		sidecarImage = fmt.Sprintf("%s/%s", GetImageRegistryNamespace(sidecarModule["version"].(string)), sidecarId)
 	}
 
 	resourceUrlVault := viper.GetString(ResourcesVaultKey)
@@ -407,14 +407,13 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 				continue
 			}
 
-			image := fmt.Sprintf("%s/%s:%s", DetermineImageRegistryNamespace(*module.Version), module.Name, *module.Version)
+			image := fmt.Sprintf("%s/%s:%s", GetImageRegistryNamespace(*module.Version), module.Name, *module.Version)
 
 			var combinedModuleEnvironment []string
 			combinedModuleEnvironment = append(combinedModuleEnvironment, dto.GlobalEnvironment...)
 			combinedModuleEnvironment = AppendModuleEnvironment(backendModule.ModuleEnvironment, combinedModuleEnvironment)
 			combinedModuleEnvironment = AppendVaultEnvironment(combinedModuleEnvironment, dto.VaultRootToken, resourceUrlVault)
 
-			// TODO Make calling this configurable such that if the env var isn't present pass an empty authToken string.
 			authToken := GetEurekaRegistryAuthToken(commandName)
 
 			slog.Info(commandName, fmt.Sprint("Deploying image: ", image, "Auth Token: ", len(authToken)), "")
@@ -447,18 +446,4 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 	}
 
 	return deployedModules
-}
-
-// TODO fix this
-func DetermineImageRegistryNamespace(version string) string {
-	var registryNamespace string
-	//if strings.Contains(version, "SNAPSHOT") {
-	//	registryNamespace = SnapshotRegistry
-	//} else {
-	//	registryNamespace = ReleaseRegistry
-	//}
-
-	registryNamespace = os.Getenv("AWS_ECR_FOLIO_REPO")
-
-	return registryNamespace
 }

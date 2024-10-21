@@ -32,9 +32,7 @@ const (
 	deployUiCommand     string = "Deploy UI"
 	platformCompleteDir string = "platform-complete"
 
-	// TODO Make configurable
-	//branchName plumbing.ReferenceName = "snapshot"
-	branchName plumbing.ReferenceName = "R1-2024"
+	defaultStripesBranch plumbing.ReferenceName = "snapshot"
 )
 
 // deployUiCmd represents the deployUi command
@@ -51,8 +49,10 @@ func DeployUi() {
 	slog.Info(deployUiCommand, "### ACQUIRING KEYCLOAK MASTER ACCESS TOKEN ###", "")
 
 	slog.Info(deployUiCommand, "### CLONING PLATFORM COMPLETE UI FROM A SNAPSHOT BRANCH ###", "")
+	var stripesBranch = internal.GetStripesBranch(deployUiCommand, defaultStripesBranch)
+
 	outputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
-	internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, branchName, outputDir, false)
+	internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, stripesBranch, outputDir, false)
 
 	for _, value := range internal.GetTenants(deployUiCommand, enableDebug, false) {
 		mapEntry := value.(map[string]interface{})
