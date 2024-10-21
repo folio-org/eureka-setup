@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"os"
 	"strconv"
@@ -74,13 +73,9 @@ type Event struct {
 }
 
 func NewBackendModuleAndSidecar(deployModule bool, name string, version *string, port int, portInternal int, deploySidecar bool, moduleEnvironment map[string]interface{}) *BackendModule {
-	log.Println("name:", name, "port:", port, "portInternal:", portInternal)
-
 	exposedPorts := CreateExposedPorts(portInternal)
 	modulePortBindings := CreatePortBindings(port, port+1000, portInternal)
 	sidecarPortBindings := CreatePortBindings(port+2000, port+3000, portInternal)
-
-	log.Println("modulePortBindings:", modulePortBindings)
 
 	return &BackendModule{
 		DeployModule:            deployModule,
@@ -221,7 +216,6 @@ func NewModuleNetworkConfig() *network.NetworkingConfig {
 func CreateExposedPorts(internalPort int) *nat.PortSet {
 	moduleExposedPorts := make(map[nat.Port]struct{})
 
-	//moduleExposedPorts[nat.Port(ServerPort)] = struct{}{}
 	moduleExposedPorts[nat.Port(strconv.Itoa(internalPort))] = struct{}{}
 	moduleExposedPorts[nat.Port(DebugPort)] = struct{}{}
 
@@ -241,8 +235,6 @@ func CreatePortBindings(hostServerPort int, hostServerDebugPort int, internalPor
 
 	portBindings := make(map[nat.Port][]nat.PortBinding)
 	portBindings[nat.Port(strconv.Itoa(internalPort))] = serverPortBinding
-	//portBindings[nat.Port(ServerPort)] = serverPortBinding
-	//portBindings[nat.Port(strconv.Itoa(8082))] = serverPortBinding
 	portBindings[nat.Port(DebugPort)] = serverDebugPortBinding
 
 	portMap := nat.PortMap(portBindings)
@@ -414,9 +406,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			combinedModuleEnvironment = AppendModuleEnvironment(backendModule.ModuleEnvironment, combinedModuleEnvironment)
 			combinedModuleEnvironment = AppendVaultEnvironment(combinedModuleEnvironment, dto.VaultRootToken, resourceUrlVault)
 
-			authToken := GetEurekaRegistryAuthToken(commandName)
-
-			slog.Info(commandName, fmt.Sprint("Deploying image: ", image, "Auth Token: ", len(authToken)), "")
+			authToken := GetEurekaRegistryAuthTokenIfPresent(commandName)
 
 			deployModuleDto := NewDeployModuleDto(module.Name, *module.Version, image, combinedModuleEnvironment, backendModule, networkConfig, authToken)
 
@@ -436,7 +426,6 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			combinedSidecarEnvironment = AppendManagementEnvironment(combinedSidecarEnvironment)
 			combinedSidecarEnvironment = AppendSidecarEnvironment(combinedSidecarEnvironment, module)
 
-			// TODO Need to pass in auth token here too.
 			deploySidecarDto := NewDeploySidecarDto(module.SidecarName, *module.Version, sidecarImage, combinedSidecarEnvironment, backendModule, networkConfig, pullSidecarImage, authToken)
 
 			DeployModule(commandName, client, deploySidecarDto)

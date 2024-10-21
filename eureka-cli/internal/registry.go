@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -49,7 +48,7 @@ func NewRegisterModuleDto(registryUrls map[string]string,
 	}
 }
 
-func GetEurekaRegistryAuthToken(commandName string) string {
+func GetEurekaRegistryAuthTokenIfPresent(commandName string) string {
 	// If this env variable isn't set, then assume it is a public repository and no auth token is needed.
 	if os.Getenv(ecsRepoEnvKey) == "" {
 		return ""
@@ -93,7 +92,6 @@ func GetModulesFromRegistries(commandName string, installJsonUrls map[string]str
 	for registryName, installJsonUrl := range installJsonUrls {
 		var registryModules []*RegistryModule
 
-		log.Println("installJsonUrl ", installJsonUrl)
 		installJsonResp, err := http.Get(installJsonUrl)
 		if err != nil {
 			slog.Error(commandName, "http.Get error", "")
@@ -130,6 +128,7 @@ func GetModulesFromRegistries(commandName string, installJsonUrls map[string]str
 
 func GetImageRegistryNamespace(version string) string {
 	var registryNamespace string
+	// ECS registry should be considered a secret because it has an account id in it so we put it in the env.
 	registryNamespace = os.Getenv(ecsRepoEnvKey)
 
 	if registryNamespace != "" {

@@ -175,11 +175,8 @@ services:
     deploy:
       resources:
         limits:
-          # TODO these aren't right. Should be integers I believe. Ignore for now.
-          #cpus: 1024m
           memory: 1200M
         reservations:
-          #cpus: 1024m
           memory: 1200M
 
   ### Kong ###
