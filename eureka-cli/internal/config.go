@@ -299,11 +299,11 @@ func GetStripesBranch(commandName string, defaultBranch plumbing.ReferenceName) 
 	if viper.IsSet(ApplicationStripesBranch) {
 		branchStr := viper.GetString(ApplicationStripesBranch)
 		stripesBranch = plumbing.ReferenceName(branchStr)
+		slog.Info(commandName, fmt.Sprintf("Got stripes branch from config: %s", stripesBranch), "")
 	} else {
 		stripesBranch = defaultBranch
+		slog.Info(commandName, fmt.Sprintf("No stripes branch in config. Using default branch: %s", stripesBranch), "")
 	}
-
-	slog.Info(commandName, fmt.Sprintf("Stripes branch: %s", stripesBranch))
 
 	return stripesBranch
 }
