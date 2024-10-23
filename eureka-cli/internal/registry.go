@@ -17,6 +17,7 @@ import (
 const (
 	SnapshotRegistry string = "folioci"
 	ReleaseRegistry  string = "folioorg"
+	ecsRepoEnvKey    string = "AWS_ECR_FOLIO_REPO"
 )
 
 type RegisterModuleDto struct {
@@ -47,7 +48,12 @@ func NewRegisterModuleDto(registryUrls map[string]string,
 	}
 }
 
-func GetEurekaRegistryAuthToken(commandName string) string {
+func GetEurekaRegistryAuthTokenIfPresent(commandName string) string {
+	// If this env variable isn't set, then assume it is a public repository and no auth token is needed.
+	if os.Getenv(ecsRepoEnvKey) == "" {
+		return ""
+	}
+
 	session, err := session.NewSession()
 	if err != nil {
 		slog.Error(commandName, "session.NewSession() error", "")
@@ -118,4 +124,24 @@ func GetModulesFromRegistries(commandName string, installJsonUrls map[string]str
 	}
 
 	return registryModulesMap
+}
+
+func GetImageRegistryNamespace(version string) string {
+	var registryNamespace string
+	// ECR registry should be considered a secret because it has an account id in it so we put it in the env.
+	registryNamespace = os.Getenv(ecsRepoEnvKey)
+
+	if registryNamespace != "" {
+		slog.Info(fmt.Sprintf("Using AWS ECR registry namespace: %s", registryNamespace))
+		return registryNamespace
+	}
+
+	if strings.Contains(version, "SNAPSHOT") {
+		registryNamespace = SnapshotRegistry
+	} else {
+		registryNamespace = ReleaseRegistry
+	}
+
+	slog.Info(fmt.Sprintf("Using public registry namespace: %s", registryNamespace))
+	return registryNamespace
 }

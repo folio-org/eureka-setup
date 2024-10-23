@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -171,6 +172,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 			}
 
 			backendModule, okBackend := dto.BackendModulesMap[module.Name]
+
 			frontendModule, okFrontend := dto.FrontendModulesMap[module.Name]
 			if (!okBackend && !okFrontend) || (okBackend && !backendModule.DeployModule || okFrontend && !frontendModule.DeployModule) {
 				continue
@@ -198,7 +200,9 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 			}
 
 			if okBackend {
+				serverPort := strconv.Itoa(backendModule.ModuleServerPort)
 				backendModule := map[string]string{"id": module.Id, "name": module.Name, "version": *module.Version}
+
 				if applicationFetchDescriptors {
 					backendModuleDescriptors = append(backendModuleDescriptors, dto.ModuleDescriptorsMap[module.Id])
 				} else {
@@ -207,7 +211,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 
 				backendModules = append(backendModules, backendModule)
 
-				sidecarUrl := fmt.Sprintf("http://%s.eureka:%s", module.SidecarName, ServerPort)
+				sidecarUrl := fmt.Sprintf("http://%s.eureka:%s", module.SidecarName, serverPort)
 
 				discoveryModules = append(discoveryModules, map[string]string{"id": module.Id, "name": module.Name, "version": *module.Version, "location": sidecarUrl})
 			} else if okFrontend {
@@ -259,11 +263,11 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 	slog.Info(commandName, fmt.Sprintf(`Created '%d' entries of application module discovery`, len(discoveryModules)), "")
 }
 
-func UpdateApplicationModuleDiscovery(commandName string, enableDebug bool, id string, location string, restore bool) {
+func UpdateApplicationModuleDiscovery(commandName string, enableDebug bool, id string, location string, restore bool, portServer string) {
 	name := TrimModuleName(ModuleIdRegexp.ReplaceAllString(id, `$1`))
 	version := ModuleIdRegexp.ReplaceAllString(id, `$2$3`)
 	if location == "" || restore {
-		location = fmt.Sprintf("http://%s.eureka:%s", name, ServerPort)
+		location = fmt.Sprintf("http://%s.eureka:%s", name, portServer)
 	}
 
 	applicationDiscoveryBytes, err := json.Marshal(map[string]interface{}{"id": id, "name": name, "version": version, "location": location})
