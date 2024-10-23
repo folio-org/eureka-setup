@@ -128,7 +128,7 @@ func GetModulesFromRegistries(commandName string, installJsonUrls map[string]str
 
 func GetImageRegistryNamespace(version string) string {
 	var registryNamespace string
-	// ECS registry should be considered a secret because it has an account id in it so we put it in the env.
+	// ECR registry should be considered a secret because it has an account id in it so we put it in the env.
 	registryNamespace = os.Getenv(ecsRepoEnvKey)
 
 	if registryNamespace != "" {
