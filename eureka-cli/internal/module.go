@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"os"
 	"strconv"
 	"strings"
 
@@ -256,8 +255,6 @@ func CreateClient(commandName string) *client.Client {
 }
 
 func GetRootVaultToken(commandName string, client *client.Client) string {
-	os.Setenv("DOCKER_HOST", "unix:///System/Volumes/Data/Users/sellis/.rd/docker.sock")
-
 	logStream, err := client.ContainerLogs(context.Background(), "vault", container.LogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
 		slog.Error(commandName, "cli.ContainerLogs error", "")

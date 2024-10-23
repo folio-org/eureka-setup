@@ -71,6 +71,9 @@ curl --request POST \
   --verbose
 ```
 
+### Use AWS ECR
+To use AWS ECR as your container registry rather than the public folio dockerhub, set`AWS_ECR_FOLIO_REPO`in your environment. When this env variable is defined it is assumed that this repo is private and you have also defined credentials in your environment. 
+
 ### Troubleshooting
 
 - Verify that all shell scripts located under `./misc` folder are saved using the **LF** (Line Feed) line break
