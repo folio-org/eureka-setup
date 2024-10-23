@@ -54,6 +54,7 @@ type BackendModule struct {
 	DeploySidecar           bool
 	SidecarExposedPorts     *nat.PortSet
 	SidecarPortBindings     *nat.PortMap
+	ModuleServerPort        int
 }
 
 type FrontendModule struct {
@@ -72,16 +73,17 @@ type Event struct {
 	} `json:"progressDetail"`
 }
 
-func NewBackendModuleAndSidecar(deployModule bool, name string, version *string, port int, portInternal int, deploySidecar bool, moduleEnvironment map[string]interface{}) *BackendModule {
-	exposedPorts := CreateExposedPorts(portInternal)
-	modulePortBindings := CreatePortBindings(port, port+1000, portInternal)
-	sidecarPortBindings := CreatePortBindings(port+2000, port+3000, portInternal)
+func NewBackendModuleAndSidecar(deployModule bool, name string, version *string, port int, portServer int, deploySidecar bool, moduleEnvironment map[string]interface{}) *BackendModule {
+	exposedPorts := CreateExposedPorts(portServer)
+	modulePortBindings := CreatePortBindings(port, port+1000, portServer)
+	sidecarPortBindings := CreatePortBindings(port+2000, port+3000, portServer)
 
 	return &BackendModule{
 		DeployModule:            deployModule,
 		ModuleName:              name,
 		ModuleVersion:           version,
 		ModuleExposedServerPort: port,
+		ModuleServerPort:        portServer,
 		ModuleExposedPorts:      exposedPorts,
 		ModulePortBindings:      modulePortBindings,
 		ModuleEnvironment:       moduleEnvironment,
@@ -91,15 +93,16 @@ func NewBackendModuleAndSidecar(deployModule bool, name string, version *string,
 	}
 }
 
-func NewBackendModule(name string, port int, portInternal int, moduleEnvironment map[string]interface{}) *BackendModule {
-	exposedPorts := CreateExposedPorts(portInternal)
-	modulePortBindings := CreatePortBindings(port, port+1000, portInternal)
+func NewBackendModule(name string, port int, portServer int, moduleEnvironment map[string]interface{}) *BackendModule {
+	exposedPorts := CreateExposedPorts(portServer)
+	modulePortBindings := CreatePortBindings(port, port+1000, portServer)
 
 	return &BackendModule{
 		DeployModule:            true,
 		ModuleName:              name,
 		ModuleVersion:           nil,
 		ModuleExposedServerPort: port,
+		ModuleServerPort:        portServer,
 		ModuleExposedPorts:      exposedPorts,
 		ModulePortBindings:      modulePortBindings,
 		ModuleEnvironment:       moduleEnvironment,
@@ -213,10 +216,10 @@ func NewModuleNetworkConfig() *network.NetworkingConfig {
 	}
 }
 
-func CreateExposedPorts(internalPort int) *nat.PortSet {
+func CreateExposedPorts(serverPort int) *nat.PortSet {
 	moduleExposedPorts := make(map[nat.Port]struct{})
 
-	moduleExposedPorts[nat.Port(strconv.Itoa(internalPort))] = struct{}{}
+	moduleExposedPorts[nat.Port(strconv.Itoa(serverPort))] = struct{}{}
 	moduleExposedPorts[nat.Port(DebugPort)] = struct{}{}
 
 	portSet := nat.PortSet(moduleExposedPorts)
@@ -224,7 +227,7 @@ func CreateExposedPorts(internalPort int) *nat.PortSet {
 	return &portSet
 }
 
-func CreatePortBindings(hostServerPort int, hostServerDebugPort int, internalPort int) *nat.PortMap {
+func CreatePortBindings(hostServerPort int, hostServerDebugPort int, serverPort int) *nat.PortMap {
 	var (
 		serverPortBinding      []nat.PortBinding
 		serverDebugPortBinding []nat.PortBinding
@@ -234,7 +237,7 @@ func CreatePortBindings(hostServerPort int, hostServerDebugPort int, internalPor
 	serverDebugPortBinding = append(serverDebugPortBinding, nat.PortBinding{HostIP: HostIp, HostPort: strconv.Itoa(hostServerDebugPort)})
 
 	portBindings := make(map[nat.Port][]nat.PortBinding)
-	portBindings[nat.Port(strconv.Itoa(internalPort))] = serverPortBinding
+	portBindings[nat.Port(strconv.Itoa(serverPort))] = serverPortBinding
 	portBindings[nat.Port(DebugPort)] = serverDebugPortBinding
 
 	portMap := nat.PortMap(portBindings)
@@ -424,7 +427,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			combinedSidecarEnvironment = AppendKeycloakEnvironment(commandName, combinedSidecarEnvironment)
 			combinedSidecarEnvironment = AppendVaultEnvironment(combinedSidecarEnvironment, dto.VaultRootToken, resourceUrlVault)
 			combinedSidecarEnvironment = AppendManagementEnvironment(combinedSidecarEnvironment)
-			combinedSidecarEnvironment = AppendSidecarEnvironment(combinedSidecarEnvironment, module)
+			combinedSidecarEnvironment = AppendSidecarEnvironment(combinedSidecarEnvironment, module, strconv.Itoa(backendModule.ModuleServerPort))
 
 			deploySidecarDto := NewDeploySidecarDto(module.SidecarName, *module.Version, sidecarImage, combinedSidecarEnvironment, backendModule, networkConfig, pullSidecarImage, authToken)
 

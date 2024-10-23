@@ -50,12 +50,12 @@ func AppendModuleEnvironment(extraEnvironmentMap map[string]interface{}, environ
 	return environment
 }
 
-func AppendSidecarEnvironment(environment []string, module *RegistryModule) []string {
+func AppendSidecarEnvironment(environment []string, module *RegistryModule, portServer string) []string {
 	extraEnvironment := []string{fmt.Sprintf("MODULE_NAME=%s", module.Name),
 		fmt.Sprintf("MODULE_VERSION=%s", *module.Version),
-		fmt.Sprintf("MODULE_URL=http://%s.eureka:%s", module.Name, ServerPort),
+		fmt.Sprintf("MODULE_URL=http://%s.eureka:%s", module.Name, portServer),
 		fmt.Sprintf("SIDECAR_NAME=%s", module.SidecarName),
-		fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%s", module.SidecarName, ServerPort),
+		fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%s", module.SidecarName, portServer),
 		fmt.Sprintf("MOD_USERS_KEYCLOAK_URL=%s", viper.GetString(ResourcesModUsersKeycloakKey)),
 		"SIDECAR_FORWARD_UNKNOWN_REQUESTS='true'",
 		fmt.Sprintf("SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION=%s", viper.GetString(ResourcesKongKey)),

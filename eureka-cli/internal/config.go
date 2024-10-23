@@ -19,7 +19,7 @@ const (
 	NetworkId            string = "eureka"
 	DockerInternalUrl    string = "http://host.docker.internal:%d%s"
 	HostIp               string = "0.0.0.0"
-	ServerPort           string = "8082"
+	DefaultServerPort    string = "8081"
 	DebugPort            string = "5005"
 
 	PlatformCompleteUrl           string = "http://localhost:3000"
@@ -73,7 +73,7 @@ const (
 	DeployModuleKey string = "deploy-module"
 	VersionKey      string = "version"
 	PortKey         string = "port"
-	PortKeyInternal string = "port-internal"
+	PortKeyServer   string = "port-server"
 	SidecarKey      string = "sidecar"
 	ModuleEnvKey    string = "environment"
 )
@@ -128,7 +128,7 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			deployModule bool = true
 			version      *string
 			port         *int
-			portInternal *int
+			portServer   *int
 			sidecar      *bool
 			environment  map[string]interface{}
 		)
@@ -158,13 +158,13 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			port = &PortIndex
 		}
 
-		if mapEntry[PortKeyInternal] != nil {
-			slog.Info("Assigning port internal")
-			portInternalValue := mapEntry[PortKeyInternal].(int)
-			portInternal = &portInternalValue
+		if mapEntry[PortKeyServer] != nil {
+			portServerValue := mapEntry[PortKeyServer].(int)
+			portServer = &portServerValue
 		} else {
-			portInternalValue := 8081
-			portInternal = &portInternalValue
+			p, _ := strconv.Atoi(DefaultServerPort)
+			portServerValue := p
+			portServer = &portServerValue
 		}
 
 		if mapEntry[SidecarKey] != nil {
@@ -182,9 +182,9 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 		}
 
 		if sidecar != nil && *sidecar {
-			backendModulesMap[name] = *NewBackendModuleAndSidecar(deployModule, name, version, *port, *portInternal, *sidecar, environment)
+			backendModulesMap[name] = *NewBackendModuleAndSidecar(deployModule, name, version, *port, *portServer, *sidecar, environment)
 		} else {
-			backendModulesMap[name] = *NewBackendModule(name, *port, *portInternal, environment)
+			backendModulesMap[name] = *NewBackendModule(name, *port, *portServer, environment)
 		}
 
 		moduleInfo := name
