@@ -126,13 +126,13 @@ func GetModulesFromRegistries(commandName string, installJsonUrls map[string]str
 	return registryModulesMap
 }
 
-func GetImageRegistryNamespace(version string) string {
+func GetImageRegistryNamespace(commandName string, version string) string {
 	var registryNamespace string
 	// ECR registry should be considered a secret because it has an account id in it so we put it in the env.
 	registryNamespace = os.Getenv(ecsRepoEnvKey)
 
 	if registryNamespace != "" {
-		slog.Info(fmt.Sprintf("Using AWS ECR registry namespace: %s", registryNamespace))
+		slog.Info(commandName, fmt.Sprintf("Using AWS ECR registry namespace: %s", registryNamespace))
 		return registryNamespace
 	}
 
@@ -142,6 +142,6 @@ func GetImageRegistryNamespace(version string) string {
 		registryNamespace = ReleaseRegistry
 	}
 
-	slog.Info(fmt.Sprintf("Using public registry namespace: %s", registryNamespace))
+	slog.Info(commandName, fmt.Sprintf("Using public registry namespace: %s", registryNamespace))
 	return registryNamespace
 }

@@ -373,7 +373,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 	var sidecarImage string
 	if sidecarImage == "" {
 		sidecarId := fmt.Sprintf("%s:%s", sidecarModule["image"], sidecarModule["version"])
-		sidecarImage = fmt.Sprintf("%s/%s", GetImageRegistryNamespace(sidecarModule["version"].(string)), sidecarId)
+		sidecarImage = fmt.Sprintf("%s/%s", GetImageRegistryNamespace(commandName, sidecarModule["version"].(string)), sidecarId)
 	}
 
 	resourceUrlVault := viper.GetString(ResourcesVaultKey)
@@ -399,7 +399,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 				continue
 			}
 
-			image := fmt.Sprintf("%s/%s:%s", GetImageRegistryNamespace(*module.Version), module.Name, *module.Version)
+			image := fmt.Sprintf("%s/%s:%s", GetImageRegistryNamespace(commandName, *module.Version), module.Name, *module.Version)
 
 			var combinedModuleEnvironment []string
 			combinedModuleEnvironment = append(combinedModuleEnvironment, dto.GlobalEnvironment...)

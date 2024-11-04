@@ -70,7 +70,7 @@ func DeployUi() {
 		files, err := filepath.Glob("eureka-tpl/*")
 		if err != nil {
 			// Handle error if the pattern doesn't match any files
-			slog.Info("Failed to glob files: %v", err)
+			slog.Info(deployUiCommand, "Failed to glob files: %v", err)
 		}
 		if len(files) == 0 {
 			slog.Info("No files matched in eureka-tpl/*. Not copying.")
