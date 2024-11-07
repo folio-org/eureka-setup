@@ -1,4 +1,4 @@
-ALTER SYSTEM SET max_connections = 500;
+alter system set max_connections = 500;
 
 -- System
 create database keycloak;
@@ -31,3 +31,27 @@ grant all privileges on database mgr_tenant_entitlements to mgr_tenant_entitleme
 create database folio;
 create user folio_rw with password 'supersecret';
 alter user folio_rw with superuser;
+
+-- Change schema owner
+-- https://www.postgresql.org/docs/15/release-15.html
+
+-- System
+\connect keycloak;
+alter schema public owner to keycloak_rw;
+
+\connect kong;
+alter schema public owner to kong_rw;
+
+-- Management
+\connect mgr_applications;
+alter schema public owner to mgr_applications_rw;
+
+\connect mgr_tenant;
+alter schema public owner to mgr_tenant_rw;
+
+\connect mgr_tenant_entitlements;
+alter schema public owner to mgr_tenant_entitlements_rw;
+
+-- Core and other modules
+\connect folio;
+alter schema public owner to folio_rw;
