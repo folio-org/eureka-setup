@@ -15,7 +15,10 @@ services:
   ### Postgres ###
   postgres:
     container_name: postgres
-    image: postgres:13.4-alpine
+    image: postgres:16.4
+    restart: unless-stopped
+    command: -c max_connections=500 -c shared_buffers=1024MB -c log_duration=on -c log_min_duration_statement=0ms -c shared_preload_libraries=pg_stat_statements -c max_locks_per_transaction=1024 -c jit=off
+    mem_limit: 4g
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
@@ -37,6 +40,7 @@ services:
   kafka-ui:
     container_name: kafka-ui
     image: provectuslabs/kafka-ui:latest
+    restart: unless-stopped
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_JMXPORT: 9997
@@ -71,6 +75,7 @@ services:
   kafka:
     container_name: kafka
     image: wurstmeister/kafka:2.13-2.8.1
+    restart: unless-stopped
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_LISTENERS: INSIDE://:9091,OUTSIDE://:9092
@@ -86,7 +91,6 @@ services:
         condition: service_healthy
     volumes:
       - kafka-data:/kafka
-    restart: always
     networks: 
       - fpm-net
     ports:
@@ -102,6 +106,7 @@ services:
   vault:
     container_name: vault
     image: folio-vault:latest
+    restart: unless-stopped
     build:
       context: ./folio-vault
       dockerfile: Dockerfile
@@ -125,6 +130,7 @@ services:
   keycloak:
     container_name: keycloak
     image: nginx:latest
+    restart: unless-stopped
     depends_on:
       - keycloak-internal
     volumes:
@@ -143,6 +149,7 @@ services:
   keycloak-internal:
     container_name: keycloak-internal
     image: folio-keycloak:latest
+    restart: unless-stopped
     build:
       context: ./folio-keycloak
       dockerfile: Dockerfile
@@ -186,6 +193,7 @@ services:
   api-gateway:
     container_name: api-gateway
     image: folio-kong:latest
+    restart: unless-stopped
     build:
       context: ./folio-kong
       dockerfile: Dockerfile
@@ -233,6 +241,7 @@ services:
         FROM nginx:latest
         RUN apt update; apt install netcat-traditional -y 
     image: netcat:latest
+    restart: unless-stopped
     networks: 
       - fpm-net
     ports:

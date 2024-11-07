@@ -54,6 +54,8 @@ env GOOS=windows GOARCH=amd64 go build -o ./bin .
 
 > Open in browser `http://keycloak.eureka:8080/realms/diku/protocol/openid-connect/auth?client_id=diku-login-app&response_type=code&redirect_uri=http://localhost:3000&scope=openid`
 
+- If the platform-minimal UI containers are deployed, the UI can be accessed on `http://localhost:3000`
+
 ### Troubleshooting
 
 - Verify that all shell scripts located under `./misc` folder are saved using the **LF** (Line Feed) line break

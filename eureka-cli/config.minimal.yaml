@@ -179,7 +179,6 @@ backend-modules:
   mod-roles-keycloak:
     port: 9906
     sidecar: true
-    version: 1.4.4
   mod-scheduler:
     port: 9907
     sidecar: true
