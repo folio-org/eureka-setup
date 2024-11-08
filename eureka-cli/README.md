@@ -10,7 +10,7 @@
 
 - Install a compiler and a container daemon:
   - [GO](<https://go.dev/doc/install>): last development-tested version is `go1.22.4 windows/amd64`
-  - [Rancher Desktop](<https://rancherdesktop.io/>): make sure to enable **dockerd (Moby)** container engine
+  - [Rancher Desktop](<https://rancherdesktop.io/>): latest supported version is `v1.16.0` (make sure to enable **dockerd (Moby)** container engine)
 - Configure hosts:
   - Add `127.0.0.1 keycloak.eureka` entry to `/etc/hosts`
   - Add `127.0.0.1 kafka.eureka` entry to `/etc/hosts`
