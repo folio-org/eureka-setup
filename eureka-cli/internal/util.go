@@ -1,12 +1,16 @@
 package internal
 
 import (
+	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strings"
 )
 
@@ -100,4 +104,44 @@ func LogWarn(commandName string, enableDebug bool, errorMessage string) {
 
 	}
 	slog.Warn(commandName, errorMessage, "")
+}
+
+func ReadJsonFromFile(commandName string, filePath string, data interface{}) {
+	jsonFile, err := os.OpenFile(filePath, os.O_RDONLY, 0644)
+	if err != nil {
+		slog.Error(commandName, "os.Open error", "")
+		panic(err)
+	}
+	defer jsonFile.Close()
+
+	decoder := json.NewDecoder(jsonFile)
+	for {
+		if err := decoder.Decode(&data); err == io.EOF {
+			break
+		} else if err != nil {
+			slog.Error(commandName, "decoder.Decode error", "")
+			panic(err)
+		}
+	}
+}
+
+func WriteJsonToFile(commandName string, filePath string, packageJson interface{}) {
+	jsonFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		slog.Error(commandName, "os.Open error", "")
+		panic(err)
+	}
+	defer jsonFile.Close()
+
+	writer := bufio.NewWriter(jsonFile)
+	encoder := json.NewEncoder(writer)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "  ")
+
+	if err = encoder.Encode(packageJson); err != nil {
+		slog.Error(commandName, "encoder.Encode error", "")
+		panic(err)
+	}
+
+	writer.Flush()
 }

@@ -251,7 +251,7 @@ func CreateModuleDescriptorsFile(commandName string, fileModuleDescriptors strin
 	return moduleDescriptorsFile
 }
 
-func PrepareStripesConfigJson(commandName string, configPath string, tenant string) {
+func PrepareStripesConfigJs(commandName string, configPath string, tenant string) {
 	stripesConfigJsFilePath := fmt.Sprintf("%s/stripes.config.js", configPath)
 	readFileBytes, err := os.ReadFile(stripesConfigJsFilePath)
 	if err != nil {
@@ -259,10 +259,10 @@ func PrepareStripesConfigJson(commandName string, configPath string, tenant stri
 		panic(err)
 	}
 
-	replaceMap := map[string]string{"${kongUrl}": "localhost:8000",
+	replaceMap := map[string]string{"${kongUrl}": viper.GetString(ResourcesKongKey),
 		"${tenantUrl}":      PlatformCompleteUrl,
 		"${keycloakUrl}":    viper.GetString(ResourcesKeycloakKey),
-		"${hasAllPerms}":    `true`,
+		"${hasAllPerms}":    `false`,
 		"${isSingleTenant}": `true`,
 		"${tenantOptions}":  fmt.Sprintf(`{%[1]s: {name: "%[1]s", clientId: "%[1]s%s"}}`, tenant, GetEnvironmentFromMapByKey("KC_LOGIN_CLIENT_SUFFIX")),
 	}
@@ -278,5 +278,35 @@ func PrepareStripesConfigJson(commandName string, configPath string, tenant stri
 	if err != nil {
 		slog.Error(commandName, "os.WriteFile error", "")
 		panic(err)
+	}
+}
+
+func PreparePackageJson(commandName string, configPath string, tenant string) {
+	packageJsonPath := fmt.Sprintf("%s/package.json", configPath)
+
+	var packageJson struct {
+		Name            string            `json:"name"`
+		Version         string            `json:"version"`
+		License         string            `json:"license"`
+		Scripts         map[string]string `json:"scripts"`
+		Dependencies    map[string]string `json:"dependencies"`
+		DevDependencies map[string]string `json:"devDependencies"`
+		Resolutions     map[string]string `json:"resolutions"`
+	}
+
+	ReadJsonFromFile(commandName, packageJsonPath, &packageJson)
+
+	updates := 0
+	modules := []string{"@folio/authorization-policies", "@folio/authorization-roles", "@folio/plugin-select-application"}
+	for _, module := range modules {
+		if packageJson.Dependencies[module] == "" {
+			packageJson.Dependencies[module] = ">=1.0.0"
+			updates++
+		}
+	}
+
+	if updates > 0 {
+		slog.Info(commandName, fmt.Sprintf("Added %d extra modules to package.json", len(modules)), "")
+		WriteJsonToFile(commandName, packageJsonPath, packageJson)
 	}
 }
