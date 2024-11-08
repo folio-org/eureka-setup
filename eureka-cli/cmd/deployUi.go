@@ -67,6 +67,7 @@ func DeployUi() {
 		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, tenant, masterAccessToken)
 
 		slog.Info(deployUiCommand, "### COPYING PLATFORM COMPLETE UI CONFIGS ###", "")
+    
 		files, err := filepath.Glob("eureka-tpl/*")
 		if err != nil {
 			// Handle error if the pattern doesn't match any files
@@ -79,6 +80,11 @@ func DeployUi() {
 			args := append([]string{"-R", "-f"}, files...)
 			args = append(args, ".")
 			internal.RunCommandFromDir(deployUiCommand, exec.Command("cp", args...), outputDir)
+      // internal.RunCommandFromDir(deployUiCommand, exec.Command("cp", "-R", "-f", "eureka-tpl/*", "."), outputDir)
+
+      // slog.Info(deployUiCommand, "### PREPARING PLATFORM COMPLETE UI CONFIGS ###", "")
+      // internal.PrepareStripesConfigJs(deployUiCommand, outputDir, tenant)
+      // internal.PreparePackageJson(deployUiCommand, outputDir, tenant)
 		}
 
 		slog.Info(deployUiCommand, "### BUILDING PLATFORM COMPLETE UI FROM A DOCKERFILE ###", "")
