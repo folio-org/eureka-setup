@@ -133,51 +133,64 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			environment  map[string]interface{}
 		)
 
-		mapEntry := value.(map[string]interface{})
+		if value != nil {
 
-		if mapEntry[DeployModuleKey] != nil {
-			deployModule = mapEntry[DeployModuleKey].(bool)
-		}
+			mapEntry := value.(map[string]interface{})
 
-		if mapEntry[VersionKey] != nil {
-			var versionValue string
-			_, ok := mapEntry[VersionKey].(float64)
-			if ok {
-				versionValue = strconv.FormatFloat(mapEntry[VersionKey].(float64), 'f', -1, 64)
-			} else {
-				versionValue = mapEntry[VersionKey].(string)
+			if mapEntry[DeployModuleKey] != nil {
+				deployModule = mapEntry[DeployModuleKey].(bool)
 			}
-			version = &versionValue
-		}
 
-		if mapEntry[PortKey] != nil {
-			portValue := mapEntry[PortKey].(int)
-			port = &portValue
+			if mapEntry[VersionKey] != nil {
+				var versionValue string
+				_, ok := mapEntry[VersionKey].(float64)
+				if ok {
+					versionValue = strconv.FormatFloat(mapEntry[VersionKey].(float64), 'f', -1, 64)
+				} else {
+					versionValue = mapEntry[VersionKey].(string)
+				}
+				version = &versionValue
+			}
+
+			if mapEntry[PortKey] != nil {
+				portValue := mapEntry[PortKey].(int)
+				port = &portValue
+			} else {
+				PortIndex++
+				port = &PortIndex
+			}
+
+			if mapEntry[PortKeyServer] != nil {
+				portServerValue := mapEntry[PortKeyServer].(int)
+				portServer = &portServerValue
+			} else {
+				defaultServerPort, _ := strconv.Atoi(DefaultServerPort)
+				portServerValue := defaultServerPort
+				portServer = &portServerValue
+			}
+
+			if mapEntry[SidecarKey] != nil {
+				sidecarValue := mapEntry[SidecarKey].(bool)
+				sidecar = &sidecarValue
+			}
+
+			if mapEntry[ModuleEnvKey] != nil {
+				environment = mapEntry[ModuleEnvKey].(map[string]interface{})
+			} else {
+				environment = make(map[string]interface{})
+			}
+
 		} else {
 			PortIndex++
 			port = &PortIndex
-		}
 
-		if mapEntry[PortKeyServer] != nil {
-			portServerValue := mapEntry[PortKeyServer].(int)
+			defaultServerPort, _ := strconv.Atoi(DefaultServerPort)
+			portServerValue := defaultServerPort
 			portServer = &portServerValue
-		} else {
-			p, _ := strconv.Atoi(DefaultServerPort)
-			portServerValue := p
-			portServer = &portServerValue
-		}
 
-		if mapEntry[SidecarKey] != nil {
-			sidecarValue := mapEntry[SidecarKey].(bool)
-			sidecar = &sidecarValue
-		} else {
 			sidecarDefaultValue := true
 			sidecar = &sidecarDefaultValue
-		}
 
-		if mapEntry[ModuleEnvKey] != nil {
-			environment = mapEntry[ModuleEnvKey].(map[string]interface{})
-		} else {
 			environment = make(map[string]interface{})
 		}
 

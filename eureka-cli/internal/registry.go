@@ -132,7 +132,7 @@ func GetImageRegistryNamespace(commandName string, version string) string {
 	registryNamespace = os.Getenv(ecsRepoEnvKey)
 
 	if registryNamespace != "" {
-		slog.Info(commandName, fmt.Sprintf("Using AWS ECR registry namespace: %s", registryNamespace))
+		slog.Info(commandName, fmt.Sprintf("Using AWS ECR registry namespace: %s", registryNamespace), "")
 		return registryNamespace
 	}
 
@@ -142,6 +142,6 @@ func GetImageRegistryNamespace(commandName string, version string) string {
 		registryNamespace = ReleaseRegistry
 	}
 
-	slog.Info(commandName, fmt.Sprintf("Using public registry namespace: %s", registryNamespace))
+	slog.Info(commandName, fmt.Sprintf("Using public registry namespace: %s", registryNamespace), "")
 	return registryNamespace
 }
