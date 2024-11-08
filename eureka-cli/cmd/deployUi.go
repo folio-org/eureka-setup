@@ -71,7 +71,8 @@ func DeployUi() {
 		internal.RunCommandFromDir(deployUiCommand, exec.Command("cp", "-R", "-f", "eureka-tpl/*", "."), outputDir)
 
 		slog.Info(deployUiCommand, "### PREPARING PLATFORM COMPLETE UI CONFIGS ###", "")
-		internal.PrepareStripesConfigJson(deployUiCommand, outputDir, tenant)
+		internal.PrepareStripesConfigJs(deployUiCommand, outputDir, tenant)
+		internal.PreparePackageJson(deployUiCommand, outputDir, tenant)
 
 		slog.Info(deployUiCommand, "### BUILDING PLATFORM COMPLETE UI FROM A DOCKERFILE ###", "")
 		internal.RunCommandFromDir(deployUiCommand, exec.Command("docker", "build", "--tag", "platform-complete-ui",

@@ -50,9 +50,9 @@ env GOOS=windows GOARCH=amd64 go build -o ./bin .
 
 > ./bin/eureka-cli.exe -c ./config.minimal.yaml undeployApplication
 
-- Test Keycloak authentication on the UI using the created `diku` realm and `diku-login-app` public client
+- Test Keycloak authentication on the UI using the created `diku` realm and `diku-application` public client
 
-> Open in browser `http://keycloak.eureka:8080/realms/diku/protocol/openid-connect/auth?client_id=diku-login-app&response_type=code&redirect_uri=http://localhost:3000&scope=openid`
+> Open in browser `http://keycloak.eureka:8080/realms/diku/protocol/openid-connect/auth?client_id=diku-application&response_type=code&redirect_uri=http://localhost:3000&scope=openid`
 
 - If the platform-minimal UI containers are deployed, the UI can be accessed on `http://localhost:3000`
 

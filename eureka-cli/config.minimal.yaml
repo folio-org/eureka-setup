@@ -56,8 +56,8 @@ environment:
   SECURITY_ENABLED: false
   KC_IMPORT_ENABLED: true
   KC_INTEGRATION_ENABLED: true
-  KC_LOGIN_CLIENT_SUFFIX: -login-app
-  KC_SERVICE_CLIENT_ID: m2m-client
+  KC_LOGIN_CLIENT_SUFFIX: -application
+  KC_SERVICE_CLIENT_ID: sidecar-module-access-client
   KONG_INTEGRATION_ENABLED: true
   OKAPI_INTEGRATION_ENABLED: false
   # Java
@@ -125,7 +125,7 @@ sidecar-module:
     JAVA_OPTIONS: | 
       -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=DEBUG -Dquarkus.log.category.'org.apache.kafka'.level=DEBUG -Djava.util.logging.manager=org.jboss.logmanager.LogManager
       -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
-      -XX:+UseZGC -XX:MaxRAMPercentage=90.0 -Xms50m -Xmx128m
+      -XX:+UseZGC -XX:MaxRAMPercentage=90.0 -Xms50m -Xmx256m
 # Backend modules
 backend-modules:
   # Management modules
