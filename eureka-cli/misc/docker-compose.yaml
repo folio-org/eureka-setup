@@ -175,10 +175,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: 1024m
           memory: 1200M
         reservations:
-          cpus: 1024m
           memory: 1200M
 
   ### Kong ###
