@@ -133,8 +133,28 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			environment  map[string]interface{}
 		)
 
-		if value != nil {
+		getDefaultPortServer := func() *int {
+			defaultServerPort, _ := strconv.Atoi(DefaultServerPort)
+			portServerValue := defaultServerPort
+			return &portServerValue
+		}
 
+		getDefaultPort := func() *int {
+			PortIndex++
+			return &PortIndex
+		}
+
+		getDefaultSidecar := func() *bool {
+			sidecarDefaultValue := true
+			return &sidecarDefaultValue
+		}
+
+		if value == nil {
+			port = getDefaultPort()
+			portServer = getDefaultPortServer()
+			sidecar = getDefaultSidecar()
+			environment = make(map[string]interface{})
+		} else {
 			mapEntry := value.(map[string]interface{})
 
 			if mapEntry[DeployModuleKey] != nil {
@@ -156,25 +176,21 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 				portValue := mapEntry[PortKey].(int)
 				port = &portValue
 			} else {
-				PortIndex++
-				port = &PortIndex
+				port = getDefaultPort()
 			}
 
 			if mapEntry[PortKeyServer] != nil {
 				portServerValue := mapEntry[PortKeyServer].(int)
 				portServer = &portServerValue
 			} else {
-				defaultServerPort, _ := strconv.Atoi(DefaultServerPort)
-				portServerValue := defaultServerPort
-				portServer = &portServerValue
+				portServer = getDefaultPortServer()
 			}
 
 			if mapEntry[SidecarKey] != nil {
 				sidecarValue := mapEntry[SidecarKey].(bool)
 				sidecar = &sidecarValue
 			} else {
-				sidecarDefaultValue := true
-				sidecar = &sidecarDefaultValue
+				sidecar = getDefaultSidecar()
 			}
 
 			if mapEntry[ModuleEnvKey] != nil {
@@ -182,19 +198,6 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			} else {
 				environment = make(map[string]interface{})
 			}
-
-		} else {
-			PortIndex++
-			port = &PortIndex
-
-			defaultServerPort, _ := strconv.Atoi(DefaultServerPort)
-			portServerValue := defaultServerPort
-			portServer = &portServerValue
-
-			sidecarDefaultValue := true
-			sidecar = &sidecarDefaultValue
-
-			environment = make(map[string]interface{})
 		}
 
 		if sidecar != nil && *sidecar {
