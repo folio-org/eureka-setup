@@ -157,8 +157,6 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			if mapEntry[SidecarKey] != nil {
 				sidecarValue := mapEntry[SidecarKey].(bool)
 				sidecar = &sidecarValue
-			} else {
-				sidecar = getDefaultSidecar()
 			}
 
 			if mapEntry[ModuleEnvKey] != nil {
