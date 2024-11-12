@@ -57,7 +57,7 @@ env GOOS=windows GOARCH=amd64 go build -o ./bin .
 AWS_SDK_LOAD_CONFIG=true ./bin/eureka-cli.exe -c ./config.minimal.yaml deployApplication
 ```
 
-> See AWS_CLI_Preparation.md to prepare AWS CLI for beforehand
+> See AWS_CLI_Preparation.md to prepare AWS CLI beforehand
 
 - Undeploy using:
 
@@ -68,8 +68,6 @@ AWS_SDK_LOAD_CONFIG=true ./bin/eureka-cli.exe -c ./config.minimal.yaml deployApp
 - Test Keycloak authentication on the UI using the created `diku` realm and `diku-application` public client
 
 > Open in browser `http://keycloak.eureka:8080/realms/diku/protocol/openid-connect/auth?client_id=diku-application&response_type=code&redirect_uri=http://localhost:3000&scope=openid`
-
-> Open in browser `http://keycloak.eureka:8080/realms/diku/protocol/openid-connect/auth?client_id=diku-login-app&response_type=code&redirect_uri=http://localhost:3000&scope=openid`
 
 - Gateway is available at `localhost:8000` or `api-gateway.eureka:8000`
 - Login and get a token:
@@ -86,7 +84,6 @@ curl --request POST \
 ### Use AWS ECR
 
 To use AWS ECR as your container registry rather than the public folio dockerhub, set `AWS_ECR_FOLIO_REPO` in your environment. When this env variable is defined it is assumed that this repo is private and you have also defined credentials in your environment.
-- If the platform-minimal UI containers are deployed, the UI can be accessed on `http://localhost:3000`
 
 ### Troubleshooting
 
