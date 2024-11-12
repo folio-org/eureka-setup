@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-git/go-git/v5/plumbing"
+
 	"github.com/spf13/viper"
 )
 
@@ -17,7 +19,7 @@ const (
 	NetworkId            string = "eureka"
 	DockerInternalUrl    string = "http://host.docker.internal:%d%s"
 	HostIp               string = "0.0.0.0"
-	ServerPort           string = "8081"
+	DefaultServerPort    string = "8081"
 	DebugPort            string = "5005"
 
 	PlatformCompleteUrl           string = "http://localhost:3000"
@@ -38,8 +40,9 @@ const (
 const (
 	ProfileNameKey string = "profile.name"
 
-	ApplicationKey       string = "application"
-	ApplicationPortStart string = "application.port-start"
+	ApplicationKey           string = "application"
+	ApplicationPortStart     string = "application.port-start"
+	ApplicationStripesBranch string = "application.stripes-branch"
 
 	RegistryUrlKey                  string = "registry.registry-url"
 	RegistryFolioInstallJsonUrlKey  string = "registry.folio-install-json-url"
@@ -70,6 +73,7 @@ const (
 	DeployModuleKey string = "deploy-module"
 	VersionKey      string = "version"
 	PortKey         string = "port"
+	PortKeyServer   string = "port-server"
 	SidecarKey      string = "sidecar"
 	ModuleEnvKey    string = "environment"
 )
@@ -122,11 +126,33 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			deployModule bool = true
 			version      *string
 			port         *int
+			portServer   *int
 			sidecar      *bool
 			environment  map[string]interface{}
 		)
 
-		if value != nil {
+		getDefaultPortServer := func() *int {
+			defaultServerPort, _ := strconv.Atoi(DefaultServerPort)
+			portServerValue := defaultServerPort
+			return &portServerValue
+		}
+
+		getDefaultPort := func() *int {
+			PortIndex++
+			return &PortIndex
+		}
+
+		getDefaultSidecar := func() *bool {
+			sidecarDefaultValue := true
+			return &sidecarDefaultValue
+		}
+
+		if value == nil {
+			port = getDefaultPort()
+			portServer = getDefaultPortServer()
+			sidecar = getDefaultSidecar()
+			environment = make(map[string]interface{})
+		} else {
 			mapEntry := value.(map[string]interface{})
 
 			if mapEntry[DeployModuleKey] != nil {
@@ -147,11 +173,22 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			if mapEntry[PortKey] != nil {
 				portValue := mapEntry[PortKey].(int)
 				port = &portValue
+			} else {
+				port = getDefaultPort()
+			}
+
+			if mapEntry[PortKeyServer] != nil {
+				portServerValue := mapEntry[PortKeyServer].(int)
+				portServer = &portServerValue
+			} else {
+				portServer = getDefaultPortServer()
 			}
 
 			if mapEntry[SidecarKey] != nil {
 				sidecarValue := mapEntry[SidecarKey].(bool)
 				sidecar = &sidecarValue
+			} else {
+				sidecar = getDefaultSidecar()
 			}
 
 			if mapEntry[ModuleEnvKey] != nil {
@@ -159,20 +196,12 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			} else {
 				environment = make(map[string]interface{})
 			}
-		} else {
-			PortIndex++
-			port = &PortIndex
-
-			sidecarDefaultValue := true
-			sidecar = &sidecarDefaultValue
-
-			environment = make(map[string]interface{})
 		}
 
 		if sidecar != nil && *sidecar {
-			backendModulesMap[name] = *NewBackendModuleAndSidecar(deployModule, name, version, *port, *sidecar, environment)
+			backendModulesMap[name] = *NewBackendModuleAndSidecar(deployModule, name, version, *port, *portServer, *sidecar, environment)
 		} else {
-			backendModulesMap[name] = *NewBackendModule(name, *port, environment)
+			backendModulesMap[name] = *NewBackendModule(name, *port, *portServer, environment)
 		}
 
 		moduleInfo := name
@@ -309,4 +338,19 @@ func PreparePackageJson(commandName string, configPath string, tenant string) {
 		slog.Info(commandName, fmt.Sprintf("Added %d extra modules to package.json", len(modules)), "")
 		WriteJsonToFile(commandName, packageJsonPath, packageJson)
 	}
+}
+
+func GetStripesBranch(commandName string, defaultBranch plumbing.ReferenceName) plumbing.ReferenceName {
+	var stripesBranch plumbing.ReferenceName
+
+	if viper.IsSet(ApplicationStripesBranch) {
+		branchStr := viper.GetString(ApplicationStripesBranch)
+		stripesBranch = plumbing.ReferenceName(branchStr)
+		slog.Info(commandName, fmt.Sprintf("Got stripes branch from config: %s", stripesBranch), "")
+	} else {
+		stripesBranch = defaultBranch
+		slog.Info(commandName, fmt.Sprintf("No stripes branch in config. Using default branch: %s", stripesBranch), "")
+	}
+
+	return stripesBranch
 }

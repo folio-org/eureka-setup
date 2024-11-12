@@ -106,6 +106,8 @@ func LogWarn(commandName string, enableDebug bool, errorMessage string) {
 	slog.Warn(commandName, errorMessage, "")
 }
 
+// ######## JSON ########
+
 func ReadJsonFromFile(commandName string, filePath string, data interface{}) {
 	jsonFile, err := os.OpenFile(filePath, os.O_RDONLY, 0644)
 	if err != nil {

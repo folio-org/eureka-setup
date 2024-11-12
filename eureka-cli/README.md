@@ -42,6 +42,8 @@ env GOOS=windows GOARCH=amd64 go build -o ./bin .
 
 ### Deploy a minimal platform application
 
+#### Using Public DockerHub image registries (folioci & folioorg namespaces)
+
 - Use a specific config: `-c` or `--config`
 - Enable debug: `-d` or `--debug`
 
@@ -49,14 +51,46 @@ env GOOS=windows GOARCH=amd64 go build -o ./bin .
 ./bin/eureka-cli.exe -c ./config.minimal.yaml deployApplication
 ```
 
+#### Using Private AWS ECR image registry
+
+- Use a specific config: `-c` or `--config`
+- Enable debug: `-d` or `--debug`
+
+```shell
+AWS_SDK_LOAD_CONFIG=true ./bin/eureka-cli.exe -c ./config.minimal.yaml deployApplication
+```
+
+> See AWS_CLI_Preparation.md to prepare AWS CLI for beforehand
+
 - Undeploy using:
 
 > ./bin/eureka-cli.exe -c ./config.minimal.yaml undeployApplication
+
+### Use the environment
 
 - Test Keycloak authentication on the UI using the created `diku` realm and `diku-login-app` public client
 
 > Open in browser `http://keycloak.eureka:8080/realms/diku/protocol/openid-connect/auth?client_id=diku-login-app&response_type=code&redirect_uri=http://localhost:3000&scope=openid`
 
+- Gateway is available at `localhost:8000` or `api-gateway.eureka:8000`
+- Login and get a token:
+
+```shell
+curl --request POST \
+  --url localhost:8000/authn/login-with-expiry \
+  --header 'Content-Type: application/json' \
+  --header 'X-Okapi-Tenant: diku' \
+  --data '{"username":"diku_admin","password": "admin"}' \
+  --verbose
+```
+
+### Use AWS ECR
+
+To use AWS ECR as your container registry rather than the public folio dockerhub, set `AWS_ECR_FOLIO_REPO` in your environment. When this env variable is defined it is assumed that this repo is private and you have also defined credentials in your environment.
+
 ### Troubleshooting
 
 - Verify that all shell scripts located under `./misc` folder are saved using the **LF** (Line Feed) line break
+- If you get a **SIGKILL** when trying to build the stripes container configure Rancher Desktop or other docker env with more RAM
+- If health checks are failing make sure localhost is mapped to host.docker.internal in your `/etc/hosts` file
+- If using Rancher Desktop on a system that also uses Docker Desktop, you may need to do set `DOCKER_HOST` in your env to where `docker.sock` is

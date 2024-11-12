@@ -5,6 +5,7 @@ create database keycloak;
 create user keycloak_rw with password 'supersecret';
 grant connect on database keycloak to keycloak_rw;
 grant all privileges on database keycloak to keycloak_rw;
+grant all privileges on schema public to keycloak_rw;
 
 create database kong;
 create user kong_rw with password 'supersecret';

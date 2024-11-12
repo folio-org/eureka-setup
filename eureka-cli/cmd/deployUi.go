@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os/exec"
+	"path/filepath"
 	"slices"
 
 	"github.com/folio-org/eureka-cli/internal"
@@ -31,7 +32,7 @@ const (
 	deployUiCommand     string = "Deploy UI"
 	platformCompleteDir string = "platform-complete"
 
-	branchName plumbing.ReferenceName = "snapshot"
+	defaultStripesBranch plumbing.ReferenceName = "snapshot"
 )
 
 // deployUiCmd represents the deployUi command
@@ -46,11 +47,12 @@ var deployUiCmd = &cobra.Command{
 
 func DeployUi() {
 	slog.Info(deployUiCommand, "### ACQUIRING KEYCLOAK MASTER ACCESS TOKEN ###", "")
-	masterAccessToken := internal.GetKeycloakMasterRealmAccessToken(createUsersCommand, enableDebug)
 
 	slog.Info(deployUiCommand, "### CLONING PLATFORM COMPLETE UI FROM A SNAPSHOT BRANCH ###", "")
+	var stripesBranch = internal.GetStripesBranch(deployUiCommand, defaultStripesBranch)
+
 	outputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
-	internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, branchName, outputDir, false)
+	internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, stripesBranch, outputDir, false)
 
 	for _, value := range internal.GetTenants(deployUiCommand, enableDebug, false) {
 		mapEntry := value.(map[string]interface{})
@@ -61,14 +63,30 @@ func DeployUi() {
 		}
 
 		slog.Info(deployUiCommand, "### UPDATING KEYCLOAK PUBLIC CLIENT", "")
+		masterAccessToken := internal.GetKeycloakMasterRealmAccessToken(createUsersCommand, enableDebug)
 		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, tenant, masterAccessToken)
 
 		slog.Info(deployUiCommand, "### COPYING PLATFORM COMPLETE UI CONFIGS ###", "")
-		internal.RunCommandFromDir(deployUiCommand, exec.Command("cp", "-R", "-f", "eureka-tpl/*", "."), outputDir)
+		files, err := filepath.Glob("eureka-tpl/*")
+		if err != nil {
+			// Handle error if the pattern doesn't match any files
+			internal.LogErrorPanic(deployUiCommand, fmt.Sprintf("Failed to glob files: %v", err.Error()))
+		}
 
-		slog.Info(deployUiCommand, "### PREPARING PLATFORM COMPLETE UI CONFIGS ###", "")
-		internal.PrepareStripesConfigJs(deployUiCommand, outputDir, tenant)
-		internal.PreparePackageJson(deployUiCommand, outputDir, tenant)
+		if len(files) > 0 {
+			// Append the destination directory to the list of files
+			args := append([]string{"-R", "-f"}, files...)
+			args = append(args, ".")
+			internal.RunCommandFromDir(deployUiCommand, exec.Command("cp", args...), outputDir)
+
+			if stripesBranch == defaultStripesBranch {
+				slog.Info(deployUiCommand, "### PREPARING PLATFORM COMPLETE UI CONFIGS ###", "")
+				internal.PrepareStripesConfigJs(deployUiCommand, outputDir, tenant)
+				internal.PreparePackageJson(deployUiCommand, outputDir, tenant)
+			}
+		} else {
+			slog.Info("No files matched in eureka-tpl/*. Not copying.")
+		}
 
 		slog.Info(deployUiCommand, "### BUILDING PLATFORM COMPLETE UI FROM A DOCKERFILE ###", "")
 		internal.RunCommandFromDir(deployUiCommand, exec.Command("docker", "build", "--tag", "platform-complete-ui",

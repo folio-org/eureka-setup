@@ -53,6 +53,7 @@ type BackendModule struct {
 	DeploySidecar           bool
 	SidecarExposedPorts     *nat.PortSet
 	SidecarPortBindings     *nat.PortMap
+	ModuleServerPort        int
 }
 
 type FrontendModule struct {
@@ -71,16 +72,17 @@ type Event struct {
 	} `json:"progressDetail"`
 }
 
-func NewBackendModuleAndSidecar(deployModule bool, name string, version *string, port int, deploySidecar bool, moduleEnvironment map[string]interface{}) *BackendModule {
-	exposedPorts := CreateExposedPorts()
-	modulePortBindings := CreatePortBindings(port, port+1000)
-	sidecarPortBindings := CreatePortBindings(port+2000, port+3000)
+func NewBackendModuleAndSidecar(deployModule bool, name string, version *string, port int, portServer int, deploySidecar bool, moduleEnvironment map[string]interface{}) *BackendModule {
+	exposedPorts := CreateExposedPorts(portServer)
+	modulePortBindings := CreatePortBindings(port, port+1000, portServer)
+	sidecarPortBindings := CreatePortBindings(port+2000, port+3000, portServer)
 
 	return &BackendModule{
 		DeployModule:            deployModule,
 		ModuleName:              name,
 		ModuleVersion:           version,
 		ModuleExposedServerPort: port,
+		ModuleServerPort:        portServer,
 		ModuleExposedPorts:      exposedPorts,
 		ModulePortBindings:      modulePortBindings,
 		ModuleEnvironment:       moduleEnvironment,
@@ -90,15 +92,16 @@ func NewBackendModuleAndSidecar(deployModule bool, name string, version *string,
 	}
 }
 
-func NewBackendModule(name string, port int, moduleEnvironment map[string]interface{}) *BackendModule {
-	exposedPorts := CreateExposedPorts()
-	modulePortBindings := CreatePortBindings(port, port+1000)
+func NewBackendModule(name string, port int, portServer int, moduleEnvironment map[string]interface{}) *BackendModule {
+	exposedPorts := CreateExposedPorts(portServer)
+	modulePortBindings := CreatePortBindings(port, port+1000, portServer)
 
 	return &BackendModule{
 		DeployModule:            true,
 		ModuleName:              name,
 		ModuleVersion:           nil,
 		ModuleExposedServerPort: port,
+		ModuleServerPort:        portServer,
 		ModuleExposedPorts:      exposedPorts,
 		ModulePortBindings:      modulePortBindings,
 		ModuleEnvironment:       moduleEnvironment,
@@ -154,12 +157,13 @@ func NewDeployModuleDto(name string,
 	image string,
 	env []string,
 	backendModule BackendModule,
-	networkConfig *network.NetworkingConfig) *DeployModuleDto {
+	networkConfig *network.NetworkingConfig,
+	authToken string) *DeployModuleDto {
 	return &DeployModuleDto{
 		Name:         name,
 		Version:      version,
 		Image:        image,
-		RegistryAuth: "",
+		RegistryAuth: authToken,
 		Config: &container.Config{
 			Image:        image,
 			Hostname:     name,
@@ -182,12 +186,13 @@ func NewDeploySidecarDto(name string,
 	env []string,
 	backendModule BackendModule,
 	networkConfig *network.NetworkingConfig,
-	pullSidecarImage bool) *DeployModuleDto {
+	pullSidecarImage bool,
+	authToken string) *DeployModuleDto {
 	return &DeployModuleDto{
 		Name:         name,
 		Version:      version,
 		Image:        image,
-		RegistryAuth: "",
+		RegistryAuth: authToken,
 		Config: &container.Config{
 			Image:        image,
 			Hostname:     name,
@@ -210,10 +215,10 @@ func NewModuleNetworkConfig() *network.NetworkingConfig {
 	}
 }
 
-func CreateExposedPorts() *nat.PortSet {
+func CreateExposedPorts(serverPort int) *nat.PortSet {
 	moduleExposedPorts := make(map[nat.Port]struct{})
 
-	moduleExposedPorts[nat.Port(ServerPort)] = struct{}{}
+	moduleExposedPorts[nat.Port(strconv.Itoa(serverPort))] = struct{}{}
 	moduleExposedPorts[nat.Port(DebugPort)] = struct{}{}
 
 	portSet := nat.PortSet(moduleExposedPorts)
@@ -221,7 +226,7 @@ func CreateExposedPorts() *nat.PortSet {
 	return &portSet
 }
 
-func CreatePortBindings(hostServerPort int, hostServerDebugPort int) *nat.PortMap {
+func CreatePortBindings(hostServerPort int, hostServerDebugPort int, serverPort int) *nat.PortMap {
 	var (
 		serverPortBinding      []nat.PortBinding
 		serverDebugPortBinding []nat.PortBinding
@@ -231,7 +236,7 @@ func CreatePortBindings(hostServerPort int, hostServerDebugPort int) *nat.PortMa
 	serverDebugPortBinding = append(serverDebugPortBinding, nat.PortBinding{HostIP: HostIp, HostPort: strconv.Itoa(hostServerDebugPort)})
 
 	portBindings := make(map[nat.Port][]nat.PortBinding)
-	portBindings[nat.Port(ServerPort)] = serverPortBinding
+	portBindings[nat.Port(strconv.Itoa(serverPort))] = serverPortBinding
 	portBindings[nat.Port(DebugPort)] = serverDebugPortBinding
 
 	portMap := nat.PortMap(portBindings)
@@ -368,12 +373,13 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 	var sidecarImage string
 	if sidecarImage == "" {
 		sidecarId := fmt.Sprintf("%s:%s", sidecarModule["image"], sidecarModule["version"])
-		sidecarImage = fmt.Sprintf("%s/%s", DetermineImageRegistryNamespace(sidecarModule["version"].(string)), sidecarId)
+		sidecarImage = fmt.Sprintf("%s/%s", GetImageRegistryNamespace(commandName, sidecarModule["version"].(string)), sidecarId)
 	}
 
 	resourceUrlVault := viper.GetString(ResourcesVaultKey)
 	networkConfig := NewModuleNetworkConfig()
 	pullSidecarImage := true
+	authToken := GetRegistryAuthTokenIfPresent(commandName)
 
 	for registryName, registryModules := range dto.RegistryModules {
 		slog.Info(commandName, fmt.Sprintf("Deploying %s modules", registryName), "")
@@ -394,13 +400,14 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 				continue
 			}
 
-			image := fmt.Sprintf("%s/%s:%s", DetermineImageRegistryNamespace(*module.Version), module.Name, *module.Version)
+			image := fmt.Sprintf("%s/%s:%s", GetImageRegistryNamespace(commandName, *module.Version), module.Name, *module.Version)
 
 			var combinedModuleEnvironment []string
 			combinedModuleEnvironment = append(combinedModuleEnvironment, dto.GlobalEnvironment...)
 			combinedModuleEnvironment = AppendModuleEnvironment(backendModule.ModuleEnvironment, combinedModuleEnvironment)
 			combinedModuleEnvironment = AppendVaultEnvironment(combinedModuleEnvironment, dto.VaultRootToken, resourceUrlVault)
-			deployModuleDto := NewDeployModuleDto(module.Name, *module.Version, image, combinedModuleEnvironment, backendModule, networkConfig)
+
+			deployModuleDto := NewDeployModuleDto(module.Name, *module.Version, image, combinedModuleEnvironment, backendModule, networkConfig, authToken)
 
 			DeployModule(commandName, client, deployModuleDto)
 
@@ -416,8 +423,9 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			combinedSidecarEnvironment = AppendKeycloakEnvironment(commandName, combinedSidecarEnvironment)
 			combinedSidecarEnvironment = AppendVaultEnvironment(combinedSidecarEnvironment, dto.VaultRootToken, resourceUrlVault)
 			combinedSidecarEnvironment = AppendManagementEnvironment(combinedSidecarEnvironment)
-			combinedSidecarEnvironment = AppendSidecarEnvironment(combinedSidecarEnvironment, module)
-			deploySidecarDto := NewDeploySidecarDto(module.SidecarName, *module.Version, sidecarImage, combinedSidecarEnvironment, backendModule, networkConfig, pullSidecarImage)
+			combinedSidecarEnvironment = AppendSidecarEnvironment(combinedSidecarEnvironment, module, strconv.Itoa(backendModule.ModuleServerPort))
+
+			deploySidecarDto := NewDeploySidecarDto(module.SidecarName, *module.Version, sidecarImage, combinedSidecarEnvironment, backendModule, networkConfig, pullSidecarImage, authToken)
 
 			DeployModule(commandName, client, deploySidecarDto)
 
@@ -426,15 +434,4 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 	}
 
 	return deployedModules
-}
-
-func DetermineImageRegistryNamespace(version string) string {
-	var registryNamespace string
-	if strings.Contains(version, "SNAPSHOT") {
-		registryNamespace = SnapshotRegistry
-	} else {
-		registryNamespace = ReleaseRegistry
-	}
-
-	return registryNamespace
 }
