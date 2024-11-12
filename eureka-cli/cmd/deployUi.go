@@ -67,24 +67,25 @@ func DeployUi() {
 		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, tenant, masterAccessToken)
 
 		slog.Info(deployUiCommand, "### COPYING PLATFORM COMPLETE UI CONFIGS ###", "")
-    
 		files, err := filepath.Glob("eureka-tpl/*")
 		if err != nil {
 			// Handle error if the pattern doesn't match any files
-			slog.Info(deployUiCommand, "Failed to glob files: %v", err)
+			internal.LogErrorPanic(deployUiCommand, fmt.Sprintf("Failed to glob files: %v", err.Error()))
 		}
-		if len(files) == 0 {
-			slog.Info("No files matched in eureka-tpl/*. Not copying.")
-		} else {
+
+		if len(files) > 0 {
 			// Append the destination directory to the list of files
 			args := append([]string{"-R", "-f"}, files...)
 			args = append(args, ".")
 			internal.RunCommandFromDir(deployUiCommand, exec.Command("cp", args...), outputDir)
-      // internal.RunCommandFromDir(deployUiCommand, exec.Command("cp", "-R", "-f", "eureka-tpl/*", "."), outputDir)
 
-      // slog.Info(deployUiCommand, "### PREPARING PLATFORM COMPLETE UI CONFIGS ###", "")
-      // internal.PrepareStripesConfigJs(deployUiCommand, outputDir, tenant)
-      // internal.PreparePackageJson(deployUiCommand, outputDir, tenant)
+			if stripesBranch == defaultStripesBranch {
+				slog.Info(deployUiCommand, "### PREPARING PLATFORM COMPLETE UI CONFIGS ###", "")
+				internal.PrepareStripesConfigJs(deployUiCommand, outputDir, tenant)
+				internal.PreparePackageJson(deployUiCommand, outputDir, tenant)
+			}
+		} else {
+			slog.Info("No files matched in eureka-tpl/*. Not copying.")
 		}
 
 		slog.Info(deployUiCommand, "### BUILDING PLATFORM COMPLETE UI FROM A DOCKERFILE ###", "")

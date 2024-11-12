@@ -2,13 +2,13 @@ package internal
 
 import (
 	"fmt"
-	"github.com/go-git/go-git/v5/plumbing"
-	"log"
 	"log/slog"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/go-git/go-git/v5/plumbing"
 
 	"github.com/spf13/viper"
 )
@@ -122,8 +122,6 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 	backendModulesMap := make(map[string]BackendModule)
 
 	for name, value := range backendModulesAnyMap {
-		log.Println("name:", name, "value:", value)
-
 		var (
 			deployModule bool = true
 			version      *string

@@ -379,6 +379,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 	resourceUrlVault := viper.GetString(ResourcesVaultKey)
 	networkConfig := NewModuleNetworkConfig()
 	pullSidecarImage := true
+	authToken := GetRegistryAuthTokenIfPresent(commandName)
 
 	for registryName, registryModules := range dto.RegistryModules {
 		slog.Info(commandName, fmt.Sprintf("Deploying %s modules", registryName), "")
@@ -405,8 +406,6 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			combinedModuleEnvironment = append(combinedModuleEnvironment, dto.GlobalEnvironment...)
 			combinedModuleEnvironment = AppendModuleEnvironment(backendModule.ModuleEnvironment, combinedModuleEnvironment)
 			combinedModuleEnvironment = AppendVaultEnvironment(combinedModuleEnvironment, dto.VaultRootToken, resourceUrlVault)
-
-			authToken := GetEurekaRegistryAuthTokenIfPresent(commandName)
 
 			deployModuleDto := NewDeployModuleDto(module.Name, *module.Version, image, combinedModuleEnvironment, backendModule, networkConfig, authToken)
 
