@@ -1,5 +1,5 @@
 # Profile
-profile: 
+profile:
   name: minimal
 # Application
 application:
@@ -9,7 +9,7 @@ application:
   fetch-descriptors: false
   port-start: 30000
 # Registry
-registry: 
+registry:
   registry-url: https://folio-registry.dev.folio.org
   folio-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
   eureka-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
@@ -47,7 +47,7 @@ environment:
   MT_URL: http://mgr-tenants.eureka:8081
   AM_CLIENT_URL: http://mgr-applications.eureka:8081
   KONG_ADMIN_URL: http://api-gateway.eureka:8001
-  # Keycloak 
+  # Keycloak
   KC_URL: http://keycloak.eureka:8080
   KC_CONFIG_TTL: 3600s
   KC_ADMIN_CLIENT_ID: supersecret
@@ -63,11 +63,11 @@ environment:
   # Java
   JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms256m -Xmx512m"
 # Files
-files: 
+files:
   module-env: .module.env
   module-descriptors: .module-descriptors.json
 # Resources
-resources: 
+resources:
   kong: http://api-gateway.eureka:8000
   vault: http://vault.eureka:8200
   keycloak: http://keycloak.eureka:8080
@@ -80,31 +80,31 @@ tenants:
     deploy-ui: true
 # Roles
 roles:
-  Admin: 
+  Admin:
     tenant: diku
-    capability-sets: 
+    capability-sets:
       - all
-  User: 
+  User:
     tenant: diku
     capability-sets:
       - login.manage
       - mod-settings_entries.manage
 # Users
 users:
-  diku_admin: 
+  diku_admin:
     tenant: diku
     password: admin
     last-name: John
     first-name: Doe
-    roles: 
+    roles:
       - Admin
       - User
-  diku_user: 
+  diku_user:
     tenant: diku
     password: user
     last-name: John
     first-name: Smith
-    roles: 
+    roles:
       - User
 # Sidecar module
 sidecar-module:

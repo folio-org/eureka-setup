@@ -30,7 +30,7 @@ const (
 	deployUiCommand     string = "Deploy UI"
 	platformCompleteDir string = "platform-complete"
 
-	snapshotBranchName plumbing.ReferenceName = "snapshot"
+	defaultStripesBranch plumbing.ReferenceName = "snapshot"
 )
 
 // deployUiCmd represents the deployUi command
@@ -46,12 +46,13 @@ var deployUiCmd = &cobra.Command{
 func DeployUi() {
 	slog.Info(deployUiCommand, "### CLONING & UPDATING UI ###", "")
 
-	slog.Info(deployUiCommand, fmt.Sprintf("Cloning %s from a %s branch", platformCompleteDir, snapshotBranchName), "")
+	slog.Info(deployUiCommand, fmt.Sprintf("Cloning %s from a %s branch", platformCompleteDir, defaultStripesBranch), "")
 	outputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
-	internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, snapshotBranchName, outputDir, false)
+	stripesBranch := internal.GetStripesBranch(deployUiCommand, defaultStripesBranch)
+	internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, stripesBranch, outputDir, false)
 
 	slog.Info(deployUiCommand, fmt.Sprintf("Pulling updates for %s from origin", platformCompleteDir), "")
-	internal.GitResetHardPullFromOriginRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, snapshotBranchName, outputDir)
+	internal.GitResetHardPullFromOriginRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, defaultStripesBranch, outputDir)
 
 	slog.Info(deployUiCommand, "### ACQUIRING KEYCLOAK MASTER ACCESS TOKEN ###", "")
 	masterAccessToken := internal.GetKeycloakMasterRealmAccessToken(createUsersCommand, enableDebug)
