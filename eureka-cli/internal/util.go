@@ -11,6 +11,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
 )
 
@@ -43,7 +44,7 @@ func DumpHttpRequest(commandName string, req *http.Request, enableDebug bool) {
 
 	reqBytes, err := httputil.DumpRequest(req, true)
 	if err != nil {
-		slog.Error(commandName, "httputil.DumpRequest error", "")
+		slog.Error(commandName, GetFuncName(), "httputil.DumpRequest error")
 		panic(err)
 	}
 
@@ -59,7 +60,7 @@ func DumpHttpResponse(commandName string, resp *http.Response, enableDebug bool)
 
 	respBytes, err := httputil.DumpResponse(resp, true)
 	if err != nil {
-		slog.Error(commandName, "httputil.DumpResponse error", "")
+		slog.Error(commandName, GetFuncName(), "httputil.DumpResponse error")
 		panic(err)
 	}
 
@@ -105,7 +106,7 @@ func TransformToEnvVar(name string) string {
 // ######## LOG ########
 
 func LogErrorPanic(commandName string, errorMessage string) {
-	slog.Error(commandName, errorMessage, "")
+	slog.Error(commandName, GetFuncName(), errorMessage)
 	panic(errors.New(errorMessage))
 }
 
@@ -114,7 +115,7 @@ func LogWarn(commandName string, enableDebug bool, errorMessage string) {
 		return
 
 	}
-	slog.Warn(commandName, errorMessage, "")
+	slog.Warn(commandName, GetFuncName(), errorMessage)
 }
 
 // ######## SLICES ########
@@ -134,7 +135,7 @@ func ConvertMapKeysToSlice(inputMap map[string]any) []string {
 func ReadJsonFromFile(commandName string, filePath string, data interface{}) {
 	jsonFile, err := os.OpenFile(filePath, os.O_RDONLY, 0644)
 	if err != nil {
-		slog.Error(commandName, "os.Open error", "")
+		slog.Error(commandName, GetFuncName(), "os.Open error")
 		panic(err)
 	}
 	defer jsonFile.Close()
@@ -144,7 +145,7 @@ func ReadJsonFromFile(commandName string, filePath string, data interface{}) {
 		if err := decoder.Decode(&data); err == io.EOF {
 			break
 		} else if err != nil {
-			slog.Error(commandName, "decoder.Decode error", "")
+			slog.Error(commandName, GetFuncName(), "decoder.Decode error")
 			panic(err)
 		}
 	}
@@ -153,7 +154,7 @@ func ReadJsonFromFile(commandName string, filePath string, data interface{}) {
 func WriteJsonToFile(commandName string, filePath string, packageJson interface{}) {
 	jsonFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
-		slog.Error(commandName, "os.Open error", "")
+		slog.Error(commandName, GetFuncName(), "os.Open error")
 		panic(err)
 	}
 	defer jsonFile.Close()
@@ -164,9 +165,15 @@ func WriteJsonToFile(commandName string, filePath string, packageJson interface{
 	encoder.SetIndent("", "  ")
 
 	if err = encoder.Encode(packageJson); err != nil {
-		slog.Error(commandName, "encoder.Encode error", "")
+		slog.Error(commandName, GetFuncName(), "encoder.Encode error")
 		panic(err)
 	}
 
 	writer.Flush()
+}
+
+func GetFuncName() string {
+	pc, _, _, _ := runtime.Caller(1)
+
+	return runtime.FuncForPC(pc).Name()
 }

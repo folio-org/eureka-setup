@@ -48,21 +48,21 @@ func DeploySystem() {
 	folioKeycloakOutputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, folioKeycloakDir)
 	folioKongOutputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, folioKongDir)
 
-	slog.Info(deploySystemCommand, "### CLONING & UPDATING SYSTEM COMPONENTS ###", "")
+	slog.Info(deploySystemCommand, internal.GetFuncName(), "### CLONING & UPDATING SYSTEM COMPONENTS ###")
 
-	slog.Info(deploySystemCommand, fmt.Sprintf("Cloning %s from a %s branch", folioKeycloakDir, masterBranchName), "")
+	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", folioKeycloakDir, masterBranchName))
 	internal.GitCloneRepository(deploySystemCommand, enableDebug, internal.FolioKeycloakRepositoryUrl, masterBranchName, folioKeycloakOutputDir, false)
 
-	slog.Info(deploySystemCommand, fmt.Sprintf("Pulling updates for %s from origin", folioKeycloakDir), "")
+	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", folioKeycloakDir))
 	internal.GitResetHardPullFromOriginRepository(deploySystemCommand, enableDebug, internal.FolioKeycloakRepositoryUrl, masterBranchName, folioKeycloakOutputDir)
 
-	slog.Info(deploySystemCommand, fmt.Sprintf("Cloning %s from a %s branch", folioKongDir, masterBranchName), "")
+	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", folioKongDir, masterBranchName))
 	internal.GitCloneRepository(deploySystemCommand, enableDebug, internal.FolioKongRepositoryUrl, masterBranchName, folioKongOutputDir, false)
 
-	slog.Info(deploySystemCommand, fmt.Sprintf("Pulling updates for %s from origin", folioKongDir), "")
+	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", folioKongDir))
 	internal.GitResetHardPullFromOriginRepository(deploySystemCommand, enableDebug, internal.FolioKongRepositoryUrl, masterBranchName, folioKongOutputDir)
 
-	slog.Info(deploySystemCommand, "### DEPLOYING SYSTEM CONTAINERS ###", "")
+	slog.Info(deploySystemCommand, internal.GetFuncName(), "### DEPLOYING SYSTEM CONTAINERS ###")
 	// TODO Add an optional --no-cache flag
 	preparedCommands := []*exec.Cmd{exec.Command("docker", "compose", "-p", "eureka", "build", "--no-cache"),
 		exec.Command("docker", "compose", "-p", "eureka", "up", "--detach"),
@@ -70,9 +70,9 @@ func DeploySystem() {
 	for _, preparedCommand := range preparedCommands {
 		internal.RunCommandFromDir(deployManagementCommand, preparedCommand, internal.DockerComposeWorkDir)
 	}
-	slog.Info(deploySystemCommand, "### WAITING FOR SYSTEM TO INITIALIZE ###", "")
+	slog.Info(deploySystemCommand, internal.GetFuncName(), "### WAITING FOR SYSTEM TO INITIALIZE ###")
 	time.Sleep(15 * time.Second)
-	slog.Info(deployModulesCommand, "System has initialized", "")
+	slog.Info(deployModulesCommand, internal.GetFuncName(), "System has initialized")
 }
 
 func init() {

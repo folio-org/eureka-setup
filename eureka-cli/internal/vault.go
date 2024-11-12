@@ -20,18 +20,18 @@ func GetVaultSecretKey(commandName string, enableDebug bool, vaultRootToken stri
 
 	client, err := vault.New(vault.WithAddress(serverUrl), vault.WithRequestTimeout(VaultTimeout))
 	if err != nil {
-		slog.Error(commandName, "vault.New error", "")
+		slog.Error(commandName, GetFuncName(), "vault.New error")
 		panic(err)
 	}
 
 	if err := client.SetToken(vaultRootToken); err != nil {
-		slog.Error(commandName, "client.SetToken error", "")
+		slog.Error(commandName, GetFuncName(), "client.SetToken error")
 		panic(err)
 	}
 
 	secret, err := client.Secrets.KvV2Read(context.Background(), secretPath, vault.WithMountPath("secret"))
 	if err != nil {
-		slog.Error(commandName, "client.Secrets.KvV2Read error", "")
+		slog.Error(commandName, GetFuncName(), "client.Secrets.KvV2Read error")
 		panic(err)
 	}
 

@@ -59,7 +59,7 @@ func init() {
 }
 
 func initConfig() {
-	slog.Info(rootCommand, "### READING CONFIG ###", "")
+	slog.Info(rootCommand, internal.GetFuncName(), "### READING CONFIG ###")
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
 	} else {
@@ -74,8 +74,8 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		profile := viper.GetString(internal.ProfileNameKey)
 		applicationsMap := viper.GetStringMap(internal.ApplicationKey)
-		slog.Info(rootCommand, "Using config file", viper.ConfigFileUsed())
-		slog.Info(rootCommand, "Using config profile", profile)
-		slog.Info(rootCommand, "Using config application", fmt.Sprintf("%s-%s", applicationsMap["name"], applicationsMap["version"]))
+		slog.Info(rootCommand, internal.GetFuncName(), fmt.Sprintf("Using config file: %s", viper.ConfigFileUsed()))
+		slog.Info(rootCommand, internal.GetFuncName(), fmt.Sprintf("Using config profile: %s", profile))
+		slog.Info(rootCommand, internal.GetFuncName(), fmt.Sprintf("Using config application: %s", fmt.Sprintf("%s-%s", applicationsMap["name"], applicationsMap["version"])))
 	}
 }

@@ -53,7 +53,7 @@ type RegistryModules []RegistryModule
 
 func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryModulesMap map[string][]*RegistryModule) {
 	for registryName, registryModules := range registryModulesMap {
-		slog.Info(commandName, fmt.Sprintf("Registering %s registry modules", registryName), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Registering %s registry modules", registryName))
 
 		for moduleIndex, module := range registryModules {
 			module.Name = TrimModuleName(ModuleIdRegexp.ReplaceAllString(module.Id, `$1`))
@@ -67,7 +67,7 @@ func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryM
 }
 
 func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *sync.WaitGroup, moduleName string, port int) {
-	slog.Info(commandName, fmt.Sprintf("Waiting for module container %s on port %d to initialize", moduleName, port), "")
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Waiting for module container %s on port %d to initialize", moduleName, port))
 	requestUrl := fmt.Sprintf(DockerInternalUrl, port, HealtcheckUri)
 	healthcheckAttempts := HealtcheckMaxAttempts
 	for {
@@ -86,16 +86,16 @@ func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *s
 		}
 
 		if isHealthyVertxContainer || isHealthySpringBootContainer {
-			slog.Info(commandName, fmt.Sprintf("Module container %s is healthy", moduleName), "")
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Module container %s is healthy", moduleName))
 			waitMutex.Done()
 			break
 		}
 
 		healthcheckAttempts--
 		if healthcheckAttempts > 0 {
-			slog.Info(commandName, fmt.Sprintf("Module container %s is unhealthy, %d/%d attempts left", moduleName, healthcheckAttempts, HealtcheckMaxAttempts), "")
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Module container %s is unhealthy, %d/%d attempts left", moduleName, healthcheckAttempts, HealtcheckMaxAttempts))
 		} else {
-			slog.Info(commandName, fmt.Sprintf("Module container %s is unhealthy, out of attempts", moduleName), "")
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Module container %s is unhealthy, out of attempts", moduleName))
 			waitMutex.Done()
 			LogErrorPanic(commandName, fmt.Sprintf("internal.PerformModuleHealthcheck - Module container %s did not initialize, cannot continue", moduleName))
 		}
@@ -120,7 +120,7 @@ func RemoveApplications(commandName string, moduleName string, enableDebug bool,
 
 	err := json.NewDecoder(resp.Body).Decode(&applications)
 	if err != nil {
-		slog.Error(commandName, "json.NewDecoder error", "")
+		slog.Error(commandName, GetFuncName(), "json.NewDecoder error")
 		panic(err)
 	}
 
@@ -138,7 +138,7 @@ func RemoveApplications(commandName string, moduleName string, enableDebug bool,
 
 		DoDelete(commandName, requestUrl, enableDebug, false, map[string]string{})
 
-		slog.Info(commandName, fmt.Sprintf(`Removed '%s' application`, id), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed '%s' application`, id))
 	}
 }
 
@@ -163,11 +163,11 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 	}
 
 	for registryName, registryModules := range dto.RegistryModules {
-		slog.Info(commandName, fmt.Sprintf("Registering %s modules", registryName), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Registering %s modules", registryName))
 
 		for _, module := range registryModules {
 			if strings.Contains(module.Name, ManagementModulePattern) {
-				slog.Info(commandName, fmt.Sprintf("Ignoring %s management module registration", module.Name), "")
+				slog.Info(commandName, GetFuncName(), fmt.Sprintf("Ignoring %s management module registration", module.Name))
 				continue
 			}
 
@@ -189,7 +189,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 
 			_, err := dto.FileModuleEnvPointer.WriteString(fmt.Sprintf("export %s_VERSION=%s\r\n", TransformToEnvVar(module.Name), *module.Version))
 			if err != nil {
-				slog.Error(commandName, "dto.FileModuleEnvPointer.WriteString error", "")
+				slog.Error(commandName, GetFuncName(), "dto.FileModuleEnvPointer.WriteString error")
 				panic(err)
 			}
 
@@ -225,7 +225,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 				frontendModules = append(frontendModules, frontendModule)
 			}
 
-			slog.Info(commandName, "Found module for registration", fmt.Sprintf("%s with version %s", module.Name, *module.Version))
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found module for registration: %s with version %s", module.Name, *module.Version))
 		}
 	}
 
@@ -244,23 +244,23 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 		"uiModuleDescriptors": frontendModuleDescriptors,
 	})
 	if err != nil {
-		slog.Error(commandName, "json.Marshal error", "")
+		slog.Error(commandName, GetFuncName(), "json.Marshal error")
 		panic(err)
 	}
 
 	DoPostReturnNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/applications?check=true"), enableDebug, applicationBytes, map[string]string{})
 
-	slog.Info(commandName, fmt.Sprintf(`Created '%s' application`, applicationId), "")
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created '%s' application`, applicationId))
 
 	applicationDiscoveryBytes, err := json.Marshal(map[string]interface{}{"discovery": discoveryModules})
 	if err != nil {
-		slog.Error(commandName, "json.Marshal error", "")
+		slog.Error(commandName, GetFuncName(), "json.Marshal error")
 		panic(err)
 	}
 
 	DoPostReturnNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/modules/discovery"), enableDebug, applicationDiscoveryBytes, map[string]string{})
 
-	slog.Info(commandName, fmt.Sprintf(`Created '%d' entries of application module discovery`, len(discoveryModules)), "")
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created '%d' entries of application module discovery`, len(discoveryModules)))
 }
 
 func UpdateApplicationModuleDiscovery(commandName string, enableDebug bool, id string, location string, restore bool, portServer string) {
@@ -272,7 +272,7 @@ func UpdateApplicationModuleDiscovery(commandName string, enableDebug bool, id s
 
 	applicationDiscoveryBytes, err := json.Marshal(map[string]interface{}{"id": id, "name": name, "version": version, "location": location})
 	if err != nil {
-		slog.Error(commandName, "json.Marshal error", "")
+		slog.Error(commandName, GetFuncName(), "json.Marshal error")
 		panic(err)
 	}
 
@@ -280,7 +280,7 @@ func UpdateApplicationModuleDiscovery(commandName string, enableDebug bool, id s
 
 	DoPutReturnNoContent(commandName, requestUrl, enableDebug, applicationDiscoveryBytes, map[string]string{})
 
-	slog.Info(commandName, fmt.Sprintf(`Updated application module discovery for '%s' module with '%s' location`, name, location), "")
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Updated application module discovery for '%s' module with '%s' location`, name, location))
 }
 
 // ######## Tenants ########
@@ -313,7 +313,7 @@ func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 
 		DoDelete(commandName, requestUrl, enableDebug, false, map[string]string{})
 
-		slog.Info(commandName, fmt.Sprintf(`Removed '%s' tenant`, tenant), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed '%s' tenant`, tenant))
 	}
 }
 
@@ -324,13 +324,13 @@ func CreateTenants(commandName string, enableDebug bool) {
 	for _, tenant := range tenants {
 		tenantBytes, err := json.Marshal(map[string]string{"name": tenant, "description": "Default"})
 		if err != nil {
-			slog.Error(commandName, "json.Marshal error", "")
+			slog.Error(commandName, GetFuncName(), "json.Marshal error")
 			panic(err)
 		}
 
 		DoPostReturnNoContent(commandName, requestUrl, enableDebug, tenantBytes, map[string]string{})
 
-		slog.Info(commandName, fmt.Sprintf(`Created '%s' tenant`, tenant), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created '%s' tenant`, tenant))
 	}
 }
 
@@ -357,13 +357,13 @@ func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError
 
 		tenantEntitlementBytes, err := json.Marshal(map[string]any{"tenantId": tenantId, "applications": applications})
 		if err != nil {
-			slog.Error(commandName, "json.Marshal error", "")
+			slog.Error(commandName, GetFuncName(), "json.Marshal error")
 			panic(err)
 		}
 
 		DoDeleteWithBody(commandName, requestUrl, enableDebug, tenantEntitlementBytes, true, map[string]string{})
 
-		slog.Info(commandName, fmt.Sprintf(`Removed tenant entitlement for '%s' tenant`, tenant), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed tenant entitlement for '%s' tenant`, tenant))
 
 	}
 }
@@ -390,13 +390,13 @@ func CreateTenantEntitlement(commandName string, enableDebug bool) {
 
 		tenantEntitlementBytes, err := json.Marshal(map[string]any{"tenantId": tenantId, "applications": applications})
 		if err != nil {
-			slog.Error(commandName, "json.Marshal error", "")
+			slog.Error(commandName, GetFuncName(), "json.Marshal error")
 			panic(err)
 		}
 
 		DoPostReturnNoContent(commandName, requestUrl, enableDebug, tenantEntitlementBytes, map[string]string{})
 
-		slog.Info(commandName, fmt.Sprintf(`Created tenant entitlement for '%s' tenant`, tenant), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created tenant entitlement for '%s' tenant`, tenant))
 
 	}
 }
@@ -434,7 +434,7 @@ func RemoveUsers(commandName string, enableDebug bool, panicOnError bool, tenant
 
 		DoDelete(commandName, requestUrl, enableDebug, false, headers)
 
-		slog.Info(commandName, fmt.Sprintf(`Removed '%s' in '%s' realm`, username, tenant), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed '%s' in '%s' realm`, username, tenant))
 	}
 }
 
@@ -464,7 +464,7 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 			},
 		})
 		if err != nil {
-			slog.Error(commandName, "json.Marshal error", "")
+			slog.Error(commandName, GetFuncName(), "json.Marshal error")
 			panic(err)
 		}
 
@@ -475,17 +475,17 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 
 		userId := createdUserMap["id"].(string)
 
-		slog.Info(commandName, fmt.Sprintf(`Created '%s' user with password '%s' in '%s' realm`, username, password, tenant), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created '%s' user with password '%s' in '%s' realm`, username, password, tenant))
 
 		userPasswordBytes, err := json.Marshal(map[string]any{"userId": userId, "username": username, "password": password})
 		if err != nil {
-			slog.Error(commandName, "json.Marshal error", "")
+			slog.Error(commandName, GetFuncName(), "json.Marshal error")
 			panic(err)
 		}
 
 		DoPostReturnNoContent(commandName, postUserPasswordRequestUrl, enableDebug, userPasswordBytes, nonOkapiBasedHeaders)
 
-		slog.Info(commandName, fmt.Sprintf(`Attached '%s' password to '%s' user in '%s' realm"`, password, username, tenant), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Attached '%s' password to '%s' user in '%s' realm"`, password, username, tenant))
 
 		var roleIds []string
 		for _, userRole := range userRoles {
@@ -494,7 +494,7 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 			roleName := role["name"].(string)
 
 			if roleId == "" {
-				slog.Warn(commandName, fmt.Sprintf("internal.GetRoleByName warn - Did not find role %s by name", roleName), "")
+				slog.Warn(commandName, GetFuncName(), fmt.Sprintf("internal.GetRoleByName warn - Did not find role %s by name", roleName))
 				continue
 			}
 
@@ -503,13 +503,13 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 
 		userRoleBytes, err := json.Marshal(map[string]any{"userId": userId, "roleIds": roleIds})
 		if err != nil {
-			slog.Error(commandName, "json.Marshal error", "")
+			slog.Error(commandName, GetFuncName(), "json.Marshal error")
 			panic(err)
 		}
 
 		DoPostReturnNoContent(commandName, postUserRoleRequestUrl, enableDebug, userRoleBytes, okapiBasedHeaders)
 
-		slog.Info(commandName, fmt.Sprintf(`Attached '%d' roles to '%s' user in '%s' realm`, len(roleIds), username, tenant), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Attached '%d' roles to '%s' user in '%s' realm`, len(roleIds), username, tenant))
 	}
 }
 
@@ -562,7 +562,7 @@ func RemoveRoles(commandName string, enableDebug bool, panicOnError bool, tenant
 
 		DoDelete(commandName, requestUrl, enableDebug, false, headers)
 
-		slog.Info(commandName, fmt.Sprintf(`Removed '%s' role in '%s' realm`, roleName, tenant), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed '%s' role in '%s' realm`, roleName, tenant))
 	}
 }
 
@@ -578,13 +578,13 @@ func CreateRoles(commandName string, enableDebug bool, accessToken string) {
 
 		roleBytes, err := json.Marshal(map[string]string{"name": caser.String(role), "description": "Default"})
 		if err != nil {
-			slog.Error(commandName, "json.Marshal error", "")
+			slog.Error(commandName, GetFuncName(), "json.Marshal error")
 			panic(err)
 		}
 
 		DoPostReturnNoContent(commandName, requestUrl, enableDebug, roleBytes, headers)
 
-		slog.Info(commandName, fmt.Sprintf(`Created '%s' role in '%s' realm`, role, tenant), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created '%s' role in '%s' realm`, role, tenant))
 	}
 }
 
@@ -636,7 +636,7 @@ func DetachCapabilitySetsFromRoles(commandName string, enableDebug bool, panicOn
 
 		DoDelete(commandName, requestUrl, enableDebug, false, headers)
 
-		slog.Info(commandName, fmt.Sprintf(`Detached capability sets from '%s' role in '%s' realm`, roleName, tenant), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Detached capability sets from '%s' role in '%s' realm`, roleName, tenant))
 	}
 }
 
@@ -689,12 +689,12 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 
 		capabilitySetsBytes, err := json.Marshal(map[string]any{"roleId": roleId, "capabilitySetIds": capabilitySetIds})
 		if err != nil {
-			slog.Error(commandName, "json.Marshal error", "")
+			slog.Error(commandName, GetFuncName(), "json.Marshal error")
 			panic(err)
 		}
 
 		DoPostReturnNoContent(commandName, requestUrl, enableDebug, capabilitySetsBytes, headers)
 
-		slog.Info(commandName, fmt.Sprintf(`Attached '%d' capability sets to '%s' role in '%s' realm`, len(capabilitySetIds), roleName, tenant), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Attached '%d' capability sets to '%s' role in '%s' realm`, len(capabilitySetIds), roleName, tenant))
 	}
 }

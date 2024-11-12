@@ -39,11 +39,11 @@ var setupCmd = &cobra.Command{
 }
 
 func Setup() {
-	slog.Info(setupCommand, "### CREATING SETUP CONFIG ###", "")
+	slog.Info(setupCommand, internal.GetFuncName(), "### CREATING SETUP CONFIG ###")
 	srcConfigFile := fmt.Sprintf("%s.%s", configMinimal, configType)
 	sourceFileStat, err := os.Stat(srcConfigFile)
 	if err != nil {
-		slog.Error(setupCommand, "os.Stat error", "")
+		slog.Error(setupCommand, internal.GetFuncName(), "os.Stat error")
 		panic(err)
 	}
 
@@ -53,7 +53,8 @@ func Setup() {
 
 	source, err := os.Open(srcConfigFile)
 	if err != nil {
-		internal.LogErrorPanic(setupCommand, "os.Open error")
+		slog.Error(setupCommand, internal.GetFuncName(), "os.Open error")
+		panic(err)
 	}
 	defer source.Close()
 
@@ -63,25 +64,25 @@ func Setup() {
 	dstConfigDir := path.Join(home, configDir)
 	err = os.MkdirAll(dstConfigDir, 0700)
 	if err != nil {
-		slog.Error(setupCommand, "os.MkdirAll error", "")
+		slog.Error(setupCommand, internal.GetFuncName(), "os.MkdirAll error")
 		panic(err)
 	}
 
 	dstConfigFile := path.Join(dstConfigDir, srcConfigFile)
 	destination, err := os.Create(dstConfigFile)
 	if err != nil {
-		slog.Error(setupCommand, "os.Create error", "")
+		slog.Error(setupCommand, internal.GetFuncName(), "os.Create error")
 		panic(err)
 	}
 	defer destination.Close()
 
 	_, err = io.Copy(destination, source)
 	if err != nil {
-		slog.Error(setupCommand, "io.Copy error", "")
+		slog.Error(setupCommand, internal.GetFuncName(), "io.Copy error")
 		panic(err)
 	}
 
-	slog.Info(setupCommand, fmt.Sprintf("Created setup in %s", dstConfigFile), "")
+	slog.Info(setupCommand, internal.GetFuncName(), fmt.Sprintf("Created setup in %s", dstConfigFile))
 }
 
 func init() {

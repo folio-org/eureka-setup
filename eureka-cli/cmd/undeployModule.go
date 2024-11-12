@@ -37,7 +37,7 @@ var undeployModuleCmd = &cobra.Command{
 }
 
 func UndeployModule() {
-	slog.Info(undeployModuleCommand, "### UNDEPLOYING MODULE ###", "")
+	slog.Info(undeployModuleCommand, internal.GetFuncName(), "### UNDEPLOYING MODULE ###")
 	client := internal.CreateClient(undeployModuleCommand)
 	defer client.Close()
 

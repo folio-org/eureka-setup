@@ -35,7 +35,7 @@ var detachCapabilitySetsCmd = &cobra.Command{
 }
 
 func DetachCapabilitySets() {
-	slog.Info(detachCapabilitySetsCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	slog.Info(detachCapabilitySetsCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
 	client := internal.CreateClient(detachCapabilitySetsCommand)
 	defer client.Close()
 	vaultRootToken := internal.GetRootVaultToken(detachCapabilitySetsCommand, client)
@@ -48,10 +48,10 @@ func DetachCapabilitySets() {
 			continue
 		}
 
-		slog.Info(detachCapabilitySetsCommand, "### ACQUIRING KEYCLOAK ACCESS TOKEN ###", "")
+		slog.Info(detachCapabilitySetsCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK ACCESS TOKEN ###")
 		accessToken := internal.GetKeycloakAccessToken(detachCapabilitySetsCommand, enableDebug, vaultRootToken, tenant)
 
-		slog.Info(detachCapabilitySetsCommand, "### DETACHING CAPABILITY SETS FROM ROLES ###", "")
+		slog.Info(detachCapabilitySetsCommand, internal.GetFuncName(), "### DETACHING CAPABILITY SETS FROM ROLES ###")
 		internal.DetachCapabilitySetsFromRoles(detachCapabilitySetsCommand, enableDebug, false, tenant, accessToken)
 	}
 }

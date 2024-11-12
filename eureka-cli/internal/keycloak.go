@@ -84,7 +84,7 @@ func UpdateKeycloakPublicClientParams(commandName string, enableDebug bool, tena
 		},
 	})
 	if err != nil {
-		slog.Error(commandName, "json.Marshal error", "")
+		slog.Error(commandName, GetFuncName(), "json.Marshal error")
 		panic(err)
 	}
 

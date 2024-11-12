@@ -36,10 +36,10 @@ var undeployModulesCmd = &cobra.Command{
 }
 
 func UndeployModules() {
-	slog.Info(undeployModulesCommand, "### REMOVING APPLICATIONS ###", "")
+	slog.Info(undeployModulesCommand, internal.GetFuncName(), "### REMOVING APPLICATIONS ###")
 	internal.RemoveApplications(undeployModulesCommand, "", enableDebug, false)
 
-	slog.Info(undeployModulesCommand, "### UNDEPLOYING MODULES ###", "")
+	slog.Info(undeployModulesCommand, internal.GetFuncName(), "### UNDEPLOYING MODULES ###")
 	client := internal.CreateClient(undeployModulesCommand)
 	defer client.Close()
 

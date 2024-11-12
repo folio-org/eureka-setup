@@ -177,7 +177,7 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			moduleInfo = fmt.Sprintf("%s with fixed version %s", name, *version)
 		}
 
-		slog.Info(commandName, "Found backend module in config", moduleInfo)
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found backend module in config: %s", moduleInfo))
 	}
 
 	return backendModulesMap
@@ -212,7 +212,7 @@ func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMap map[
 			moduleInfo = fmt.Sprintf("name %s with version %s", name, *version)
 		}
 
-		slog.Info(commandName, "Found frontend module in config", moduleInfo)
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found frontend module in config: %s", moduleInfo))
 	}
 
 	return frontendModulesMap
@@ -221,12 +221,12 @@ func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMap map[
 func CreateModuleEnvFile(commandName string, fileModuleEnv string) *os.File {
 	err := os.Remove(fileModuleEnv)
 	if err != nil {
-		slog.Warn(commandName, fmt.Sprintf("os.Remove warning, '%s'", err.Error()), "")
+		slog.Warn(commandName, GetFuncName(), fmt.Sprintf("os.Remove warning, '%s'", err.Error()))
 	}
 
 	fileModuleEnvPointer, err := os.OpenFile(fileModuleEnv, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		slog.Error(commandName, "os.OpenFile error", "")
+		slog.Error(commandName, GetFuncName(), "os.OpenFile error")
 		panic(err)
 	}
 
@@ -236,12 +236,12 @@ func CreateModuleEnvFile(commandName string, fileModuleEnv string) *os.File {
 func CreateModuleDescriptorsFile(commandName string, fileModuleDescriptors string) *os.File {
 	err := os.Remove(fileModuleDescriptors)
 	if err != nil {
-		slog.Warn(commandName, fmt.Sprintf("os.Remove warning, '%s'", err.Error()), "")
+		slog.Warn(commandName, GetFuncName(), fmt.Sprintf("os.Remove warning, '%s'", err.Error()))
 	}
 
 	moduleDescriptorsFile, err := os.OpenFile(fileModuleDescriptors, os.O_CREATE, 0644)
 	if err != nil {
-		slog.Error(commandName, "os.OpenFile error", "")
+		slog.Error(commandName, GetFuncName(), "os.OpenFile error")
 		panic(err)
 	}
 
@@ -252,7 +252,7 @@ func PrepareStripesConfigJs(commandName string, configPath string, tenant string
 	stripesConfigJsFilePath := fmt.Sprintf("%s/stripes.config.js", configPath)
 	readFileBytes, err := os.ReadFile(stripesConfigJsFilePath)
 	if err != nil {
-		slog.Error(commandName, "os.ReadFile error", "")
+		slog.Error(commandName, GetFuncName(), "os.ReadFile error")
 		panic(err)
 	}
 
@@ -273,7 +273,7 @@ func PrepareStripesConfigJs(commandName string, configPath string, tenant string
 
 	err = os.WriteFile(stripesConfigJsFilePath, []byte(newReadFileStr), 0)
 	if err != nil {
-		slog.Error(commandName, "os.WriteFile error", "")
+		slog.Error(commandName, GetFuncName(), "os.WriteFile error")
 		panic(err)
 	}
 }
@@ -303,7 +303,7 @@ func PreparePackageJson(commandName string, configPath string, tenant string) {
 	}
 
 	if updates > 0 {
-		slog.Info(commandName, fmt.Sprintf("Added %d extra modules to package.json", len(modules)), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Added %d extra modules to package.json", len(modules)))
 		WriteJsonToFile(commandName, packageJsonPath, packageJson)
 	}
 }
@@ -314,10 +314,10 @@ func GetStripesBranch(commandName string, defaultBranch plumbing.ReferenceName) 
 	if viper.IsSet(ApplicationStripesBranch) {
 		branchStr := viper.GetString(ApplicationStripesBranch)
 		stripesBranch = plumbing.ReferenceName(branchStr)
-		slog.Info(commandName, fmt.Sprintf("Got stripes branch from config: %s", stripesBranch), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Got stripes branch from config: %s", stripesBranch))
 	} else {
 		stripesBranch = defaultBranch
-		slog.Info(commandName, fmt.Sprintf("No stripes branch in config. Using default branch: %s", stripesBranch), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("No stripes branch in config. Using default branch: %s", stripesBranch))
 	}
 
 	return stripesBranch

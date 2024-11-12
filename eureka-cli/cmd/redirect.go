@@ -16,9 +16,10 @@ limitations under the License.
 package cmd
 
 import (
+	"log/slog"
+
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
-	"log/slog"
 )
 
 const redirectModuleCommand = "Redirect Module"
@@ -41,7 +42,7 @@ var redirectCmd = &cobra.Command{
 
 // TODO Fix redirectModules to work on host network
 func RedirectModules() {
-	slog.Info(redirectModuleCommand, "### REDIRECT MODULE ###", "")
+	slog.Info(redirectModuleCommand, internal.GetFuncName(), "### REDIRECT MODULE ###")
 	internal.UpdateApplicationModuleDiscovery(redirectModuleCommand, enableDebug, id, location, restore, internal.DefaultServerPort)
 }
 

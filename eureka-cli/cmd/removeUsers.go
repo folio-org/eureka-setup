@@ -35,7 +35,7 @@ var removeUsersCmd = &cobra.Command{
 }
 
 func RemoveUsers() {
-	slog.Info(removeUsersCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	slog.Info(removeUsersCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
 	client := internal.CreateClient(removeUsersCommand)
 	defer client.Close()
 	vaultRootToken := internal.GetRootVaultToken(removeUsersCommand, client)
@@ -48,10 +48,10 @@ func RemoveUsers() {
 			continue
 		}
 
-		slog.Info(removeUsersCommand, "### ACQUIRING KEYCLOAK ACCESS TOKEN ###", "")
+		slog.Info(removeUsersCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK ACCESS TOKEN ###")
 		accessToken := internal.GetKeycloakAccessToken(removeUsersCommand, enableDebug, vaultRootToken, tenant)
 
-		slog.Info(removeUsersCommand, "### REMOVING USERS ###", "")
+		slog.Info(removeUsersCommand, internal.GetFuncName(), "### REMOVING USERS ###")
 		internal.RemoveUsers(removeUsersCommand, enableDebug, false, tenant, accessToken)
 	}
 }

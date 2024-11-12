@@ -247,7 +247,7 @@ func CreatePortBindings(hostServerPort int, hostServerDebugPort int, serverPort 
 func CreateClient(commandName string) *client.Client {
 	newClient, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		slog.Error(commandName, "client.NewClientWithOpts error", "")
+		slog.Error(commandName, GetFuncName(), "client.NewClientWithOpts error")
 		panic(err)
 	}
 
@@ -257,7 +257,7 @@ func CreateClient(commandName string) *client.Client {
 func GetRootVaultToken(commandName string, client *client.Client) string {
 	logStream, err := client.ContainerLogs(context.Background(), "vault", container.LogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
-		slog.Error(commandName, "cli.ContainerLogs error", "")
+		slog.Error(commandName, GetFuncName(), "cli.ContainerLogs error")
 		panic(err)
 	}
 	defer logStream.Close()
@@ -266,7 +266,7 @@ func GetRootVaultToken(commandName string, client *client.Client) string {
 	for {
 		_, err := logStream.Read(buffer)
 		if err != nil {
-			slog.Error(commandName, "logStream.Read(buffer) error", "")
+			slog.Error(commandName, GetFuncName(), "logStream.Read(buffer) error")
 			panic(err)
 		}
 
@@ -275,7 +275,7 @@ func GetRootVaultToken(commandName string, client *client.Client) string {
 
 		_, err = logStream.Read(rawLogLine)
 		if err != nil {
-			slog.Warn(commandName, "logStream.Read(rawLogLine) encoutered an EOF", "")
+			slog.Warn(commandName, GetFuncName(), "logStream.Read(rawLogLine) encoutered an EOF")
 		}
 
 		parsedLogLine := string(rawLogLine)
@@ -283,7 +283,7 @@ func GetRootVaultToken(commandName string, client *client.Client) string {
 		if strings.Contains(parsedLogLine, "init.sh: Root VAULT TOKEN is:") {
 			vaultRootToken := strings.TrimSpace(VaultRootTokenRegexp.ReplaceAllString(parsedLogLine, `$1`))
 
-			slog.Info(commandName, "Found vault root token", vaultRootToken)
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found vault root token: %s", vaultRootToken))
 
 			return vaultRootToken
 		}
@@ -293,7 +293,7 @@ func GetRootVaultToken(commandName string, client *client.Client) string {
 func GetDeployedModules(commandName string, client *client.Client, filters filters.Args) []types.Container {
 	deployedModules, err := client.ContainerList(context.Background(), container.ListOptions{All: true, Filters: filters})
 	if err != nil {
-		slog.Error(commandName, "cli.ContainerList error", "")
+		slog.Error(commandName, GetFuncName(), "cli.ContainerList error")
 		panic(err)
 	}
 
@@ -303,17 +303,17 @@ func GetDeployedModules(commandName string, client *client.Client, filters filte
 func UndeployModule(commandName string, client *client.Client, deployedModule types.Container) {
 	err := client.ContainerStop(context.Background(), deployedModule.ID, container.StopOptions{Signal: "9"})
 	if err != nil {
-		slog.Error(commandName, "cli.ContainerStop error", "")
+		slog.Error(commandName, GetFuncName(), "cli.ContainerStop error")
 		panic(err)
 	}
 
 	err = client.ContainerRemove(context.Background(), deployedModule.ID, container.RemoveOptions{Force: true, RemoveVolumes: true})
 	if err != nil {
-		slog.Error(commandName, "cli.ContainerRemove error", "")
+		slog.Error(commandName, GetFuncName(), "cli.ContainerRemove error")
 		panic(err)
 	}
 
-	slog.Info(commandName, "Undeployed module container", fmt.Sprintf("%s %s %s", deployedModule.ID, strings.ReplaceAll(deployedModule.Names[0], "/", ""), deployedModule.Status))
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Undeployed module container %s %s %s", deployedModule.ID, strings.ReplaceAll(deployedModule.Names[0], "/", ""), deployedModule.Status))
 }
 
 func DeployModule(commandName string, client *client.Client, dto *DeployModuleDto) {
@@ -322,7 +322,7 @@ func DeployModule(commandName string, client *client.Client, dto *DeployModuleDt
 	if dto.PullImage {
 		reader, err := client.ImagePull(context.Background(), dto.Image, types.ImagePullOptions{RegistryAuth: dto.RegistryAuth})
 		if err != nil {
-			slog.Error(commandName, "cli.ImagePull error", "")
+			slog.Error(commandName, GetFuncName(), "cli.ImagePull error")
 			panic(err)
 		}
 		defer reader.Close()
@@ -340,28 +340,28 @@ func DeployModule(commandName string, client *client.Client, dto *DeployModuleDt
 			}
 
 			if event.Error != "" {
-				slog.Error(commandName, "Pulling module container image", fmt.Sprintf("%+v", event.Error))
+				slog.Error(commandName, GetFuncName(), fmt.Sprintf("Pulling module container image %+v", event.Error))
 			}
 		}
 	}
 
 	cr, err := client.ContainerCreate(context.Background(), dto.Config, dto.HostConfig, dto.NetworkConfig, dto.Platform, containerName)
 	if err != nil {
-		slog.Error(commandName, "cli.ContainerCreate error", "")
+		slog.Error(commandName, GetFuncName(), "cli.ContainerCreate error")
 		panic(err)
 	}
 
 	if cr.Warnings != nil && len(cr.Warnings) > 0 {
-		slog.Warn(commandName, fmt.Sprintf("cli.ContainerCreate warnings, '%s'", cr.Warnings), "")
+		slog.Warn(commandName, GetFuncName(), fmt.Sprintf("cli.ContainerCreate warnings, '%s'", cr.Warnings))
 	}
 
 	err = client.ContainerStart(context.Background(), cr.ID, container.StartOptions{})
 	if err != nil {
-		slog.Error(commandName, "cli.ContainerStart error", "")
+		slog.Error(commandName, GetFuncName(), "cli.ContainerStart error")
 		panic(err)
 	}
 
-	slog.Info(commandName, "Deployed module container", fmt.Sprintf("%s %s", cr.ID, containerName))
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Deployed module container %s %s", cr.ID, containerName))
 }
 
 func DeployModules(commandName string, client *client.Client, dto *DeployModulesDto) map[string]int {
@@ -382,7 +382,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 	authToken := GetRegistryAuthTokenIfPresent(commandName)
 
 	for registryName, registryModules := range dto.RegistryModules {
-		slog.Info(commandName, fmt.Sprintf("Deploying %s modules", registryName), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Deploying %s modules", registryName))
 
 		for _, module := range registryModules {
 			managementModule := strings.Contains(module.Name, ManagementModulePattern)
@@ -396,7 +396,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			}
 
 			if !backendModule.DeployModule {
-				slog.Info(commandName, fmt.Sprintf("Ignoring %s module deployment", module.Name), "")
+				slog.Info(commandName, GetFuncName(), fmt.Sprintf("Ignoring %s module deployment", module.Name))
 				continue
 			}
 
@@ -414,7 +414,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			deployedModules[module.Name] = backendModule.ModuleExposedServerPort
 
 			if !backendModule.DeploySidecar {
-				slog.Info(commandName, fmt.Sprintf("Ignoring %s sidecar deployment", module.Name), "")
+				slog.Info(commandName, GetFuncName(), fmt.Sprintf("Ignoring %s sidecar deployment", module.Name))
 				continue
 			}
 

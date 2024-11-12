@@ -36,11 +36,11 @@ var removeRolesCmd = &cobra.Command{
 
 func RemoveRoles() {
 	if internal.RemoveRoleUnsupported {
-		slog.Info(removeRolesCommand, "### REMOVAL OF ROLES IS UNSUPPORTED BY CURRENT GATEWAY SETUP ###", "")
+		slog.Info(removeRolesCommand, internal.GetFuncName(), "### REMOVAL OF ROLES IS UNSUPPORTED BY CURRENT GATEWAY SETUP ###")
 		return
 	}
 
-	slog.Info(removeRolesCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	slog.Info(removeRolesCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
 	client := internal.CreateClient(removeRolesCommand)
 	defer client.Close()
 	vaultRootToken := internal.GetRootVaultToken(removeRolesCommand, client)
@@ -53,10 +53,10 @@ func RemoveRoles() {
 			continue
 		}
 
-		slog.Info(removeRolesCommand, "### ACQUIRING KEYCLOAK ACCESS TOKEN ###", "")
+		slog.Info(removeRolesCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK ACCESS TOKEN ###")
 		accessToken := internal.GetKeycloakAccessToken(removeRolesCommand, enableDebug, vaultRootToken, tenant)
 
-		slog.Info(removeRolesCommand, "### REMOVING ROLES ###", "")
+		slog.Info(removeRolesCommand, internal.GetFuncName(), "### REMOVING ROLES ###")
 		internal.RemoveRoles(removeRolesCommand, enableDebug, false, tenant, accessToken)
 	}
 }

@@ -35,7 +35,7 @@ var createRolesCmd = &cobra.Command{
 }
 
 func CreateRoles() {
-	slog.Info(createRolesCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	slog.Info(createRolesCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
 	client := internal.CreateClient(createRolesCommand)
 	defer client.Close()
 	vaultRootToken := internal.GetRootVaultToken(createRolesCommand, client)
@@ -48,10 +48,10 @@ func CreateRoles() {
 			continue
 		}
 
-		slog.Info(createRolesCommand, "### ACQUIRING KEYCLOAK ACCESS TOKEN ###", "")
+		slog.Info(createRolesCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK ACCESS TOKEN ###")
 		accessToken := internal.GetKeycloakAccessToken(createRolesCommand, enableDebug, vaultRootToken, tenant)
 
-		slog.Info(createRolesCommand, "### CREATING ROLES ###", "")
+		slog.Info(createRolesCommand, internal.GetFuncName(), "### CREATING ROLES ###")
 		internal.CreateRoles(createRolesCommand, enableDebug, accessToken)
 	}
 }

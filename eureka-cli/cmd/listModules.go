@@ -37,7 +37,7 @@ var listModulesCmd = &cobra.Command{
 }
 
 func ListModules() {
-	slog.Info(listModulesCommand, "### LISTING MODULES ###", "")
+	slog.Info(listModulesCommand, internal.GetFuncName(), "### LISTING MODULES ###")
 	filter := internal.ManagementOrModulesContainerPattern
 	if moduleName != "" {
 		filter = fmt.Sprintf(internal.SingleModuleContainerPattern, moduleName)

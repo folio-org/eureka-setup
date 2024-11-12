@@ -57,7 +57,7 @@ env GOOS=windows GOARCH=amd64 go build -o ./bin .
 AWS_SDK_LOAD_CONFIG=true ./bin/eureka-cli.exe -c ./config.minimal.yaml deployApplication
 ```
 
-> See AWS_CLI_Preparation.md to prepare AWS CLI beforehand
+> See AWS_CLI_PREPARATION.md to prepare AWS CLI beforehand
 
 - Undeploy using:
 

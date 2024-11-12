@@ -18,47 +18,47 @@ func GitCloneRepository(commandName string, enableDebug bool, repositoryUrl stri
 	})
 	if err != nil {
 		if panicIfExists {
-			slog.Error(commandName, "git.PlainClone error", "")
+			slog.Error(commandName, GetFuncName(), "git.PlainClone error")
 			panic(err)
 		} else {
-			slog.Warn(commandName, fmt.Sprintf("git.PlainClone warning, Repository already exists %s", outputDir), "")
+			slog.Warn(commandName, GetFuncName(), fmt.Sprintf("git.PlainClone warning, Repository already exists %s", outputDir))
 			return
 		}
 	}
 
 	ref, err := targetRepository.Head()
 	if err != nil {
-		slog.Error(commandName, "targetRepository.Head() error", "")
+		slog.Error(commandName, GetFuncName(), "targetRepository.Head() error")
 		panic(err)
 	}
 
-	slog.Info(commandName, "Ref", ref)
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Ref: %s", ref))
 }
 
 func GitResetHardPullFromOriginRepository(commandName string, enableDebug bool, repositoryUrl string, branchName plumbing.ReferenceName, outputDir string) {
 	targetRepository, err := git.PlainOpen(outputDir)
 	if err != nil {
-		slog.Error(commandName, "git.PlainOpen error", "")
+		slog.Error(commandName, GetFuncName(), "git.PlainOpen error")
 		panic(err)
 	}
 
 	ref, err := targetRepository.Head()
 	if err != nil {
-		slog.Error(commandName, "targetRepository.Head() error", "")
+		slog.Error(commandName, GetFuncName(), "targetRepository.Head() error")
 		panic(err)
 	}
 
-	slog.Info(commandName, "Ref", ref)
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Ref: %s", ref))
 
 	worktree, err := targetRepository.Worktree()
 	if err != nil {
-		slog.Error(commandName, "targetRepository.Worktree error", "")
+		slog.Error(commandName, GetFuncName(), "targetRepository.Worktree error")
 		panic(err)
 	}
 
 	status, err := worktree.Status()
 	if err != nil {
-		slog.Error(commandName, "worktree.Status error", "")
+		slog.Error(commandName, GetFuncName(), "worktree.Status error")
 		panic(err)
 	}
 
@@ -66,7 +66,7 @@ func GitResetHardPullFromOriginRepository(commandName string, enableDebug bool, 
 
 	err = worktree.Reset(&git.ResetOptions{Mode: git.HardReset})
 	if err != nil {
-		slog.Error(commandName, "worktree.Reset error", "")
+		slog.Error(commandName, GetFuncName(), "worktree.Reset error")
 		panic(err)
 	}
 
@@ -78,11 +78,11 @@ func GitResetHardPullFromOriginRepository(commandName string, enableDebug bool, 
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), "already up-to-date") {
-			slog.Warn(commandName, fmt.Sprintf("worktree.Pull warning, Repository %s", err.Error()), "")
+			slog.Warn(commandName, GetFuncName(), fmt.Sprintf("worktree.Pull warning, Repository %s", err.Error()))
 			return
 		}
 
-		slog.Error(commandName, "worktree.Pull error", "")
+		slog.Error(commandName, GetFuncName(), "worktree.Pull error")
 		panic(err)
 	}
 }

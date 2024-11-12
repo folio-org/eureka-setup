@@ -12,7 +12,7 @@ func GetEnvironmentFromConfig(commandName string, keyType string) []string {
 	var environmentVariables []string
 	for key, value := range viper.GetStringMapString(keyType) {
 		environment := fmt.Sprintf("%s=%s", strings.ToUpper(key), value)
-		slog.Info(commandName, "Found environment", environment)
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found environment: %s", environment))
 		environmentVariables = append(environmentVariables, environment)
 	}
 

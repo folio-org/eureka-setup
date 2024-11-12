@@ -37,11 +37,11 @@ var attachCapabilitySetsCmd = &cobra.Command{
 
 func AttachCapabilitySets(ranInSequence bool) {
 	if ranInSequence {
-		slog.Info(attachCapabilitySetsCommand, "### WAITING FOR CAPABILITY AND CAPABILITY SETS TO SYNCHRONIZE ###", "")
+		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), "### WAITING FOR CAPABILITY AND CAPABILITY SETS TO SYNCHRONIZE ###")
 		time.Sleep(60 * time.Second)
 	}
 
-	slog.Info(attachCapabilitySetsCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
 	client := internal.CreateClient(attachCapabilitySetsCommand)
 	defer client.Close()
 	vaultRootToken := internal.GetRootVaultToken(attachCapabilitySetsCommand, client)
@@ -54,10 +54,10 @@ func AttachCapabilitySets(ranInSequence bool) {
 			continue
 		}
 
-		slog.Info(attachCapabilitySetsCommand, "### ACQUIRING KEYCLOAK ACCESS TOKEN ###", "")
+		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK ACCESS TOKEN ###")
 		accessToken := internal.GetKeycloakAccessToken(attachCapabilitySetsCommand, enableDebug, vaultRootToken, tenant)
 
-		slog.Info(attachCapabilitySetsCommand, "### ATTACHING CAPABILITY SETS TO ROLES ###", "")
+		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), "### ATTACHING CAPABILITY SETS TO ROLES ###")
 		internal.AttachCapabilitySetsToRoles(attachCapabilitySetsCommand, enableDebug, tenant, accessToken)
 	}
 }
