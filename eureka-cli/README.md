@@ -50,11 +50,28 @@ env GOOS=windows GOARCH=amd64 go build -o ./bin .
 ```shell
 ./bin/eureka-cli.exe -c ./config.minimal.yaml deployApplication
 ```
-#### Useing AWS ECR
 
-To use AWS ECR as your container registry rather than the public folio DockerHub, set `AWS_ECR_FOLIO_REPO` in your environment. When this env variable is defined it is assumed that this repo is private and you have also defined credentials in your environment. The value of this variable should be the URL of your repository.
+#### Using Private AWS ECR image registry
 
-> See AWS_CLI_Preparation.md to prepare AWS CLI beforehand
+To use AWS ECR as your container registry rather than the public Folio DockerHub, set `AWS_ECR_FOLIO_REPO` in your environment. When this env variable is defined it is assumed that this repository is private and you have also defined credentials in your environment. The value of this variable should be the URL of your repository.
+
+- Set AWS credentials explicitly
+
+```shell
+export AWS_ACCESS_KEY_ID=<access_key>
+export AWS_SECRET_ACCESS_KEY=<secret_key>
+export AWS_ECR_FOLIO_REPO=<repository_url> 
+./bin/eureka-cli.exe -c ./config.minimal.yaml deployApplication
+```
+
+- Reuse stored AWS credentials found in `~/.aws/config`
+
+```shell
+export AWS_ECR_FOLIO_REPO=<repository_url>
+AWS_SDK_LOAD_CONFIG=true ./bin/eureka-cli.exe -c ./config.minimal.yaml deployApplication
+```
+
+> See AWS_CLI_PREPARATION.md to prepare AWS CLI beforehand
 
 - Undeploy using:
 
