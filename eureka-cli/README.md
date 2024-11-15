@@ -71,7 +71,7 @@ export AWS_ECR_FOLIO_REPO=<repository_url>
 AWS_SDK_LOAD_CONFIG=true ./bin/eureka-cli.exe -c ./config.minimal.yaml deployApplication
 ```
 
-> See AWS_CLI_PREPARATION.md to prepare AWS CLI beforehand
+> See AWS_CLI_PREPARATIONS.md to prepare AWS CLI beforehand
 
 - Undeploy using:
 
