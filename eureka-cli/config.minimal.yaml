@@ -60,8 +60,9 @@ environment:
   KC_SERVICE_CLIENT_ID: sidecar-module-access-client
   KONG_INTEGRATION_ENABLED: true
   OKAPI_INTEGRATION_ENABLED: false
+  WEB_CLIENT_TLS_VERIFY_HOSTNAME: false
   # Java
-  JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms256m -Xmx512m"
+  JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms256m -Xmx512m -Djdk.internal.httpclient.disableHostnameVerification=true"
 # Files
 files:
   module-env: .module.env

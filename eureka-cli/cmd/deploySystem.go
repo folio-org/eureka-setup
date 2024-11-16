@@ -31,7 +31,8 @@ const (
 	folioKeycloakDir    string = "folio-keycloak"
 	folioKongDir        string = "folio-kong"
 
-	masterBranchName plumbing.ReferenceName = "master"
+	defaultFolioKeycloakBranchName plumbing.ReferenceName = "master"
+	defaultFolioKongBranchName     plumbing.ReferenceName = "master"
 )
 
 // deploySystemCmd represents the deploySystem command
@@ -50,17 +51,17 @@ func DeploySystem() {
 
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "### CLONING & UPDATING SYSTEM COMPONENTS ###")
 
-	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", folioKeycloakDir, masterBranchName))
-	internal.GitCloneRepository(deploySystemCommand, enableDebug, internal.FolioKeycloakRepositoryUrl, masterBranchName, folioKeycloakOutputDir, false)
+	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", folioKeycloakDir, defaultFolioKeycloakBranchName))
+	internal.GitCloneRepository(deploySystemCommand, enableDebug, internal.FolioKeycloakRepositoryUrl, defaultFolioKeycloakBranchName, folioKeycloakOutputDir, false)
 
 	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", folioKeycloakDir))
-	internal.GitResetHardPullFromOriginRepository(deploySystemCommand, enableDebug, internal.FolioKeycloakRepositoryUrl, masterBranchName, folioKeycloakOutputDir)
+	internal.GitResetHardPullFromOriginRepository(deploySystemCommand, enableDebug, internal.FolioKeycloakRepositoryUrl, defaultFolioKeycloakBranchName, folioKeycloakOutputDir)
 
-	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", folioKongDir, masterBranchName))
-	internal.GitCloneRepository(deploySystemCommand, enableDebug, internal.FolioKongRepositoryUrl, masterBranchName, folioKongOutputDir, false)
+	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", folioKongDir, defaultFolioKongBranchName))
+	internal.GitCloneRepository(deploySystemCommand, enableDebug, internal.FolioKongRepositoryUrl, defaultFolioKongBranchName, folioKongOutputDir, false)
 
 	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", folioKongDir))
-	internal.GitResetHardPullFromOriginRepository(deploySystemCommand, enableDebug, internal.FolioKongRepositoryUrl, masterBranchName, folioKongOutputDir)
+	internal.GitResetHardPullFromOriginRepository(deploySystemCommand, enableDebug, internal.FolioKongRepositoryUrl, defaultFolioKongBranchName, folioKongOutputDir)
 
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "### DEPLOYING SYSTEM CONTAINERS ###")
 	// TODO Add an optional --no-cache flag

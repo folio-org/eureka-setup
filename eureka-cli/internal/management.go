@@ -485,7 +485,7 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 
 		DoPostReturnNoContent(commandName, postUserPasswordRequestUrl, enableDebug, userPasswordBytes, nonOkapiBasedHeaders)
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Attached '%s' password to '%s' user in '%s' realm"`, password, username, tenant))
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Attached '%s' password to '%s' user in '%s' realm`, password, username, tenant))
 
 		var roleIds []string
 		for _, userRole := range userRoles {
