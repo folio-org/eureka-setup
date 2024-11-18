@@ -39,7 +39,7 @@ services:
   ### Kafka ###
   kafka-ui:
     container_name: kafka-ui
-    image: provectuslabs/kafka-ui:latest
+    image: provectuslabs/kafka-ui:v0.7.2
     restart: unless-stopped
     environment:
       KAFKA_CLUSTERS_0_NAME: local
@@ -60,7 +60,7 @@ services:
 
   zookeeper:
     container_name: zookeeper
-    image: zookeeper:latest
+    image: zookeeper:3.9.3-jre-17
     networks: 
       - fpm-net
     ports:
@@ -129,7 +129,7 @@ services:
   ### Keycloak ###
   keycloak:
     container_name: keycloak
-    image: nginx:latest
+    image: nginx:1.27.2
     restart: unless-stopped
     depends_on:
       - keycloak-internal
@@ -236,7 +236,7 @@ services:
     build:
       context: .
       dockerfile_inline: |
-        FROM nginx:latest
+        FROM nginx:1.27.2
         RUN apt update; apt install netcat-traditional -y 
     image: netcat:latest
     restart: unless-stopped
