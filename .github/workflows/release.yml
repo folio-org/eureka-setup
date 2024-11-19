@@ -17,18 +17,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          workDir: eureka-cli
+          workdir: ./eureka-cli
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: stable
-          workDir: eureka-cli
+          workdir: ./eureka-cli
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: "~> v2"
-          workDir: eureka-cli
           args: release --clean
+          workdir: ./eureka-cli
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
