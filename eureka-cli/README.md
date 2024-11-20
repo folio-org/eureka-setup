@@ -37,6 +37,16 @@ env GOOS=windows GOARCH=amd64 go build -o ./bin .
 ./bin/eureka-cli.exe setup
 ```
 
+### (Optional) Install binary
+
+- After installation the binary can be used from any directory
+
+```shell
+go install
+
+eureka-cli.exe setup
+```
+
 ### Deploy a minimal platform application
 
 #### Using Public DockerHub image registries (folioci & folioorg namespaces)
@@ -68,7 +78,7 @@ export AWS_ECR_FOLIO_REPO=<repository_url>
 AWS_SDK_LOAD_CONFIG=true ./bin/eureka-cli.exe -c ./config.minimal.yaml deployApplication
 ```
 
-> See AWS_CLI_PREPARATION.md to prepare AWS CLI beforehand
+> See AWS_CLI_PREPARATIONS.md to prepare AWS CLI beforehand
 
 - Undeploy using:
 
