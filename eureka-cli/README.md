@@ -10,7 +10,7 @@
 
 - Install a compiler and a container daemon:
   - [GO](<https://go.dev/doc/install>): last development-tested version is `go1.22.4 windows/amd64`
-  - [Rancher Desktop](<https://rancherdesktop.io/>): latest supported version is `v1.16.0` (make sure to enable **dockerd (Moby)** container engine)
+  - [Rancher Desktop](<https://rancherdesktop.io/>): last development-tested is `v1.16.0` (make sure to enable **dockerd (Moby)** container engine)
 - Configure hosts:
   - Add `127.0.0.1 keycloak.eureka` entry to `/etc/hosts`
   - Add `127.0.0.1 kafka.eureka` entry to `/etc/hosts`
@@ -39,11 +39,10 @@ env GOOS=windows GOARCH=amd64 go build -o ./bin .
 
 ### (Optional) Install binary
 
-- After installation the binary can be used from any directory
+- After building and installing the binary can be used from any directory
 
 ```shell
 go install
-
 eureka-cli.exe setup
 ```
 
@@ -86,19 +85,27 @@ AWS_SDK_LOAD_CONFIG=true ./bin/eureka-cli.exe -c ./config.minimal.yaml deployApp
 
 ### Use the environment
 
-- Test Keycloak authentication on the UI using the created `diku` realm and `diku-application` public client
+- Access the UI from `http://localhost:3000` using `diku_admin` username and `admin` password:
 
-> Open in browser `http://keycloak.eureka:8080/realms/diku/protocol/openid-connect/auth?client_id=diku-application&response_type=code&redirect_uri=http://localhost:3000&scope=openid`
+![UI](images/ui_log_in_form.png)
 
-- Gateway is available at `localhost:8000` or `api-gateway.eureka:8000`
-- Login and get a token:
+- Kong gateway is available at `localhost:8000` and can be used to login and get a token directly from the backend:
 
 ```shell
+# Using diku_admin (admin user)
 curl --request POST \
   --url localhost:8000/authn/login-with-expiry \
   --header 'Content-Type: application/json' \
   --header 'X-Okapi-Tenant: diku' \
   --data '{"username":"diku_admin","password": "admin"}' \
+  --verbose
+
+# Using diku_user (limited user)
+curl --request POST \
+  --url localhost:8000/authn/login-with-expiry \
+  --header 'Content-Type: application/json' \
+  --header 'X-Okapi-Tenant: diku' \
+  --data '{"username":"diku_user","password": "user"}' \
   --verbose
 ```
 
@@ -108,3 +115,4 @@ curl --request POST \
 - If you get a **SIGKILL** when trying to build the stripes container configure Rancher Desktop or other docker env with more RAM
 - If health checks are failing make sure localhost is mapped to host.docker.internal in your `/etc/hosts` file
 - If using Rancher Desktop on a system that also uses Docker Desktop, you may need to do set `DOCKER_HOST` in your env to where `docker.sock` is
+- During tenant entitlement if a thrown exception contains `The module is not entitled on tenant ...` it is recommended to rerun `deployApplication` again after undeploying the existing one
