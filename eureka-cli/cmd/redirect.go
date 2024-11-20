@@ -48,7 +48,7 @@ func RedirectModules() {
 
 func init() {
 	rootCmd.AddCommand(redirectCmd)
-	redirectCmd.PersistentFlags().StringVarP(&id, "id", "i", "", "Module id (required)")
+	redirectCmd.PersistentFlags().StringVarP(&id, "id", "i", "", "Module id, e.g. mod-users:19.4.1-SNAPSHOT.323 (required)")
 	redirectCmd.PersistentFlags().StringVarP(&location, "location", "l", "", "Location")
 	redirectCmd.PersistentFlags().BoolVarP(&restore, "restore", "r", false, "Restore location")
 	redirectCmd.MarkPersistentFlagRequired("id")

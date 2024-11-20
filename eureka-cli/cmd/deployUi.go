@@ -23,12 +23,14 @@ import (
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const (
-	deployUiCommand     string = "Deploy UI"
-	platformCompleteDir string = "platform-complete"
+	deployUiCommand             string = "Deploy UI"
+	platformCompleteDir         string = "platform-complete"
+	kongExternalUrl             string = "http://localhost:8000"
+	keycloakExternalUrl         string = "http://keycloak.eureka:8080"
+	platformCompleteExternalUrl string = "http://localhost:3000"
 
 	defaultStripesBranch plumbing.ReferenceName = "snapshot"
 )
@@ -51,10 +53,14 @@ func DeployUi() {
 	stripesBranch := internal.GetStripesBranch(deployUiCommand, defaultStripesBranch)
 	internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, stripesBranch, outputDir, false)
 
-	slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", platformCompleteDir))
-	internal.GitResetHardPullFromOriginRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, defaultStripesBranch, outputDir)
+	if updateCloned {
+		slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", platformCompleteDir))
+		internal.GitResetHardPullFromOriginRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, defaultStripesBranch, outputDir)
+	}
 
-	slog.Info(deployUiCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK MASTER ACCESS TOKEN ###")
+	slog.Info(deployUiCommand, internal.GetFuncName(), "### DEPLOYING UI ###")
+
+	slog.Info(deployUiCommand, internal.GetFuncName(), "Acquiring keycloak master access token")
 	masterAccessToken := internal.GetKeycloakMasterRealmAccessToken(createUsersCommand, enableDebug)
 
 	for _, value := range internal.GetTenants(deployUiCommand, enableDebug, false) {
@@ -65,26 +71,28 @@ func DeployUi() {
 			continue
 		}
 
-		slog.Info(deployUiCommand, internal.GetFuncName(), "### UPDATING KEYCLOAK PUBLIC CLIENT")
-		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, tenant, masterAccessToken)
+		slog.Info(deployUiCommand, internal.GetFuncName(), "Updating keycloak public client")
+		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, tenant, masterAccessToken, platformCompleteExternalUrl)
 
-		slog.Info(deployUiCommand, internal.GetFuncName(), "### COPYING PLATFORM COMPLETE UI CONFIGS ###")
-		internal.RunCommandFromDir(deployUiCommand, exec.Command("cp", "-R", "-f", "eureka-tpl/*", "."), outputDir)
+		slog.Info(deployUiCommand, internal.GetFuncName(), "Copying platform complete UI configs")
+		configName := "stripes.config.js"
+		internal.CopySingleFile(deployUiCommand, fmt.Sprintf("%s/eureka-tpl/%s", outputDir, configName), fmt.Sprintf("%s/%s", outputDir, configName))
 
-		slog.Info(deployUiCommand, internal.GetFuncName(), "### PREPARING PLATFORM COMPLETE UI CONFIGS ###")
-		internal.PrepareStripesConfigJs(deployUiCommand, outputDir, tenant)
+		slog.Info(deployUiCommand, internal.GetFuncName(), "Preparing platform complete UI config")
+		internal.PrepareStripesConfigJs(deployUiCommand, outputDir, tenant, kongExternalUrl, keycloakExternalUrl, platformCompleteExternalUrl)
 		internal.PreparePackageJson(deployUiCommand, outputDir, tenant)
 
-		slog.Info(deployUiCommand, internal.GetFuncName(), "### BUILDING PLATFORM COMPLETE UI FROM A DOCKERFILE ###")
+		slog.Info(deployUiCommand, internal.GetFuncName(), "Building platform complete UI from a Dockerfile")
 		internal.RunCommandFromDir(deployUiCommand, exec.Command("docker", "build", "--tag", "platform-complete-ui",
-			"--build-arg", fmt.Sprintf("OKAPI_URL=%s", viper.GetString(internal.ResourcesKongKey)),
+			"--build-arg", fmt.Sprintf("OKAPI_URL=%s", kongExternalUrl),
 			"--build-arg", fmt.Sprintf("TENANT_ID=%s", tenant),
 			"--file", "./docker/Dockerfile",
+			"--progress", "plain",
 			"--no-cache",
 			".",
 		), outputDir)
 
-		slog.Info(deployUiCommand, internal.GetFuncName(), "### RUNNING PLATFORM COMPLETE UI CONTAINER ###")
+		slog.Info(deployUiCommand, internal.GetFuncName(), "Running platform complete UI container")
 		containerName := fmt.Sprintf("eureka-platform-complete-ui-%s", tenant)
 		internal.RunCommand(deployUiCommand, exec.Command("docker", "run", "--name", containerName,
 			"--hostname", containerName,
@@ -94,11 +102,12 @@ func DeployUi() {
 			"platform-complete-ui:latest",
 		))
 
-		slog.Info(deployUiCommand, internal.GetFuncName(), "### CONNECTING PLATFORM COMPLETE UI CONTAINER TO EUREKA NETWORK ###")
+		slog.Info(deployUiCommand, internal.GetFuncName(), "Connecting platform complete UI container to Eureka network")
 		internal.RunCommand(deployUiCommand, exec.Command("docker", "network", "connect", "eureka", containerName))
 	}
 }
 
 func init() {
 	rootCmd.AddCommand(deployUiCmd)
+	deployUiCmd.PersistentFlags().BoolVarP(&updateCloned, "updateCloned", "u", false, "Update cloned projects")
 }

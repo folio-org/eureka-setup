@@ -21,34 +21,6 @@ const (
 	awsEcrFolioRepoEnvKey string = "AWS_ECR_FOLIO_REPO"
 )
 
-type RegisterModuleDto struct {
-	RegistryUrls         map[string]string
-	RegistryModules      map[string][]*RegistryModule
-	BackendModulesMap    map[string]BackendModule
-	FrontendModulesMap   map[string]FrontendModule
-	ModuleDescriptorsMap map[string]interface{}
-	FileModuleEnvPointer *os.File
-	EnableDebug          bool
-}
-
-func NewRegisterModuleDto(registryUrls map[string]string,
-	registryModules map[string][]*RegistryModule,
-	backendModulesMap map[string]BackendModule,
-	frontendModulesMap map[string]FrontendModule,
-	moduleDescriptorsMap map[string]interface{},
-	fileModuleEnvPointer *os.File,
-	enableDebug bool) *RegisterModuleDto {
-	return &RegisterModuleDto{
-		RegistryUrls:         registryUrls,
-		RegistryModules:      registryModules,
-		BackendModulesMap:    backendModulesMap,
-		FrontendModulesMap:   frontendModulesMap,
-		ModuleDescriptorsMap: moduleDescriptorsMap,
-		FileModuleEnvPointer: fileModuleEnvPointer,
-		EnableDebug:          enableDebug,
-	}
-}
-
 func GetRegistryAuthTokenIfPresent(commandName string) string {
 	// If this env variable isn't set, then assume it is a public repository and no auth token is needed.
 	if os.Getenv(awsEcrFolioRepoEnvKey) == "" {

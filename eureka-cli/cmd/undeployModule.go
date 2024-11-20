@@ -22,6 +22,7 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const undeployModuleCommand = "Undeploy Module"
@@ -41,7 +42,7 @@ func UndeployModule() {
 	client := internal.CreateClient(undeployModuleCommand)
 	defer client.Close()
 
-	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.SingleModuleContainerPattern, moduleName)})
+	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.SingleModuleContainerPattern, viper.GetString(internal.ProfileNameKey), moduleName)})
 	deployedModules := internal.GetDeployedModules(undeployModuleCommand, client, filters)
 	for _, deployedModule := range deployedModules {
 		internal.UndeployModule(undeployModuleCommand, client, deployedModule)
@@ -50,6 +51,6 @@ func UndeployModule() {
 
 func init() {
 	rootCmd.AddCommand(undeployModuleCmd)
-	undeployModuleCmd.PersistentFlags().StringVarP(&moduleName, "moduleName", "m", "", "Module name (required)")
+	undeployModuleCmd.PersistentFlags().StringVarP(&moduleName, "moduleName", "m", "", "Module name only, e.g. mod-users (required)")
 	undeployModuleCmd.MarkPersistentFlagRequired("moduleName")
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -34,26 +35,25 @@ const (
 
 	HealtcheckUri         string = "/admin/health"
 	HealtcheckMaxAttempts int    = 50
+
+	MgrTenantsUrl            string = "http://mgr-tenants.eureka:8081"
+	MgrApplicationsUrl       string = "http://mgr-applications.eureka:8081"
+	MgrTenantEntitlementsUrl string = "http://mgr-tenant-entitlements.eureka:8081"
+
+	ModuleIdPattern string = "([a-z-_]+)([\\d-_.]+)([a-zA-Z0-9-_.]+)"
 )
 
-var HealthcheckDefaultDuration time.Duration = 30 * time.Second
+var (
+	HealthcheckDefaultDuration time.Duration = 30 * time.Second
 
-type RegistryModule struct {
-	Id     string `json:"id"`
-	Action string `json:"action"`
-
-	Name        string
-	SidecarName string
-	Version     *string
-}
-
-type RegistryModules []RegistryModule
+	ModuleIdRegexp *regexp.Regexp = regexp.MustCompile(ModuleIdPattern)
+)
 
 // ######## Auxiliary ########
 
 func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryModulesMap map[string][]*RegistryModule) {
 	for registryName, registryModules := range registryModulesMap {
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Registering %s registry modules", registryName))
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Extracting %s registry module name and versions", registryName))
 
 		for moduleIndex, module := range registryModules {
 			module.Name = TrimModuleName(ModuleIdRegexp.ReplaceAllString(module.Id, `$1`))
@@ -68,7 +68,7 @@ func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryM
 
 func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *sync.WaitGroup, moduleName string, port int) {
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Waiting for module container %s on port %d to initialize", moduleName, port))
-	requestUrl := fmt.Sprintf(DockerInternalUrl, port, HealtcheckUri)
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, port, HealtcheckUri)
 	healthcheckAttempts := HealtcheckMaxAttempts
 	for {
 		time.Sleep(HealthcheckDefaultDuration)
@@ -104,8 +104,8 @@ func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *s
 
 // ######## Application & Application Discovery ########
 
-func RemoveApplications(commandName string, moduleName string, enableDebug bool, panicOnError bool) {
-	resp := DoGetReturnResponse(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/applications"), enableDebug, panicOnError, map[string]string{})
+func RemoveApplications(commandName string, enableDebug bool, panicOnError bool) {
+	resp := DoGetReturnResponse(commandName, fmt.Sprintf(HostDockerInternalUrl, ApplicationsPort, "/applications"), enableDebug, panicOnError, map[string]string{})
 	if resp == nil {
 		return
 	}
@@ -127,18 +127,11 @@ func RemoveApplications(commandName string, moduleName string, enableDebug bool,
 	for _, value := range applications.ApplicationDescriptors {
 		id := value["id"].(string)
 
-		if moduleName != "" {
-			moduleNameFiltered := ModuleIdRegexp.ReplaceAllString(id, `$1`)
-			if TrimModuleName(moduleNameFiltered) != moduleName {
-				continue
-			}
-		}
-
-		requestUrl := fmt.Sprintf(DockerInternalUrl, ApplicationsPort, fmt.Sprintf("/applications/%s", id))
+		requestUrl := fmt.Sprintf(HostDockerInternalUrl, ApplicationsPort, fmt.Sprintf("/applications/%s", id))
 
 		DoDelete(commandName, requestUrl, enableDebug, false, map[string]string{})
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed '%s' application`, id))
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed %s application`, id))
 	}
 }
 
@@ -167,7 +160,6 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 
 		for _, module := range registryModules {
 			if strings.Contains(module.Name, ManagementModulePattern) {
-				slog.Info(commandName, GetFuncName(), fmt.Sprintf("Ignoring %s management module registration", module.Name))
 				continue
 			}
 
@@ -185,12 +177,6 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 					module.Version = frontendModule.ModuleVersion
 				}
 				module.Id = fmt.Sprintf("%s-%s", module.Name, *module.Version)
-			}
-
-			_, err := dto.FileModuleEnvPointer.WriteString(fmt.Sprintf("export %s_VERSION=%s\r\n", TransformToEnvVar(module.Name), *module.Version))
-			if err != nil {
-				slog.Error(commandName, GetFuncName(), "dto.FileModuleEnvPointer.WriteString error")
-				panic(err)
 			}
 
 			moduleDescriptorUrl := fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls["folio"], module.Id)
@@ -248,9 +234,9 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 		panic(err)
 	}
 
-	DoPostReturnNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/applications?check=true"), enableDebug, applicationBytes, map[string]string{})
+	DoPostReturnNoContent(commandName, fmt.Sprintf(HostDockerInternalUrl, ApplicationsPort, "/applications?check=true"), enableDebug, applicationBytes, map[string]string{})
 
-	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created '%s' application`, applicationId))
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %s application`, applicationId))
 
 	applicationDiscoveryBytes, err := json.Marshal(map[string]interface{}{"discovery": discoveryModules})
 	if err != nil {
@@ -258,9 +244,9 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 		panic(err)
 	}
 
-	DoPostReturnNoContent(commandName, fmt.Sprintf(DockerInternalUrl, ApplicationsPort, "/modules/discovery"), enableDebug, applicationDiscoveryBytes, map[string]string{})
+	DoPostReturnNoContent(commandName, fmt.Sprintf(HostDockerInternalUrl, ApplicationsPort, "/modules/discovery"), enableDebug, applicationDiscoveryBytes, map[string]string{})
 
-	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created '%d' entries of application module discovery`, len(discoveryModules)))
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %d entries of application module discovery`, len(discoveryModules)))
 }
 
 func UpdateApplicationModuleDiscovery(commandName string, enableDebug bool, id string, location string, restore bool, portServer string) {
@@ -276,11 +262,11 @@ func UpdateApplicationModuleDiscovery(commandName string, enableDebug bool, id s
 		panic(err)
 	}
 
-	requestUrl := fmt.Sprintf(DockerInternalUrl, ApplicationsPort, fmt.Sprintf("/modules/%s/discovery", id))
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, ApplicationsPort, fmt.Sprintf("/modules/%s/discovery", id))
 
 	DoPutReturnNoContent(commandName, requestUrl, enableDebug, applicationDiscoveryBytes, map[string]string{})
 
-	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Updated application module discovery for '%s' module with '%s' location`, name, location))
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Updated application module discovery for %s module with %s location`, name, location))
 }
 
 // ######## Tenants ########
@@ -288,7 +274,7 @@ func UpdateApplicationModuleDiscovery(commandName string, enableDebug bool, id s
 func GetTenants(commandName string, enableDebug bool, panicOnError bool) []interface{} {
 	var foundTenants []interface{}
 
-	requestUrl := fmt.Sprintf(DockerInternalUrl, TenantsPort, "/tenants")
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, TenantsPort, "/tenants")
 
 	foundTenantsMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
 	if foundTenantsMap["tenants"] == nil || len(foundTenantsMap["tenants"].([]interface{})) == 0 {
@@ -309,16 +295,16 @@ func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 			continue
 		}
 
-		requestUrl := fmt.Sprintf(DockerInternalUrl, TenantsPort, fmt.Sprintf("/tenants/%s?purge=true", mapEntry["id"].(string)))
+		requestUrl := fmt.Sprintf(HostDockerInternalUrl, TenantsPort, fmt.Sprintf("/tenants/%s?purge=true", mapEntry["id"].(string)))
 
 		DoDelete(commandName, requestUrl, enableDebug, false, map[string]string{})
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed '%s' tenant`, tenant))
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed %s tenant (realm)`, tenant))
 	}
 }
 
 func CreateTenants(commandName string, enableDebug bool) {
-	requestUrl := fmt.Sprintf(DockerInternalUrl, TenantsPort, "/tenants")
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, TenantsPort, "/tenants")
 	tenants := ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey))
 
 	for _, tenant := range tenants {
@@ -330,14 +316,14 @@ func CreateTenants(commandName string, enableDebug bool) {
 
 		DoPostReturnNoContent(commandName, requestUrl, enableDebug, tenantBytes, map[string]string{})
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created '%s' tenant`, tenant))
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %s tenant (realm)`, tenant))
 	}
 }
 
 // ######## Tenant Entitlements ########
 
 func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError bool) {
-	requestUrl := fmt.Sprintf(DockerInternalUrl, TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false")
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false")
 	applicationMap := viper.GetStringMap(ApplicationKey)
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)
@@ -363,14 +349,13 @@ func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError
 
 		DoDeleteWithBody(commandName, requestUrl, enableDebug, tenantEntitlementBytes, true, map[string]string{})
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed tenant entitlement for '%s' tenant`, tenant))
-
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed tenant entitlement for %s tenant (realm)`, tenant))
 	}
 }
 
 // TODO Add depCheck=false flag
 func CreateTenantEntitlement(commandName string, enableDebug bool) {
-	requestUrl := fmt.Sprintf(DockerInternalUrl, TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=false,loadSample=false")
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=false,loadSample=false")
 	applicationMap := viper.GetStringMap(ApplicationKey)
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)
@@ -396,8 +381,7 @@ func CreateTenantEntitlement(commandName string, enableDebug bool) {
 
 		DoPostReturnNoContent(commandName, requestUrl, enableDebug, tenantEntitlementBytes, map[string]string{})
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created tenant entitlement for '%s' tenant`, tenant))
-
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created tenant entitlement for %s tenant (realm)`, tenant))
 	}
 }
 
@@ -406,7 +390,7 @@ func CreateTenantEntitlement(commandName string, enableDebug bool) {
 func GetUsers(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) []interface{} {
 	var foundUsers []interface{}
 
-	requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/users")
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, "/users")
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 
 	foundTenantsMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, panicOnError, headers)
@@ -430,18 +414,18 @@ func RemoveUsers(commandName string, enableDebug bool, panicOnError bool, tenant
 			continue
 		}
 
-		requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, fmt.Sprintf("/users-keycloak/users/%s", mapEntry["id"].(string)))
+		requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, fmt.Sprintf("/users-keycloak/users/%s", mapEntry["id"].(string)))
 
 		DoDelete(commandName, requestUrl, enableDebug, false, headers)
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed '%s' in '%s' realm`, username, tenant))
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed %s in %s tenant (realm)`, username, tenant))
 	}
 }
 
 func CreateUsers(commandName string, enableDebug bool, accessToken string) {
-	postUserRequestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/users-keycloak/users")
-	postUserPasswordRequestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/authn/credentials")
-	postUserRoleRequestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/roles/users")
+	postUserRequestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, "/users-keycloak/users")
+	postUserPasswordRequestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, "/authn/credentials")
+	postUserRoleRequestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, "/roles/users")
 	usersMap := viper.GetStringMap(UsersKey)
 
 	for username, value := range usersMap {
@@ -475,7 +459,7 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 
 		userId := createdUserMap["id"].(string)
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created '%s' user with password '%s' in '%s' realm`, username, password, tenant))
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %s user with password %s in %s tenant (realm)`, username, password, tenant))
 
 		userPasswordBytes, err := json.Marshal(map[string]any{"userId": userId, "username": username, "password": password})
 		if err != nil {
@@ -485,7 +469,7 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 
 		DoPostReturnNoContent(commandName, postUserPasswordRequestUrl, enableDebug, userPasswordBytes, nonOkapiBasedHeaders)
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Attached '%s' password to '%s' user in '%s' realm`, password, username, tenant))
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Attached %s password to %s user in %s tenant (realm)`, password, username, tenant))
 
 		var roleIds []string
 		for _, userRole := range userRoles {
@@ -509,7 +493,7 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 
 		DoPostReturnNoContent(commandName, postUserRoleRequestUrl, enableDebug, userRoleBytes, okapiBasedHeaders)
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Attached '%d' roles to '%s' user in '%s' realm`, len(roleIds), username, tenant))
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Attached %d roles to %s user in %s tenant (realm)`, len(roleIds), username, tenant))
 	}
 }
 
@@ -518,7 +502,7 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 func GetRoles(commandName string, enableDebug bool, panicOnError bool, headers map[string]string) []interface{} {
 	var foundRoles []interface{}
 
-	requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/roles")
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, "/roles")
 
 	foundRolesMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, panicOnError, headers)
 	if foundRolesMap["roles"] == nil || len(foundRolesMap["roles"].([]interface{})) == 0 {
@@ -531,7 +515,7 @@ func GetRoles(commandName string, enableDebug bool, panicOnError bool, headers m
 }
 
 func GetRoleByName(commandName string, enableDebug bool, roleName string, headers map[string]string) map[string]interface{} {
-	requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, fmt.Sprintf("/roles?query=name==%s", roleName))
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, fmt.Sprintf("/roles?query=name==%s", roleName))
 
 	foundRolesMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, true, headers)
 	if foundRolesMap["roles"] == nil {
@@ -558,16 +542,16 @@ func RemoveRoles(commandName string, enableDebug bool, panicOnError bool, tenant
 			continue
 		}
 
-		requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, fmt.Sprintf("/roles-keycloak/roles/%s", mapEntry["id"].(string)))
+		requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, fmt.Sprintf("/roles-keycloak/roles/%s", mapEntry["id"].(string)))
 
 		DoDelete(commandName, requestUrl, enableDebug, false, headers)
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed '%s' role in '%s' realm`, roleName, tenant))
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed %s role in %s tenant (realm)`, roleName, tenant))
 	}
 }
 
 func CreateRoles(commandName string, enableDebug bool, accessToken string) {
-	requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/roles")
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, "/roles")
 	rolesMap := viper.GetStringMap(RolesKey)
 
 	for role, value := range rolesMap {
@@ -584,7 +568,7 @@ func CreateRoles(commandName string, enableDebug bool, accessToken string) {
 
 		DoPostReturnNoContent(commandName, requestUrl, enableDebug, roleBytes, headers)
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created '%s' role in '%s' realm`, role, tenant))
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %s role in %s tenant (realm)`, role, tenant))
 	}
 }
 
@@ -593,7 +577,7 @@ func CreateRoles(commandName string, enableDebug bool, accessToken string) {
 func GetCapabilitySets(commandName string, enableDebug bool, panicOnError bool, headers map[string]string) []interface{} {
 	var foundCapabilitySets []interface{}
 
-	requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/capability-sets?offset=0&limit=1000")
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, "/capability-sets?offset=0&limit=1000")
 
 	foundCapabilitySetsMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, panicOnError, headers)
 	if foundCapabilitySetsMap["capabilitySets"] == nil || len(foundCapabilitySetsMap["capabilitySets"].([]interface{})) == 0 {
@@ -608,7 +592,7 @@ func GetCapabilitySets(commandName string, enableDebug bool, panicOnError bool, 
 func GetCapabilitySetsByName(commandName string, enableDebug bool, panicOnError bool, capabilitySetName string, headers map[string]string) []interface{} {
 	var foundCapabilitySets []interface{}
 
-	requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", capabilitySetName))
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", capabilitySetName))
 
 	foundCapabilitySetsMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, panicOnError, headers)
 	if foundCapabilitySetsMap["capabilitySets"] == nil || len(foundCapabilitySetsMap["capabilitySets"].([]interface{})) == 0 {
@@ -632,16 +616,16 @@ func DetachCapabilitySetsFromRoles(commandName string, enableDebug bool, panicOn
 			continue
 		}
 
-		requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, fmt.Sprintf("/roles/%s/capability-sets", mapEntry["id"].(string)))
+		requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, fmt.Sprintf("/roles/%s/capability-sets", mapEntry["id"].(string)))
 
 		DoDelete(commandName, requestUrl, enableDebug, false, headers)
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Detached capability sets from '%s' role in '%s' realm`, roleName, tenant))
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Detached capability sets from %s role in %s tenant (realm)`, roleName, tenant))
 	}
 }
 
 func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant string, accessToken string) {
-	requestUrl := fmt.Sprintf(DockerInternalUrl, GatewayPort, "/roles/capability-sets")
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, "/roles/capability-sets")
 	rolesMapConfig := viper.GetStringMap(RolesKey)
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 
@@ -695,6 +679,6 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 
 		DoPostReturnNoContent(commandName, requestUrl, enableDebug, capabilitySetsBytes, headers)
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Attached '%d' capability sets to '%s' role in '%s' realm`, len(capabilitySetIds), roleName, tenant))
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Attached %d capability sets to %s role in %s tenant (realm)`, len(capabilitySetIds), roleName, tenant))
 	}
 }

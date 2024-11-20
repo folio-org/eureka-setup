@@ -62,19 +62,10 @@ environment:
   OKAPI_INTEGRATION_ENABLED: false
   WEB_CLIENT_TLS_VERIFY_HOSTNAME: false
   # Java
-  JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms256m -Xmx512m -Djdk.internal.httpclient.disableHostnameVerification=true"
-# Files
-files:
-  module-env: .module.env
-  module-descriptors: .module-descriptors.json
-# Resources
-resources:
-  kong: http://api-gateway.eureka:8000
-  vault: http://vault.eureka:8200
-  keycloak: http://keycloak.eureka:8080
-  mgr-tenants: http://mgr-tenants.eureka:8081
-  mgr-applications: http://mgr-applications.eureka:8081
-  mgr-tenant-entitlements: http://mgr-tenant-entitlements.eureka:8081
+  JAVA_OPTIONS: | 
+    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
+    -XX:MaxRAMPercentage=85.0 -Xms128m -Xmx400m 
+    -Djdk.internal.httpclient.disableHostnameVerification=true"
 # Tenants
 tenants:
   diku:
@@ -110,7 +101,6 @@ users:
 # Sidecar module
 sidecar-module:
   image: folio-module-sidecar
-  version: 1.1.0-SNAPSHOT.96
   environment:
     SIDECAR: true
     SC_LOG_LEVEL: DEBUG
@@ -124,9 +114,10 @@ sidecar-module:
     MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak.eureka:8081
     SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://api-gateway.eureka:8000
     JAVA_OPTIONS: | 
-      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=DEBUG -Dquarkus.log.category.'org.apache.kafka'.level=DEBUG -Djava.util.logging.manager=org.jboss.logmanager.LogManager
       -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
-      -XX:+UseZGC -XX:MaxRAMPercentage=90.0 -Xms50m -Xmx256m
+      -XX:+UseZGC -XX:MaxRAMPercentage=85.0 -Xms50m -Xmx128m
+      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=DEBUG -Dquarkus.log.category.'org.apache.kafka'.level=DEBUG 
+      -Djava.util.logging.manager=org.jboss.logmanager.LogManager
 # Backend modules
 backend-modules:
   # Management modules
@@ -140,7 +131,7 @@ backend-modules:
       # Management
       MODULE_URL: http://mgr-applications.eureka:8081
       TE_URL: http://mgr-tenant-entitlements.eureka:8081
-      VALIDATION_MODE: basic
+      VALIDATION_MODE: none
   mgr-tenants:
     port: 9902
     environment:
@@ -198,6 +189,7 @@ backend-modules:
   mod-settings:
   mod-notes:
   mod-tags:
+# Frontend modules
 frontend-modules:
   folio_developer:
   folio_tags:

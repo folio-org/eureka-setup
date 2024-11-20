@@ -43,4 +43,6 @@ func DeployApplication() {
 
 func init() {
 	rootCmd.AddCommand(deployApplicationCmd)
+	deployApplicationCmd.PersistentFlags().BoolVarP(&buildImages, "buildImages", "b", false, "Build images")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&updateCloned, "updateCloned", "u", false, "Update cloned projects")
 }

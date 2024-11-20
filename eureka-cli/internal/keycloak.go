@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-
-	"github.com/spf13/viper"
 )
 
 const (
 	adminUsername string = "admin"
 	adminPassword string = "admin"
+
+	KeycloakUrl string = "http://keycloak.eureka:8080"
 )
 
 func GetKeycloakAccessToken(commandName string, enableDebug bool, vaultRootToken string, tenant string) string {
@@ -21,7 +21,7 @@ func GetKeycloakAccessToken(commandName string, enableDebug bool, vaultRootToken
 	clientSecret := secretMap[clientId].(string)
 	systemUser := fmt.Sprintf("%s-system-user", tenant)
 	systemUserPassword := secretMap[systemUser].(string)
-	requestUrl := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", viper.GetString(ResourcesKeycloakKey), tenant)
+	requestUrl := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", KeycloakUrl, tenant)
 	headers := map[string]string{ContentTypeHeader: FormUrlEncodedContentType}
 
 	formData := url.Values{}
@@ -40,7 +40,7 @@ func GetKeycloakAccessToken(commandName string, enableDebug bool, vaultRootToken
 }
 
 func GetKeycloakMasterRealmAccessToken(commandName string, enableDebug bool) string {
-	requestUrl := fmt.Sprintf("%s/realms/master/protocol/openid-connect/token", viper.GetString(ResourcesKeycloakKey))
+	requestUrl := fmt.Sprintf("%s/realms/master/protocol/openid-connect/token", KeycloakUrl)
 	headers := map[string]string{ContentTypeHeader: FormUrlEncodedContentType}
 
 	formData := url.Values{}
@@ -57,11 +57,11 @@ func GetKeycloakMasterRealmAccessToken(commandName string, enableDebug bool) str
 	return tokensMap["access_token"].(string)
 }
 
-func UpdateKeycloakPublicClientParams(commandName string, enableDebug bool, tenant string, accessToken string) {
+func UpdateKeycloakPublicClientParams(commandName string, enableDebug bool, tenant string, accessToken string, platformCompleteUrl string) {
 	headers := map[string]string{ContentTypeHeader: JsonContentType, AuthorizationHeader: fmt.Sprintf("Bearer %s", accessToken)}
 
 	clientId := fmt.Sprintf("%s%s", tenant, GetEnvironmentFromMapByKey("KC_LOGIN_CLIENT_SUFFIX"))
-	getRequestUrl := fmt.Sprintf("%s/admin/realms/%s/clients?clientId=%s", viper.GetString(ResourcesKeycloakKey), tenant, clientId)
+	getRequestUrl := fmt.Sprintf("%s/admin/realms/%s/clients?clientId=%s", KeycloakUrl, tenant, clientId)
 	foundClients := DoGetDecodeReturnInterface(commandName, getRequestUrl, enableDebug, true, headers).([]interface{})
 	if len(foundClients) != 1 {
 		LogErrorPanic(commandName, fmt.Sprintf("internal.UpdateKeycloakPublicClientParams - Number of found cliends by %s client id is not 1", clientId))
@@ -69,17 +69,17 @@ func UpdateKeycloakPublicClientParams(commandName string, enableDebug bool, tena
 
 	clientUuid := foundClients[0].(map[string]interface{})["id"].(string)
 
-	putRequestUrl := fmt.Sprintf("%s/admin/realms/%s/clients/%s", viper.GetString(ResourcesKeycloakKey), tenant, clientUuid)
+	putRequestUrl := fmt.Sprintf("%s/admin/realms/%s/clients/%s", KeycloakUrl, tenant, clientUuid)
 	clientParamsBytes, err := json.Marshal(map[string]interface{}{
-		"rootUrl":                      PlatformCompleteUrl,
-		"baseUrl":                      PlatformCompleteUrl,
-		"adminUrl":                     PlatformCompleteUrl,
-		"redirectUris":                 []string{fmt.Sprintf("%s/*", PlatformCompleteUrl)},
+		"rootUrl":                      platformCompleteUrl,
+		"baseUrl":                      platformCompleteUrl,
+		"adminUrl":                     platformCompleteUrl,
+		"redirectUris":                 []string{fmt.Sprintf("%s/*", platformCompleteUrl)},
 		"webOrigins":                   []string{"/*"},
 		"authorizationServicesEnabled": true,
 		"serviceAccountsEnabled":       true,
 		"attributes": map[string]string{
-			"post.logout.redirect.uris": fmt.Sprintf("%s/*", PlatformCompleteUrl),
+			"post.logout.redirect.uris": fmt.Sprintf("%s/*", platformCompleteUrl),
 			"login_theme":               "custom-theme",
 		},
 	})
@@ -89,4 +89,6 @@ func UpdateKeycloakPublicClientParams(commandName string, enableDebug bool, tena
 	}
 
 	DoPutReturnNoContent(commandName, putRequestUrl, enableDebug, clientParamsBytes, headers)
+
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Updated keycloak public '%s' client in '%s' realm", clientId, tenant))
 }

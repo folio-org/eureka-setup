@@ -37,7 +37,7 @@ var undeploySystemCmd = &cobra.Command{
 
 func UndeploySystem() {
 	slog.Info(undeploySystemCommand, internal.GetFuncName(), "### UNDEPLOYING SYSTEM CONTAINERS ###")
-	preparedCommand := exec.Command("docker", "compose", "-p", "eureka", "down", "-v")
+	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "down", "--volumes", "--remove-orphans")
 	internal.RunCommand(deployManagementCommand, preparedCommand)
 }
 

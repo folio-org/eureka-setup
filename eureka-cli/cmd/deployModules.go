@@ -16,10 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"log/slog"
-	"os"
-	"path"
 	"sync"
 
 	"github.com/folio-org/eureka-cli/internal"
@@ -40,26 +37,17 @@ var deployModulesCmd = &cobra.Command{
 }
 
 func DeployModules() {
-	home, err := os.UserHomeDir()
-	cobra.CheckErr(err)
-
 	registryUrl := viper.GetString(internal.RegistryUrlKey)
 	registryFolioInstallJsonUrl := viper.GetString(internal.RegistryFolioInstallJsonUrlKey)
 	registryEurekaInstallJsonUrl := viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)
-	fileModuleEnv := path.Join(home, configDir, viper.GetString(internal.FilesModuleEnvKey))
-	fileModuleDescriptors := path.Join(home, configDir, viper.GetString(internal.FilesModuleDescriptorsKey))
 	backendModulesAnyMap := viper.GetStringMap(internal.BackendModuleKey)
 	frontendModulesAnyMap := viper.GetStringMap(internal.FrontendModuleKey)
 	internal.PortIndex = viper.GetInt(internal.ApplicationPortStart)
-
-	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING ENVIRONMENT FROM CONFIG ###")
 	environment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.EnvironmentKey)
-
-	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING SIDECAR ENVIRONMENT FROM CONFIG ###")
 	sidecarEnvironment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.SidecarModuleEnvironmentKey)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING BACKEND MODULES FROM CONFIG ###")
-	backendModulesMap := internal.GetBackendModulesFromConfig(deployModulesCommand, backendModulesAnyMap)
+	backendModulesMap := internal.GetBackendModulesFromConfig(deployModulesCommand, backendModulesAnyMap, false)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING FRONTEND MODULES FROM CONFIG ###")
 	frontendModulesMap := internal.GetFrontendModulesFromConfig(deployModulesCommand, frontendModulesAnyMap)
@@ -76,26 +64,15 @@ func DeployModules() {
 	defer client.Close()
 	vaultRootToken := internal.GetRootVaultToken(deployModulesCommand, client)
 
-	slog.Info(deployModulesCommand, internal.GetFuncName(), "### CREATING MODULE ENV FILE ###")
-	fileModuleEnvPointer := internal.CreateModuleEnvFile(deployModulesCommand, fileModuleEnv)
-	defer fileModuleEnvPointer.Close()
-
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### CREATING APPLICATIONS ###")
 	moduleDescriptorsMap := make(map[string]interface{})
 	registryUrls := map[string]string{"folio": registryUrl, "eureka": registryUrl}
-	registerModuleDto := internal.NewRegisterModuleDto(registryUrls, registryModules, backendModulesMap, frontendModulesMap, moduleDescriptorsMap, fileModuleEnvPointer, enableDebug)
+	registerModuleDto := internal.NewRegisterModuleDto(registryUrls, registryModules, backendModulesMap, frontendModulesMap, moduleDescriptorsMap, enableDebug)
 	internal.CreateApplications(deployModulesCommand, enableDebug, registerModuleDto)
 
-	slog.Info(deployModulesCommand, internal.GetFuncName(), "Created module environment file")
-	fileModuleDescriptorsPointer := internal.CreateModuleDescriptorsFile(deployModulesCommand, fileModuleDescriptors)
-	defer fileModuleDescriptorsPointer.Close()
-	encoder := json.NewEncoder(fileModuleDescriptorsPointer)
-	encoder.Encode(moduleDescriptorsMap)
-	slog.Info(deployModulesCommand, internal.GetFuncName(), "Created module descriptors file")
-
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### DEPLOYING MODULES ###")
-	registryHostname := map[string]string{"folio": "", "eureka": ""}
-	deployModulesDto := internal.NewDeployModulesDto(vaultRootToken, registryHostname, registryModules, backendModulesMap, environment, sidecarEnvironment)
+	registryHostnames := map[string]string{"folio": "", "eureka": ""}
+	deployModulesDto := internal.NewDeployModulesDto(vaultRootToken, registryHostnames, registryModules, backendModulesMap, environment, sidecarEnvironment)
 	deployedModules := internal.DeployModules(deployModulesCommand, client, deployModulesDto)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### WAITING FOR MODULES TO INITIALIZE ###")

@@ -17,7 +17,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"path"
@@ -39,50 +38,31 @@ var setupCmd = &cobra.Command{
 }
 
 func Setup() {
-	slog.Info(setupCommand, internal.GetFuncName(), "### CREATING SETUP CONFIG ###")
-	srcConfigFile := fmt.Sprintf("%s.%s", configMinimal, configType)
-	sourceFileStat, err := os.Stat(srcConfigFile)
-	if err != nil {
-		slog.Error(setupCommand, internal.GetFuncName(), "os.Stat error")
-		panic(err)
-	}
+	slog.Info(setupCommand, internal.GetFuncName(), "### CREATING SETUP CLI CONFIG IN HOME DIR ###")
 
-	if !sourceFileStat.Mode().IsRegular() {
-		internal.LogErrorPanic(setupCommand, "sourceFileStat.Mode().IsRegular error")
-	}
+	srcPath := getCurrentLocalConfig()
+	dstPath := path.Join(createHomeConfigDirIfNeeded(), srcPath)
+	internal.CopySingleFile(setupCommand, srcPath, dstPath)
+}
 
-	source, err := os.Open(srcConfigFile)
-	if err != nil {
-		slog.Error(setupCommand, internal.GetFuncName(), "os.Open error")
-		panic(err)
+func getCurrentLocalConfig() string {
+	if configFile == "" {
+		return fmt.Sprintf("%s.%s", internal.ConfigMinimal, internal.ConfigType)
 	}
-	defer source.Close()
+	return configFile
+}
 
+func createHomeConfigDirIfNeeded() string {
 	home, err := os.UserHomeDir()
 	cobra.CheckErr(err)
 
-	dstConfigDir := path.Join(home, configDir)
-	err = os.MkdirAll(dstConfigDir, 0700)
-	if err != nil {
+	dstConfigDir := path.Join(home, internal.ConfigDir)
+	if err = os.MkdirAll(dstConfigDir, 0700); err != nil {
 		slog.Error(setupCommand, internal.GetFuncName(), "os.MkdirAll error")
 		panic(err)
 	}
 
-	dstConfigFile := path.Join(dstConfigDir, srcConfigFile)
-	destination, err := os.Create(dstConfigFile)
-	if err != nil {
-		slog.Error(setupCommand, internal.GetFuncName(), "os.Create error")
-		panic(err)
-	}
-	defer destination.Close()
-
-	_, err = io.Copy(destination, source)
-	if err != nil {
-		slog.Error(setupCommand, internal.GetFuncName(), "io.Copy error")
-		panic(err)
-	}
-
-	slog.Info(setupCommand, internal.GetFuncName(), fmt.Sprintf("Created setup in %s", dstConfigFile))
+	return dstConfigDir
 }
 
 func init() {

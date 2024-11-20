@@ -16,14 +16,20 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/docker/docker/api/types/filters"
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-const undeployModulesCommand = "Undeploy Modules"
+const (
+	undeployModulesCommand = "Undeploy Modules"
+
+	multipleModulesContainerPattern string = "eureka-%s-mod-"
+)
 
 // undeployModulesCmd represents the undeployModules command
 var undeployModulesCmd = &cobra.Command{
@@ -37,14 +43,13 @@ var undeployModulesCmd = &cobra.Command{
 
 func UndeployModules() {
 	slog.Info(undeployModulesCommand, internal.GetFuncName(), "### REMOVING APPLICATIONS ###")
-	internal.RemoveApplications(undeployModulesCommand, "", enableDebug, false)
+	internal.RemoveApplications(undeployModulesCommand, enableDebug, false)
 
 	slog.Info(undeployModulesCommand, internal.GetFuncName(), "### UNDEPLOYING MODULES ###")
 	client := internal.CreateClient(undeployModulesCommand)
 	defer client.Close()
 
-	// TODO Undeploy only the current application
-	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: internal.MultipleModulesContainerPattern})
+	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(multipleModulesContainerPattern, viper.GetString(internal.ProfileNameKey))})
 	deployedModules := internal.GetDeployedModules(undeployModulesCommand, client, filters)
 	for _, deployedModule := range deployedModules {
 		internal.UndeployModule(undeployModulesCommand, client, deployedModule)

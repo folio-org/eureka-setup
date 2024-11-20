@@ -1,5 +1,5 @@
 # Profile
-profile: 
+profile:
   name: acquisitions
 # Application
 application:
@@ -8,11 +8,11 @@ application:
   platform: acquisitions
   fetch-descriptors: false
   dependencies:
-    name: app-minimal-1.0.0
+    name: app-minimal
     version: 1.0.0
   port-start: 35000
 # Registry
-registry: 
+registry:
   registry-url: https://folio-registry.dev.folio.org
   folio-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
   eureka-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
@@ -50,7 +50,7 @@ environment:
   MT_URL: http://mgr-tenants.eureka:8081
   AM_CLIENT_URL: http://mgr-applications.eureka:8081
   KONG_ADMIN_URL: http://api-gateway.eureka:8001
-  # Keycloak 
+  # Keycloak
   KC_URL: http://keycloak.eureka:8080
   KC_CONFIG_TTL: 3600s
   KC_ADMIN_CLIENT_ID: supersecret
@@ -63,26 +63,19 @@ environment:
   KC_SERVICE_CLIENT_ID: sidecar-module-access-client
   KONG_INTEGRATION_ENABLED: true
   OKAPI_INTEGRATION_ENABLED: false
-  MOD_USERS_BL: http://mod-users-bl.eureka:8081
-  MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak.eureka:8081
+  WEB_CLIENT_TLS_VERIFY_HOSTNAME: false
   # Java
-  JAVA_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -XX:MaxRAMPercentage=90.0 -Xms256m -Xmx512m"
-# Files
-files: 
-  module-env: .module.env
-  module-descriptors: .module-descriptors.json
-# Resources
-resources: 
-  kong: http://api-gateway.eureka:8000
-  vault: http://vault.eureka:8200
-  keycloak: http://keycloak.eureka:8080
-  mgr-tenants: http://mgr-tenants.eureka:8081
-  mgr-applications: http://mgr-applications.eureka:8081
-  mgr-tenant-entitlements: http://mgr-tenant-entitlements.eureka:8081
+  JAVA_OPTIONS: | 
+    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
+    -XX:MaxRAMPercentage=85.0 -Xms128m -Xmx400m 
+    -Djdk.internal.httpclient.disableHostnameVerification=true"
+# Tenants
+tenants:
+  diku:
+    deploy-ui: true
 # Sidecar module
 sidecar-module:
   image: folio-module-sidecar
-  version: 1.1.0-SNAPSHOT.96
   environment:
     SIDECAR: true
     SC_LOG_LEVEL: DEBUG
@@ -96,49 +89,50 @@ sidecar-module:
     MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak.eureka:8081
     SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://api-gateway.eureka:8000
     JAVA_OPTIONS: | 
-      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=DEBUG -Dquarkus.log.category.'org.apache.kafka'.level=DEBUG -Djava.util.logging.manager=org.jboss.logmanager.LogManager
       -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
-      -XX:+UseZGC -XX:MaxRAMPercentage=90.0 -Xms50m -Xmx256m
+      -XX:+UseZGC -XX:MaxRAMPercentage=85.0 -Xms50m -Xmx128m
+      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=DEBUG -Dquarkus.log.category.'org.apache.kafka'.level=DEBUG 
+      -Djava.util.logging.manager=org.jboss.logmanager.LogManager
 # Backend modules
 backend-modules:
   # Other modules
-  mod-source-record-storage:
-  mod-source-record-manager:
-  mod-pubsub:
-  mod-inventory-storage:
-  mod-inventory:
-  mod-organizations-storage:
-  mod-organizations:
-  mod-entities-links:
-  mod-invoice-storage:
-  mod-invoice:
+  # mod-source-record-storage:
+  # mod-source-record-manager:
+  # mod-pubsub:
+  # mod-inventory-storage:
+  # mod-inventory:
+  # mod-organizations-storage:
+  # mod-organizations:
+  # mod-entities-links:
+  # mod-invoice-storage:
+  # mod-invoice:
   mod-orders-storage:
   mod-orders:
-  mod-finance:
-  mod-finance-storage:
-  mod-circulation-storage:
-  mod-circulation:
-  mod-di-converter-storage:
-  mod-data-import:
-  mod-data-export:
-  mod-copycat:
-  mod-audit:
-  mod-patron:
-  mod-patron-blocks:
-  mod-feesfines:
-  mod-search:
-  mod-login-saml:
-  mod-event-config:
-  mod-template-engine:
-  mod-data-export-spring:
-  mod-erm-usage:
-  mod-calendar:
-  mod-agreements:
-  mod-sender:
-  mod-email:
-  mod-batch-print:
-  mod-notify:
-  mod-service-interaction:
+  # mod-finance:
+  # mod-finance-storage:
+  # mod-circulation-storage:
+  # mod-circulation:
+  # mod-di-converter-storage:
+  # mod-data-import:
+  # mod-data-export:
+  # mod-copycat:
+  # mod-audit:
+  # mod-patron:
+  # mod-patron-blocks:
+  # mod-feesfines:
+  # mod-search:
+  # mod-login-saml:
+  # mod-event-config:
+  # mod-template-engine:
+  # mod-data-export-spring:
+  # mod-erm-usage:
+  # mod-calendar:
+  # mod-agreements:
+  # mod-sender:
+  # mod-email:
+  # mod-batch-print:
+  # mod-notify:
+  # mod-service-interaction:
 # Frontend modules
 frontend-modules:
   folio_users:

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -15,83 +14,48 @@ import (
 )
 
 const (
-	DockerComposeWorkDir string = "./misc"
-	NetworkName          string = "fpm-net"
-	NetworkId            string = "eureka"
-	DockerInternalUrl    string = "http://host.docker.internal:%d%s"
-	HostIp               string = "0.0.0.0"
-	DefaultServerPort    string = "8081"
-	DebugPort            string = "5005"
+	ConfigDir     string = ".eureka"
+	ConfigMinimal string = "config.minimal"
+	ConfigType    string = "yaml"
 
-	PlatformCompleteUrl           string = "http://localhost:3000"
+	DockerComposeWorkDir  string = "./misc"
+	NetworkName           string = "fpm-net"
+	NetworkId             string = "eureka"
+	HostDockerInternalUrl string = "http://host.docker.internal:%d%s"
+	HostIp                string = "0.0.0.0"
+	DefaultServerPort     string = "8081"
+	DefaultDebugPort      string = "5005"
+
 	FolioKeycloakRepositoryUrl    string = "https://github.com/folio-org/folio-keycloak"
 	FolioKongRepositoryUrl        string = "https://github.com/folio-org/folio-kong"
 	PlatformCompleteRepositoryUrl string = "https://github.com/folio-org/platform-complete.git"
-
-	VaultRootTokenPattern               string = ".*:"
-	ModuleIdPattern                     string = "([a-z-_]+)([\\d-_.]+)([a-zA-Z0-9-_.]+)"
-	EnvNamePattern                      string = "[.-]+"
-	ManagementModulePattern             string = "mgr-"
-	ModulesPattern                      string = "eureka-"
-	ManagementModuleContainerPattern    string = "eureka-mgr-"
-	MultipleModulesContainerPattern     string = "eureka-mod-"
-	ManagementOrModulesContainerPattern string = "^(eureka-)(mod|mgr)-(.+)"
-	SingleModuleContainerPattern        string = "^(eureka-)(%[1]s|%[1]s-sc)$"
-	SingleUiContainerPattern            string = "eureka-platform-complete-ui-%s"
 )
 
 const (
-	ProfileNameKey string = "profile.name"
+	ManagementModulePattern string = "mgr-"
 
-	ApplicationKey           string = "application"
-	ApplicationPortStart     string = "application.port-start"
-	ApplicationStripesBranch string = "application.stripes-branch"
-
-	RegistryUrlKey                  string = "registry.registry-url"
-	RegistryFolioInstallJsonUrlKey  string = "registry.folio-install-json-url"
-	RegistryEurekaInstallJsonUrlKey string = "registry.eureka-install-json-url"
-
-	EnvironmentKey string = "environment"
-
-	FilesModuleEnvKey         string = "files.module-env"
-	FilesModuleDescriptorsKey string = "files.module-descriptors"
-
-	ResourcesKongKey               string = "resources.kong"
-	ResourcesVaultKey              string = "resources.vault"
-	ResourcesKeycloakKey           string = "resources.keycloak"
-	ResourcesMgrTenantsKey         string = "resources.mgr-tenants"
-	ResourcesMgrApplicationsKey    string = "resources.mgr-applications"
-	ResourcesMgrTenantEntitlements string = "resources.mgr-tenant-entitlements"
-
-	TenantsKey string = "tenants"
-	UsersKey   string = "users"
-	RolesKey   string = "roles"
-
-	SidecarModule               string = "sidecar-module"
-	SidecarModuleEnvironmentKey string = "sidecar-module.environment"
-	BackendModuleKey            string = "backend-modules"
-	FrontendModuleKey           string = "frontend-modules"
-
-	DeployModuleKey string = "deploy-module"
-	VersionKey      string = "version"
-	PortKey         string = "port"
-	PortKeyServer   string = "port-server"
-	SidecarKey      string = "sidecar"
-	ModuleEnvKey    string = "environment"
+	SingleModuleContainerPattern string = "^(eureka-%s-)(%[2]s|%[2]s-sc)$"
 )
 
-var (
-	VaultRootTokenRegexp *regexp.Regexp = regexp.MustCompile(VaultRootTokenPattern)
-	ModuleIdRegexp       *regexp.Regexp = regexp.MustCompile(ModuleIdPattern)
-	EnvNameRegexp        *regexp.Regexp = regexp.MustCompile(EnvNamePattern)
+var PortIndex int = 30000
 
-	PortIndex int = 30000
-)
+func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[string]any, managementOnly bool) map[string]BackendModule {
+	const (
+		DeployModuleKey = "deploy-module"
+		VersionKey      = "version"
+		PortKey         = "port"
+		PortKeyServer   = "port-server"
+		SidecarKey      = "sidecar"
+		ModuleEnvKey    = "environment"
+	)
 
-func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[string]any) map[string]BackendModule {
 	backendModulesMap := make(map[string]BackendModule)
 
 	for name, value := range backendModulesAnyMap {
+		if managementOnly && !strings.HasPrefix(name, ManagementModulePattern) {
+			continue
+		}
+
 		var (
 			deployModule bool = true
 			version      *string
@@ -184,6 +148,11 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 }
 
 func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMap map[string]any) map[string]FrontendModule {
+	const (
+		DeployModuleKey = "deploy-module"
+		VersionKey      = "version"
+	)
+
 	frontendModulesMap := make(map[string]FrontendModule)
 
 	for name, value := range frontendModulesAnyMap {
@@ -218,37 +187,7 @@ func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMap map[
 	return frontendModulesMap
 }
 
-func CreateModuleEnvFile(commandName string, fileModuleEnv string) *os.File {
-	err := os.Remove(fileModuleEnv)
-	if err != nil {
-		slog.Warn(commandName, GetFuncName(), fmt.Sprintf("os.Remove warning, '%s'", err.Error()))
-	}
-
-	fileModuleEnvPointer, err := os.OpenFile(fileModuleEnv, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		slog.Error(commandName, GetFuncName(), "os.OpenFile error")
-		panic(err)
-	}
-
-	return fileModuleEnvPointer
-}
-
-func CreateModuleDescriptorsFile(commandName string, fileModuleDescriptors string) *os.File {
-	err := os.Remove(fileModuleDescriptors)
-	if err != nil {
-		slog.Warn(commandName, GetFuncName(), fmt.Sprintf("os.Remove warning, '%s'", err.Error()))
-	}
-
-	moduleDescriptorsFile, err := os.OpenFile(fileModuleDescriptors, os.O_CREATE, 0644)
-	if err != nil {
-		slog.Error(commandName, GetFuncName(), "os.OpenFile error")
-		panic(err)
-	}
-
-	return moduleDescriptorsFile
-}
-
-func PrepareStripesConfigJs(commandName string, configPath string, tenant string) {
+func PrepareStripesConfigJs(commandName string, configPath string, tenant string, kongUrl string, keycloakUrl string, platformCompleteUrl string) {
 	stripesConfigJsFilePath := fmt.Sprintf("%s/stripes.config.js", configPath)
 	readFileBytes, err := os.ReadFile(stripesConfigJsFilePath)
 	if err != nil {
@@ -256,9 +195,9 @@ func PrepareStripesConfigJs(commandName string, configPath string, tenant string
 		panic(err)
 	}
 
-	replaceMap := map[string]string{"${kongUrl}": viper.GetString(ResourcesKongKey),
-		"${tenantUrl}":      PlatformCompleteUrl,
-		"${keycloakUrl}":    viper.GetString(ResourcesKeycloakKey),
+	replaceMap := map[string]string{"${kongUrl}": kongUrl,
+		"${tenantUrl}":      platformCompleteUrl,
+		"${keycloakUrl}":    keycloakUrl,
 		"${hasAllPerms}":    `false`,
 		"${isSingleTenant}": `true`,
 		"${tenantOptions}":  fmt.Sprintf(`{%[1]s: {name: "%[1]s", clientId: "%[1]s%s"}}`, tenant, GetEnvironmentFromMapByKey("KC_LOGIN_CLIENT_SUFFIX")),

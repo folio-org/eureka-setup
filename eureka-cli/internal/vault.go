@@ -10,13 +10,14 @@ import (
 )
 
 const (
-	VaultServerPort int = 8200
+	VaultServerPort int           = 8200
+	VaultTimeout    time.Duration = 30 * time.Second
 
-	VaultTimeout time.Duration = 30 * time.Second
+	VaultUrl string = "http://vault.eureka:8200"
 )
 
 func GetVaultSecretKey(commandName string, enableDebug bool, vaultRootToken string, secretPath string) map[string]interface{} {
-	serverUrl := fmt.Sprintf(DockerInternalUrl, VaultServerPort, "")
+	serverUrl := fmt.Sprintf(HostDockerInternalUrl, VaultServerPort, "")
 
 	client, err := vault.New(vault.WithAddress(serverUrl), vault.WithRequestTimeout(VaultTimeout))
 	if err != nil {

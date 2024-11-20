@@ -26,17 +26,14 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-const (
-	rootCommand   string = "Root"
-	configDir     string = ".eureka"
-	configMinimal string = "config.minimal"
-	configType    string = "yaml"
-)
+const rootCommand string = "Root"
 
 var (
-	configFile  string
-	moduleName  string
-	enableDebug bool
+	configFile   string
+	moduleName   string
+	enableDebug  bool
+	buildImages  bool
+	updateCloned bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -54,7 +51,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", fmt.Sprintf("Config file (default is $HOME/%s/%s.%s)", configDir, configMinimal, configType))
+	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", fmt.Sprintf("Config file (default is $HOME/%s/%s.%s)", internal.ConfigDir, internal.ConfigMinimal, internal.ConfigType))
 	rootCmd.PersistentFlags().BoolVarP(&enableDebug, "debug", "d", false, "Enable debug")
 }
 
@@ -65,16 +62,15 @@ func initConfig() {
 	} else {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
-		configPath := path.Join(home, configDir)
+		configPath := path.Join(home, internal.ConfigDir)
 		viper.AddConfigPath(configPath)
-		viper.SetConfigType(configType)
-		viper.SetConfigName(configMinimal)
+		viper.SetConfigType(internal.ConfigType)
+		viper.SetConfigName(internal.ConfigMinimal)
 	}
 	viper.AutomaticEnv()
 	if err := viper.ReadInConfig(); err == nil {
 		profile := viper.GetString(internal.ProfileNameKey)
 		applicationsMap := viper.GetStringMap(internal.ApplicationKey)
-		slog.Info(rootCommand, internal.GetFuncName(), fmt.Sprintf("Using config file: %s", viper.ConfigFileUsed()))
 		slog.Info(rootCommand, internal.GetFuncName(), fmt.Sprintf("Using config profile: %s", profile))
 		slog.Info(rootCommand, internal.GetFuncName(), fmt.Sprintf("Using config application: %s", fmt.Sprintf("%s-%s", applicationsMap["name"], applicationsMap["version"])))
 	}
