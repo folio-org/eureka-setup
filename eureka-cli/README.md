@@ -87,7 +87,7 @@ AWS_SDK_LOAD_CONFIG=true ./bin/eureka-cli.exe -c ./config.minimal.yaml deployApp
 
 - Access the UI from `http://localhost:3000` using `diku_admin` username and `admin` password:
 
-![UI](images/ui_log_in_form.png)
+![UI](images/ui_form.png)
 
 - Kong gateway is available at `localhost:8000` and can be used to login and get a token directly from the backend:
 
