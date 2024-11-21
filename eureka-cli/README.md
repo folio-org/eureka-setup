@@ -8,17 +8,17 @@
 
 ### Prerequisites
 
-- Install a compiler and a container daemon:
-  - [GO](<https://go.dev/doc/install>): last development-tested version is `go1.22.4 windows/amd64`
-  - [Rancher Desktop](<https://rancherdesktop.io/>): last development-tested is `v1.16.0` (make sure to enable **dockerd (Moby)** container engine)
+- Install dependencies:
+  - [GO](<https://go.dev/doc/install>) compiler: last development-tested version is `go1.22.4 windows/amd64`
+  - [Rancher Desktop](<https://rancherdesktop.io/>) container daemon: last development-tested is `v1.16.0` (make sure to enable **dockerd (Moby)** container engine)
 - Configure hosts:
   - Add `127.0.0.1 keycloak.eureka` entry to `/etc/hosts`
   - Add `127.0.0.1 kafka.eureka` entry to `/etc/hosts`
-- Monitor using below system components:
-  - [Keycloak](<http://keycloak.eureka:8080>): admin:admin
-  - [Vault](<http://localhost:8200>): Find a Vault root token in the container logs using `docker logs vault` or use `getVaultRootToken` command
-  - [Kafka](<http://localhost:9080>): No auth
-  - [Kong](<http://localhost:8002>): No auth  
+- Monitor using system components:
+  - [Keycloak](<http://keycloak.eureka:8080>) Admin Console: admin:admin
+  - [Vault](<http://localhost:8200>) UI: Find a Vault root token in the container logs using `docker logs vault` or use `getVaultRootToken` command
+  - [Kafka](<http://localhost:9080>) UI: No auth
+  - [Kong](<http://localhost:8002>) Admin GUI: No auth  
 
 ### Build a binary
   
@@ -48,7 +48,7 @@ eureka-cli.exe setup
 
 ### Deploy a minimal platform application
 
-#### Using Public DockerHub image registries (folioci & folioorg namespaces)
+#### Using Public DockerHub container registry (folioci & folioorg namespaces)
 
 - Use a specific config: `-c` or `--config`
 - Enable debug: `-d` or `--debug`
@@ -57,7 +57,7 @@ eureka-cli.exe setup
 ./bin/eureka-cli.exe -c ./config.minimal.yaml deployApplication
 ```
 
-#### Using Private AWS ECR image registry
+#### Using Private AWS ECR container registry
 
 To use AWS ECR as your container registry rather than the public Folio DockerHub, set `AWS_ECR_FOLIO_REPO` in your environment. When this env variable is defined it is assumed that this repository is private and you have also defined credentials in your environment. The value of this variable should be the URL of your repository.
 

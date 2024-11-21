@@ -51,6 +51,6 @@ func UndeployModule() {
 
 func init() {
 	rootCmd.AddCommand(undeployModuleCmd)
-	undeployModuleCmd.PersistentFlags().StringVarP(&moduleName, "moduleName", "m", "", "Module name only, e.g. mod-users (required)")
+	undeployModuleCmd.PersistentFlags().StringVarP(&moduleName, "moduleName", "m", "", "Module name, e.g. mod-users (required)")
 	undeployModuleCmd.MarkPersistentFlagRequired("moduleName")
 }
