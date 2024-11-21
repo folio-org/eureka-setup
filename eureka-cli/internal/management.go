@@ -355,7 +355,7 @@ func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError
 
 // TODO Add depCheck=false flag
 func CreateTenantEntitlement(commandName string, enableDebug bool) {
-	requestUrl := fmt.Sprintf(HostDockerInternalUrl, TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=false,loadSample=false")
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=false,loadSample=true")
 	applicationMap := viper.GetStringMap(ApplicationKey)
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)

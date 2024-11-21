@@ -153,6 +153,7 @@ backend-modules:
       MODULE_URL: http://mgr-tenant-entitlements.eureka:8081
       TENANT_URL: http://mgr-tenants.eureka:8081
       AM_CLIENT_URL: http://mgr-applications.eureka:8081
+      VALIDATION_INTERFACE_INTEGRITY_ENABLED: 'false'
   # Keycloak modules
   mod-users-keycloak:
     port: 9904
