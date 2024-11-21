@@ -96,43 +96,43 @@ sidecar-module:
 # Backend modules
 backend-modules:
   # Other modules
-  # mod-source-record-storage:
-  # mod-source-record-manager:
-  # mod-pubsub:
-  # mod-inventory-storage:
-  # mod-inventory:
-  # mod-organizations-storage:
-  # mod-organizations:
-  # mod-entities-links:
-  # mod-invoice-storage:
-  # mod-invoice:
+  mod-source-record-storage:
+  mod-source-record-manager:
+  mod-pubsub:
+  mod-inventory-storage:
+  mod-inventory:
+  mod-organizations-storage:
+  mod-organizations:
+  mod-entities-links:
+  mod-invoice-storage:
+  mod-invoice:
   mod-orders-storage:
   mod-orders:
-  # mod-finance:
-  # mod-finance-storage:
-  # mod-circulation-storage:
-  # mod-circulation:
-  # mod-di-converter-storage:
-  # mod-data-import:
-  # mod-data-export:
-  # mod-copycat:
-  # mod-audit:
-  # mod-patron:
-  # mod-patron-blocks:
-  # mod-feesfines:
-  # mod-search:
-  # mod-login-saml:
-  # mod-event-config:
-  # mod-template-engine:
-  # mod-data-export-spring:
-  # mod-erm-usage:
-  # mod-calendar:
-  # mod-agreements:
-  # mod-sender:
-  # mod-email:
-  # mod-batch-print:
-  # mod-notify:
-  # mod-service-interaction:
+  mod-finance:
+  mod-finance-storage:
+  mod-circulation-storage:
+  mod-circulation:
+  mod-di-converter-storage:
+  mod-data-import:
+  mod-data-export:
+  mod-copycat:
+  mod-audit:
+  mod-patron:
+  mod-patron-blocks:
+  mod-feesfines:
+  mod-search:
+  mod-login-saml:
+  mod-event-config:
+  mod-template-engine:
+  mod-data-export-spring:
+  mod-erm-usage:
+  mod-calendar:
+  mod-agreements:
+  mod-sender:
+  mod-email:
+  mod-batch-print:
+  mod-notify:
+  mod-service-interaction:
 # Frontend modules
 frontend-modules:
   folio_users:
