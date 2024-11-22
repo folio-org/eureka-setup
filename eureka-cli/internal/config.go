@@ -37,7 +37,7 @@ const (
 	SingleModuleContainerPattern string = "^(eureka-%s-)(%[2]s|%[2]s-sc)$"
 )
 
-var PortIndex int = 30000
+var PortStartIndex int = 30000
 
 func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[string]any, managementOnly bool) map[string]BackendModule {
 	const (
@@ -52,10 +52,6 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 	backendModulesMap := make(map[string]BackendModule)
 
 	for name, value := range backendModulesAnyMap {
-		if managementOnly && !strings.HasPrefix(name, ManagementModulePattern) {
-			continue
-		}
-
 		var (
 			deployModule bool = true
 			version      *string
@@ -72,8 +68,8 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 		}
 
 		getDefaultPort := func() *int {
-			PortIndex++
-			return &PortIndex
+			PortStartIndex++
+			return &PortStartIndex
 		}
 
 		getDefaultSidecar := func() *bool {
@@ -84,7 +80,10 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 		if value == nil {
 			port = getDefaultPort()
 			portServer = getDefaultPortServer()
-			sidecar = getDefaultSidecar()
+			// Avoid deploying a sidecar for mgr-* modules
+			if !strings.HasPrefix(name, ManagementModulePattern) {
+				sidecar = getDefaultSidecar()
+			}
 			environment = make(map[string]interface{})
 		} else {
 			mapEntry := value.(map[string]interface{})
@@ -133,7 +132,7 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 		if sidecar != nil && *sidecar {
 			backendModulesMap[name] = *NewBackendModuleAndSidecar(deployModule, name, version, *port, *portServer, *sidecar, environment)
 		} else {
-			backendModulesMap[name] = *NewBackendModule(name, *port, *portServer, environment)
+			backendModulesMap[name] = *NewBackendModule(name, version, *port, *portServer, environment)
 		}
 
 		moduleInfo := name

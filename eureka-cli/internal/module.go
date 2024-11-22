@@ -148,7 +148,7 @@ func DeployModule(commandName string, client *client.Client, dto *DeployModuleDt
 func DeployModules(commandName string, client *client.Client, dto *DeployModulesDto) map[string]int {
 	deployedModules := make(map[string]int)
 
-	sidecarImage := GetSidecarImage(commandName, dto.RegistryModules["eureka"])
+	sidecarImage, sidecarImageVersion := GetSidecarImage(commandName, dto.RegistryModules["eureka"])
 	authToken := GetRegistryAuthTokenIfPresent(commandName)
 	networkConfig := NewModuleNetworkConfig()
 	pullSidecarImage := true
@@ -171,14 +171,21 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 				continue
 			}
 
-			moduleImage := fmt.Sprintf("%s/%s:%s", GetImageRegistryNamespace(commandName, *module.Version), module.Name, *module.Version)
+			var moduleVersion string
+			if dto.BackendModulesMap[module.Name].ModuleVersion != nil {
+				moduleVersion = *dto.BackendModulesMap[module.Name].ModuleVersion
+			} else {
+				moduleVersion = *module.Version
+			}
+
+			moduleImage := fmt.Sprintf("%s/%s:%s", GetImageRegistryNamespace(commandName, moduleVersion), module.Name, moduleVersion)
 
 			var combinedModuleEnvironment []string
 			combinedModuleEnvironment = append(combinedModuleEnvironment, dto.GlobalEnvironment...)
 			combinedModuleEnvironment = AppendModuleEnvironment(backendModule.ModuleEnvironment, combinedModuleEnvironment)
 			combinedModuleEnvironment = AppendVaultEnvironment(combinedModuleEnvironment, dto.VaultRootToken)
 
-			deployModuleDto := NewDeployModuleDto(module.Name, *module.Version, moduleImage, combinedModuleEnvironment, backendModule, networkConfig, authToken)
+			deployModuleDto := NewDeployModuleDto(module.Name, moduleVersion, moduleImage, combinedModuleEnvironment, backendModule, networkConfig, authToken)
 
 			DeployModule(commandName, client, deployModuleDto)
 
@@ -195,7 +202,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			combinedSidecarEnvironment = AppendManagementEnvironment(combinedSidecarEnvironment)
 			combinedSidecarEnvironment = AppendSidecarEnvironment(combinedSidecarEnvironment, module, strconv.Itoa(backendModule.ModuleServerPort))
 
-			deploySidecarDto := NewDeploySidecarDto(module.SidecarName, *module.Version, sidecarImage, combinedSidecarEnvironment, backendModule, networkConfig, pullSidecarImage, authToken)
+			deploySidecarDto := NewDeploySidecarDto(module.SidecarName, sidecarImageVersion, sidecarImage, combinedSidecarEnvironment, backendModule, networkConfig, pullSidecarImage, authToken)
 
 			DeployModule(commandName, client, deploySidecarDto)
 
@@ -206,16 +213,16 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 	return deployedModules
 }
 
-func GetSidecarImage(commandName string, registryModules []*RegistryModule) string {
+func GetSidecarImage(commandName string, registryModules []*RegistryModule) (string, string) {
 	sidecarModule := viper.GetStringMap(SidecarModule)
-	imageName := sidecarModule["image"].(string)
-	imageVersion := GetImageVersion(commandName, registryModules, sidecarModule["version"])
-	imageNamespace := GetImageRegistryNamespace(commandName, imageVersion)
-	sidecarImage := fmt.Sprintf("%s/%s", imageNamespace, fmt.Sprintf("%s:%s", imageName, imageVersion))
+	sidecarImageName := sidecarModule["image"].(string)
+	sidecarImageVersion := GetImageVersion(commandName, registryModules, sidecarModule["version"])
+	sidecarImageNamespace := GetImageRegistryNamespace(commandName, sidecarImageVersion)
+	sidecarImage := fmt.Sprintf("%s/%s", sidecarImageNamespace, fmt.Sprintf("%s:%s", sidecarImageName, sidecarImageVersion))
 
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Using sidecar image %s", sidecarImage))
 
-	return sidecarImage
+	return sidecarImage, sidecarImageVersion
 }
 
 func GetImageVersion(commandName string, registryModules []*RegistryModule, imageVersion interface{}) string {

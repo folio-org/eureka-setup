@@ -143,6 +143,7 @@ backend-modules:
       MODULE_URL: http://mgr-tenants.eureka:8081
       CACHE_EXPIRATION_TTL: 55s
   mgr-tenant-entitlements:
+    version: 2.0.2
     port: 9903
     environment:
       # DB
@@ -258,10 +259,9 @@ frontend-modules:
   folio_finance:
   folio_receiving:
   folio_servicepoints:
-  # folio_service-interaction:
+  folio_service-interaction:
   folio_acquisition-units:
   folio_requests:
-  folio_eholdings:
   folio_plugin-find-instance:
   folio_plugin-find-organization:
   folio_plugin-find-po-line:

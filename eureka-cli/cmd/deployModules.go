@@ -42,7 +42,7 @@ func DeployModules() {
 	registryEurekaInstallJsonUrl := viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)
 	backendModulesAnyMap := viper.GetStringMap(internal.BackendModuleKey)
 	frontendModulesAnyMap := viper.GetStringMap(internal.FrontendModuleKey)
-	internal.PortIndex = viper.GetInt(internal.ApplicationPortStart)
+	internal.PortStartIndex = viper.GetInt(internal.ApplicationPortStart)
 	environment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.EnvironmentKey)
 	sidecarEnvironment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.SidecarModuleEnvironmentKey)
 

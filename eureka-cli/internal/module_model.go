@@ -82,14 +82,14 @@ func NewBackendModuleAndSidecar(deployModule bool, name string, version *string,
 	}
 }
 
-func NewBackendModule(name string, port int, portServer int, moduleEnvironment map[string]interface{}) *BackendModule {
+func NewBackendModule(name string, version *string, port int, portServer int, moduleEnvironment map[string]interface{}) *BackendModule {
 	exposedPorts := createExposedPorts(portServer)
 	modulePortBindings := createPortBindings(port, port+1000, portServer)
 
 	return &BackendModule{
 		DeployModule:            true,
 		ModuleName:              name,
-		ModuleVersion:           nil,
+		ModuleVersion:           version,
 		ModuleExposedServerPort: port,
 		ModuleServerPort:        portServer,
 		ModuleExposedPorts:      exposedPorts,
