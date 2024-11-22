@@ -35,7 +35,7 @@ var getVaultRootTokenCmd = &cobra.Command{
 }
 
 func GetVaultRootToken() {
-	slog.Info(getVaultRootTokenCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	slog.Info(getVaultRootTokenCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
 	client := internal.CreateClient(getVaultRootTokenCommand)
 	defer client.Close()
 	_ = internal.GetRootVaultToken(getVaultRootTokenCommand, client)

@@ -21,34 +21,6 @@ const (
 	awsEcrFolioRepoEnvKey string = "AWS_ECR_FOLIO_REPO"
 )
 
-type RegisterModuleDto struct {
-	RegistryUrls         map[string]string
-	RegistryModules      map[string][]*RegistryModule
-	BackendModulesMap    map[string]BackendModule
-	FrontendModulesMap   map[string]FrontendModule
-	ModuleDescriptorsMap map[string]interface{}
-	FileModuleEnvPointer *os.File
-	EnableDebug          bool
-}
-
-func NewRegisterModuleDto(registryUrls map[string]string,
-	registryModules map[string][]*RegistryModule,
-	backendModulesMap map[string]BackendModule,
-	frontendModulesMap map[string]FrontendModule,
-	moduleDescriptorsMap map[string]interface{},
-	fileModuleEnvPointer *os.File,
-	enableDebug bool) *RegisterModuleDto {
-	return &RegisterModuleDto{
-		RegistryUrls:         registryUrls,
-		RegistryModules:      registryModules,
-		BackendModulesMap:    backendModulesMap,
-		FrontendModulesMap:   frontendModulesMap,
-		ModuleDescriptorsMap: moduleDescriptorsMap,
-		FileModuleEnvPointer: fileModuleEnvPointer,
-		EnableDebug:          enableDebug,
-	}
-}
-
 func GetRegistryAuthTokenIfPresent(commandName string) string {
 	// If this env variable isn't set, then assume it is a public repository and no auth token is needed.
 	if os.Getenv(awsEcrFolioRepoEnvKey) == "" {
@@ -57,7 +29,7 @@ func GetRegistryAuthTokenIfPresent(commandName string) string {
 
 	session, err := session.NewSession()
 	if err != nil {
-		slog.Error(commandName, "session.NewSession() error", "")
+		slog.Error(commandName, GetFuncName(), "session.NewSession() error")
 		panic(err)
 	}
 
@@ -68,7 +40,7 @@ func GetRegistryAuthTokenIfPresent(commandName string) string {
 
 	decodedBytes, err := base64.StdEncoding.DecodeString(*authToken.AuthorizationData[0].AuthorizationToken)
 	if err != nil {
-		slog.Error(commandName, "base64.StdEncoding.DecodeString error", "")
+		slog.Error(commandName, GetFuncName(), "base64.StdEncoding.DecodeString error")
 		panic(err)
 	}
 
@@ -76,13 +48,13 @@ func GetRegistryAuthTokenIfPresent(commandName string) string {
 
 	jsonBytes, err := json.Marshal(map[string]string{"username": authCreds[0], "password": authCreds[1]})
 	if err != nil {
-		slog.Error(commandName, "json.Marshal error", "")
+		slog.Error(commandName, GetFuncName(), "json.Marshal error")
 		panic(err)
 	}
 
 	encodedAuth := base64.StdEncoding.EncodeToString(jsonBytes)
 
-	slog.Info(commandName, "Created registry auth token", "")
+	slog.Info(commandName, GetFuncName(), "Created registry auth token")
 
 	return encodedAuth
 }
@@ -95,19 +67,19 @@ func GetModulesFromRegistries(commandName string, installJsonUrls map[string]str
 
 		installJsonResp, err := http.Get(installJsonUrl)
 		if err != nil {
-			slog.Error(commandName, "http.Get error", "")
+			slog.Error(commandName, GetFuncName(), "http.Get error")
 			panic(err)
 		}
 		defer installJsonResp.Body.Close()
 
 		err = json.NewDecoder(installJsonResp.Body).Decode(&registryModules)
 		if err != nil {
-			slog.Error(commandName, "json.NewDecoder error", "")
+			slog.Error(commandName, GetFuncName(), "json.NewDecoder error")
 			panic(err)
 		}
 
 		if len(registryModules) > 0 {
-			slog.Info(commandName, fmt.Sprintf("Found %s modules", registryName), len(registryModules))
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found %s modules: %d", registryName, len(registryModules)))
 
 			sort.Slice(registryModules, func(i, j int) bool {
 				switch strings.Compare(registryModules[i].Id, registryModules[j].Id) {
@@ -133,7 +105,7 @@ func GetImageRegistryNamespace(commandName string, version string) string {
 	registryNamespace = os.Getenv(awsEcrFolioRepoEnvKey)
 
 	if registryNamespace != "" {
-		slog.Info(commandName, fmt.Sprintf("Using AWS ECR registry namespace: %s", registryNamespace), "")
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Using AWS ECR registry namespace: %s", registryNamespace))
 
 		return registryNamespace
 	}

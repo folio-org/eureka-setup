@@ -17,11 +17,9 @@ package cmd
 
 import (
 	"log/slog"
-	"slices"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const createRolesCommand string = "Create Roles"
@@ -37,7 +35,7 @@ var createRolesCmd = &cobra.Command{
 }
 
 func CreateRoles() {
-	slog.Info(createRolesCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	slog.Info(createRolesCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
 	client := internal.CreateClient(createRolesCommand)
 	defer client.Close()
 	vaultRootToken := internal.GetRootVaultToken(createRolesCommand, client)
@@ -46,14 +44,14 @@ func CreateRoles() {
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["name"].(string)
 
-		if !slices.Contains(viper.GetStringSlice(internal.TenantsKey), tenant) {
+		if !internal.HasTenant(tenant) {
 			continue
 		}
 
-		slog.Info(createRolesCommand, "### ACQUIRING KEYCLOAK ACCESS TOKEN ###", "")
+		slog.Info(createRolesCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK ACCESS TOKEN ###")
 		accessToken := internal.GetKeycloakAccessToken(createRolesCommand, enableDebug, vaultRootToken, tenant)
 
-		slog.Info(createRolesCommand, "### CREATING ROLES ###", "")
+		slog.Info(createRolesCommand, internal.GetFuncName(), "### CREATING ROLES ###")
 		internal.CreateRoles(createRolesCommand, enableDebug, accessToken)
 	}
 }

@@ -1,5 +1,3 @@
-alter system set max_connections = 500;
-
 -- System
 create database keycloak;
 create user keycloak_rw with password 'supersecret';

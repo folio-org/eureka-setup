@@ -37,41 +37,36 @@ var deployManagementCmd = &cobra.Command{
 }
 
 func DeployManagement() {
-	registryFolioInstallJsonUrl := viper.GetString(internal.RegistryFolioInstallJsonUrlKey)
 	registryEurekaInstallJsonUrl := viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)
 	backendModulesAnyMap := viper.GetStringMap(internal.BackendModuleKey)
+	environment := internal.GetEnvironmentFromConfig(deployManagementCommand, internal.EnvironmentKey)
 
-	slog.Info(deployManagementCommand, "### READING ENVIRONMENT FROM CONFIG ###", "")
-	environment := internal.GetEnvironmentFromConfig(deployManagementCommand)
+	slog.Info(deployManagementCommand, internal.GetFuncName(), "### READING BACKEND MODULES FROM CONFIG ###")
+	backendModulesMap := internal.GetBackendModulesFromConfig(deployManagementCommand, backendModulesAnyMap, true)
 
-	slog.Info(deployManagementCommand, "### READING BACKEND MODULES FROM CONFIG ###", "")
-	backendModulesMap := internal.GetBackendModulesFromConfig(deployManagementCommand, backendModulesAnyMap)
+	slog.Info(deployManagementCommand, internal.GetFuncName(), "### READING BACKEND MODULE REGISTRIES ###")
+	registryModules := internal.GetModulesFromRegistries(deployManagementCommand, map[string]string{"eureka": registryEurekaInstallJsonUrl})
 
-	slog.Info(deployManagementCommand, "### READING BACKEND MODULE REGISTRIES ###", "")
-	instalJsonUrls := map[string]string{"folio": registryFolioInstallJsonUrl, "eureka": registryEurekaInstallJsonUrl}
-	registryModules := internal.GetModulesFromRegistries(deployManagementCommand, instalJsonUrls)
-
-	slog.Info(deployManagementCommand, "### EXTRACTING MODULE NAME AND VERSION ###", "")
+	slog.Info(deployManagementCommand, internal.GetFuncName(), "### EXTRACTING MODULE NAME AND VERSION ###")
 	internal.ExtractModuleNameAndVersion(deployManagementCommand, enableDebug, registryModules)
 
-	slog.Info(deployManagementCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	slog.Info(deployManagementCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
 	client := internal.CreateClient(deployManagementCommand)
 	defer client.Close()
 	vaultRootToken := internal.GetRootVaultToken(deployManagementCommand, client)
 
-	slog.Info(deployManagementCommand, "### DEPLOYING MANAGEMENT MODULES ###", "")
-	registryHostname := map[string]string{"folio": "", "eureka": ""}
-	deployModulesDto := internal.NewDeployManagementModulesDto(vaultRootToken, registryHostname, registryModules, backendModulesMap, environment)
+	slog.Info(deployManagementCommand, internal.GetFuncName(), "### DEPLOYING MANAGEMENT MODULES ###")
+	deployModulesDto := internal.NewDeployManagementModulesDto(vaultRootToken, map[string]string{"eureka": ""}, registryModules, backendModulesMap, environment)
 	deployedModules := internal.DeployModules(deployManagementCommand, client, deployModulesDto)
 
-	slog.Info(deployManagementCommand, "### WAITING FOR MANAGEMENT MODULES TO INITIALIZE ###", "")
+	slog.Info(deployManagementCommand, internal.GetFuncName(), "### WAITING FOR MANAGEMENT MODULES TO INITIALIZE ###")
 	var waitMutex sync.WaitGroup
 	waitMutex.Add(len(deployedModules))
 	for deployedModule := range deployedModules {
 		go internal.PerformModuleHealthcheck(deployManagementCommand, enableDebug, &waitMutex, deployedModule, deployedModules[deployedModule])
 	}
 	waitMutex.Wait()
-	slog.Info(deployManagementCommand, "All management modules have initialized", "")
+	slog.Info(deployManagementCommand, internal.GetFuncName(), "All management modules have initialized")
 }
 
 func init() {

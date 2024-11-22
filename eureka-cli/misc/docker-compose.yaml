@@ -15,9 +15,11 @@ services:
   ### Postgres ###
   postgres:
     container_name: postgres
-    image: postgres:16.4-alpine
+    image: postgres:16.4
+    restart: unless-stopped
+    command: -c max_connections=500 -c shared_buffers=1024MB -c log_duration=on -c log_min_duration_statement=0ms -c shared_preload_libraries=pg_stat_statements -c max_locks_per_transaction=1024 -c jit=off
+    mem_limit: 2g
     environment:
-      PGUSER: postgres
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: supersecret
@@ -37,10 +39,12 @@ services:
   ### Kafka ###
   kafka-ui:
     container_name: kafka-ui
-    image: provectuslabs/kafka-ui:latest
+    image: provectuslabs/kafka-ui:v0.7.2
+    restart: unless-stopped
     environment:
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka.eureka:9092
+      KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_JMXPORT: 9997
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka.eureka:9092
     depends_on:
       - zookeeper
       - kafka
@@ -56,7 +60,7 @@ services:
 
   zookeeper:
     container_name: zookeeper
-    image: zookeeper:latest
+    image: zookeeper:3.9.3-jre-17
     networks: 
       - fpm-net
     ports:
@@ -71,6 +75,7 @@ services:
   kafka:
     container_name: kafka
     image: wurstmeister/kafka:2.13-2.8.1
+    restart: unless-stopped
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_LISTENERS: INSIDE://:9091,OUTSIDE://:9092
@@ -86,7 +91,6 @@ services:
         condition: service_healthy
     volumes:
       - kafka-data:/kafka
-    restart: always
     networks: 
       - fpm-net
     ports:
@@ -102,6 +106,7 @@ services:
   vault:
     container_name: vault
     image: folio-vault:latest
+    restart: unless-stopped
     build:
       context: ./folio-vault
       dockerfile: Dockerfile
@@ -122,10 +127,10 @@ services:
       retries: 30
 
   ### Keycloak ###
-  # Source repository: https://github.com/folio-org/folio-keycloak
   keycloak:
     container_name: keycloak
-    image: nginx:latest
+    image: nginx:1.27.2
+    restart: unless-stopped
     depends_on:
       - keycloak-internal
     volumes:
@@ -140,9 +145,11 @@ services:
       timeout: 2s
       retries: 15
 
+  # Source repository: https://github.com/folio-org/folio-keycloak
   keycloak-internal:
     container_name: keycloak-internal
     image: folio-keycloak:latest
+    restart: unless-stopped
     build:
       context: ./folio-keycloak
       dockerfile: Dockerfile
@@ -184,6 +191,7 @@ services:
   api-gateway:
     container_name: api-gateway
     image: folio-kong:latest
+    restart: unless-stopped
     build:
       context: ./folio-kong
       dockerfile: Dockerfile
@@ -228,9 +236,10 @@ services:
     build:
       context: .
       dockerfile_inline: |
-        FROM nginx:latest
+        FROM nginx:1.27.2
         RUN apt update; apt install netcat-traditional -y 
     image: netcat:latest
+    restart: unless-stopped
     networks: 
       - fpm-net
     ports:

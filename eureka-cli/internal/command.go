@@ -10,7 +10,7 @@ func RunCommand(commandName string, preparedCommand *exec.Cmd) {
 	preparedCommand.Stdout = os.Stdout
 	preparedCommand.Stderr = os.Stderr
 	if err := preparedCommand.Run(); err != nil {
-		slog.Error(commandName, "systemCmd.Run() error", "")
+		slog.Error(commandName, GetFuncName(), "systemCmd.Run() error")
 		panic(err)
 	}
 }

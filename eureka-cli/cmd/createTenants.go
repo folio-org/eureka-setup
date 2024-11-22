@@ -35,7 +35,7 @@ var createTenantsCmd = &cobra.Command{
 }
 
 func CreateTenants() {
-	slog.Info(createTenantsCommand, "### CREATING TENANTS ###", "")
+	slog.Info(createTenantsCommand, internal.GetFuncName(), "### CREATING TENANTS ###")
 	internal.CreateTenants(createTenantsCommand, enableDebug)
 }
 

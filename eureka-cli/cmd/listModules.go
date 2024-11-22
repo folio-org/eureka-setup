@@ -22,9 +22,17 @@ import (
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-const listModulesCommand string = "List Modules"
+const (
+	listModulesCommand string = "List Modules"
+
+	allProfilesModulesPattern    string = "eureka-"
+	currentProfileModulesPattern string = "eureka-%s-"
+)
+
+var showAll bool
 
 // listModulesCmd represents the listModules command
 var listModulesCmd = &cobra.Command{
@@ -37,16 +45,22 @@ var listModulesCmd = &cobra.Command{
 }
 
 func ListModules() {
-	slog.Info(listModulesCommand, "### LISTING MODULES ###", "")
-	filter := internal.ManagementOrModulesContainerPattern
-	if moduleName != "" {
-		filter = fmt.Sprintf(internal.SingleModuleContainerPattern, moduleName)
+	slog.Info(listModulesCommand, internal.GetFuncName(), "### LISTING MODULES ###")
+	var filter string
+	if showAll {
+		filter = allProfilesModulesPattern
+	} else {
+		filter = fmt.Sprintf(currentProfileModulesPattern, viper.GetString(internal.ProfileNameKey))
+		if moduleName != "" {
+			filter = fmt.Sprintf(internal.SingleModuleContainerPattern, viper.GetString(internal.ProfileNameKey), moduleName)
+		}
 	}
 	internal.RunCommand(listSystemCommand, exec.Command("docker", "container", "ls", "--all", "--filter", fmt.Sprintf("name=%s", filter)))
 }
 
 func init() {
 	rootCmd.AddCommand(listModulesCmd)
-	listModulesCmd.Flags().StringVarP(&moduleName, "moduleName", "m", "", "Module name")
+	listModulesCmd.Flags().StringVarP(&moduleName, "moduleName", "m", "", "Module name, e.g. mod-users")
+	listModulesCmd.Flags().BoolVarP(&showAll, "showAll", "s", false, "Show all modules for all profiles")
 	listModulesCmd.MarkPersistentFlagRequired("moduleName")
 }

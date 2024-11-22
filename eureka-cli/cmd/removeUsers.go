@@ -17,11 +17,9 @@ package cmd
 
 import (
 	"log/slog"
-	"slices"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const removeUsersCommand string = "Remove Users"
@@ -37,7 +35,7 @@ var removeUsersCmd = &cobra.Command{
 }
 
 func RemoveUsers() {
-	slog.Info(removeUsersCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	slog.Info(removeUsersCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
 	client := internal.CreateClient(removeUsersCommand)
 	defer client.Close()
 	vaultRootToken := internal.GetRootVaultToken(removeUsersCommand, client)
@@ -46,14 +44,14 @@ func RemoveUsers() {
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["name"].(string)
 
-		if !slices.Contains(viper.GetStringSlice(internal.TenantsKey), tenant) {
+		if !internal.HasTenant(tenant) {
 			continue
 		}
 
-		slog.Info(removeUsersCommand, "### ACQUIRING KEYCLOAK ACCESS TOKEN ###", "")
+		slog.Info(removeUsersCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK ACCESS TOKEN ###")
 		accessToken := internal.GetKeycloakAccessToken(removeUsersCommand, enableDebug, vaultRootToken, tenant)
 
-		slog.Info(removeUsersCommand, "### REMOVING USERS ###", "")
+		slog.Info(removeUsersCommand, internal.GetFuncName(), "### REMOVING USERS ###")
 		internal.RemoveUsers(removeUsersCommand, enableDebug, false, tenant, accessToken)
 	}
 }

@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/internal"
@@ -39,14 +40,14 @@ var getAccessTokenCmd = &cobra.Command{
 }
 
 func GetAccessToken() {
-	slog.Info(getAccessTokenCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	slog.Info(getAccessTokenCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
 	client := internal.CreateClient(getAccessTokenCommand)
 	defer client.Close()
 	vaultRootToken := internal.GetRootVaultToken(getAccessTokenCommand, client)
 
-	slog.Info(getAccessTokenCommand, "### ACQUIRING KEYCLOAK ACCESS TOKEN ###", "")
+	slog.Info(getAccessTokenCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK ACCESS TOKEN ###")
 	accessToken := internal.GetKeycloakAccessToken(createUsersCommand, enableDebug, vaultRootToken, tenant)
-	slog.Info(getAccessTokenCommand, "Access token", accessToken)
+	slog.Info(getAccessTokenCommand, internal.GetFuncName(), fmt.Sprintf("Access token: %s", accessToken))
 }
 
 func init() {

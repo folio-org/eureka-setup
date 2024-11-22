@@ -24,7 +24,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const undeployUiCommand string = "Undeploy UI"
+const (
+	undeployUiCommand string = "Undeploy UI"
+
+	singleUiContainerPattern string = "eureka-platform-complete-ui-%s"
+)
 
 // undeployUiCmd represents the undeployUi command
 var undeployUiCmd = &cobra.Command{
@@ -37,7 +41,7 @@ var undeployUiCmd = &cobra.Command{
 }
 
 func UndeployUi() {
-	slog.Info(undeployUiCommand, "### UNDEPLOYING UI CONTAINERS ###", "")
+	slog.Info(undeployUiCommand, internal.GetFuncName(), "### UNDEPLOYING UI CONTAINERS ###")
 	client := internal.CreateClient(undeployUiCommand)
 	defer client.Close()
 
@@ -45,7 +49,7 @@ func UndeployUi() {
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["name"].(string)
 
-		filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.SingleUiContainerPattern, tenant)})
+		filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(singleUiContainerPattern, tenant)})
 		deployedModules := internal.GetDeployedModules(undeployUiCommand, client, filters)
 		for _, deployedModule := range deployedModules {
 			internal.UndeployModule(undeployUiCommand, client, deployedModule)

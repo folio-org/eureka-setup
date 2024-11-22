@@ -7,10 +7,23 @@ import (
 	"github.com/spf13/viper"
 )
 
-func AppendVaultEnvironment(environment []string, vaultRootToken string, vaultUrl string) []string {
+func GetEnvironmentFromConfig(commandName string, keyType string) []string {
+	var environmentVariables []string
+	for key, value := range viper.GetStringMapString(keyType) {
+		environmentVariables = append(environmentVariables, fmt.Sprintf("%s=%s", strings.ToUpper(key), value))
+	}
+
+	return environmentVariables
+}
+
+func GetEnvironmentFromMapByKey(requestKey string) string {
+	return viper.GetStringMapString(EnvironmentKey)[strings.ToLower(requestKey)]
+}
+
+func AppendVaultEnvironment(environment []string, vaultRootToken string) []string {
 	extraEnvironment := []string{"SECRET_STORE_TYPE=VAULT",
 		fmt.Sprintf("SECRET_STORE_VAULT_TOKEN=%s", vaultRootToken),
-		fmt.Sprintf("SECRET_STORE_VAULT_ADDRESS=%s", vaultUrl),
+		fmt.Sprintf("SECRET_STORE_VAULT_ADDRESS=%s", VaultUrl),
 	}
 	environment = append(environment, extraEnvironment...)
 
@@ -18,7 +31,7 @@ func AppendVaultEnvironment(environment []string, vaultRootToken string, vaultUr
 }
 
 func AppendKeycloakEnvironment(commandName string, environment []string) []string {
-	extraEnvironment := []string{fmt.Sprintf("KC_URL=%s", viper.GetString(ResourcesKeycloakKey)),
+	extraEnvironment := []string{fmt.Sprintf("KC_URL=%s", KeycloakUrl),
 		fmt.Sprintf("KC_ADMIN_CLIENT_ID=%s", GetEnvironmentFromMapByKey("KC_ADMIN_CLIENT_ID")),
 		fmt.Sprintf("KC_SERVICE_CLIENT_ID=%s", GetEnvironmentFromMapByKey("KC_SERVICE_CLIENT_ID")),
 		fmt.Sprintf("KC_LOGIN_CLIENT_SUFFIX=%s", GetEnvironmentFromMapByKey("KC_LOGIN_CLIENT_SUFFIX")),
@@ -29,9 +42,9 @@ func AppendKeycloakEnvironment(commandName string, environment []string) []strin
 }
 
 func AppendManagementEnvironment(environment []string) []string {
-	extraEnvironment := []string{fmt.Sprintf("TM_CLIENT_URL=%s", viper.GetString(ResourcesMgrTenantsKey)),
-		fmt.Sprintf("AM_CLIENT_URL=%s", viper.GetString(ResourcesMgrApplicationsKey)),
-		fmt.Sprintf("TE_CLIENT_URL=%s", viper.GetString(ResourcesMgrTenantEntitlements)),
+	extraEnvironment := []string{fmt.Sprintf("TM_CLIENT_URL=%s", MgrTenantsUrl),
+		fmt.Sprintf("AM_CLIENT_URL=%s", MgrApplicationsUrl),
+		fmt.Sprintf("TE_CLIENT_URL=%s", MgrTenantEntitlementsUrl),
 	}
 	environment = append(environment, extraEnvironment...)
 
@@ -43,7 +56,6 @@ func AppendModuleEnvironment(extraEnvironmentMap map[string]interface{}, environ
 		if key == "" {
 			continue
 		}
-
 		environment = append(environment, fmt.Sprintf("%s=%s", strings.ToUpper(key), value))
 	}
 
@@ -56,9 +68,6 @@ func AppendSidecarEnvironment(environment []string, module *RegistryModule, port
 		fmt.Sprintf("MODULE_URL=http://%s.eureka:%s", module.Name, portServer),
 		fmt.Sprintf("SIDECAR_NAME=%s", module.SidecarName),
 		fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%s", module.SidecarName, portServer),
-		fmt.Sprintf("MOD_USERS_KEYCLOAK_URL=%s", viper.GetString(ResourcesModUsersKeycloakKey)),
-		"SIDECAR_FORWARD_UNKNOWN_REQUESTS='true'",
-		fmt.Sprintf("SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION=%s", viper.GetString(ResourcesKongKey)),
 	}
 	environment = append(environment, extraEnvironment...)
 

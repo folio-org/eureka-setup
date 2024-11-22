@@ -16,10 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"log/slog"
-	"os"
-	"path"
 	"sync"
 
 	"github.com/folio-org/eureka-cli/internal"
@@ -40,72 +37,52 @@ var deployModulesCmd = &cobra.Command{
 }
 
 func DeployModules() {
-	home, err := os.UserHomeDir()
-	cobra.CheckErr(err)
-
 	registryUrl := viper.GetString(internal.RegistryUrlKey)
 	registryFolioInstallJsonUrl := viper.GetString(internal.RegistryFolioInstallJsonUrlKey)
 	registryEurekaInstallJsonUrl := viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)
-	fileModuleEnv := path.Join(home, configDir, viper.GetString(internal.FilesModuleEnvKey))
-	fileModuleDescriptors := path.Join(home, configDir, viper.GetString(internal.FilesModuleDescriptorsKey))
 	backendModulesAnyMap := viper.GetStringMap(internal.BackendModuleKey)
 	frontendModulesAnyMap := viper.GetStringMap(internal.FrontendModuleKey)
-	internal.PortIndex = viper.GetInt(internal.ApplicationPortStart)
+	internal.PortStartIndex = viper.GetInt(internal.ApplicationPortStart)
+	environment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.EnvironmentKey)
+	sidecarEnvironment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.SidecarModuleEnvironmentKey)
 
-	slog.Info(deployModulesCommand, "### READING ENVIRONMENT FROM CONFIG ###", "")
-	environment := internal.GetEnvironmentFromConfig(deployModulesCommand)
+	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING BACKEND MODULES FROM CONFIG ###")
+	backendModulesMap := internal.GetBackendModulesFromConfig(deployModulesCommand, backendModulesAnyMap, false)
 
-	slog.Info(deployModulesCommand, "### READING SIDECAR ENVIRONMENT FROM CONFIG ###", "")
-	sidecarEnvironment := internal.GetSidecarEnvironmentFromConfig(deployModulesCommand)
-
-	slog.Info(deployModulesCommand, "### READING BACKEND MODULES FROM CONFIG ###", "")
-	backendModulesMap := internal.GetBackendModulesFromConfig(deployModulesCommand, backendModulesAnyMap)
-
-	slog.Info(deployModulesCommand, "### READING FRONTEND MODULES FROM CONFIG ###", "")
+	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING FRONTEND MODULES FROM CONFIG ###")
 	frontendModulesMap := internal.GetFrontendModulesFromConfig(deployModulesCommand, frontendModulesAnyMap)
 
-	slog.Info(deployModulesCommand, "### READING BACKEND MODULE REGISTRIES ###", "")
+	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING BACKEND MODULE REGISTRIES ###")
 	instalJsonUrls := map[string]string{"folio": registryFolioInstallJsonUrl, "eureka": registryEurekaInstallJsonUrl}
 	registryModules := internal.GetModulesFromRegistries(deployModulesCommand, instalJsonUrls)
 
-	slog.Info(deployModulesCommand, "### EXTRACTING MODULE NAME AND VERSION ###", "")
+	slog.Info(deployModulesCommand, internal.GetFuncName(), "### EXTRACTING MODULE NAME AND VERSION ###")
 	internal.ExtractModuleNameAndVersion(deployModulesCommand, enableDebug, registryModules)
 
-	slog.Info(deployModulesCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	slog.Info(deployModulesCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
 	client := internal.CreateClient(deployModulesCommand)
 	defer client.Close()
 	vaultRootToken := internal.GetRootVaultToken(deployModulesCommand, client)
 
-	slog.Info(deployModulesCommand, "### CREATING MODULE ENV FILE ###", "")
-	fileModuleEnvPointer := internal.CreateModuleEnvFile(deployModulesCommand, fileModuleEnv)
-	defer fileModuleEnvPointer.Close()
-
-	slog.Info(deployModulesCommand, "### CREATING APPLICATIONS ###", "")
+	slog.Info(deployModulesCommand, internal.GetFuncName(), "### CREATING APPLICATIONS ###")
 	moduleDescriptorsMap := make(map[string]interface{})
 	registryUrls := map[string]string{"folio": registryUrl, "eureka": registryUrl}
-	registerModuleDto := internal.NewRegisterModuleDto(registryUrls, registryModules, backendModulesMap, frontendModulesMap, moduleDescriptorsMap, fileModuleEnvPointer, enableDebug)
+	registerModuleDto := internal.NewRegisterModuleDto(registryUrls, registryModules, backendModulesMap, frontendModulesMap, moduleDescriptorsMap, enableDebug)
 	internal.CreateApplications(deployModulesCommand, enableDebug, registerModuleDto)
 
-	slog.Info(deployModulesCommand, "Created module environment file", "")
-	fileModuleDescriptorsPointer := internal.CreateModuleDescriptorsFile(deployModulesCommand, fileModuleDescriptors)
-	defer fileModuleDescriptorsPointer.Close()
-	encoder := json.NewEncoder(fileModuleDescriptorsPointer)
-	encoder.Encode(moduleDescriptorsMap)
-	slog.Info(deployModulesCommand, "Created module descriptors file", "")
-
-	slog.Info(deployModulesCommand, "### DEPLOYING MODULES ###", "")
-	registryHostname := map[string]string{"folio": "", "eureka": ""}
-	deployModulesDto := internal.NewDeployModulesDto(vaultRootToken, registryHostname, registryModules, backendModulesMap, environment, sidecarEnvironment)
+	slog.Info(deployModulesCommand, internal.GetFuncName(), "### DEPLOYING MODULES ###")
+	registryHostnames := map[string]string{"folio": "", "eureka": ""}
+	deployModulesDto := internal.NewDeployModulesDto(vaultRootToken, registryHostnames, registryModules, backendModulesMap, environment, sidecarEnvironment)
 	deployedModules := internal.DeployModules(deployModulesCommand, client, deployModulesDto)
 
-	slog.Info(deployModulesCommand, "### WAITING FOR MODULES TO INITIALIZE ###", "")
+	slog.Info(deployModulesCommand, internal.GetFuncName(), "### WAITING FOR MODULES TO INITIALIZE ###")
 	var waitMutex sync.WaitGroup
 	waitMutex.Add(len(deployedModules))
 	for deployedModule := range deployedModules {
 		go internal.PerformModuleHealthcheck(deployModulesCommand, enableDebug, &waitMutex, deployedModule, deployedModules[deployedModule])
 	}
 	waitMutex.Wait()
-	slog.Info(deployModulesCommand, "All modules have initialized", "")
+	slog.Info(deployModulesCommand, internal.GetFuncName(), "All modules have initialized")
 }
 
 func init() {

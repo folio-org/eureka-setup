@@ -17,11 +17,9 @@ package cmd
 
 import (
 	"log/slog"
-	"slices"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const detachCapabilitySetsCommand string = "Detach Capability Sets"
@@ -37,7 +35,7 @@ var detachCapabilitySetsCmd = &cobra.Command{
 }
 
 func DetachCapabilitySets() {
-	slog.Info(detachCapabilitySetsCommand, "### ACQUIRING VAULT ROOT TOKEN ###", "")
+	slog.Info(detachCapabilitySetsCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
 	client := internal.CreateClient(detachCapabilitySetsCommand)
 	defer client.Close()
 	vaultRootToken := internal.GetRootVaultToken(detachCapabilitySetsCommand, client)
@@ -46,14 +44,14 @@ func DetachCapabilitySets() {
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["name"].(string)
 
-		if !slices.Contains(viper.GetStringSlice(internal.TenantsKey), tenant) {
+		if !internal.HasTenant(tenant) {
 			continue
 		}
 
-		slog.Info(detachCapabilitySetsCommand, "### ACQUIRING KEYCLOAK ACCESS TOKEN ###", "")
+		slog.Info(detachCapabilitySetsCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK ACCESS TOKEN ###")
 		accessToken := internal.GetKeycloakAccessToken(detachCapabilitySetsCommand, enableDebug, vaultRootToken, tenant)
 
-		slog.Info(detachCapabilitySetsCommand, "### DETACHING CAPABILITY SETS FROM ROLES ###", "")
+		slog.Info(detachCapabilitySetsCommand, internal.GetFuncName(), "### DETACHING CAPABILITY SETS FROM ROLES ###")
 		internal.DetachCapabilitySetsFromRoles(detachCapabilitySetsCommand, enableDebug, false, tenant, accessToken)
 	}
 }

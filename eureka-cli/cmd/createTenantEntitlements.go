@@ -35,7 +35,7 @@ var createTenantEntitlementsCmd = &cobra.Command{
 }
 
 func CreateTenantEntitlements() {
-	slog.Info(createTenantEntitlementsCommand, "### CREATING TENANT ENTITLEMENTS ###", "")
+	slog.Info(createTenantEntitlementsCommand, internal.GetFuncName(), "### CREATING TENANT ENTITLEMENTS ###")
 	internal.CreateTenantEntitlement(createTenantEntitlementsCommand, enableDebug)
 }
 

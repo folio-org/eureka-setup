@@ -19,18 +19,18 @@ import (
 	"fmt"
 	"log/slog"
 	"os/exec"
-	"path/filepath"
-	"slices"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const (
-	deployUiCommand     string = "Deploy UI"
-	platformCompleteDir string = "platform-complete"
+	deployUiCommand             string = "Deploy UI"
+	platformCompleteDir         string = "platform-complete"
+	kongExternalUrl             string = "http://localhost:8000"
+	keycloakExternalUrl         string = "http://keycloak.eureka:8080"
+	platformCompleteExternalUrl string = "http://localhost:3000"
 
 	defaultStripesBranch plumbing.ReferenceName = "snapshot"
 )
@@ -46,58 +46,53 @@ var deployUiCmd = &cobra.Command{
 }
 
 func DeployUi() {
-	slog.Info(deployUiCommand, "### ACQUIRING KEYCLOAK MASTER ACCESS TOKEN ###", "")
+	slog.Info(deployUiCommand, internal.GetFuncName(), "### CLONING & UPDATING UI ###")
 
-	slog.Info(deployUiCommand, "### CLONING PLATFORM COMPLETE UI FROM A SNAPSHOT BRANCH ###", "")
-	var stripesBranch = internal.GetStripesBranch(deployUiCommand, defaultStripesBranch)
-
+	slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", platformCompleteDir, defaultStripesBranch))
 	outputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
+	stripesBranch := internal.GetStripesBranch(deployUiCommand, defaultStripesBranch)
 	internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, stripesBranch, outputDir, false)
+
+	if updateCloned {
+		slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", platformCompleteDir))
+		internal.GitResetHardPullFromOriginRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, defaultStripesBranch, outputDir)
+	}
+
+	slog.Info(deployUiCommand, internal.GetFuncName(), "### DEPLOYING UI ###")
+
+	slog.Info(deployUiCommand, internal.GetFuncName(), "Acquiring keycloak master access token")
+	masterAccessToken := internal.GetKeycloakMasterRealmAccessToken(createUsersCommand, enableDebug)
 
 	for _, value := range internal.GetTenants(deployUiCommand, enableDebug, false) {
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["name"].(string)
 
-		if !slices.Contains(viper.GetStringSlice(internal.TenantsKey), tenant) {
+		if !internal.HasTenant(tenant) || !internal.DeployUi(tenant) {
 			continue
 		}
 
-		slog.Info(deployUiCommand, "### UPDATING KEYCLOAK PUBLIC CLIENT", "")
-		masterAccessToken := internal.GetKeycloakMasterRealmAccessToken(createUsersCommand, enableDebug)
-		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, tenant, masterAccessToken)
+		slog.Info(deployUiCommand, internal.GetFuncName(), "Updating keycloak public client")
+		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, tenant, masterAccessToken, platformCompleteExternalUrl)
 
-		slog.Info(deployUiCommand, "### COPYING PLATFORM COMPLETE UI CONFIGS ###", "")
-		files, err := filepath.Glob("eureka-tpl/*")
-		if err != nil {
-			// Handle error if the pattern doesn't match any files
-			internal.LogErrorPanic(deployUiCommand, fmt.Sprintf("Failed to glob files: %v", err.Error()))
-		}
+		slog.Info(deployUiCommand, internal.GetFuncName(), "Copying platform complete UI configs")
+		configName := "stripes.config.js"
+		internal.CopySingleFile(deployUiCommand, fmt.Sprintf("%s/eureka-tpl/%s", outputDir, configName), fmt.Sprintf("%s/%s", outputDir, configName))
 
-		if len(files) > 0 {
-			// Append the destination directory to the list of files
-			args := append([]string{"-R", "-f"}, files...)
-			args = append(args, ".")
-			internal.RunCommandFromDir(deployUiCommand, exec.Command("cp", args...), outputDir)
+		slog.Info(deployUiCommand, internal.GetFuncName(), "Preparing platform complete UI config")
+		internal.PrepareStripesConfigJs(deployUiCommand, outputDir, tenant, kongExternalUrl, keycloakExternalUrl, platformCompleteExternalUrl)
+		internal.PreparePackageJson(deployUiCommand, outputDir, tenant)
 
-			if stripesBranch == defaultStripesBranch {
-				slog.Info(deployUiCommand, "### PREPARING PLATFORM COMPLETE UI CONFIGS ###", "")
-				internal.PrepareStripesConfigJs(deployUiCommand, outputDir, tenant)
-				internal.PreparePackageJson(deployUiCommand, outputDir, tenant)
-			}
-		} else {
-			slog.Info("No files matched in eureka-tpl/*. Not copying.")
-		}
-
-		slog.Info(deployUiCommand, "### BUILDING PLATFORM COMPLETE UI FROM A DOCKERFILE ###", "")
+		slog.Info(deployUiCommand, internal.GetFuncName(), "Building platform complete UI from a Dockerfile")
 		internal.RunCommandFromDir(deployUiCommand, exec.Command("docker", "build", "--tag", "platform-complete-ui",
-			"--build-arg", fmt.Sprintf("OKAPI_URL=%s", viper.GetString(internal.ResourcesKongKey)),
+			"--build-arg", fmt.Sprintf("OKAPI_URL=%s", kongExternalUrl),
 			"--build-arg", fmt.Sprintf("TENANT_ID=%s", tenant),
 			"--file", "./docker/Dockerfile",
+			"--progress", "plain",
 			"--no-cache",
 			".",
 		), outputDir)
 
-		slog.Info(deployUiCommand, "### RUNNING PLATFORM COMPLETE UI CONTAINER ###", "")
+		slog.Info(deployUiCommand, internal.GetFuncName(), "Running platform complete UI container")
 		containerName := fmt.Sprintf("eureka-platform-complete-ui-%s", tenant)
 		internal.RunCommand(deployUiCommand, exec.Command("docker", "run", "--name", containerName,
 			"--hostname", containerName,
@@ -107,11 +102,12 @@ func DeployUi() {
 			"platform-complete-ui:latest",
 		))
 
-		slog.Info(deployUiCommand, "### CONNECTING PLATFORM COMPLETE UI CONTAINER TO EUREKA NETWORK ###", "")
+		slog.Info(deployUiCommand, internal.GetFuncName(), "Connecting platform complete UI container to Eureka network")
 		internal.RunCommand(deployUiCommand, exec.Command("docker", "network", "connect", "eureka", containerName))
 	}
 }
 
 func init() {
 	rootCmd.AddCommand(deployUiCmd)
+	deployUiCmd.PersistentFlags().BoolVarP(&updateCloned, "updateCloned", "u", false, "Update cloned projects")
 }

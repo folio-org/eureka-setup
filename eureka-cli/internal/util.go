@@ -11,6 +11,8 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -43,7 +45,7 @@ func DumpHttpRequest(commandName string, req *http.Request, enableDebug bool) {
 
 	reqBytes, err := httputil.DumpRequest(req, true)
 	if err != nil {
-		slog.Error(commandName, "httputil.DumpRequest error", "")
+		slog.Error(commandName, GetFuncName(), "httputil.DumpRequest error")
 		panic(err)
 	}
 
@@ -59,7 +61,7 @@ func DumpHttpResponse(commandName string, resp *http.Response, enableDebug bool)
 
 	respBytes, err := httputil.DumpResponse(resp, true)
 	if err != nil {
-		slog.Error(commandName, "httputil.DumpResponse error", "")
+		slog.Error(commandName, GetFuncName(), "httputil.DumpResponse error")
 		panic(err)
 	}
 
@@ -76,7 +78,18 @@ func CheckStatusCodes(commandName string, resp *http.Response) {
 	LogErrorPanic(commandName, fmt.Sprintf("internal.CheckStatusCodes error - Unacceptable request status %d", resp.StatusCode))
 }
 
-// ####### STRING ########
+func AddRequestHeaders(req *http.Request, headers map[string]string) {
+	if len(headers) == 0 {
+		req.Header.Add(ContentTypeHeader, JsonContentType)
+		return
+	}
+
+	for key, value := range headers {
+		req.Header.Add(key, value)
+	}
+}
+
+// ####### STRINGS ########
 
 func TrimModuleName(name string) string {
 	charIndex := strings.LastIndex(name, "-")
@@ -87,14 +100,10 @@ func TrimModuleName(name string) string {
 	return name
 }
 
-func TransformToEnvVar(name string) string {
-	return EnvNameRegexp.ReplaceAllString(strings.ToUpper(name), "_")
-}
-
 // ######## LOG ########
 
 func LogErrorPanic(commandName string, errorMessage string) {
-	slog.Error(commandName, errorMessage, "")
+	slog.Error(commandName, GetFuncName(), errorMessage)
 	panic(errors.New(errorMessage))
 }
 
@@ -103,15 +112,27 @@ func LogWarn(commandName string, enableDebug bool, errorMessage string) {
 		return
 
 	}
-	slog.Warn(commandName, errorMessage, "")
+	slog.Warn(commandName, GetFuncName(), errorMessage)
 }
 
-// ######## JSON ########
+// ######## SLICES ########
+
+func ConvertMapKeysToSlice(inputMap map[string]any) []string {
+	keys := make([]string, 0, len(inputMap))
+
+	for key := range inputMap {
+		keys = append(keys, key)
+	}
+
+	return keys
+}
+
+// ######## IO ########
 
 func ReadJsonFromFile(commandName string, filePath string, data interface{}) {
 	jsonFile, err := os.OpenFile(filePath, os.O_RDONLY, 0644)
 	if err != nil {
-		slog.Error(commandName, "os.Open error", "")
+		slog.Error(commandName, GetFuncName(), "os.Open error")
 		panic(err)
 	}
 	defer jsonFile.Close()
@@ -121,7 +142,7 @@ func ReadJsonFromFile(commandName string, filePath string, data interface{}) {
 		if err := decoder.Decode(&data); err == io.EOF {
 			break
 		} else if err != nil {
-			slog.Error(commandName, "decoder.Decode error", "")
+			slog.Error(commandName, GetFuncName(), "decoder.Decode error")
 			panic(err)
 		}
 	}
@@ -130,7 +151,7 @@ func ReadJsonFromFile(commandName string, filePath string, data interface{}) {
 func WriteJsonToFile(commandName string, filePath string, packageJson interface{}) {
 	jsonFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
-		slog.Error(commandName, "os.Open error", "")
+		slog.Error(commandName, GetFuncName(), "os.Open error")
 		panic(err)
 	}
 	defer jsonFile.Close()
@@ -141,9 +162,65 @@ func WriteJsonToFile(commandName string, filePath string, packageJson interface{
 	encoder.SetIndent("", "  ")
 
 	if err = encoder.Encode(packageJson); err != nil {
-		slog.Error(commandName, "encoder.Encode error", "")
+		slog.Error(commandName, GetFuncName(), "encoder.Encode error")
 		panic(err)
 	}
 
 	writer.Flush()
+}
+
+func CreateFile(commandName string, fileName string) *os.File {
+	filePointer, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		slog.Error(commandName, GetFuncName(), "os.OpenFile error")
+		panic(err)
+	}
+
+	return filePointer
+}
+
+func CheckIsRegularFile(commandName string, fileName string) {
+	fileStat, err := os.Stat(fileName)
+	if err != nil {
+		slog.Error(commandName, GetFuncName(), "os.Stat error")
+		panic(err)
+	}
+
+	if !fileStat.Mode().IsRegular() {
+		LogErrorPanic(commandName, "fileStat.Mode().IsRegular error")
+	}
+}
+
+func CopySingleFile(commandName string, srcPath string, dstPath string) {
+	CheckIsRegularFile(commandName, srcPath)
+
+	src, err := os.Open(srcPath)
+	if err != nil {
+		slog.Error(commandName, GetFuncName(), "os.Open error")
+		panic(err)
+	}
+	defer src.Close()
+
+	dst, err := os.Create(dstPath)
+	if err != nil {
+		slog.Error(commandName, GetFuncName(), "os.Create error")
+		panic(err)
+	}
+	defer dst.Close()
+
+	_, err = io.Copy(dst, src)
+	if err != nil {
+		slog.Error(commandName, GetFuncName(), "io.Copy error")
+		panic(err)
+	}
+
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Copied a single file from %s to %s", filepath.FromSlash(srcPath), filepath.FromSlash(dstPath)))
+}
+
+// ######## Runtime ########
+
+func GetFuncName() string {
+	pc, _, _, _ := runtime.Caller(1)
+
+	return runtime.FuncForPC(pc).Name()
 }

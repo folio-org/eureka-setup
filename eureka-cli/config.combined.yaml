@@ -1,9 +1,9 @@
 # Profile
 profile:
-  name: minimal
+  name: combined
 # Application
 application:
-  name: app-minimal
+  name: app-combined
   version: 1.0.0
   platform: base
   fetch-descriptors: false
@@ -143,6 +143,7 @@ backend-modules:
       MODULE_URL: http://mgr-tenants.eureka:8081
       CACHE_EXPIRATION_TTL: 55s
   mgr-tenant-entitlements:
+    version: 2.0.2
     port: 9903
     environment:
       # DB
@@ -190,6 +191,58 @@ backend-modules:
   mod-settings:
   mod-notes:
   mod-tags:
+  # mod-source-record-storage:
+  # mod-source-record-manager:
+  # mod-pubsub:
+  #  environment:
+  #    SYSTEM_USER_NAME: mod-pubsub
+  mod-inventory-storage:
+  # mod-inventory:
+  #  port-server: 9403
+  mod-organizations-storage:
+  mod-organizations:
+  # mod-entities-links:
+  mod-invoice-storage:
+  mod-invoice:
+  mod-orders-storage:
+  mod-orders:
+  mod-finance:
+  mod-finance-storage:
+  # mod-circulation-storage:
+  # mod-circulation:
+  #   port-server: 9801
+  # mod-di-converter-storage:
+  # mod-data-import:
+  # mod-data-export:
+  #  port-server: 8081
+  mod-copycat:
+  mod-audit:
+  # mod-patron:
+  # mod-patron-blocks:
+  # mod-feesfines:
+  # mod-search:
+  mod-login-saml:
+  mod-event-config:
+  mod-template-engine:
+  # mod-data-export-spring:
+  # mod-erm-usage:
+  # mod-calendar:
+  # mod-agreements:
+  #   port-server: 8080
+  # mod-sender:
+  # mod-email:
+  # mod-batch-print:
+  # mod-notify:
+  # mod-service-interaction:
+  #   port-server: 8080
+  # mod-data-export-worker:
+  # mod-circulation-bff:
+  # mod-requests-mediated:
+  # mod-tlr:
+  # mod-kb-ebsco-java:
+  # mod-dcb:
+  # mod-oai-pmh:
+  # mod-circulation-item:
 # Frontend modules
 frontend-modules:
   folio_developer:
@@ -197,3 +250,20 @@ frontend-modules:
   folio_stripes-core:
   folio_notes:
   folio_stripes-smart-components:
+  folio_users:
+  folio_tenant-settings:
+  folio_organizations:
+  folio_inventory:
+  folio_invoice:
+  folio_orders:
+  folio_finance:
+  folio_receiving:
+  folio_servicepoints:
+  folio_service-interaction:
+  folio_acquisition-units:
+  folio_requests:
+  folio_plugin-find-instance:
+  folio_plugin-find-organization:
+  folio_plugin-find-po-line:
+  folio_plugin-find-user:
+  folio_plugin-select-application:
