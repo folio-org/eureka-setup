@@ -172,8 +172,8 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			}
 
 			var moduleVersion string
-			if dto.BackendModulesMap[module.Name].ModuleVersion != nil {
-				moduleVersion = *dto.BackendModulesMap[module.Name].ModuleVersion
+			if backendModule.ModuleVersion != nil {
+				moduleVersion = *backendModule.ModuleVersion
 			} else {
 				moduleVersion = *module.Version
 			}

@@ -37,7 +37,7 @@ var listSystemCmd = &cobra.Command{
 
 func ListSystem() {
 	slog.Info(listSystemCommand, internal.GetFuncName(), "### LISTING SYSTEM CONTAINERS ###")
-	internal.RunCommand(listSystemCommand, exec.Command("docker", "compose", "-p", "eureka", "ps", "--all"))
+	internal.RunCommand(listSystemCommand, exec.Command("docker", "compose", "--project-name", "eureka", "ps", "--all"))
 }
 
 func init() {

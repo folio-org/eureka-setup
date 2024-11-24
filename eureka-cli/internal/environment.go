@@ -69,6 +69,10 @@ func AppendSidecarEnvironment(environment []string, module *RegistryModule, port
 		fmt.Sprintf("SIDECAR_NAME=%s", module.SidecarName),
 		fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%s", module.SidecarName, portServer),
 	}
+	// Change the default port on netty server of the sidecar written in Quarkus
+	if portServer != DefaultServerPort {
+		extraEnvironment = append(extraEnvironment, fmt.Sprintf("QUARKUS_HTTP_PORT=%s", portServer))
+	}
 	environment = append(environment, extraEnvironment...)
 
 	return environment

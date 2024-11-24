@@ -37,15 +37,13 @@ var deployManagementCmd = &cobra.Command{
 }
 
 func DeployManagement() {
-	registryEurekaInstallJsonUrl := viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)
-	backendModulesAnyMap := viper.GetStringMap(internal.BackendModuleKey)
 	environment := internal.GetEnvironmentFromConfig(deployManagementCommand, internal.EnvironmentKey)
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### READING BACKEND MODULES FROM CONFIG ###")
-	backendModulesMap := internal.GetBackendModulesFromConfig(deployManagementCommand, backendModulesAnyMap, true)
+	backendModulesMap := internal.GetBackendModulesFromConfig(deployManagementCommand, viper.GetStringMap(internal.BackendModuleKey), true)
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### READING BACKEND MODULE REGISTRIES ###")
-	registryModules := internal.GetModulesFromRegistries(deployManagementCommand, map[string]string{"eureka": registryEurekaInstallJsonUrl})
+	registryModules := internal.GetModulesFromRegistries(deployManagementCommand, map[string]string{"eureka": viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)})
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### EXTRACTING MODULE NAME AND VERSION ###")
 	internal.ExtractModuleNameAndVersion(deployManagementCommand, enableDebug, registryModules)

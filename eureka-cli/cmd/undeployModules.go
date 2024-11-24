@@ -25,11 +25,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	undeployModulesCommand = "Undeploy Modules"
-
-	multipleModulesContainerPattern string = "eureka-%s-mod-"
-)
+const undeployModulesCommand = "Undeploy Modules"
 
 // undeployModulesCmd represents the undeployModules command
 var undeployModulesCmd = &cobra.Command{
@@ -49,7 +45,7 @@ func UndeployModules() {
 	client := internal.CreateClient(undeployModulesCommand)
 	defer client.Close()
 
-	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(multipleModulesContainerPattern, viper.GetString(internal.ProfileNameKey))})
+	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.MultipleModulesContainerPattern, viper.GetString(internal.ProfileNameKey))})
 	deployedModules := internal.GetDeployedModules(undeployModulesCommand, client, filters)
 	for _, deployedModule := range deployedModules {
 		internal.UndeployModule(undeployModulesCommand, client, deployedModule)

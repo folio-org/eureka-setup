@@ -191,58 +191,31 @@ backend-modules:
   mod-settings:
   mod-notes:
   mod-tags:
-  # mod-source-record-storage:
-  # mod-source-record-manager:
-  # mod-pubsub:
-  #  environment:
-  #    SYSTEM_USER_NAME: mod-pubsub
+  mod-pubsub:
+   environment:
+     SYSTEM_USER_NAME: mod-pubsub
   mod-inventory-storage:
-  # mod-inventory:
-  #  port-server: 9403
+  mod-inventory:
+    port-server: 9403
   mod-organizations-storage:
   mod-organizations:
-  # mod-entities-links:
   mod-invoice-storage:
   mod-invoice:
   mod-orders-storage:
   mod-orders:
   mod-finance:
   mod-finance-storage:
-  # mod-circulation-storage:
-  # mod-circulation:
-  #   port-server: 9801
-  # mod-di-converter-storage:
-  # mod-data-import:
-  # mod-data-export:
-  #  port-server: 8081
+  mod-circulation-storage:
+  mod-circulation:
+    port-server: 9801
   mod-copycat:
   mod-audit:
-  # mod-patron:
-  # mod-patron-blocks:
-  # mod-feesfines:
-  # mod-search:
+  mod-patron:
+  mod-patron-blocks:
+  mod-feesfines:
   mod-login-saml:
   mod-event-config:
   mod-template-engine:
-  # mod-data-export-spring:
-  # mod-erm-usage:
-  # mod-calendar:
-  # mod-agreements:
-  #   port-server: 8080
-  # mod-sender:
-  # mod-email:
-  # mod-batch-print:
-  # mod-notify:
-  # mod-service-interaction:
-  #   port-server: 8080
-  # mod-data-export-worker:
-  # mod-circulation-bff:
-  # mod-requests-mediated:
-  # mod-tlr:
-  # mod-kb-ebsco-java:
-  # mod-dcb:
-  # mod-oai-pmh:
-  # mod-circulation-item:
 # Frontend modules
 frontend-modules:
   folio_developer:
@@ -259,7 +232,6 @@ frontend-modules:
   folio_finance:
   folio_receiving:
   folio_servicepoints:
-  folio_service-interaction:
   folio_acquisition-units:
   folio_requests:
   folio_plugin-find-instance:

@@ -15,6 +15,12 @@ func RunCommand(commandName string, preparedCommand *exec.Cmd) {
 	}
 }
 
+func RunCommandIgnoreError(commandName string, preparedCommand *exec.Cmd) {
+	preparedCommand.Stdout = os.Stdout
+	preparedCommand.Stderr = os.Stderr
+	_ = preparedCommand.Run()
+}
+
 func RunCommandFromDir(commandName string, preparedCommand *exec.Cmd, workDir string) {
 	preparedCommand.Dir = workDir
 	RunCommand(commandName, preparedCommand)

@@ -13,14 +13,13 @@ func NewRegisterModuleDto(registryUrls map[string]string,
 	registryModules map[string][]*RegistryModule,
 	backendModulesMap map[string]BackendModule,
 	frontendModulesMap map[string]FrontendModule,
-	moduleDescriptorsMap map[string]interface{},
 	enableDebug bool) *RegisterModuleDto {
 	return &RegisterModuleDto{
 		RegistryUrls:         registryUrls,
 		RegistryModules:      registryModules,
 		BackendModulesMap:    backendModulesMap,
 		FrontendModulesMap:   frontendModulesMap,
-		ModuleDescriptorsMap: moduleDescriptorsMap,
+		ModuleDescriptorsMap: make(map[string]interface{}),
 		EnableDebug:          enableDebug,
 	}
 }

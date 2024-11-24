@@ -38,22 +38,18 @@ var deployModulesCmd = &cobra.Command{
 
 func DeployModules() {
 	registryUrl := viper.GetString(internal.RegistryUrlKey)
-	registryFolioInstallJsonUrl := viper.GetString(internal.RegistryFolioInstallJsonUrlKey)
-	registryEurekaInstallJsonUrl := viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)
-	backendModulesAnyMap := viper.GetStringMap(internal.BackendModuleKey)
-	frontendModulesAnyMap := viper.GetStringMap(internal.FrontendModuleKey)
 	internal.PortStartIndex = viper.GetInt(internal.ApplicationPortStart)
 	environment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.EnvironmentKey)
 	sidecarEnvironment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.SidecarModuleEnvironmentKey)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING BACKEND MODULES FROM CONFIG ###")
-	backendModulesMap := internal.GetBackendModulesFromConfig(deployModulesCommand, backendModulesAnyMap, false)
+	backendModulesMap := internal.GetBackendModulesFromConfig(deployModulesCommand, viper.GetStringMap(internal.BackendModuleKey), false)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING FRONTEND MODULES FROM CONFIG ###")
-	frontendModulesMap := internal.GetFrontendModulesFromConfig(deployModulesCommand, frontendModulesAnyMap)
+	frontendModulesMap := internal.GetFrontendModulesFromConfig(deployModulesCommand, viper.GetStringMap(internal.FrontendModuleKey))
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING BACKEND MODULE REGISTRIES ###")
-	instalJsonUrls := map[string]string{"folio": registryFolioInstallJsonUrl, "eureka": registryEurekaInstallJsonUrl}
+	instalJsonUrls := map[string]string{"folio": viper.GetString(internal.RegistryFolioInstallJsonUrlKey), "eureka": viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)}
 	registryModules := internal.GetModulesFromRegistries(deployModulesCommand, instalJsonUrls)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### EXTRACTING MODULE NAME AND VERSION ###")
@@ -65,9 +61,8 @@ func DeployModules() {
 	vaultRootToken := internal.GetRootVaultToken(deployModulesCommand, client)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### CREATING APPLICATIONS ###")
-	moduleDescriptorsMap := make(map[string]interface{})
 	registryUrls := map[string]string{"folio": registryUrl, "eureka": registryUrl}
-	registerModuleDto := internal.NewRegisterModuleDto(registryUrls, registryModules, backendModulesMap, frontendModulesMap, moduleDescriptorsMap, enableDebug)
+	registerModuleDto := internal.NewRegisterModuleDto(registryUrls, registryModules, backendModulesMap, frontendModulesMap, enableDebug)
 	internal.CreateApplications(deployModulesCommand, enableDebug, registerModuleDto)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### DEPLOYING MODULES ###")

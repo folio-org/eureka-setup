@@ -29,7 +29,6 @@ type DeployModulesDto struct {
 	GlobalEnvironment  []string
 	SidecarEnvironment []string
 	ManagementOnly     bool
-	FileModuleEnv      string
 }
 
 type BackendModule struct {
