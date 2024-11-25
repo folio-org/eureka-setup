@@ -62,7 +62,7 @@ environment:
   OKAPI_INTEGRATION_ENABLED: false
   WEB_CLIENT_TLS_VERIFY_HOSTNAME: false
   # Java
-  JAVA_OPTIONS: | 
+  JAVA_OPTIONS: |
     -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
     -XX:MaxRAMPercentage=85.0 -Xms128m -Xmx400m 
     -Djdk.internal.httpclient.disableHostnameVerification=true"
@@ -113,7 +113,7 @@ sidecar-module:
     MOD_USERS_BL: http://mod-users-bl.eureka:8081
     MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak.eureka:8081
     SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://api-gateway.eureka:8000
-    JAVA_OPTIONS: | 
+    JAVA_OPTIONS: |
       -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
       -XX:+UseZGC -XX:MaxRAMPercentage=85.0 -Xms50m -Xmx128m
       -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=DEBUG -Dquarkus.log.category.'org.apache.kafka'.level=DEBUG 
@@ -176,7 +176,7 @@ backend-modules:
   mod-scheduler:
     port: 9907
     sidecar: true
-  # Keycloak Consoria modules
+  # Keycloak Consortia modules
   mod-consortia-keycloak:
     deploy-module: false
     port: 9908
@@ -191,9 +191,6 @@ backend-modules:
   mod-settings:
   mod-notes:
   mod-tags:
-  mod-pubsub:
-   environment:
-     SYSTEM_USER_NAME: mod-pubsub
   mod-inventory-storage:
   mod-inventory:
     port-server: 9403
@@ -205,14 +202,7 @@ backend-modules:
   mod-orders:
   mod-finance:
   mod-finance-storage:
-  mod-circulation-storage:
-  mod-circulation:
-    port-server: 9801
-  mod-copycat:
   mod-audit:
-  mod-patron:
-  mod-patron-blocks:
-  mod-feesfines:
   mod-login-saml:
   mod-event-config:
   mod-template-engine:

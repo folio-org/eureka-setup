@@ -132,7 +132,7 @@ func DeployModule(commandName string, client *client.Client, dto *DeployModuleDt
 		panic(err)
 	}
 
-	if cr.Warnings != nil && len(cr.Warnings) > 0 {
+	if len(cr.Warnings) > 0 {
 		slog.Warn(commandName, GetFuncName(), fmt.Sprintf("cli.ContainerCreate warnings, '%s'", cr.Warnings))
 	}
 

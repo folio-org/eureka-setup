@@ -123,7 +123,7 @@ func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool
 	return respMap
 }
 
-func DoGetDecodeReturnMapStringInteface(commandName string, url string, enableDebug bool, panicOnError bool, headers map[string]string) map[string]interface{} {
+func DoGetDecodeReturnMapStringInterface(commandName string, url string, enableDebug bool, panicOnError bool, headers map[string]string) map[string]interface{} {
 	var respMap map[string]interface{}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)

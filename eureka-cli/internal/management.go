@@ -80,7 +80,7 @@ func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *s
 		}
 
 		isHealthySpringBootContainer := false
-		actuatorHealthMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, false, map[string]string{})
+		actuatorHealthMap := DoGetDecodeReturnMapStringInterface(commandName, requestUrl, enableDebug, false, map[string]string{})
 		if actuatorHealthMap != nil && strings.Contains(actuatorHealthMap["status"].(string), "UP") {
 			isHealthySpringBootContainer = !isHealthySpringBootContainer
 		}
@@ -276,7 +276,7 @@ func GetTenants(commandName string, enableDebug bool, panicOnError bool) []inter
 
 	requestUrl := fmt.Sprintf(HostDockerInternalUrl, TenantsPort, "/tenants")
 
-	foundTenantsMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
+	foundTenantsMap := DoGetDecodeReturnMapStringInterface(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
 	if foundTenantsMap["tenants"] == nil || len(foundTenantsMap["tenants"].([]interface{})) == 0 {
 		return nil
 	}
@@ -390,10 +390,10 @@ func CreateTenantEntitlement(commandName string, enableDebug bool) {
 func GetUsers(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) []interface{} {
 	var foundUsers []interface{}
 
-	requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, "/users")
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, "/users?offset=0&limit=10000")
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 
-	foundTenantsMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, panicOnError, headers)
+	foundTenantsMap := DoGetDecodeReturnMapStringInterface(commandName, requestUrl, enableDebug, panicOnError, headers)
 	if foundTenantsMap["users"] == nil || len(foundTenantsMap["users"].([]interface{})) == 0 {
 		return nil
 	}
@@ -502,9 +502,9 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 func GetRoles(commandName string, enableDebug bool, panicOnError bool, headers map[string]string) []interface{} {
 	var foundRoles []interface{}
 
-	requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, "/roles")
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, "/roles?offset=0&limit=10000")
 
-	foundRolesMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, panicOnError, headers)
+	foundRolesMap := DoGetDecodeReturnMapStringInterface(commandName, requestUrl, enableDebug, panicOnError, headers)
 	if foundRolesMap["roles"] == nil || len(foundRolesMap["roles"].([]interface{})) == 0 {
 		return nil
 	}
@@ -517,7 +517,7 @@ func GetRoles(commandName string, enableDebug bool, panicOnError bool, headers m
 func GetRoleByName(commandName string, enableDebug bool, roleName string, headers map[string]string) map[string]interface{} {
 	requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, fmt.Sprintf("/roles?query=name==%s", roleName))
 
-	foundRolesMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, true, headers)
+	foundRolesMap := DoGetDecodeReturnMapStringInterface(commandName, requestUrl, enableDebug, true, headers)
 	if foundRolesMap["roles"] == nil {
 		return nil
 	}
@@ -577,9 +577,9 @@ func CreateRoles(commandName string, enableDebug bool, accessToken string) {
 func GetCapabilitySets(commandName string, enableDebug bool, panicOnError bool, headers map[string]string) []interface{} {
 	var foundCapabilitySets []interface{}
 
-	requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, "/capability-sets?offset=0&limit=1000")
+	requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, "/capability-sets?offset=0&limit=10000")
 
-	foundCapabilitySetsMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, panicOnError, headers)
+	foundCapabilitySetsMap := DoGetDecodeReturnMapStringInterface(commandName, requestUrl, enableDebug, panicOnError, headers)
 	if foundCapabilitySetsMap["capabilitySets"] == nil || len(foundCapabilitySetsMap["capabilitySets"].([]interface{})) == 0 {
 		return nil
 	}
@@ -594,7 +594,7 @@ func GetCapabilitySetsByName(commandName string, enableDebug bool, panicOnError 
 
 	requestUrl := fmt.Sprintf(HostDockerInternalUrl, GatewayPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", capabilitySetName))
 
-	foundCapabilitySetsMap := DoGetDecodeReturnMapStringInteface(commandName, requestUrl, enableDebug, panicOnError, headers)
+	foundCapabilitySetsMap := DoGetDecodeReturnMapStringInterface(commandName, requestUrl, enableDebug, panicOnError, headers)
 	if foundCapabilitySetsMap["capabilitySets"] == nil || len(foundCapabilitySetsMap["capabilitySets"].([]interface{})) == 0 {
 		return nil
 	}
