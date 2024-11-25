@@ -78,9 +78,7 @@ roles:
       - all
   User:
     tenant: diku
-    capability-sets:
-      - login.manage
-      - mod-settings_entries.manage
+    capability-sets: []
 # Users
 users:
   diku_admin:

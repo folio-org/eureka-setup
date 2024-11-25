@@ -671,6 +671,11 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 			capabilitySetIds = append(capabilitySetIds, capabilitySetId)
 		}
 
+		if len(capabilitySetIds) == 0 {
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf(`No capability sets were attached to %s role in %s tenant (realm)`, roleName, tenant))
+			continue
+		}
+
 		capabilitySetsBytes, err := json.Marshal(map[string]any{"roleId": roleId, "capabilitySetIds": capabilitySetIds})
 		if err != nil {
 			slog.Error(commandName, GetFuncName(), "json.Marshal error")
