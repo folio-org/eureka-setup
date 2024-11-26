@@ -73,5 +73,8 @@ func initConfig() {
 		applicationsMap := viper.GetStringMap(internal.ApplicationKey)
 		slog.Info(rootCommand, internal.GetFuncName(), fmt.Sprintf("Using config profile: %s", profile))
 		slog.Info(rootCommand, internal.GetFuncName(), fmt.Sprintf("Using config application: %s", fmt.Sprintf("%s-%s", applicationsMap["name"], applicationsMap["version"])))
+	} else {
+		slog.Error(rootCommand, internal.GetFuncName(), fmt.Sprintf("Cannot file config file: %s", configFile))
+		panic(err)
 	}
 }
