@@ -182,7 +182,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 
 			var combinedModuleEnvironment []string
 			combinedModuleEnvironment = append(combinedModuleEnvironment, dto.GlobalEnvironment...)
-			combinedModuleEnvironment = AppendModuleEnvironment(backendModule.ModuleEnvironment, combinedModuleEnvironment)
+			combinedModuleEnvironment = AppendModuleEnvironment(combinedModuleEnvironment, backendModule.ModuleEnvironment)
 			combinedModuleEnvironment = AppendVaultEnvironment(combinedModuleEnvironment, dto.VaultRootToken)
 
 			deployModuleDto := NewDeployModuleDto(module.Name, moduleVersion, moduleImage, combinedModuleEnvironment, backendModule, networkConfig, authToken)
@@ -197,7 +197,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 
 			var combinedSidecarEnvironment []string
 			combinedSidecarEnvironment = append(combinedSidecarEnvironment, dto.SidecarEnvironment...)
-			combinedSidecarEnvironment = AppendKeycloakEnvironment(commandName, combinedSidecarEnvironment)
+			combinedSidecarEnvironment = AppendKeycloakEnvironment(combinedSidecarEnvironment)
 			combinedSidecarEnvironment = AppendVaultEnvironment(combinedSidecarEnvironment, dto.VaultRootToken)
 			combinedSidecarEnvironment = AppendManagementEnvironment(combinedSidecarEnvironment)
 			combinedSidecarEnvironment = AppendSidecarEnvironment(combinedSidecarEnvironment, module, strconv.Itoa(backendModule.ModuleServerPort))

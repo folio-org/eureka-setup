@@ -30,7 +30,7 @@ func AppendVaultEnvironment(environment []string, vaultRootToken string) []strin
 	return environment
 }
 
-func AppendKeycloakEnvironment(commandName string, environment []string) []string {
+func AppendKeycloakEnvironment(environment []string) []string {
 	extraEnvironment := []string{fmt.Sprintf("KC_URL=%s", KeycloakUrl),
 		fmt.Sprintf("KC_ADMIN_CLIENT_ID=%s", GetEnvironmentFromMapByKey("KC_ADMIN_CLIENT_ID")),
 		fmt.Sprintf("KC_SERVICE_CLIENT_ID=%s", GetEnvironmentFromMapByKey("KC_SERVICE_CLIENT_ID")),
@@ -51,7 +51,7 @@ func AppendManagementEnvironment(environment []string) []string {
 	return environment
 }
 
-func AppendModuleEnvironment(extraEnvironmentMap map[string]interface{}, environment []string) []string {
+func AppendModuleEnvironment(environment []string, extraEnvironmentMap map[string]interface{}) []string {
 	for key, value := range extraEnvironmentMap {
 		if key == "" {
 			continue
