@@ -64,7 +64,7 @@ environment:
   # Java
   JAVA_OPTIONS: |
     -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
-    -XX:MaxRAMPercentage=85.0 -Xms128m -Xmx400m 
+    -XX:MaxRAMPercentage=70.0 -Xms128m -Xmx400m 
     -Djdk.internal.httpclient.disableHostnameVerification=true"
 # Tenants
 tenants:
@@ -153,6 +153,10 @@ backend-modules:
       TENANT_URL: http://mgr-tenants.eureka:8081
       AM_CLIENT_URL: http://mgr-applications.eureka:8081
       VALIDATION_INTERFACE_INTEGRITY_ENABLED: 'false'
+      FOLIO_CLIENT_CONNECT_TIMEOUT: 60s
+      FOLIO_CLIENT_READ_TIMEOUT: 180s
+      FLOW_ENGINE_THREADS_NUM: '1'
+      RETRIES_MODULE_MAX: '10'
   # Keycloak modules
   mod-users-keycloak:
     port: 9904
