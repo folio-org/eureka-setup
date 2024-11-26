@@ -153,9 +153,6 @@ backend-modules:
       TENANT_URL: http://mgr-tenants.eureka:8081
       AM_CLIENT_URL: http://mgr-applications.eureka:8081
       VALIDATION_INTERFACE_INTEGRITY_ENABLED: 'false'
-      RETRIES_KONG_MAX: 30
-      RETRIES_KEYCLOAK_MAX: 30
-      RETRIES_MODULE_MAX: 30
   # Keycloak modules
   mod-users-keycloak:
     port: 9904
