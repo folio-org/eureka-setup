@@ -74,7 +74,7 @@ func initConfig() {
 		slog.Info(rootCommand, internal.GetFuncName(), fmt.Sprintf("Using config profile: %s", profile))
 		slog.Info(rootCommand, internal.GetFuncName(), fmt.Sprintf("Using config application: %s", fmt.Sprintf("%s-%s", applicationsMap["name"], applicationsMap["version"])))
 	} else {
-		slog.Error(rootCommand, internal.GetFuncName(), fmt.Sprintf("Cannot find config file: %s", configFile))
+		slog.Error(rootCommand, internal.GetFuncName(), fmt.Sprintf("Cannot find or parse configuration file. Check that file exists and doesn’t contain errors.: %s", configFile))
 		panic(err)
 	}
 }
