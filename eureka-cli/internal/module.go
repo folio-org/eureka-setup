@@ -132,7 +132,7 @@ func DeployModule(commandName string, client *client.Client, dto *DeployModuleDt
 		panic(err)
 	}
 
-	if cr.Warnings != nil && len(cr.Warnings) > 0 {
+	if len(cr.Warnings) > 0 {
 		slog.Warn(commandName, GetFuncName(), fmt.Sprintf("cli.ContainerCreate warnings, '%s'", cr.Warnings))
 	}
 
@@ -172,8 +172,8 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 			}
 
 			var moduleVersion string
-			if dto.BackendModulesMap[module.Name].ModuleVersion != nil {
-				moduleVersion = *dto.BackendModulesMap[module.Name].ModuleVersion
+			if backendModule.ModuleVersion != nil {
+				moduleVersion = *backendModule.ModuleVersion
 			} else {
 				moduleVersion = *module.Version
 			}
@@ -182,7 +182,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 
 			var combinedModuleEnvironment []string
 			combinedModuleEnvironment = append(combinedModuleEnvironment, dto.GlobalEnvironment...)
-			combinedModuleEnvironment = AppendModuleEnvironment(backendModule.ModuleEnvironment, combinedModuleEnvironment)
+			combinedModuleEnvironment = AppendModuleEnvironment(combinedModuleEnvironment, backendModule.ModuleEnvironment)
 			combinedModuleEnvironment = AppendVaultEnvironment(combinedModuleEnvironment, dto.VaultRootToken)
 
 			deployModuleDto := NewDeployModuleDto(module.Name, moduleVersion, moduleImage, combinedModuleEnvironment, backendModule, networkConfig, authToken)
@@ -197,7 +197,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 
 			var combinedSidecarEnvironment []string
 			combinedSidecarEnvironment = append(combinedSidecarEnvironment, dto.SidecarEnvironment...)
-			combinedSidecarEnvironment = AppendKeycloakEnvironment(commandName, combinedSidecarEnvironment)
+			combinedSidecarEnvironment = AppendKeycloakEnvironment(combinedSidecarEnvironment)
 			combinedSidecarEnvironment = AppendVaultEnvironment(combinedSidecarEnvironment, dto.VaultRootToken)
 			combinedSidecarEnvironment = AppendManagementEnvironment(combinedSidecarEnvironment)
 			combinedSidecarEnvironment = AppendSidecarEnvironment(combinedSidecarEnvironment, module, strconv.Itoa(backendModule.ModuleServerPort))

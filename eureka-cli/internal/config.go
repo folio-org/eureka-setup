@@ -34,7 +34,8 @@ const (
 const (
 	ManagementModulePattern string = "mgr-"
 
-	SingleModuleContainerPattern string = "^(eureka-%s-)(%[2]s|%[2]s-sc)$"
+	SingleModuleContainerPattern    string = "^(eureka-%s-)(%[2]s|%[2]s-sc)$"
+	MultipleModulesContainerPattern string = "eureka-%s-mod-"
 )
 
 var PortStartIndex int = 30000
@@ -120,6 +121,8 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			if mapEntry[SidecarKey] != nil {
 				sidecarValue := mapEntry[SidecarKey].(bool)
 				sidecar = &sidecarValue
+			} else if !strings.HasPrefix(name, ManagementModulePattern) {
+				sidecar = getDefaultSidecar()
 			}
 
 			if mapEntry[ModuleEnvKey] != nil {

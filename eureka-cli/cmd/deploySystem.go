@@ -68,7 +68,7 @@ func DeploySystem() {
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "### DEPLOYING SYSTEM CONTAINERS ###")
 	var preparedCommands []*exec.Cmd
 	if buildImages {
-		preparedCommands = []*exec.Cmd{exec.Command("docker", "compose", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache")}
+		preparedCommands = []*exec.Cmd{exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache")}
 	}
 	preparedCommands = append(preparedCommands, exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"))
 

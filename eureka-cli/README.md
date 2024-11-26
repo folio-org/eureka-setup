@@ -10,7 +10,7 @@
 
 - Install dependencies:
   - [GO](<https://go.dev/doc/install>) compiler: last development-tested version is `go1.22.4 windows/amd64`
-  - [Rancher Desktop](<https://rancherdesktop.io/>) container daemon: last development-tested is `v1.16.0` (make sure to enable **dockerd (Moby)** container engine)
+  - [Rancher Desktop](<https://rancherdesktop.io/>) container daemon: last development-tested version is `v1.16.0` (make sure to enable **dockerd (Moby)** container engine)
 - Configure hosts:
   - Add `127.0.0.1 keycloak.eureka` entry to `/etc/hosts`
   - Add `127.0.0.1 kafka.eureka` entry to `/etc/hosts`
@@ -43,7 +43,7 @@ env GOOS=windows GOARCH=amd64 go build -o ./bin .
 
 ```shell
 go install
-eureka-cli.exe setup
+eureka-cli.exe -c ./config.minimal.yaml deployApplication
 ```
 
 ### Deploy a minimal platform application
@@ -89,7 +89,7 @@ AWS_SDK_LOAD_CONFIG=true ./bin/eureka-cli.exe -c ./config.minimal.yaml deployApp
 
 ![UI](images/ui_form.png)
 
-- Kong gateway is available at `localhost:8000` and can be used to login and get a token directly from the backend:
+- Kong gateway is available at `localhost:8000` and can be used to get an access token directly from the backend:
 
 ```shell
 # Using diku_admin (admin user)
@@ -113,6 +113,6 @@ curl --request POST \
 
 - Verify that all shell scripts located under `./misc` folder are saved using the **LF** (Line Feed) line break
 - If you get a **SIGKILL** when trying to build the stripes container configure Rancher Desktop or other docker env with more RAM
-- If health checks are failing make sure localhost is mapped to host.docker.internal in your `/etc/hosts` file
+- If health checks are failing make sure **localhost** is mapped to **host.docker.internal** in your `/etc/hosts` file
 - If using Rancher Desktop on a system that also uses Docker Desktop, you may need to do set `DOCKER_HOST` in your env to where `docker.sock` is
 - During tenant entitlement if a thrown exception contains `The module is not entitled on tenant ...` it is recommended to rerun `deployApplication` again after undeploying the existing one

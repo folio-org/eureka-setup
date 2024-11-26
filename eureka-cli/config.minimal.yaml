@@ -62,7 +62,7 @@ environment:
   OKAPI_INTEGRATION_ENABLED: false
   WEB_CLIENT_TLS_VERIFY_HOSTNAME: false
   # Java
-  JAVA_OPTIONS: | 
+  JAVA_OPTIONS: |
     -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
     -XX:MaxRAMPercentage=85.0 -Xms128m -Xmx400m 
     -Djdk.internal.httpclient.disableHostnameVerification=true"
@@ -78,9 +78,7 @@ roles:
       - all
   User:
     tenant: diku
-    capability-sets:
-      - login.manage
-      - mod-settings_entries.manage
+    capability-sets: []
 # Users
 users:
   diku_admin:
@@ -113,7 +111,7 @@ sidecar-module:
     MOD_USERS_BL: http://mod-users-bl.eureka:8081
     MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak.eureka:8081
     SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://api-gateway.eureka:8000
-    JAVA_OPTIONS: | 
+    JAVA_OPTIONS: |
       -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
       -XX:+UseZGC -XX:MaxRAMPercentage=85.0 -Xms50m -Xmx128m
       -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=DEBUG -Dquarkus.log.category.'org.apache.kafka'.level=DEBUG 
@@ -143,6 +141,7 @@ backend-modules:
       MODULE_URL: http://mgr-tenants.eureka:8081
       CACHE_EXPIRATION_TTL: 55s
   mgr-tenant-entitlements:
+    version: 2.0.2
     port: 9903
     environment:
       # DB
@@ -175,7 +174,7 @@ backend-modules:
   mod-scheduler:
     port: 9907
     sidecar: true
-  # Keycloak Consoria modules
+  # Keycloak Consortia modules
   mod-consortia-keycloak:
     deploy-module: false
     port: 9908
