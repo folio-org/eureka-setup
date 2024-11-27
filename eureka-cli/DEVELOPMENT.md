@@ -10,9 +10,10 @@
 
 - Open a new shell terminal
 - `cd` into `eureka-setup/eureka-cli`
+- Install `air` binary: `go install github.com/air-verse/air@latest`
 - Run `air` to enable live compilation
 
-> For every saved code changes a new binary will be made in `./bin` folder
+> For saved code changes & after some polling interval a new binary will be made in `./bin` folder
 
 - See `.air.toml` for more settings on live compilation
 
