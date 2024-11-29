@@ -200,3 +200,7 @@ frontend-modules:
   folio_stripes-core:
   folio_notes:
   folio_stripes-smart-components:
+  folio_authorization-roles:
+  folio_authorization-policies:
+  folio_plugin-find-authority:
+  folio_plugin-select-application:

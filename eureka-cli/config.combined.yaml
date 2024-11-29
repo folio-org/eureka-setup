@@ -215,6 +215,8 @@ frontend-modules:
   folio_stripes-core:
   folio_notes:
   folio_stripes-smart-components:
+  folio_authorization-roles:
+  folio_authorization-policies:
   folio_users:
   folio_tenant-settings:
   folio_organizations:
@@ -231,3 +233,4 @@ frontend-modules:
   folio_plugin-find-po-line:
   folio_plugin-find-user:
   folio_plugin-select-application:
+  folio_plugin-find-authority:

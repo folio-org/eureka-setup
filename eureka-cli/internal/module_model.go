@@ -200,7 +200,7 @@ func NewDeploySidecarDto(name string,
 
 func NewModuleNetworkConfig() *network.NetworkingConfig {
 	return &network.NetworkingConfig{
-		EndpointsConfig: map[string]*network.EndpointSettings{NetworkName: {NetworkID: NetworkId}},
+		EndpointsConfig: map[string]*network.EndpointSettings{DefaultNetworkName: {NetworkID: DefaultNetworkId}},
 	}
 }
 
@@ -221,8 +221,8 @@ func createPortBindings(hostServerPort int, hostServerDebugPort int, serverPort 
 		serverDebugPortBinding []nat.PortBinding
 	)
 
-	serverPortBinding = append(serverPortBinding, nat.PortBinding{HostIP: HostIp, HostPort: strconv.Itoa(hostServerPort)})
-	serverDebugPortBinding = append(serverDebugPortBinding, nat.PortBinding{HostIP: HostIp, HostPort: strconv.Itoa(hostServerDebugPort)})
+	serverPortBinding = append(serverPortBinding, nat.PortBinding{HostIP: DefaultHostIp, HostPort: strconv.Itoa(hostServerPort)})
+	serverDebugPortBinding = append(serverDebugPortBinding, nat.PortBinding{HostIP: DefaultHostIp, HostPort: strconv.Itoa(hostServerDebugPort)})
 
 	portBindings := make(map[nat.Port][]nat.PortBinding)
 	portBindings[nat.Port(strconv.Itoa(serverPort))] = serverPortBinding
