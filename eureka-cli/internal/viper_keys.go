@@ -3,9 +3,10 @@ package internal
 const (
 	ProfileNameKey string = "profile.name"
 
-	ApplicationKey           string = "application"
-	ApplicationPortStart     string = "application.port-start"
-	ApplicationStripesBranch string = "application.stripes-branch"
+	ApplicationKey                string = "application"
+	ApplicationPortStart          string = "application.port-start"
+	ApplicationStripesBranchKey   string = "application.stripes-branch"
+	ApplicationGatewayHostnameKey string = "application.gateway-hostname"
 
 	RegistryUrlKey                  string = "registry.registry-url"
 	RegistryFolioInstallJsonUrlKey  string = "registry.folio-install-json-url"

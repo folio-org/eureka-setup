@@ -18,13 +18,13 @@ const (
 	ConfigMinimal string = "config.minimal"
 	ConfigType    string = "yaml"
 
-	DockerComposeWorkDir  string = "./misc"
-	NetworkName           string = "fpm-net"
-	NetworkId             string = "eureka"
-	HostDockerInternalUrl string = "http://host.docker.internal:%d%s"
-	HostIp                string = "0.0.0.0"
-	DefaultServerPort     string = "8081"
-	DefaultDebugPort      string = "5005"
+	DockerComposeWorkDir string = "./misc"
+	DefaultNetworkName   string = "fpm-net"
+	DefaultNetworkId     string = "eureka"
+	DefaultHostname      string = "http://host.docker.internal:%d%s"
+	DefaultHostIp        string = "0.0.0.0"
+	DefaultServerPort    string = "8081"
+	DefaultDebugPort     string = "5005"
 
 	FolioKeycloakRepositoryUrl    string = "https://github.com/folio-org/folio-keycloak"
 	FolioKongRepositoryUrl        string = "https://github.com/folio-org/folio-kong"
@@ -39,6 +39,14 @@ const (
 )
 
 var PortStartIndex int = 30000
+
+func GetGatewayHostname() string {
+	if viper.IsSet(ApplicationGatewayHostnameKey) {
+		return viper.GetString(ApplicationGatewayHostnameKey) + ":%d%s"
+	}
+
+	return DefaultHostname
+}
 
 func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[string]any, managementOnly bool) map[string]BackendModule {
 	const (
@@ -252,8 +260,8 @@ func PreparePackageJson(commandName string, configPath string, tenant string) {
 func GetStripesBranch(commandName string, defaultBranch plumbing.ReferenceName) plumbing.ReferenceName {
 	var stripesBranch plumbing.ReferenceName
 
-	if viper.IsSet(ApplicationStripesBranch) {
-		branchStr := viper.GetString(ApplicationStripesBranch)
+	if viper.IsSet(ApplicationStripesBranchKey) {
+		branchStr := viper.GetString(ApplicationStripesBranchKey)
 		stripesBranch = plumbing.ReferenceName(branchStr)
 		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Got stripes branch from config: %s", stripesBranch))
 	} else {
