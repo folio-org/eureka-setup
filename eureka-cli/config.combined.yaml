@@ -205,6 +205,12 @@ backend-modules:
   mod-finance:
   mod-finance-storage:
   mod-audit:
+  mod-pubsub:
+    environment:
+      SYSTEM_USER_NAME: mod-pubsub
+  mod-circulation-storage:
+  mod-circulation:
+    port-server: 9801
   mod-login-saml:
   mod-event-config:
   mod-template-engine:
