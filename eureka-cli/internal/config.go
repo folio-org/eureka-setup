@@ -206,15 +206,21 @@ func PrepareStripesConfigJs(commandName string, configPath string, tenant string
 	}
 
 	replaceMap := map[string]string{"${kongUrl}": kongUrl,
-		"${tenantUrl}":      platformCompleteUrl,
-		"${keycloakUrl}":    keycloakUrl,
-		"${hasAllPerms}":    `false`,
-		"${isSingleTenant}": `true`,
-		"${tenantOptions}":  fmt.Sprintf(`{%[1]s: {name: "%[1]s", clientId: "%[1]s%s"}}`, tenant, GetEnvironmentFromMapByKey("KC_LOGIN_CLIENT_SUFFIX")),
+		"${tenantUrl}":         platformCompleteUrl,
+		"${keycloakUrl}":       keycloakUrl,
+		"${hasAllPerms}":       `false`,
+		"${isSingleTenant}":    `true`,
+		"${tenantOptions}":     fmt.Sprintf(`{%[1]s: {name: "%[1]s", clientId: "%[1]s%s"}}`, tenant, GetEnvironmentFromMapByKey("KC_LOGIN_CLIENT_SUFFIX")),
+		"${enableEcsRequests}": `false`,
 	}
 
 	var newReadFileStr string = string(readFileBytes)
 	for key, value := range replaceMap {
+		if !strings.Contains(newReadFileStr, key) {
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Key not found in stripes.config.js: %s", key))
+			continue
+		}
+
 		newReadFileStr = strings.Replace(newReadFileStr, key, value, -1)
 	}
 
