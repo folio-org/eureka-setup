@@ -164,7 +164,6 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 			}
 
 			backendModule, okBackend := dto.BackendModulesMap[module.Name]
-
 			frontendModule, okFrontend := dto.FrontendModulesMap[module.Name]
 			if (!okBackend && !okFrontend) || (okBackend && !backendModule.DeployModule || okFrontend && !frontendModule.DeployModule) {
 				continue
@@ -179,7 +178,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 				module.Id = fmt.Sprintf("%s-%s", module.Name, *module.Version)
 			}
 
-			moduleDescriptorUrl := fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls["folio"], module.Id)
+			moduleDescriptorUrl := fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls[FolioRegistry], module.Id)
 
 			if applicationFetchDescriptors {
 				dto.ModuleDescriptorsMap[module.Id] = DoGetDecodeReturnInterface(commandName, moduleDescriptorUrl, enableDebug, true, map[string]string{})

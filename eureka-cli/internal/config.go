@@ -18,6 +18,9 @@ const (
 	ConfigMinimal string = "config.minimal"
 	ConfigType    string = "yaml"
 
+	FolioRegistry  string = "folio"
+	EurekaRegistry string = "eureka"
+
 	DockerComposeWorkDir string = "./misc"
 	DefaultNetworkName   string = "fpm-net"
 	DefaultNetworkId     string = "eureka"
@@ -157,7 +160,7 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 	return backendModulesMap
 }
 
-func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMap map[string]any) map[string]FrontendModule {
+func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMaps ...map[string]any) map[string]FrontendModule {
 	const (
 		DeployModuleKey = "deploy-module"
 		VersionKey      = "version"
@@ -165,33 +168,35 @@ func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMap map[
 
 	frontendModulesMap := make(map[string]FrontendModule)
 
-	for name, value := range frontendModulesAnyMap {
-		var (
-			deployModule bool = true
-			version      *string
-		)
+	for _, frontendModulesAnyMap := range frontendModulesAnyMaps {
+		for name, value := range frontendModulesAnyMap {
+			var (
+				deployModule bool = true
+				version      *string
+			)
 
-		if value != nil {
-			mapEntry := value.(map[string]interface{})
+			if value != nil {
+				mapEntry := value.(map[string]interface{})
 
-			if mapEntry[DeployModuleKey] != nil {
-				deployModule = mapEntry[DeployModuleKey].(bool)
+				if mapEntry[DeployModuleKey] != nil {
+					deployModule = mapEntry[DeployModuleKey].(bool)
+				}
+
+				if mapEntry[VersionKey] != nil {
+					versionValue := mapEntry[VersionKey].(string)
+					version = &versionValue
+				}
 			}
 
-			if mapEntry[VersionKey] != nil {
-				versionValue := mapEntry[VersionKey].(string)
-				version = &versionValue
+			frontendModulesMap[name] = *NewFrontendModule(deployModule, name, version)
+
+			moduleInfo := name
+			if version != nil {
+				moduleInfo = fmt.Sprintf("name %s with version %s", name, *version)
 			}
+
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found frontend module in config: %s", moduleInfo))
 		}
-
-		frontendModulesMap[name] = *NewFrontendModule(deployModule, name, version)
-
-		moduleInfo := name
-		if version != nil {
-			moduleInfo = fmt.Sprintf("name %s with version %s", name, *version)
-		}
-
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found frontend module in config: %s", moduleInfo))
 	}
 
 	return frontendModulesMap

@@ -16,8 +16,13 @@ limitations under the License.
 package cmd
 
 import (
+	"log/slog"
+	"time"
+
 	"github.com/spf13/cobra"
 )
+
+const deployApplicationCommand string = "Deploy Application"
 
 // deployApplicationCmd represents the deployApplication command
 var deployApplicationCmd = &cobra.Command{
@@ -30,6 +35,7 @@ var deployApplicationCmd = &cobra.Command{
 }
 
 func DeployApplication() {
+	start := time.Now()
 	DeploySystem()
 	DeployManagement()
 	DeployModules()
@@ -39,6 +45,7 @@ func DeployApplication() {
 	CreateUsers()
 	DeployUi()
 	AttachCapabilitySets()
+	slog.Info(deployApplicationCommand, "Elapsed, duration", time.Since(start))
 }
 
 func init() {

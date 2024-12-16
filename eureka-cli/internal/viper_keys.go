@@ -22,4 +22,5 @@ const (
 	SidecarModuleEnvironmentKey string = "sidecar-module.environment"
 	BackendModuleKey            string = "backend-modules"
 	FrontendModuleKey           string = "frontend-modules"
+	CustomFrontendModuleKey     string = "custom-frontend-modules"
 )
