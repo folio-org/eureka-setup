@@ -524,6 +524,7 @@ func GetRoleByName(commandName string, enableDebug bool, roleName string, header
 	foundRoles := foundRolesMap["roles"].([]interface{})
 	if len(foundRoles) != 1 {
 		LogErrorPanic(commandName, fmt.Sprintf("internal.GetRoleByName - Number of found roles by %s role name is not 1", roleName))
+		return nil
 	}
 
 	return foundRoles[0].(map[string]interface{})
