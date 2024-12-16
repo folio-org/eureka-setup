@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
@@ -30,11 +31,16 @@ var attachCapabilitySetsCmd = &cobra.Command{
 	Short: "Attach capability sets",
 	Long:  `Attach capability sets to roles.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		AttachCapabilitySets()
+		AttachCapabilitySets(nil)
 	},
 }
 
-func AttachCapabilitySets() {
+func AttachCapabilitySets(wait *time.Duration) {
+	if wait != nil && *wait > 0 {
+		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), "### WAITING FOR CAPABILITY SETS TO SYNCHRONIZE ###")
+		time.Sleep(*wait)
+	}
+
 	slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
 	client := internal.CreateClient(attachCapabilitySetsCommand)
 	defer client.Close()

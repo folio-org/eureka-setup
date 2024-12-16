@@ -193,6 +193,8 @@ backend-modules:
   mod-roles:
   mod-password-validator:
   mod-settings:
+  mod-notes:
+  mod-tags:
   mod-inventory-storage:
   mod-inventory:
     port-server: 9403
@@ -216,6 +218,7 @@ frontend-modules:
   folio_developer:
   folio_stripes-core:
   folio_notes:
+  folio_tags:
   folio_stripes-smart-components:
   folio_users:
   folio_tenant-settings:

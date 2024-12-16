@@ -43,8 +43,9 @@ func DeployApplication() {
 	CreateTenantEntitlements()
 	CreateRoles()
 	CreateUsers()
+	wait := 180 * time.Second
+	AttachCapabilitySets(&wait)
 	DeployUi()
-	AttachCapabilitySets()
 	slog.Info(deployApplicationCommand, "Elapsed, duration", time.Since(start))
 }
 
