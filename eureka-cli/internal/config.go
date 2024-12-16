@@ -229,7 +229,10 @@ func PrepareStripesConfigJs(commandName string, configPath string, tenant string
 		newReadFileStr = strings.Replace(newReadFileStr, key, value, -1)
 	}
 
+	fmt.Println()
+	fmt.Println("###### Dumping stripes.config.js ######")
 	fmt.Println(newReadFileStr)
+	fmt.Println()
 
 	err = os.WriteFile(stripesConfigJsFilePath, []byte(newReadFileStr), 0)
 	if err != nil {
@@ -252,6 +255,8 @@ func PreparePackageJson(commandName string, configPath string, tenant string) {
 	}
 
 	ReadJsonFromFile(commandName, packageJsonPath, &packageJson)
+
+	packageJson.Scripts["build"] = "export DEBUG=stripes*; export NODE_OPTIONS=\"--max-old-space-size=8000 $NODE_OPTIONS\"; stripes build stripes.config.js --languages en --sourcemap=false --no-minify"
 
 	updates := 0
 	modules := []string{"@folio/authorization-policies", "@folio/authorization-roles", "@folio/plugin-select-application"}
