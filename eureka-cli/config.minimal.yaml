@@ -166,9 +166,12 @@ backend-modules:
     environment:
       OKAPI_URL: http://mod-users-keycloak-sc.eureka:8081
       INCLUDE_ONLY_VISIBLE_PERMISSIONS: 'false'
+      MOD_USERS_URL: http://mod-users.eureka
+      FOLIO_SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_CREATE: 'false'
+      SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_NAME: mod-users-keycloak
       SYSTEM_USER_USERNAME: mod-users-keycloak
-      MOD_USERS_URL: http://mod-users.eureka
   mod-login-keycloak:
     port: 9905
     sidecar: true
@@ -180,11 +183,23 @@ backend-modules:
   mod-scheduler:
     port: 9907
     sidecar: true
+    environment:
+      FOLIO_SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_CREATE: 'false'
+      SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_NAME: mod-scheduler
+      SYSTEM_USER_USERNAME: mod-scheduler
   # Keycloak Consortia modules
   mod-consortia-keycloak:
     deploy-module: false
     port: 9908
     sidecar: true
+    environment:
+      FOLIO_SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_CREATE: 'false'
+      SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_NAME: mod-consortia-keycloak
+      SYSTEM_USER_USERNAME: mod-consortia-keycloak
   # Core Modules
   mod-permissions:
   mod-configuration:
@@ -198,9 +213,9 @@ backend-modules:
 # Frontend modules
 frontend-modules:
   folio_developer:
-  folio_tags:
   folio_stripes-core:
   folio_notes:
+  folio_tags:
   folio_stripes-smart-components:
   folio_plugin-find-authority:
 # Custom Frontend modules

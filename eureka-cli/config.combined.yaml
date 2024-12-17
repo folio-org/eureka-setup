@@ -166,9 +166,12 @@ backend-modules:
     environment:
       OKAPI_URL: http://mod-users-keycloak-sc.eureka:8081
       INCLUDE_ONLY_VISIBLE_PERMISSIONS: 'false'
+      MOD_USERS_URL: http://mod-users.eureka
+      FOLIO_SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_CREATE: 'false'
+      SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_NAME: mod-users-keycloak
       SYSTEM_USER_USERNAME: mod-users-keycloak
-      MOD_USERS_URL: http://mod-users.eureka
   mod-login-keycloak:
     port: 9905
     sidecar: true
@@ -180,11 +183,23 @@ backend-modules:
   mod-scheduler:
     port: 9907
     sidecar: true
+    environment:
+      FOLIO_SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_CREATE: 'false'
+      SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_NAME: mod-scheduler
+      SYSTEM_USER_USERNAME: mod-scheduler
   # Keycloak Consortia modules
   mod-consortia-keycloak:
     deploy-module: false
     port: 9908
     sidecar: true
+    environment:
+      FOLIO_SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_CREATE: 'false'
+      SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_NAME: mod-consortia-keycloak
+      SYSTEM_USER_USERNAME: mod-consortia-keycloak
   # Core Modules
   mod-permissions:
   mod-configuration:
@@ -209,10 +224,31 @@ backend-modules:
   mod-audit:
   mod-pubsub:
     environment:
+      FOLIO_SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_CREATE: 'false'
+      SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_NAME: mod-pubsub
+      SYSTEM_USER_USERNAME: mod-pubsub
   mod-circulation-storage:
   mod-circulation:
     port-server: 9801
+  # Requires Elasticsearch to be uncommented in misc/docker-compose.yaml
+  mod-search:
+    deploy-module: false
+    environment:
+      FOLIO_SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_CREATE: 'false'
+      SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_NAME: mod-search
+      SYSTEM_USER_USERNAME: mod-search
+  mod-data-export-spring:
+    deploy-module: false
+    environment:
+      FOLIO_SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_CREATE: 'false'
+      SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_NAME: mod-data-export-spring
+      SYSTEM_USER_USERNAME: mod-data-export-spring
 # Frontend modules
 frontend-modules:
   folio_developer:
