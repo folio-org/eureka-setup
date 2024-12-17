@@ -16,8 +16,13 @@ limitations under the License.
 package cmd
 
 import (
+	"log/slog"
+	"time"
+
 	"github.com/spf13/cobra"
 )
+
+const undeployApplicationCommand string = "Undeploy Application"
 
 // undeployApplicationCmd represents the undeployApplication command
 var undeployApplicationCmd = &cobra.Command{
@@ -30,10 +35,12 @@ var undeployApplicationCmd = &cobra.Command{
 }
 
 func UndeployApplication() {
+	start := time.Now()
 	UndeployUi()
 	UndeployModules()
 	UndeployManagement()
 	UndeploySystem()
+	slog.Info(undeployApplicationCommand, "Elapsed, duration", time.Since(start))
 }
 
 func init() {

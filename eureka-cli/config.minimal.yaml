@@ -13,6 +13,8 @@ registry:
   registry-url: https://folio-registry.dev.folio.org
   folio-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
   eureka-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
+  namespaces:
+    platform-complete-ui: bkadirkhodjaev
 # Environment
 environment:
   # General
@@ -164,9 +166,12 @@ backend-modules:
     environment:
       OKAPI_URL: http://mod-users-keycloak-sc.eureka:8081
       INCLUDE_ONLY_VISIBLE_PERMISSIONS: 'false'
+      MOD_USERS_URL: http://mod-users.eureka
+      FOLIO_SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_CREATE: 'false'
+      SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_NAME: mod-users-keycloak
       SYSTEM_USER_USERNAME: mod-users-keycloak
-      MOD_USERS_URL: http://mod-users.eureka
   mod-login-keycloak:
     port: 9905
     sidecar: true
@@ -178,11 +183,23 @@ backend-modules:
   mod-scheduler:
     port: 9907
     sidecar: true
+    environment:
+      FOLIO_SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_CREATE: 'false'
+      SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_NAME: mod-scheduler
+      SYSTEM_USER_USERNAME: mod-scheduler
   # Keycloak Consortia modules
   mod-consortia-keycloak:
     deploy-module: false
     port: 9908
     sidecar: true
+    environment:
+      FOLIO_SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_CREATE: 'false'
+      SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_NAME: mod-consortia-keycloak
+      SYSTEM_USER_USERNAME: mod-consortia-keycloak
   # Core Modules
   mod-permissions:
   mod-configuration:
@@ -196,11 +213,16 @@ backend-modules:
 # Frontend modules
 frontend-modules:
   folio_developer:
-  folio_tags:
   folio_stripes-core:
   folio_notes:
+  folio_tags:
   folio_stripes-smart-components:
-  folio_authorization-roles:
-  folio_authorization-policies:
   folio_plugin-find-authority:
+# Custom Frontend modules
+custom-frontend-modules:
+  folio_authorization-roles:
+    version: 1.6.10990000000025
+  folio_authorization-policies:
+    version: 1.3.10990000000015
   folio_plugin-select-application:
+    version: 1.1.1099000000003

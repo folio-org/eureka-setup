@@ -34,6 +34,7 @@ func GetKeycloakAccessToken(commandName string, enableDebug bool, vaultRootToken
 	tokensMap := DoPostFormDataReturnMapStringInteface(commandName, requestUrl, enableDebug, formData, headers)
 	if tokensMap["access_token"] == nil {
 		LogErrorPanic(commandName, "internal.GetKeycloakAccessToken - Access token not found")
+		return ""
 	}
 
 	return tokensMap["access_token"].(string)
@@ -52,6 +53,7 @@ func GetKeycloakMasterRealmAccessToken(commandName string, enableDebug bool) str
 	tokensMap := DoPostFormDataReturnMapStringInteface(commandName, requestUrl, enableDebug, formData, headers)
 	if tokensMap["access_token"] == nil {
 		LogErrorPanic(commandName, "internal.GetKeycloakAccessToken - Access token not found")
+		return ""
 	}
 
 	return tokensMap["access_token"].(string)
@@ -65,6 +67,7 @@ func UpdateKeycloakPublicClientParams(commandName string, enableDebug bool, tena
 	foundClients := DoGetDecodeReturnInterface(commandName, getRequestUrl, enableDebug, true, headers).([]interface{})
 	if len(foundClients) != 1 {
 		LogErrorPanic(commandName, fmt.Sprintf("internal.UpdateKeycloakPublicClientParams - Number of found cliends by %s client id is not 1", clientId))
+		return
 	}
 
 	clientUuid := foundClients[0].(map[string]interface{})["id"].(string)

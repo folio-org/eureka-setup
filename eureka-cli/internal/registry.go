@@ -12,6 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -76,6 +77,21 @@ func GetModulesFromRegistries(commandName string, installJsonUrls map[string]str
 		if err != nil {
 			slog.Error(commandName, GetFuncName(), "json.NewDecoder error")
 			panic(err)
+		}
+
+		if registryName == FolioRegistry {
+			for name, value := range viper.GetStringMap(CustomFrontendModuleKey) {
+				if value == nil {
+					continue
+				}
+
+				mapEntry := value.(map[string]interface{})
+				if mapEntry["version"] == nil {
+					continue
+				}
+
+				registryModules = append(registryModules, &RegistryModule{Id: fmt.Sprintf("%s-%s", name, mapEntry["version"].(string)), Action: "enable"})
+			}
 		}
 
 		if len(registryModules) > 0 {

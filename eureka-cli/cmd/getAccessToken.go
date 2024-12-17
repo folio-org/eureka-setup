@@ -25,9 +25,7 @@ import (
 
 const getAccessTokenCommand string = "Get Access Token"
 
-var (
-	tenant string
-)
+var realm string
 
 // getAccessTokenCmd represents the getAccessToken command
 var getAccessTokenCmd = &cobra.Command{
@@ -46,12 +44,12 @@ func GetAccessToken() {
 	vaultRootToken := internal.GetRootVaultToken(getAccessTokenCommand, client)
 
 	slog.Info(getAccessTokenCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK ACCESS TOKEN ###")
-	accessToken := internal.GetKeycloakAccessToken(createUsersCommand, enableDebug, vaultRootToken, tenant)
+	accessToken := internal.GetKeycloakAccessToken(createUsersCommand, enableDebug, vaultRootToken, realm)
 	slog.Info(getAccessTokenCommand, internal.GetFuncName(), fmt.Sprintf("Access token: %s", accessToken))
 }
 
 func init() {
 	rootCmd.AddCommand(getAccessTokenCmd)
-	getAccessTokenCmd.PersistentFlags().StringVarP(&tenant, "realm", "r", "", "Realm (required)")
+	getAccessTokenCmd.PersistentFlags().StringVarP(&realm, "realm", "r", "", "Realm (required)")
 	getAccessTokenCmd.MarkPersistentFlagRequired("realm")
 }
