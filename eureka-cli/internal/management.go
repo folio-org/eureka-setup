@@ -164,7 +164,6 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 			}
 
 			backendModule, okBackend := dto.BackendModulesMap[module.Name]
-
 			frontendModule, okFrontend := dto.FrontendModulesMap[module.Name]
 			if (!okBackend && !okFrontend) || (okBackend && !backendModule.DeployModule || okFrontend && !frontendModule.DeployModule) {
 				continue
@@ -179,7 +178,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 				module.Id = fmt.Sprintf("%s-%s", module.Name, *module.Version)
 			}
 
-			moduleDescriptorUrl := fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls["folio"], module.Id)
+			moduleDescriptorUrl := fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls[FolioRegistry], module.Id)
 
 			if applicationFetchDescriptors {
 				dto.ModuleDescriptorsMap[module.Id] = DoGetDecodeReturnInterface(commandName, moduleDescriptorUrl, enableDebug, true, map[string]string{})
@@ -525,6 +524,7 @@ func GetRoleByName(commandName string, enableDebug bool, roleName string, header
 	foundRoles := foundRolesMap["roles"].([]interface{})
 	if len(foundRoles) != 1 {
 		LogErrorPanic(commandName, fmt.Sprintf("internal.GetRoleByName - Number of found roles by %s role name is not 1", roleName))
+		return nil
 	}
 
 	return foundRoles[0].(map[string]interface{})

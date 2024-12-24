@@ -8,9 +8,10 @@ const (
 	ApplicationStripesBranchKey   string = "application.stripes-branch"
 	ApplicationGatewayHostnameKey string = "application.gateway-hostname"
 
-	RegistryUrlKey                  string = "registry.registry-url"
-	RegistryFolioInstallJsonUrlKey  string = "registry.folio-install-json-url"
-	RegistryEurekaInstallJsonUrlKey string = "registry.eureka-install-json-url"
+	RegistryUrlKey                          string = "registry.registry-url"
+	RegistryFolioInstallJsonUrlKey          string = "registry.folio-install-json-url"
+	RegistryEurekaInstallJsonUrlKey         string = "registry.eureka-install-json-url"
+	RegistryNamespacesPlatformCompleteUiKey string = "registry.namespaces.platform-complete-ui"
 
 	EnvironmentKey string = "environment"
 
@@ -22,4 +23,5 @@ const (
 	SidecarModuleEnvironmentKey string = "sidecar-module.environment"
 	BackendModuleKey            string = "backend-modules"
 	FrontendModuleKey           string = "frontend-modules"
+	CustomFrontendModuleKey     string = "custom-frontend-modules"
 )

@@ -16,8 +16,14 @@ limitations under the License.
 package cmd
 
 import (
+	"log/slog"
+	"sync"
+	"time"
+
 	"github.com/spf13/cobra"
 )
+
+const deployApplicationCommand string = "Deploy Application"
 
 // deployApplicationCmd represents the deployApplication command
 var deployApplicationCmd = &cobra.Command{
@@ -30,6 +36,7 @@ var deployApplicationCmd = &cobra.Command{
 }
 
 func DeployApplication() {
+	start := time.Now()
 	DeploySystem()
 	DeployManagement()
 	DeployModules()
@@ -37,8 +44,17 @@ func DeployApplication() {
 	CreateTenantEntitlements()
 	CreateRoles()
 	CreateUsers()
+	var waitMutex sync.WaitGroup
+	attachCapabilitySetsAsync(&waitMutex)
 	DeployUi()
-	AttachCapabilitySets()
+	waitMutex.Wait()
+	slog.Info(deployApplicationCommand, "Elapsed, duration", time.Since(start))
+}
+
+func attachCapabilitySetsAsync(waitMutex *sync.WaitGroup) {
+	waitMutex.Add(1)
+	waitDuration := 10 * time.Minute
+	go AttachCapabilitySets(waitMutex, &waitDuration)
 }
 
 func init() {

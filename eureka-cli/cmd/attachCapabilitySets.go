@@ -17,6 +17,8 @@ package cmd
 
 import (
 	"log/slog"
+	"sync"
+	"time"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
@@ -30,11 +32,16 @@ var attachCapabilitySetsCmd = &cobra.Command{
 	Short: "Attach capability sets",
 	Long:  `Attach capability sets to roles.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		AttachCapabilitySets()
+		AttachCapabilitySets(nil, nil)
 	},
 }
 
-func AttachCapabilitySets() {
+func AttachCapabilitySets(waitMutex *sync.WaitGroup, waitDuration *time.Duration) {
+	if waitMutex != nil && waitDuration != nil && *waitDuration > 0 {
+		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), "### WAITING FOR CAPABILITY SETS TO SYNCHRONIZE ###")
+		time.Sleep(*waitDuration)
+	}
+
 	slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
 	client := internal.CreateClient(attachCapabilitySetsCommand)
 	defer client.Close()
@@ -53,6 +60,10 @@ func AttachCapabilitySets() {
 
 		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), "### ATTACHING CAPABILITY SETS TO ROLES ###")
 		internal.AttachCapabilitySetsToRoles(attachCapabilitySetsCommand, enableDebug, tenant, accessToken)
+	}
+
+	if waitMutex != nil {
+		waitMutex.Done()
 	}
 }
 

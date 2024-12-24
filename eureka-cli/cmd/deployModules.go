@@ -46,10 +46,10 @@ func DeployModules() {
 	backendModulesMap := internal.GetBackendModulesFromConfig(deployModulesCommand, viper.GetStringMap(internal.BackendModuleKey), false)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING FRONTEND MODULES FROM CONFIG ###")
-	frontendModulesMap := internal.GetFrontendModulesFromConfig(deployModulesCommand, viper.GetStringMap(internal.FrontendModuleKey))
+	frontendModulesMap := internal.GetFrontendModulesFromConfig(deployModulesCommand, viper.GetStringMap(internal.FrontendModuleKey), viper.GetStringMap(internal.CustomFrontendModuleKey))
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING BACKEND MODULE REGISTRIES ###")
-	instalJsonUrls := map[string]string{"folio": viper.GetString(internal.RegistryFolioInstallJsonUrlKey), "eureka": viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)}
+	instalJsonUrls := map[string]string{internal.FolioRegistry: viper.GetString(internal.RegistryFolioInstallJsonUrlKey), internal.EurekaRegistry: viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)}
 	registryModules := internal.GetModulesFromRegistries(deployModulesCommand, instalJsonUrls)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### EXTRACTING MODULE NAME AND VERSION ###")
@@ -61,12 +61,12 @@ func DeployModules() {
 	vaultRootToken := internal.GetRootVaultToken(deployModulesCommand, client)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### CREATING APPLICATIONS ###")
-	registryUrls := map[string]string{"folio": registryUrl, "eureka": registryUrl}
+	registryUrls := map[string]string{internal.FolioRegistry: registryUrl, "eureka": registryUrl}
 	registerModuleDto := internal.NewRegisterModuleDto(registryUrls, registryModules, backendModulesMap, frontendModulesMap, enableDebug)
 	internal.CreateApplications(deployModulesCommand, enableDebug, registerModuleDto)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### DEPLOYING MODULES ###")
-	registryHostnames := map[string]string{"folio": "", "eureka": ""}
+	registryHostnames := map[string]string{internal.FolioRegistry: "", "eureka": ""}
 	deployModulesDto := internal.NewDeployModulesDto(vaultRootToken, registryHostnames, registryModules, backendModulesMap, environment, sidecarEnvironment)
 	deployedModules := internal.DeployModules(deployModulesCommand, client, deployModulesDto)
 

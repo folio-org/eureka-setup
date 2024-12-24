@@ -229,6 +229,43 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
+  
+  ### Elasticsearch ###
+  # An optional service when deploying mod-search
+  # kibana:
+  #   container_name: kibana
+  #   image: bitnami/kibana:8.16.1
+  #   restart: unless-stopped
+  #   environment:
+  #     ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+  #   networks: 
+  #     - fpm-net
+  #   ports:
+  #     - 15601:5601 
+  #   healthcheck:
+  #     test: [ "CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'" ]
+  #     interval: 10s
+  #     timeout: 10s
+  #     retries: 120
+ 
+  # A required service when deploying mod-search
+  # elasticsearch:
+  #   container_name: elasticsearch
+  #   image: bitnami/elasticsearch:8.16.1
+  #   restart: unless-stopped
+  #   environment:
+  #     ELASTICSEARCH_PLUGINS:
+  #       "analysis-icu,analysis-kuromoji,analysis-smartcn,analysis-nori,analysis-phonetic"
+  #   networks: 
+  #     - fpm-net
+  #   ports:
+  #     - 9200:9200
+  #     - 9300:9300
+  #   healthcheck:
+  #     test: curl -s http://elasticsearch:9200 >/dev/null || exit 1
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 30
       
   ### Netcat ###
   netcat:
@@ -250,5 +287,5 @@ services:
       timeout: 5s
       retries: 15
       start_period: 5s
-
-  # TODO Add Elasticsearch, Kibana and Minio
+      
+  # TODO Minio
