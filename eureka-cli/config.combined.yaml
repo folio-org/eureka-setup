@@ -241,14 +241,6 @@ backend-modules:
       SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_NAME: mod-search
       SYSTEM_USER_USERNAME: mod-search
-  mod-data-export-spring:
-    deploy-module: false
-    environment:
-      FOLIO_SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_CREATE: 'false'
-      SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_NAME: mod-data-export-spring
-      SYSTEM_USER_USERNAME: mod-data-export-spring
 # Frontend modules
 frontend-modules:
   folio_developer:
