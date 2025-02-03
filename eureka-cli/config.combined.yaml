@@ -243,7 +243,6 @@ backend-modules:
       SYSTEM_USER_USERNAME: mod-search
 # Frontend modules
 frontend-modules:
-  folio_developer:
   folio_stripes-core:
   folio_developer:
   folio_notes:
