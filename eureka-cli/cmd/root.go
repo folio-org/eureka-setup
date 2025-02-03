@@ -34,6 +34,12 @@ var (
 	enableDebug  bool
 	buildImages  bool
 	updateCloned bool
+	tenant       string
+	namespace    string
+	showAll      bool
+	id           string
+	location     string
+	restore      bool
 )
 
 // rootCmd represents the base command when called without any subcommands
