@@ -54,7 +54,7 @@ eureka-cli.exe -c ./config.minimal.yaml deployApplication
 - Enable debug: `-d` or `--debug`
 
 ```shell
-./bin/eureka-cli.exe -c ./config.minimal.yaml deployApplication
+./bin/eureka-cli -c ./config.minimal.yaml deployApplication
 ```
 
 #### Using Private AWS ECR container registry

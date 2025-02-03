@@ -26,11 +26,6 @@ import (
 
 const buildAndPushUiCmdCommand string = "Build and push UI"
 
-var (
-	tenant    string
-	namespace string
-)
-
 // buildAndPushUiCmd represents the buildAndPushUi command
 var buildAndPushUiCmd = &cobra.Command{
 	Use:   "buildAndPushUi",

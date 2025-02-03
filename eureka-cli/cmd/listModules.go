@@ -32,8 +32,6 @@ const (
 	currentProfileModulesPattern string = "eureka-%s-"
 )
 
-var showAll bool
-
 // listModulesCmd represents the listModules command
 var listModulesCmd = &cobra.Command{
 	Use:   "listModules",

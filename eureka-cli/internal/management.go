@@ -56,6 +56,10 @@ func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryM
 		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Extracting %s registry module name and versions", registryName))
 
 		for moduleIndex, module := range registryModules {
+			if module.Id == "okapi" {
+				continue
+			}
+
 			module.Name = TrimModuleName(ModuleIdRegexp.ReplaceAllString(module.Id, `$1`))
 			moduleVersion := ModuleIdRegexp.ReplaceAllString(module.Id, `$2$3`)
 			module.Version = &moduleVersion
@@ -237,13 +241,15 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %s application`, applicationId))
 
-	applicationDiscoveryBytes, err := json.Marshal(map[string]interface{}{"discovery": discoveryModules})
-	if err != nil {
-		slog.Error(commandName, GetFuncName(), "json.Marshal error")
-		panic(err)
-	}
+	if len(discoveryModules) > 0 {
+		applicationDiscoveryBytes, err := json.Marshal(map[string]interface{}{"discovery": discoveryModules})
+		if err != nil {
+			slog.Error(commandName, GetFuncName(), "json.Marshal error")
+			panic(err)
+		}
 
-	DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayHostname(), ApplicationsPort, "/modules/discovery"), enableDebug, applicationDiscoveryBytes, map[string]string{})
+		DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayHostname(), ApplicationsPort, "/modules/discovery"), enableDebug, applicationDiscoveryBytes, map[string]string{})
+	}
 
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %d entries of application module discovery`, len(discoveryModules)))
 }

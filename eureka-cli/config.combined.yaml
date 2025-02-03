@@ -245,6 +245,7 @@ backend-modules:
 frontend-modules:
   folio_developer:
   folio_stripes-core:
+  folio_developer:
   folio_notes:
   folio_tags:
   folio_stripes-smart-components:
@@ -256,6 +257,7 @@ frontend-modules:
   folio_orders:
   folio_finance:
   folio_receiving:
+  folio_claims:
   folio_servicepoints:
   folio_acquisition-units:
   folio_requests:
