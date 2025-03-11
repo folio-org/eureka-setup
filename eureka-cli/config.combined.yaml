@@ -101,6 +101,7 @@ users:
 # Sidecar module
 sidecar-module:
   image: folio-module-sidecar
+  version: 2.1.0-SNAPSHOT.164
   environment:
     SIDECAR: true
     SC_LOG_LEVEL: DEBUG
