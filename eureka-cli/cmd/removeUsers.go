@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/internal"
@@ -42,17 +43,17 @@ func RemoveUsers() {
 
 	for _, value := range internal.GetTenants(removeUsersCommand, enableDebug, false) {
 		mapEntry := value.(map[string]interface{})
-		tenant := mapEntry["name"].(string)
 
-		if !internal.HasTenant(tenant) {
+		existingTenant := mapEntry["name"].(string)
+		if !internal.HasTenant(existingTenant) {
 			continue
 		}
 
-		slog.Info(removeUsersCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK ACCESS TOKEN ###")
-		accessToken := internal.GetKeycloakAccessToken(removeUsersCommand, enableDebug, vaultRootToken, tenant)
+		slog.Info(removeUsersCommand, internal.GetFuncName(), fmt.Sprintf("### ACQUIRING KEYCLOAK ACCESS TOKEN FOR %s TENANT ###", existingTenant))
+		accessToken := internal.GetKeycloakAccessToken(removeUsersCommand, enableDebug, vaultRootToken, existingTenant)
 
-		slog.Info(removeUsersCommand, internal.GetFuncName(), "### REMOVING USERS ###")
-		internal.RemoveUsers(removeUsersCommand, enableDebug, false, tenant, accessToken)
+		slog.Info(removeUsersCommand, internal.GetFuncName(), fmt.Sprintf("### REMOVING USERS FOR %s TENANT ###", existingTenant))
+		internal.RemoveUsers(removeUsersCommand, enableDebug, false, existingTenant, accessToken)
 	}
 }
 

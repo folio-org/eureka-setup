@@ -237,7 +237,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 		panic(err)
 	}
 
-	DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayHostname(), ApplicationsPort, "/applications?check=true"), enableDebug, applicationBytes, map[string]string{})
+	DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayHostname(), ApplicationsPort, "/applications?check=true"), enableDebug, true, applicationBytes, map[string]string{})
 
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %s application`, applicationId))
 
@@ -248,7 +248,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 			panic(err)
 		}
 
-		DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayHostname(), ApplicationsPort, "/modules/discovery"), enableDebug, applicationDiscoveryBytes, map[string]string{})
+		DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayHostname(), ApplicationsPort, "/modules/discovery"), enableDebug, true, applicationDiscoveryBytes, map[string]string{})
 	}
 
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %d entries of application module discovery`, len(discoveryModules)))
@@ -319,7 +319,7 @@ func CreateTenants(commandName string, enableDebug bool) {
 			panic(err)
 		}
 
-		DoPostReturnNoContent(commandName, requestUrl, enableDebug, tenantBytes, map[string]string{})
+		DoPostReturnNoContent(commandName, requestUrl, enableDebug, true, tenantBytes, map[string]string{})
 
 		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %s tenant (realm)`, tenant))
 	}
@@ -358,7 +358,6 @@ func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError
 	}
 }
 
-// TODO Add depCheck=false flag
 func CreateTenantEntitlement(commandName string, enableDebug bool) {
 	requestUrl := fmt.Sprintf(GetGatewayHostname(), TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=true,loadSample=true")
 	applicationMap := viper.GetStringMap(ApplicationKey)
@@ -384,7 +383,7 @@ func CreateTenantEntitlement(commandName string, enableDebug bool) {
 			panic(err)
 		}
 
-		DoPostReturnNoContent(commandName, requestUrl, enableDebug, tenantEntitlementBytes, map[string]string{})
+		DoPostReturnNoContent(commandName, requestUrl, enableDebug, true, tenantEntitlementBytes, map[string]string{})
 
 		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created tenant entitlement for %s tenant (realm)`, tenant))
 	}
@@ -427,7 +426,7 @@ func RemoveUsers(commandName string, enableDebug bool, panicOnError bool, tenant
 	}
 }
 
-func CreateUsers(commandName string, enableDebug bool, accessToken string) {
+func CreateUsers(commandName string, enableDebug bool, panicOnError bool, existingTenant string, accessToken string) {
 	postUserRequestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, "/users-keycloak/users")
 	postUserPasswordRequestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, "/authn/credentials")
 	postUserRoleRequestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, "/roles/users")
@@ -436,6 +435,10 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 	for username, value := range usersMap {
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["tenant"].(string)
+		if existingTenant != tenant {
+			continue
+		}
+
 		password := mapEntry["password"].(string)
 		firstName := mapEntry["first-name"].(string)
 		lastName := mapEntry["last-name"].(string)
@@ -460,7 +463,7 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 		okapiBasedHeaders := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 		nonOkapiBasedHeaders := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, AuthorizationHeader: fmt.Sprintf("Bearer %s", accessToken)}
 
-		createdUserMap := DoPostReturnMapStringInteface(commandName, postUserRequestUrl, enableDebug, userBytes, okapiBasedHeaders)
+		createdUserMap := DoPostReturnMapStringInteface(commandName, postUserRequestUrl, enableDebug, panicOnError, userBytes, okapiBasedHeaders)
 
 		userId := createdUserMap["id"].(string)
 
@@ -472,7 +475,7 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 			panic(err)
 		}
 
-		DoPostReturnNoContent(commandName, postUserPasswordRequestUrl, enableDebug, userPasswordBytes, nonOkapiBasedHeaders)
+		DoPostReturnNoContent(commandName, postUserPasswordRequestUrl, enableDebug, panicOnError, userPasswordBytes, nonOkapiBasedHeaders)
 
 		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Attached %s password to %s user in %s tenant (realm)`, password, username, tenant))
 
@@ -496,7 +499,7 @@ func CreateUsers(commandName string, enableDebug bool, accessToken string) {
 			panic(err)
 		}
 
-		DoPostReturnNoContent(commandName, postUserRoleRequestUrl, enableDebug, userRoleBytes, okapiBasedHeaders)
+		DoPostReturnNoContent(commandName, postUserRoleRequestUrl, enableDebug, panicOnError, userRoleBytes, okapiBasedHeaders)
 
 		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Attached %d roles to %s user in %s tenant (realm)`, len(roleIds), username, tenant))
 	}
@@ -556,14 +559,18 @@ func RemoveRoles(commandName string, enableDebug bool, panicOnError bool, tenant
 	}
 }
 
-func CreateRoles(commandName string, enableDebug bool, accessToken string) {
+func CreateRoles(commandName string, enableDebug bool, panicOnError bool, existingTenant string, accessToken string) {
 	requestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, "/roles")
 	rolesMap := viper.GetStringMap(RolesKey)
+	caser := cases.Title(language.English)
 
 	for role, value := range rolesMap {
 		mapEntry := value.(map[string]interface{})
 		tenant := mapEntry["tenant"].(string)
-		caser := cases.Title(language.English)
+		if existingTenant != tenant {
+			continue
+		}
+
 		headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 
 		roleBytes, err := json.Marshal(map[string]string{"name": caser.String(role), "description": "Default"})
@@ -572,7 +579,7 @@ func CreateRoles(commandName string, enableDebug bool, accessToken string) {
 			panic(err)
 		}
 
-		DoPostReturnNoContent(commandName, requestUrl, enableDebug, roleBytes, headers)
+		DoPostReturnNoContent(commandName, requestUrl, enableDebug, panicOnError, roleBytes, headers)
 
 		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %s role in %s tenant (realm)`, role, tenant))
 	}
@@ -688,7 +695,7 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 			panic(err)
 		}
 
-		DoPostReturnNoContent(commandName, requestUrl, enableDebug, capabilitySetsBytes, headers)
+		DoPostReturnNoContent(commandName, requestUrl, enableDebug, true, capabilitySetsBytes, headers)
 
 		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Attached %d capability sets to %s role in %s tenant (realm)`, len(capabilitySetIds), roleName, tenant))
 	}

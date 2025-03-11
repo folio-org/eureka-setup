@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/internal"
@@ -47,17 +48,17 @@ func RemoveRoles() {
 
 	for _, value := range internal.GetTenants(removeRolesCommand, enableDebug, false) {
 		mapEntry := value.(map[string]interface{})
-		tenant := mapEntry["name"].(string)
 
-		if !internal.HasTenant(tenant) {
+		existingTenant := mapEntry["name"].(string)
+		if !internal.HasTenant(existingTenant) {
 			continue
 		}
 
-		slog.Info(removeRolesCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK ACCESS TOKEN ###")
-		accessToken := internal.GetKeycloakAccessToken(removeRolesCommand, enableDebug, vaultRootToken, tenant)
+		slog.Info(removeRolesCommand, internal.GetFuncName(), fmt.Sprintf("### ACQUIRING KEYCLOAK ACCESS TOKEN FOR %s TENANT ###", existingTenant))
+		accessToken := internal.GetKeycloakAccessToken(removeRolesCommand, enableDebug, vaultRootToken, existingTenant)
 
-		slog.Info(removeRolesCommand, internal.GetFuncName(), "### REMOVING ROLES ###")
-		internal.RemoveRoles(removeRolesCommand, enableDebug, false, tenant, accessToken)
+		slog.Info(removeRolesCommand, internal.GetFuncName(), fmt.Sprintf("### REMOVING ROLES FOR %s TENANT ###", existingTenant))
+		internal.RemoveRoles(removeRolesCommand, enableDebug, false, existingTenant, accessToken)
 	}
 }
 

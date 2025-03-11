@@ -1,0 +1,139 @@
+# Profile
+profile:
+  name: export
+# Application
+application:
+  name: app-export
+  version: 1.0.0
+  platform: base
+  fetch-descriptors: false
+  port-start: 35000
+  dependencies:
+    name: app-combined
+    version: 1.0.0
+# Registry
+registry:
+  registry-url: https://folio-registry.dev.folio.org
+  folio-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
+  eureka-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
+  namespaces:
+    platform-complete-ui: bkadirkhodjaev
+# Environment
+environment:
+  # General
+  ENV: folio
+  # PostgreSQL
+  DB_HOST: postgres.eureka
+  DB_PORT: 5432
+  DB_DATABASE: folio
+  DB_USERNAME: folio_rw
+  DB_PASSWORD: supersecret
+  # Kafka
+  KAFKA_HOST: kafka.eureka
+  KAFKA_PORT: 9092
+  # Elasticsearch
+  ELASTICSEARCH_URL: http://host.docker.internal:9200
+  # AWS S3/MinIO
+  AWS_URL: http://host.docker.internal:9000
+  AWS_REGION: us-east-1
+  AWS_BUCKET: example-bucket
+  AWS_ACCESS_KEY_ID: minioadmin
+  AWS_SECRET_ACCESS_KEY: minioadmin
+  S3_IS_AWS: false
+  S3_URL: http://host.docker.internal:9000
+  S3_REGION: us-east-1
+  S3_ACCESS_KEY_ID: minioadmin
+  S3_SECRET_ACCESS_KEY: minioadmin
+  S3_BUCKET: example-bucket
+  SPLIT_FILES_ENABLED: true
+  # Consortia
+  SYSTEM_USER_PASSWORD: system_user_password
+  # Management
+  MT_URL: http://mgr-tenants.eureka:8081
+  AM_CLIENT_URL: http://mgr-applications.eureka:8081
+  KONG_ADMIN_URL: http://api-gateway.eureka:8001
+  # Keycloak
+  KC_URL: http://keycloak.eureka:8080
+  KC_CONFIG_TTL: 3600s
+  KC_ADMIN_CLIENT_ID: supersecret
+  KC_ADMIN_USERNAME: admin
+  KC_ADMIN_PASSWORD: admin
+  SECURITY_ENABLED: false
+  KC_IMPORT_ENABLED: true
+  KC_INTEGRATION_ENABLED: true
+  KC_LOGIN_CLIENT_SUFFIX: -application
+  KC_SERVICE_CLIENT_ID: sidecar-module-access-client
+  KONG_INTEGRATION_ENABLED: true
+  OKAPI_INTEGRATION_ENABLED: false
+  WEB_CLIENT_TLS_VERIFY_HOSTNAME: false
+  # Java
+  JAVA_OPTIONS: |
+    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
+    -XX:MaxRAMPercentage=70.0 -Xms128m -Xmx400m 
+    -Djdk.internal.httpclient.disableHostnameVerification=true"
+# Tenants
+tenants:
+  diku:
+    deploy-ui: false
+# Roles
+roles:
+  Admin:
+    tenant: diku
+    capability-sets:
+      - all
+  User:
+    tenant: diku
+    capability-sets: []
+# Users
+users:
+  diku_admin:
+    tenant: diku
+    password: admin
+    last-name: John
+    first-name: Doe
+    roles:
+      - Admin
+      - User
+  diku_user:
+    tenant: diku
+    password: user
+    last-name: John
+    first-name: Smith
+    roles:
+      - User
+# Sidecar module
+sidecar-module:
+  image: folio-module-sidecar
+  environment:
+    SIDECAR: true
+    SC_LOG_LEVEL: DEBUG
+    ROOT_LOG_LEVEL: DEBUG
+    REQUEST_TIMEOUT: 604800000
+    KC_URI_VALIDATION_ENABLED: false
+    ALLOW_CROSS_TENANT_REQUESTS: true
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS: true
+    QUARKUS_HTTP_LIMITS_MAX_INITIAL_LINE_LENGTH: 8192
+    MOD_USERS_BL: http://mod-users-bl.eureka:8081
+    MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak.eureka:8081
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://api-gateway.eureka:8000
+    JAVA_OPTIONS: |
+      -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+      -XX:+UseZGC -XX:MaxRAMPercentage=85.0 -Xms50m -Xmx128m
+      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=DEBUG -Dquarkus.log.category.'org.apache.kafka'.level=DEBUG 
+      -Djava.util.logging.manager=org.jboss.logmanager.LogManager
+# Backend modules
+backend-modules:
+  mod-data-export-spring:
+    environment:
+      FOLIO_SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_CREATE: 'false'
+      SYSTEM_USER_ENABLED: 'false'
+      SYSTEM_USER_NAME: mod-data-export-spring
+      SYSTEM_USER_USERNAME: mod-data-export-spring
+  mod-data-export-worker:
+# Frontend modules
+frontend-modules:
+  folio_data-export:
+  folio_export-manager:
+  folio_plugin-bursar-export:
+

@@ -200,6 +200,15 @@ backend-modules:
       SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_NAME: mod-consortia-keycloak
       SYSTEM_USER_USERNAME: mod-consortia-keycloak
+      # eureka-common
+      MOD_USERS_BL: http://mod-users-bl.eureka:8081
+      MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak.eureka:8081
+      # okapi-credentials
+      OKAPI_HOST: mod-consortia-keycloak.eureka
+      OKAPI_PORT: 8082
+      OKAPI_SERVICE_HOST: mod-consortia-keycloak.eureka
+      OKAPI_SERVICE_URL: http://mod-consortia-keycloak.eureka:8082
+      OKAPI_URL: http://mod-consortia-keycloak.eureka:8082
   # Core Modules
   mod-permissions:
   mod-configuration:
@@ -268,8 +277,8 @@ frontend-modules:
 # Custom Frontend modules
 custom-frontend-modules:
   folio_authorization-roles:
-    version: 1.6.10990000000025
+    version: 2.0.109900000000126
   folio_authorization-policies:
-    version: 1.3.10990000000015
+    version: 2.0.10990000000060
   folio_plugin-select-application:
-    version: 1.1.1099000000003
+    version: 2.0.10990000000042

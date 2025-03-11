@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -49,17 +50,17 @@ func AttachCapabilitySets(waitMutex *sync.WaitGroup, waitDuration *time.Duration
 
 	for _, tenantValue := range internal.GetTenants(attachCapabilitySetsCommand, enableDebug, false) {
 		tenantMapEntry := tenantValue.(map[string]interface{})
-		tenant := tenantMapEntry["name"].(string)
 
-		if !internal.HasTenant(tenant) {
+		existingTenant := tenantMapEntry["name"].(string)
+		if !internal.HasTenant(existingTenant) {
 			continue
 		}
 
-		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK ACCESS TOKEN ###")
-		accessToken := internal.GetKeycloakAccessToken(attachCapabilitySetsCommand, enableDebug, vaultRootToken, tenant)
+		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("### ACQUIRING KEYCLOAK ACCESS TOKEN FOR %s TENANT ###", existingTenant))
+		accessToken := internal.GetKeycloakAccessToken(attachCapabilitySetsCommand, enableDebug, vaultRootToken, existingTenant)
 
-		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), "### ATTACHING CAPABILITY SETS TO ROLES ###")
-		internal.AttachCapabilitySetsToRoles(attachCapabilitySetsCommand, enableDebug, tenant, accessToken)
+		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("### ATTACHING CAPABILITY SETS TO ROLES FOR %s TENANT ###", existingTenant))
+		internal.AttachCapabilitySetsToRoles(attachCapabilitySetsCommand, enableDebug, existingTenant, accessToken)
 	}
 
 	if waitMutex != nil {
