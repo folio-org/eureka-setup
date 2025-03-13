@@ -25,6 +25,8 @@ environment:
   DB_DATABASE: folio
   DB_USERNAME: folio_rw
   DB_PASSWORD: supersecret
+  DB_CHARSET: UTF-8
+  DB_QUERYTIMEOUT: 60000
   # Kafka
   KAFKA_HOST: kafka.eureka
   KAFKA_PORT: 9092
@@ -64,10 +66,10 @@ environment:
   OKAPI_INTEGRATION_ENABLED: false
   WEB_CLIENT_TLS_VERIFY_HOSTNAME: false
   # Java
-  JAVA_OPTIONS: |
+  JAVA_OPTIONS: >-
     -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
     -XX:MaxRAMPercentage=70.0 -Xms128m -Xmx400m 
-    -Djdk.internal.httpclient.disableHostnameVerification=true"
+    -Djdk.internal.httpclient.disableHostnameVerification=true
 # Tenants
 tenants:
   diku:
@@ -76,8 +78,7 @@ tenants:
 roles:
   Admin:
     tenant: diku
-    capability-sets:
-      - all
+    capability-sets: [ "all" ]
   User:
     tenant: diku
     capability-sets: []
@@ -88,36 +89,35 @@ users:
     password: admin
     last-name: John
     first-name: Doe
-    roles:
-      - Admin
-      - User
+    roles: [ "Admin", "User" ] 
   diku_user:
     tenant: diku
     password: user
     last-name: John
     first-name: Smith
-    roles:
-      - User
+    roles: [ "User" ]
 # Sidecar module
 sidecar-module:
   image: folio-module-sidecar
   environment:
     SIDECAR: true
-    SC_LOG_LEVEL: DEBUG
-    ROOT_LOG_LEVEL: DEBUG
+    SC_LOG_LEVEL: INFO
+    ROOT_LOG_LEVEL: INFO
     REQUEST_TIMEOUT: 604800000
     KC_URI_VALIDATION_ENABLED: false
     ALLOW_CROSS_TENANT_REQUESTS: true
     SIDECAR_FORWARD_UNKNOWN_REQUESTS: true
     QUARKUS_HTTP_LIMITS_MAX_INITIAL_LINE_LENGTH: 8192
-    MOD_USERS_BL: http://mod-users-bl.eureka:8081
-    MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak.eureka:8081
-    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://api-gateway.eureka:8000
-    JAVA_OPTIONS: |
+    JAVA_OPTIONS: >-
       -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
-      -XX:+UseZGC -XX:MaxRAMPercentage=85.0 -Xms50m -Xmx128m
-      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=DEBUG -Dquarkus.log.category.'org.apache.kafka'.level=DEBUG 
+      -XX:+UseZGC -XX:MaxRAMPercentage=85.0 -Xms64m -Xmx64m
+      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=INFO -Dquarkus.log.category.'org.apache.kafka'.level=INFO 
       -Djava.util.logging.manager=org.jboss.logmanager.LogManager
+    # Rancher secret: eureka-common
+    KC_URL: http://keycloak.eureka:8080
+    MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
+    MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://api-gateway.eureka:8000
 # Backend modules
 backend-modules:
   # Management modules
@@ -166,7 +166,7 @@ backend-modules:
     environment:
       OKAPI_URL: http://mod-users-keycloak-sc.eureka:8081
       INCLUDE_ONLY_VISIBLE_PERMISSIONS: 'false'
-      MOD_USERS_URL: http://mod-users.eureka
+      # Rancher secret: mod-users-keycloak-systemuser
       FOLIO_SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_CREATE: 'false'
       SYSTEM_USER_ENABLED: 'false'
@@ -184,6 +184,7 @@ backend-modules:
     port: 9907
     sidecar: true
     environment:
+      # Rancher secret: mod-scheduler-systemuser
       FOLIO_SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_CREATE: 'false'
       SYSTEM_USER_ENABLED: 'false'
@@ -195,11 +196,21 @@ backend-modules:
     port: 9908
     sidecar: true
     environment:
+      # Rancher secret: mod-consortia-keycloak-systemuser
       FOLIO_SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_CREATE: 'false'
       SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_NAME: mod-consortia-keycloak
       SYSTEM_USER_USERNAME: mod-consortia-keycloak
+      # Rancher secret: eureka-common
+      MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
+      MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
+      # Rancher secret: okapi-credentials
+      OKAPI_HOST: mod-consortia-keycloak.eureka
+      OKAPI_PORT: 8082
+      OKAPI_SERVICE_HOST: mod-consortia-keycloak.eureka
+      OKAPI_SERVICE_URL: http://mod-consortia-keycloak.eureka:8082
+      OKAPI_URL: http://mod-consortia-keycloak.eureka:8082
   # Core Modules
   mod-permissions:
   mod-configuration:
@@ -224,6 +235,7 @@ backend-modules:
   mod-audit:
   mod-pubsub:
     environment:
+      # Rancher secret: mod-pubsub-systemuser
       FOLIO_SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_CREATE: 'false'
       SYSTEM_USER_ENABLED: 'false'
@@ -236,6 +248,7 @@ backend-modules:
   mod-search:
     deploy-module: false
     environment:
+      # Rancher secret: mod-search-systemuser
       FOLIO_SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_CREATE: 'false'
       SYSTEM_USER_ENABLED: 'false'
@@ -268,8 +281,8 @@ frontend-modules:
 # Custom Frontend modules
 custom-frontend-modules:
   folio_authorization-roles:
-    version: 1.6.10990000000025
+    version: 2.0.109900000000126
   folio_authorization-policies:
-    version: 1.3.10990000000015
+    version: 2.0.10990000000060
   folio_plugin-select-application:
-    version: 1.1.1099000000003
+    version: 2.0.10990000000042
