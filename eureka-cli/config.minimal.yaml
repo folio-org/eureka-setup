@@ -103,20 +103,21 @@ sidecar-module:
   image: folio-module-sidecar
   environment:
     SIDECAR: true
-    SC_LOG_LEVEL: DEBUG
-    ROOT_LOG_LEVEL: DEBUG
+    SC_LOG_LEVEL: INFO
+    ROOT_LOG_LEVEL: INFO
     REQUEST_TIMEOUT: 604800000
+    KC_URL: http://keycloak.eureka:8080
     KC_URI_VALIDATION_ENABLED: false
     ALLOW_CROSS_TENANT_REQUESTS: true
     SIDECAR_FORWARD_UNKNOWN_REQUESTS: true
     QUARKUS_HTTP_LIMITS_MAX_INITIAL_LINE_LENGTH: 8192
-    MOD_USERS_BL: http://mod-users-bl.eureka:8081
-    MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak.eureka:8081
+    MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
+    MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
     SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://api-gateway.eureka:8000
     JAVA_OPTIONS: |
       -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
-      -XX:+UseZGC -XX:MaxRAMPercentage=85.0 -Xms50m -Xmx128m
-      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=DEBUG -Dquarkus.log.category.'org.apache.kafka'.level=DEBUG 
+      -XX:+UseZGC -XX:MaxRAMPercentage=85.0 -Xms64m -Xmx64m
+      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=INFO -Dquarkus.log.category.'org.apache.kafka'.level=INFO 
       -Djava.util.logging.manager=org.jboss.logmanager.LogManager
 # Backend modules
 backend-modules:
@@ -212,8 +213,8 @@ backend-modules:
   mod-tags:
 # Frontend modules
 frontend-modules:
-  folio_developer:
   folio_stripes-core:
+  folio_developer:
   folio_notes:
   folio_tags:
   folio_stripes-smart-components:
@@ -221,8 +222,8 @@ frontend-modules:
 # Custom Frontend modules
 custom-frontend-modules:
   folio_authorization-roles:
-    version: 1.6.10990000000025
+    version: 2.0.109900000000126
   folio_authorization-policies:
-    version: 1.3.10990000000015
+    version: 2.0.10990000000060
   folio_plugin-select-application:
-    version: 1.1.1099000000003
+    version: 2.0.10990000000042

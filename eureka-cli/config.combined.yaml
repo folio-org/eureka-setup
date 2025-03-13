@@ -116,7 +116,7 @@ sidecar-module:
     SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://api-gateway.eureka:8000
     JAVA_OPTIONS: |
       -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
-      -XX:+UseZGC -XX:MaxRAMPercentage=85.0 -Xms50m -Xmx128m
+      -XX:+UseZGC -XX:MaxRAMPercentage=85.0 -Xms64m -Xmx64m
       -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=INFO -Dquarkus.log.category.'org.apache.kafka'.level=INFO 
       -Djava.util.logging.manager=org.jboss.logmanager.LogManager
 # Backend modules
