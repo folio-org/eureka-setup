@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/internal"
@@ -42,17 +43,17 @@ func DetachCapabilitySets() {
 
 	for _, value := range internal.GetTenants(detachCapabilitySetsCommand, enableDebug, false) {
 		mapEntry := value.(map[string]interface{})
-		tenant := mapEntry["name"].(string)
 
-		if !internal.HasTenant(tenant) {
+		existingTenant := mapEntry["name"].(string)
+		if !internal.HasTenant(existingTenant) {
 			continue
 		}
 
-		slog.Info(detachCapabilitySetsCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK ACCESS TOKEN ###")
-		accessToken := internal.GetKeycloakAccessToken(detachCapabilitySetsCommand, enableDebug, vaultRootToken, tenant)
+		slog.Info(detachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("### ACQUIRING KEYCLOAK ACCESS TOKEN FOR %s TENANT ###", existingTenant))
+		accessToken := internal.GetKeycloakAccessToken(detachCapabilitySetsCommand, enableDebug, vaultRootToken, existingTenant)
 
-		slog.Info(detachCapabilitySetsCommand, internal.GetFuncName(), "### DETACHING CAPABILITY SETS FROM ROLES ###")
-		internal.DetachCapabilitySetsFromRoles(detachCapabilitySetsCommand, enableDebug, false, tenant, accessToken)
+		slog.Info(detachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("### DETACHING CAPABILITY SETS FROM ROLES FOR %s TENANT ###", existingTenant))
+		internal.DetachCapabilitySetsFromRoles(detachCapabilitySetsCommand, enableDebug, false, existingTenant, accessToken)
 	}
 }
 

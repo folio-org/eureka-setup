@@ -60,8 +60,6 @@ func GetRootVaultToken(commandName string, client *client.Client) string {
 		if strings.Contains(parsedLogLine, "init.sh: Root VAULT TOKEN is:") {
 			vaultRootToken := strings.TrimSpace(regexp.MustCompile(VaultRootTokenPattern).ReplaceAllString(parsedLogLine, `$1`))
 
-			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found vault root token: %s", vaultRootToken))
-
 			return vaultRootToken
 		}
 	}

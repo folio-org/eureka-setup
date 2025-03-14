@@ -70,16 +70,16 @@ func DeployUi() {
 
 	for _, value := range internal.GetTenants(deployUiCommand, enableDebug, false) {
 		mapEntry := value.(map[string]interface{})
-		tenant := mapEntry["name"].(string)
 
-		if !internal.HasTenant(tenant) || !internal.DeployUi(tenant) {
+		existingTenant := mapEntry["name"].(string)
+		if !internal.HasTenant(existingTenant) || !internal.DeployUi(existingTenant) {
 			continue
 		}
 
 		slog.Info(deployUiCommand, internal.GetFuncName(), "Updating keycloak public client")
-		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, tenant, masterAccessToken, platformCompleteExternalUrl)
+		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, existingTenant, masterAccessToken, platformCompleteExternalUrl)
 
-		imageName := fmt.Sprintf("platform-complete-ui-%s", tenant)
+		imageName := fmt.Sprintf("platform-complete-ui-%s", existingTenant)
 
 		var finalImageName string
 		if buildImages {
@@ -88,13 +88,13 @@ func DeployUi() {
 			internal.CopySingleFile(deployUiCommand, fmt.Sprintf("%s/eureka-tpl/%s", outputDir, configName), fmt.Sprintf("%s/%s", outputDir, configName))
 
 			slog.Info(deployUiCommand, internal.GetFuncName(), "Preparing platform complete UI config")
-			internal.PrepareStripesConfigJs(deployUiCommand, outputDir, tenant, kongExternalUrl, keycloakExternalUrl, platformCompleteExternalUrl)
-			internal.PreparePackageJson(deployUiCommand, outputDir, tenant)
+			internal.PrepareStripesConfigJs(deployUiCommand, outputDir, existingTenant, kongExternalUrl, keycloakExternalUrl, platformCompleteExternalUrl, enableEcsRequests)
+			internal.PreparePackageJson(deployUiCommand, outputDir, existingTenant)
 
 			slog.Info(deployUiCommand, internal.GetFuncName(), "Building platform complete UI from a Dockerfile")
 			internal.RunCommandFromDir(deployUiCommand, exec.Command("docker", "build", "--tag", imageName,
 				"--build-arg", fmt.Sprintf("OKAPI_URL=%s", kongExternalUrl),
-				"--build-arg", fmt.Sprintf("TENANT_ID=%s", tenant),
+				"--build-arg", fmt.Sprintf("TENANT_ID=%s", existingTenant),
 				"--file", "./docker/Dockerfile",
 				"--progress", "plain",
 				"--no-cache",
@@ -119,7 +119,7 @@ func DeployUi() {
 		}
 
 		slog.Info(deployUiCommand, internal.GetFuncName(), "Running platform complete UI container")
-		containerName := fmt.Sprintf("eureka-platform-complete-ui-%s", tenant)
+		containerName := fmt.Sprintf("eureka-platform-complete-ui-%s", existingTenant)
 		internal.RunCommand(deployUiCommand, exec.Command("docker", "run", "--name", containerName,
 			"--hostname", containerName,
 			"--publish", "3000:80",
@@ -137,4 +137,5 @@ func init() {
 	rootCmd.AddCommand(deployUiCmd)
 	deployUiCmd.PersistentFlags().BoolVarP(&buildImages, "buildImages", "b", false, "Build images")
 	deployUiCmd.PersistentFlags().BoolVarP(&updateCloned, "updateCloned", "u", false, "Update cloned projects")
+	deployUiCmd.PersistentFlags().BoolVarP(&enableEcsRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
 }

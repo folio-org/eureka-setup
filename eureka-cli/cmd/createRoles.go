@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/internal"
@@ -42,17 +43,17 @@ func CreateRoles() {
 
 	for _, value := range internal.GetTenants(createRolesCommand, enableDebug, false) {
 		mapEntry := value.(map[string]interface{})
-		tenant := mapEntry["name"].(string)
 
-		if !internal.HasTenant(tenant) {
+		existingTenant := mapEntry["name"].(string)
+		if !internal.HasTenant(existingTenant) {
 			continue
 		}
 
-		slog.Info(createRolesCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK ACCESS TOKEN ###")
-		accessToken := internal.GetKeycloakAccessToken(createRolesCommand, enableDebug, vaultRootToken, tenant)
+		slog.Info(createRolesCommand, internal.GetFuncName(), fmt.Sprintf("### ACQUIRING KEYCLOAK ACCESS TOKEN FOR %s TENANT ###", existingTenant))
+		accessToken := internal.GetKeycloakAccessToken(createRolesCommand, enableDebug, vaultRootToken, existingTenant)
 
-		slog.Info(createRolesCommand, internal.GetFuncName(), "### CREATING ROLES ###")
-		internal.CreateRoles(createRolesCommand, enableDebug, accessToken)
+		slog.Info(createRolesCommand, internal.GetFuncName(), fmt.Sprintf("### CREATING ROLES FOR %s TENANT ###", existingTenant))
+		internal.CreateRoles(createRolesCommand, enableDebug, false, existingTenant, accessToken)
 	}
 }
 

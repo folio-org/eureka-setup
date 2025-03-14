@@ -170,6 +170,9 @@ services:
       KC_HOSTNAME_STRICT: true
       KC_HOSTNAME_STRICT_HTTPS: false
       JAVA_OPTS_APPEND: "-Xms768m -Xmx1024m"
+      KC_LOG_LEVEL: INFO
+      DEBUG: true
+      DEBUG_PORT: '*:8787'
     depends_on:
       postgres:
         condition: service_healthy
@@ -179,6 +182,7 @@ services:
       - fpm-net
     ports:
       - "18081:8080"
+      - "18787:8787"
     deploy:
       resources:
         limits:

@@ -1,13 +1,16 @@
 # Profile
 profile:
-  name: minimal
+  name: export
 # Application
 application:
-  name: app-minimal
+  name: app-export
   version: 1.0.0
   platform: base
   fetch-descriptors: false
-  port-start: 30000
+  port-start: 35000
+  dependencies:
+    name: app-combined
+    version: 1.0.0
 # Registry
 registry:
   registry-url: https://folio-registry.dev.folio.org
@@ -73,7 +76,7 @@ environment:
 # Tenants
 tenants:
   diku:
-    deploy-ui: true
+    deploy-ui: false
 # Roles
 roles:
   Admin:
@@ -120,120 +123,17 @@ sidecar-module:
     SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://api-gateway.eureka:8000
 # Backend modules
 backend-modules:
-  # Management modules
-  mgr-applications:
-    port: 9901
+  mod-data-export-spring:
     environment:
-      # DB
-      DB_DATABASE: mgr_applications
-      DB_USERNAME: mgr_applications_rw
-      DB_PASSWORD: supersecret
-      # Management
-      MODULE_URL: http://mgr-applications.eureka:8081
-      TE_URL: http://mgr-tenant-entitlements.eureka:8081
-      VALIDATION_MODE: none
-  mgr-tenants:
-    port: 9902
-    environment:
-      # DB
-      DB_DATABASE: mgr_tenant
-      DB_USERNAME: mgr_tenant_rw
-      DB_PASSWORD: supersecret
-      # Management
-      MODULE_URL: http://mgr-tenants.eureka:8081
-      CACHE_EXPIRATION_TTL: 55s
-  mgr-tenant-entitlements:
-    version: 2.0.2
-    port: 9903
-    environment:
-      # DB
-      DB_DATABASE: mgr_tenant_entitlements
-      DB_USERNAME: mgr_tenant_entitlements_rw
-      DB_PASSWORD: supersecret
-      # Management
-      MODULE_URL: http://mgr-tenant-entitlements.eureka:8081
-      TENANT_URL: http://mgr-tenants.eureka:8081
-      AM_CLIENT_URL: http://mgr-applications.eureka:8081
-      VALIDATION_INTERFACE_INTEGRITY_ENABLED: 'false'
-      FOLIO_CLIENT_CONNECT_TIMEOUT: 60s
-      FOLIO_CLIENT_READ_TIMEOUT: 180s
-      FLOW_ENGINE_THREADS_NUM: '1'
-      RETRIES_MODULE_MAX: '10'
-  # Keycloak modules
-  mod-users-keycloak:
-    port: 9904
-    sidecar: true
-    environment:
-      OKAPI_URL: http://mod-users-keycloak-sc.eureka:8081
-      INCLUDE_ONLY_VISIBLE_PERMISSIONS: 'false'
-      # Rancher secret: mod-users-keycloak-systemuser
+      # Rancher secret: mod-data-export-spring-systemuser
       FOLIO_SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_CREATE: 'false'
       SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_NAME: mod-users-keycloak
-      SYSTEM_USER_USERNAME: mod-users-keycloak
-  mod-login-keycloak:
-    port: 9905
-    sidecar: true
-    environment:
-      X_OKAPI_TOKEN_HEADER_ENABLED: 'true'
-  mod-roles-keycloak:
-    port: 9906
-    sidecar: true
-  mod-scheduler:
-    port: 9907
-    sidecar: true
-    environment:
-      # Rancher secret: mod-scheduler-systemuser
-      FOLIO_SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_CREATE: 'false'
-      SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_NAME: mod-scheduler
-      SYSTEM_USER_USERNAME: mod-scheduler
-  # Keycloak Consortia modules
-  mod-consortia-keycloak:
-    deploy-module: false
-    port: 9908
-    sidecar: true
-    environment:
-      # Rancher secret: mod-consortia-keycloak-systemuser
-      FOLIO_SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_CREATE: 'false'
-      SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_NAME: mod-consortia-keycloak
-      SYSTEM_USER_USERNAME: mod-consortia-keycloak
-      # Rancher secret: eureka-common
-      MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
-      MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
-      # Rancher secret: okapi-credentials
-      OKAPI_HOST: mod-consortia-keycloak.eureka
-      OKAPI_PORT: 8082
-      OKAPI_SERVICE_HOST: mod-consortia-keycloak.eureka
-      OKAPI_SERVICE_URL: http://mod-consortia-keycloak.eureka:8082
-      OKAPI_URL: http://mod-consortia-keycloak.eureka:8082
-  # Core Modules
-  mod-permissions:
-  mod-configuration:
-  mod-users:
-  mod-users-bl:
-  mod-roles:
-  mod-password-validator:
-  mod-settings:
-  mod-notes:
-  mod-tags:
+      SYSTEM_USER_NAME: mod-data-export-spring
+      SYSTEM_USER_USERNAME: mod-data-export-spring
 # Frontend modules
 frontend-modules:
-  folio_stripes-core:
-  folio_developer:
-  folio_notes:
-  folio_tags:
-  folio_stripes-smart-components:
-  folio_plugin-find-authority:
-# Custom Frontend modules
-custom-frontend-modules:
-  folio_authorization-roles:
-    version: 2.0.109900000000126
-  folio_authorization-policies:
-    version: 2.0.10990000000060
-  folio_plugin-select-application:
-    version: 2.0.10990000000042
+  folio_data-export:
+  folio_export-manager:
+  folio_plugin-bursar-export:
+

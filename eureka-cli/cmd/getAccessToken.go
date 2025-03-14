@@ -25,31 +25,28 @@ import (
 
 const getAccessTokenCommand string = "Get Access Token"
 
-var realm string
-
 // getAccessTokenCmd represents the getAccessToken command
 var getAccessTokenCmd = &cobra.Command{
 	Use:   "getAccessToken",
 	Short: "Get access token",
 	Long:  `Get a master access token from a particular realm.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		GetAccessToken()
+		vaultRootToken := GetVaultRootToken()
+		GetAccessToken(vaultRootToken)
 	},
 }
 
-func GetAccessToken() {
-	slog.Info(getAccessTokenCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
-	client := internal.CreateClient(getAccessTokenCommand)
-	defer client.Close()
-	vaultRootToken := internal.GetRootVaultToken(getAccessTokenCommand, client)
-
+func GetAccessToken(vaultRootToken string) {
 	slog.Info(getAccessTokenCommand, internal.GetFuncName(), "### ACQUIRING KEYCLOAK ACCESS TOKEN ###")
-	accessToken := internal.GetKeycloakAccessToken(createUsersCommand, enableDebug, vaultRootToken, realm)
-	slog.Info(getAccessTokenCommand, internal.GetFuncName(), fmt.Sprintf("Access token: %s", accessToken))
+	accessToken := internal.GetKeycloakAccessToken(createUsersCommand, enableDebug, vaultRootToken, tenant)
+
+	fmt.Println()
+	fmt.Println(accessToken)
+	fmt.Println()
 }
 
 func init() {
 	rootCmd.AddCommand(getAccessTokenCmd)
-	getAccessTokenCmd.PersistentFlags().StringVarP(&realm, "realm", "r", "", "Realm (required)")
-	getAccessTokenCmd.MarkPersistentFlagRequired("realm")
+	getAccessTokenCmd.PersistentFlags().StringVarP(&tenant, "tenant", "t", "", "Tenant (required)")
+	getAccessTokenCmd.MarkPersistentFlagRequired("tenant")
 }

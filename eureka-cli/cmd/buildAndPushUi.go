@@ -26,11 +26,6 @@ import (
 
 const buildAndPushUiCmdCommand string = "Build and push UI"
 
-var (
-	tenant    string
-	namespace string
-)
-
 // buildAndPushUiCmd represents the buildAndPushUi command
 var buildAndPushUiCmd = &cobra.Command{
 	Use:   "buildAndPushUi",
@@ -61,7 +56,7 @@ func BuildAndPushUi() {
 	internal.CopySingleFile(buildAndPushUiCmdCommand, fmt.Sprintf("%s/eureka-tpl/%s", outputDir, configName), fmt.Sprintf("%s/%s", outputDir, configName))
 
 	slog.Info(buildAndPushUiCmdCommand, internal.GetFuncName(), "Preparing platform complete UI config")
-	internal.PrepareStripesConfigJs(buildAndPushUiCmdCommand, outputDir, tenant, kongExternalUrl, keycloakExternalUrl, platformCompleteExternalUrl)
+	internal.PrepareStripesConfigJs(buildAndPushUiCmdCommand, outputDir, tenant, kongExternalUrl, keycloakExternalUrl, platformCompleteExternalUrl, enableEcsRequests)
 	internal.PreparePackageJson(buildAndPushUiCmdCommand, outputDir, tenant)
 
 	imageName := fmt.Sprintf("platform-complete-ui-%s", tenant)
@@ -88,6 +83,7 @@ func init() {
 	buildAndPushUiCmd.PersistentFlags().StringVarP(&tenant, "tenant", "t", "", "Tenant (required)")
 	buildAndPushUiCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "", "DockerHub namespace (required)")
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&updateCloned, "updateCloned", "u", false, "Update cloned projects")
+	buildAndPushUiCmd.PersistentFlags().BoolVarP(&enableEcsRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
 	buildAndPushUiCmd.MarkPersistentFlagRequired("tenant")
 	buildAndPushUiCmd.MarkPersistentFlagRequired("namespace")
 }

@@ -17,18 +17,13 @@ package cmd
 
 import (
 	"log/slog"
+	"strings"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
 )
 
 const redirectModuleCommand = "Redirect Module"
-
-var (
-	id       string
-	location string
-	restore  bool
-)
 
 // redirectCmd represents the redirect command
 var redirectCmd = &cobra.Command{
@@ -43,6 +38,7 @@ var redirectCmd = &cobra.Command{
 // TODO Fix redirectModules to work on host network
 func RedirectModules() {
 	slog.Info(redirectModuleCommand, internal.GetFuncName(), "### REDIRECT MODULE ###")
+	id = strings.ReplaceAll(id, ":", "-")
 	internal.UpdateApplicationModuleDiscovery(redirectModuleCommand, enableDebug, id, location, restore, internal.DefaultServerPort)
 }
 

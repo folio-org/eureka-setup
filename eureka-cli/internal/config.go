@@ -202,7 +202,7 @@ func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMaps ...
 	return frontendModulesMap
 }
 
-func PrepareStripesConfigJs(commandName string, configPath string, tenant string, kongUrl string, keycloakUrl string, platformCompleteUrl string) {
+func PrepareStripesConfigJs(commandName string, configPath string, tenant string, kongUrl string, keycloakUrl string, platformCompleteUrl string, enableEcsRequests bool) {
 	stripesConfigJsFilePath := fmt.Sprintf("%s/stripes.config.js", configPath)
 	readFileBytes, err := os.ReadFile(stripesConfigJsFilePath)
 	if err != nil {
@@ -216,7 +216,7 @@ func PrepareStripesConfigJs(commandName string, configPath string, tenant string
 		"${hasAllPerms}":       `false`,
 		"${isSingleTenant}":    `true`,
 		"${tenantOptions}":     fmt.Sprintf(`{%[1]s: {name: "%[1]s", clientId: "%[1]s%s"}}`, tenant, GetEnvironmentFromMapByKey("KC_LOGIN_CLIENT_SUFFIX")),
-		"${enableEcsRequests}": `false`,
+		"${enableEcsRequests}": strconv.FormatBool(enableEcsRequests),
 	}
 
 	var newReadFileStr string = string(readFileBytes)
@@ -259,7 +259,12 @@ func PreparePackageJson(commandName string, configPath string, tenant string) {
 	packageJson.Scripts["build"] = "export DEBUG=stripes*; export NODE_OPTIONS=\"--max-old-space-size=8000 $NODE_OPTIONS\"; stripes build stripes.config.js --languages en --sourcemap=false --no-minify"
 
 	updates := 0
-	modules := []string{"@folio/authorization-policies", "@folio/authorization-roles", "@folio/plugin-select-application"}
+	modules := []string{
+		"@folio/consortia-settings",
+		"@folio/authorization-policies",
+		"@folio/authorization-roles",
+		"@folio/plugin-select-application",
+	}
 	for _, module := range modules {
 		if packageJson.Dependencies[module] == "" {
 			packageJson.Dependencies[module] = ">=1.0.0"
@@ -293,9 +298,13 @@ func HasTenant(tenant string) bool {
 }
 
 func DeployUi(tenant string) bool {
-	deployUi := viper.GetStringMap(TenantsKey)[tenant].(map[string]interface{})["deploy-ui"]
+	mapEntry, ok := viper.GetStringMap(TenantsKey)[tenant].(map[string]interface{})
+	if !ok {
+		return false
+	}
 
-	if deployUi == nil || !deployUi.(bool) {
+	deployUi, ok := mapEntry["deploy-ui"]
+	if !ok || deployUi == nil || !deployUi.(bool) {
 		return false
 	}
 

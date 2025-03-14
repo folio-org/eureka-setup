@@ -60,7 +60,7 @@ func DoGetDecodeReturnString(commandName string, url string, enableDebug bool, p
 		}
 	}
 	defer func() {
-		CheckStatusCodes(commandName, resp)
+		CheckStatusCodes(commandName, panicOnError, resp)
 		resp.Body.Close()
 	}()
 
@@ -103,7 +103,7 @@ func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool
 		}
 	}
 	defer func() {
-		CheckStatusCodes(commandName, resp)
+		CheckStatusCodes(commandName, panicOnError, resp)
 		resp.Body.Close()
 	}()
 
@@ -146,7 +146,7 @@ func DoGetDecodeReturnMapStringInterface(commandName string, url string, enableD
 		}
 	}
 	defer func() {
-		CheckStatusCodes(commandName, resp)
+		CheckStatusCodes(commandName, panicOnError, resp)
 		resp.Body.Close()
 	}()
 
@@ -168,7 +168,7 @@ func DoGetDecodeReturnMapStringInterface(commandName string, url string, enableD
 
 // ####### POST ########
 
-func DoPostReturnNoContent(commandName string, url string, enableDebug bool, bodyBytes []byte, headers map[string]string) {
+func DoPostReturnNoContent(commandName string, url string, enableDebug bool, panicOnError bool, bodyBytes []byte, headers map[string]string) {
 	DumpHttpBody(commandName, enableDebug, bodyBytes)
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(bodyBytes))
@@ -182,18 +182,23 @@ func DoPostReturnNoContent(commandName string, url string, enableDebug bool, bod
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		slog.Error(commandName, GetFuncName(), "http.DefaultClient.Do error")
-		panic(err)
+		if panicOnError {
+			slog.Error(commandName, GetFuncName(), "http.DefaultClient.Do error")
+			panic(err)
+		} else {
+			LogWarn(commandName, enableDebug, fmt.Sprintf("http.DefaultClient.Do warn - Endpoint is unreachable: %s", url))
+			return
+		}
 	}
 	defer func() {
-		CheckStatusCodes(commandName, resp)
+		CheckStatusCodes(commandName, panicOnError, resp)
 		resp.Body.Close()
 	}()
 
 	DumpHttpResponse(commandName, resp, enableDebug)
 }
 
-func DoPostReturnMapStringInteface(commandName string, url string, enableDebug bool, bodyBytes []byte, headers map[string]string) map[string]interface{} {
+func DoPostReturnMapStringInteface(commandName string, url string, enableDebug bool, panicOnError bool, bodyBytes []byte, headers map[string]string) map[string]interface{} {
 	var respMap map[string]interface{}
 
 	DumpHttpBody(commandName, enableDebug, bodyBytes)
@@ -209,11 +214,16 @@ func DoPostReturnMapStringInteface(commandName string, url string, enableDebug b
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		slog.Error(commandName, GetFuncName(), "http.DefaultClient.Do error")
-		panic(err)
+		if panicOnError {
+			slog.Error(commandName, GetFuncName(), "http.DefaultClient.Do error")
+			panic(err)
+		} else {
+			LogWarn(commandName, enableDebug, fmt.Sprintf("http.DefaultClient.Do warn - Endpoint is unreachable: %s", url))
+			return nil
+		}
 	}
 	defer func() {
-		CheckStatusCodes(commandName, resp)
+		CheckStatusCodes(commandName, panicOnError, resp)
 		resp.Body.Close()
 	}()
 
@@ -221,8 +231,13 @@ func DoPostReturnMapStringInteface(commandName string, url string, enableDebug b
 
 	err = json.NewDecoder(resp.Body).Decode(&respMap)
 	if err != nil {
-		slog.Error(commandName, GetFuncName(), "json.NewDecoder error")
-		panic(err)
+		if panicOnError {
+			slog.Error(commandName, GetFuncName(), "json.NewDecoder error")
+			panic(err)
+		} else {
+			LogWarn(commandName, enableDebug, fmt.Sprintf("json.NewDecoder warn - Cannot decode response from url: %s", url))
+			return nil
+		}
 	}
 
 	return respMap
@@ -248,7 +263,7 @@ func DoPostFormDataReturnMapStringInteface(commandName string, url string, enabl
 		panic(err)
 	}
 	defer func() {
-		CheckStatusCodes(commandName, resp)
+		CheckStatusCodes(commandName, true, resp)
 		resp.Body.Close()
 	}()
 
@@ -283,7 +298,7 @@ func DoPutReturnNoContent(commandName string, url string, enableDebug bool, body
 		panic(err)
 	}
 	defer func() {
-		CheckStatusCodes(commandName, resp)
+		CheckStatusCodes(commandName, true, resp)
 		resp.Body.Close()
 	}()
 
@@ -313,9 +328,7 @@ func DoDelete(commandName string, url string, enableDebug bool, panicOnError boo
 		}
 	}
 	defer func() {
-		if panicOnError {
-			CheckStatusCodes(commandName, resp)
-		}
+		CheckStatusCodes(commandName, panicOnError, resp)
 		resp.Body.Close()
 	}()
 
@@ -338,9 +351,7 @@ func DoDeleteWithBody(commandName string, url string, enableDebug bool, bodyByte
 		panic(err)
 	}
 	defer func() {
-		if !ignoreError {
-			CheckStatusCodes(commandName, resp)
-		}
+		CheckStatusCodes(commandName, !ignoreError, resp)
 		resp.Body.Close()
 	}()
 

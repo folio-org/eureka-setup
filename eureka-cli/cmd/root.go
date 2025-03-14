@@ -29,11 +29,18 @@ import (
 const rootCommand string = "Root"
 
 var (
-	configFile   string
-	moduleName   string
-	enableDebug  bool
-	buildImages  bool
-	updateCloned bool
+	configFile        string
+	moduleName        string
+	enableDebug       bool
+	buildImages       bool
+	updateCloned      bool
+	enableEcsRequests bool
+	tenant            string
+	namespace         string
+	showAll           bool
+	id                string
+	location          string
+	restore           bool
 )
 
 // rootCmd represents the base command when called without any subcommands

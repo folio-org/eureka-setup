@@ -70,8 +70,8 @@ func DumpHttpResponse(commandName string, resp *http.Response, enableDebug bool)
 	fmt.Println()
 }
 
-func CheckStatusCodes(commandName string, resp *http.Response) {
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+func CheckStatusCodes(commandName string, panicOnError bool, resp *http.Response) {
+	if !panicOnError || resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return
 	}
 
