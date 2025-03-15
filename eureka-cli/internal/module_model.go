@@ -9,9 +9,20 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
+const (
+	DefaultModuleCpus          int64 = 1
+	DefaultModuleMemoryReserve int64 = 128 * 1024 * 1024
+	DefaultModuleMemory        int64 = 450 * 1024 * 1024
+	DefaultModuleSwap          int64 = 0
+
+	DefaultSidecarCpus          int64 = 1
+	DefaultSidecarMemoryReserve int64 = 64 * 1024 * 1024
+	DefaultSidecarMemory        int64 = 250 * 1024 * 1024
+	DefaultSidecarSwap          int64 = 0
+)
+
 type DeployModuleDto struct {
 	Name          string
-	Version       string
 	Image         string
 	RegistryAuth  string
 	Config        *container.Config
@@ -38,7 +49,7 @@ type BackendModule struct {
 	ModuleExposedServerPort int
 	ModuleExposedPorts      *nat.PortSet
 	ModulePortBindings      *nat.PortMap
-	ModuleEnvironment       map[string]interface{}
+	ModuleEnvironment       map[string]any
 	DeploySidecar           bool
 	SidecarExposedPorts     *nat.PortSet
 	SidecarPortBindings     *nat.PortMap
@@ -61,7 +72,7 @@ type Event struct {
 	} `json:"progressDetail"`
 }
 
-func NewBackendModuleAndSidecar(deployModule bool, name string, version *string, port int, portServer int, deploySidecar bool, moduleEnvironment map[string]interface{}) *BackendModule {
+func NewBackendModuleAndSidecar(deployModule bool, name string, version *string, port int, portServer int, deploySidecar bool, moduleEnvironment map[string]any) *BackendModule {
 	exposedPorts := createExposedPorts(portServer)
 	modulePortBindings := createPortBindings(port, port+1000, portServer)
 	sidecarPortBindings := createPortBindings(port+2000, port+3000, portServer)
@@ -81,7 +92,7 @@ func NewBackendModuleAndSidecar(deployModule bool, name string, version *string,
 	}
 }
 
-func NewBackendModule(name string, version *string, port int, portServer int, moduleEnvironment map[string]interface{}) *BackendModule {
+func NewBackendModule(name string, version *string, port int, portServer int, moduleEnvironment map[string]any) *BackendModule {
 	exposedPorts := createExposedPorts(portServer)
 	modulePortBindings := createPortBindings(port, port+1000, portServer)
 
@@ -141,27 +152,23 @@ func NewDeployModulesDto(vaultRootToken string,
 	}
 }
 
-func NewDeployModuleDto(name string,
-	version string,
-	image string,
-	env []string,
-	backendModule BackendModule,
-	networkConfig *network.NetworkingConfig,
-	authToken string) *DeployModuleDto {
+func NewDeployModuleDto(name string, image string, env []string, backendModule BackendModule, networkConfig *network.NetworkingConfig) *DeployModuleDto {
+	disableOomKiller := true
+
 	return &DeployModuleDto{
-		Name:         name,
-		Version:      version,
-		Image:        image,
-		RegistryAuth: authToken,
-		Config: &container.Config{
-			Image:        image,
-			Hostname:     name,
-			Env:          env,
-			ExposedPorts: *backendModule.ModuleExposedPorts,
-		},
+		Name:   name,
+		Image:  image,
+		Config: &container.Config{Image: image, Hostname: name, Env: env, ExposedPorts: *backendModule.ModuleExposedPorts},
 		HostConfig: &container.HostConfig{
 			PortBindings:  *backendModule.ModulePortBindings,
-			RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyOnFailure, MaximumRetryCount: 3},
+			RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyAlways},
+			Resources: container.Resources{
+				CPUCount:          DefaultModuleCpus,
+				MemoryReservation: DefaultModuleMemoryReserve,
+				Memory:            DefaultModuleMemory,
+				MemorySwap:        DefaultModuleSwap,
+				OomKillDisable:    &disableOomKiller,
+			},
 		},
 		NetworkConfig: networkConfig,
 		Platform:      &v1.Platform{},
@@ -169,32 +176,27 @@ func NewDeployModuleDto(name string,
 	}
 }
 
-func NewDeploySidecarDto(name string,
-	version string,
-	image string,
-	env []string,
-	backendModule BackendModule,
-	networkConfig *network.NetworkingConfig,
-	pullSidecarImage bool,
-	authToken string) *DeployModuleDto {
+func NewDeploySidecarDto(name string, image string, env []string, backendModule BackendModule, networkConfig *network.NetworkingConfig) *DeployModuleDto {
+	disableOomKiller := true
+
 	return &DeployModuleDto{
-		Name:         name,
-		Version:      version,
-		Image:        image,
-		RegistryAuth: authToken,
-		Config: &container.Config{
-			Image:        image,
-			Hostname:     name,
-			Env:          env,
-			ExposedPorts: *backendModule.SidecarExposedPorts,
-		},
+		Name:   name,
+		Image:  image,
+		Config: &container.Config{Image: image, Hostname: name, Env: env, ExposedPorts: *backendModule.SidecarExposedPorts},
 		HostConfig: &container.HostConfig{
 			PortBindings:  *backendModule.SidecarPortBindings,
-			RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyOnFailure, MaximumRetryCount: 3},
+			RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyAlways},
+			Resources: container.Resources{
+				CPUCount:          DefaultSidecarCpus,
+				MemoryReservation: DefaultSidecarMemoryReserve,
+				Memory:            DefaultSidecarMemory,
+				MemorySwap:        DefaultSidecarSwap,
+				OomKillDisable:    &disableOomKiller,
+			},
 		},
 		NetworkConfig: networkConfig,
 		Platform:      &v1.Platform{},
-		PullImage:     pullSidecarImage,
+		PullImage:     false,
 	}
 }
 

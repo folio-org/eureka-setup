@@ -16,7 +16,7 @@ const (
 	VaultUrl string = "http://vault.eureka:8200"
 )
 
-func GetVaultSecretKey(commandName string, enableDebug bool, vaultRootToken string, secretPath string) map[string]interface{} {
+func GetVaultSecretKey(commandName string, enableDebug bool, vaultRootToken string, secretPath string) map[string]any {
 	serverUrl := fmt.Sprintf(GetGatewayHostname(), VaultServerPort, "")
 
 	client, err := vault.New(vault.WithAddress(serverUrl), vault.WithRequestTimeout(VaultTimeout))

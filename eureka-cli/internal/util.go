@@ -107,6 +107,12 @@ func LogErrorPanic(commandName string, errorMessage string) {
 	panic(errors.New(errorMessage))
 }
 
+func LogErrorPrintStderrPanic(commandName string, errorMessage string, stackTrace string) {
+	slog.Error(commandName, GetFuncName(), errorMessage)
+	fmt.Println("Stderr: ", stackTrace)
+	panic(errors.New(errorMessage))
+}
+
 func LogWarn(commandName string, enableDebug bool, errorMessage string) {
 	if !enableDebug {
 		return
@@ -129,7 +135,7 @@ func ConvertMapKeysToSlice(inputMap map[string]any) []string {
 
 // ######## IO ########
 
-func ReadJsonFromFile(commandName string, filePath string, data interface{}) {
+func ReadJsonFromFile(commandName string, filePath string, data any) {
 	jsonFile, err := os.OpenFile(filePath, os.O_RDONLY, 0644)
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "os.Open error")
@@ -148,7 +154,7 @@ func ReadJsonFromFile(commandName string, filePath string, data interface{}) {
 	}
 }
 
-func WriteJsonToFile(commandName string, filePath string, packageJson interface{}) {
+func WriteJsonToFile(commandName string, filePath string, packageJson any) {
 	jsonFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "os.Open error")

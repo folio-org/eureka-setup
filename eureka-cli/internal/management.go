@@ -84,7 +84,7 @@ func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *s
 		}
 
 		isHealthySpringBootContainer := false
-		actuatorHealthMap := DoGetDecodeReturnMapStringInterface(commandName, requestUrl, enableDebug, false, map[string]string{})
+		actuatorHealthMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, false, map[string]string{})
 		if actuatorHealthMap != nil && strings.Contains(actuatorHealthMap["status"].(string), "UP") {
 			isHealthySpringBootContainer = !isHealthySpringBootContainer
 		}
@@ -116,8 +116,8 @@ func RemoveApplications(commandName string, enableDebug bool, panicOnError bool)
 	defer resp.Body.Close()
 
 	type Applications struct {
-		ApplicationDescriptors []map[string]interface{} `json:"applicationDescriptors"`
-		TotalRecords           int                      `json:"totalRecords"`
+		ApplicationDescriptors []map[string]any `json:"applicationDescriptors"`
+		TotalRecords           int              `json:"totalRecords"`
 	}
 
 	var applications Applications
@@ -143,9 +143,9 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 	var (
 		backendModules            []map[string]string
 		frontendModules           []map[string]string
-		backendModuleDescriptors  []interface{}
-		frontendModuleDescriptors []interface{}
-		dependencies              map[string]interface{}
+		backendModuleDescriptors  []any
+		frontendModuleDescriptors []any
+		dependencies              map[string]any
 		discoveryModules          []map[string]string
 	)
 
@@ -156,7 +156,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 	applicationFetchDescriptors := applicationMap["fetch-descriptors"].(bool)
 
 	if applicationMap["dependencies"] != nil {
-		dependencies = applicationMap["dependencies"].(map[string]interface{})
+		dependencies = applicationMap["dependencies"].(map[string]any)
 	}
 
 	for registryName, registryModules := range dto.RegistryModules {
@@ -185,7 +185,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 			moduleDescriptorUrl := fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls[FolioRegistry], module.Id)
 
 			if applicationFetchDescriptors {
-				dto.ModuleDescriptorsMap[module.Id] = DoGetDecodeReturnInterface(commandName, moduleDescriptorUrl, enableDebug, true, map[string]string{})
+				dto.ModuleDescriptorsMap[module.Id] = DoGetDecodeReturnAny(commandName, moduleDescriptorUrl, enableDebug, true, map[string]string{})
 			}
 
 			if okBackend {
@@ -220,7 +220,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 
 	applicationId := fmt.Sprintf("%s-%s", applicationName, applicationVersion)
 
-	applicationBytes, err := json.Marshal(map[string]interface{}{
+	applicationBytes, err := json.Marshal(map[string]any{
 		"id":                  applicationId,
 		"name":                applicationName,
 		"version":             applicationVersion,
@@ -242,7 +242,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %s application`, applicationId))
 
 	if len(discoveryModules) > 0 {
-		applicationDiscoveryBytes, err := json.Marshal(map[string]interface{}{"discovery": discoveryModules})
+		applicationDiscoveryBytes, err := json.Marshal(map[string]any{"discovery": discoveryModules})
 		if err != nil {
 			slog.Error(commandName, GetFuncName(), "json.Marshal error")
 			panic(err)
@@ -261,7 +261,7 @@ func UpdateApplicationModuleDiscovery(commandName string, enableDebug bool, id s
 		location = fmt.Sprintf("http://%s.eureka:%s", name, portServer)
 	}
 
-	applicationDiscoveryBytes, err := json.Marshal(map[string]interface{}{"id": id, "name": name, "version": version, "location": location})
+	applicationDiscoveryBytes, err := json.Marshal(map[string]any{"id": id, "name": name, "version": version, "location": location})
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "json.Marshal error")
 		panic(err)
@@ -276,24 +276,24 @@ func UpdateApplicationModuleDiscovery(commandName string, enableDebug bool, id s
 
 // ######## Tenants ########
 
-func GetTenants(commandName string, enableDebug bool, panicOnError bool) []interface{} {
-	var foundTenants []interface{}
+func GetTenants(commandName string, enableDebug bool, panicOnError bool) []any {
+	var foundTenants []any
 
 	requestUrl := fmt.Sprintf(GetGatewayHostname(), TenantsPort, "/tenants")
 
-	foundTenantsMap := DoGetDecodeReturnMapStringInterface(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
-	if foundTenantsMap["tenants"] == nil || len(foundTenantsMap["tenants"].([]interface{})) == 0 {
+	foundTenantsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
+	if foundTenantsMap["tenants"] == nil || len(foundTenantsMap["tenants"].([]any)) == 0 {
 		return nil
 	}
 
-	foundTenants = foundTenantsMap["tenants"].([]interface{})
+	foundTenants = foundTenantsMap["tenants"].([]any)
 
 	return foundTenants
 }
 
 func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 	for _, value := range GetTenants(commandName, enableDebug, panicOnError) {
-		mapEntry := value.(map[string]interface{})
+		mapEntry := value.(map[string]any)
 		tenant := mapEntry["name"].(string)
 
 		if !slices.Contains(ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey)), tenant) {
@@ -334,7 +334,7 @@ func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError
 	applicationVersion := applicationMap["version"].(string)
 
 	for _, value := range GetTenants(commandName, enableDebug, panicOnError) {
-		mapEntry := value.(map[string]interface{})
+		mapEntry := value.(map[string]any)
 		tenant := mapEntry["name"].(string)
 
 		if !slices.Contains(ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey)), tenant) {
@@ -365,7 +365,7 @@ func CreateTenantEntitlement(commandName string, enableDebug bool) {
 	applicationVersion := applicationMap["version"].(string)
 
 	for _, value := range GetTenants(commandName, enableDebug, false) {
-		mapEntry := value.(map[string]interface{})
+		mapEntry := value.(map[string]any)
 		tenant := mapEntry["name"].(string)
 
 		if !slices.Contains(ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey)), tenant) {
@@ -391,18 +391,18 @@ func CreateTenantEntitlement(commandName string, enableDebug bool) {
 
 // ######## Users ########
 
-func GetUsers(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) []interface{} {
-	var foundUsers []interface{}
+func GetUsers(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) []any {
+	var foundUsers []any
 
 	requestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, "/users?offset=0&limit=10000")
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 
-	foundTenantsMap := DoGetDecodeReturnMapStringInterface(commandName, requestUrl, enableDebug, panicOnError, headers)
-	if foundTenantsMap["users"] == nil || len(foundTenantsMap["users"].([]interface{})) == 0 {
+	foundTenantsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
+	if foundTenantsMap["users"] == nil || len(foundTenantsMap["users"].([]any)) == 0 {
 		return nil
 	}
 
-	foundUsers = foundTenantsMap["users"].([]interface{})
+	foundUsers = foundTenantsMap["users"].([]any)
 
 	return foundUsers
 }
@@ -411,7 +411,7 @@ func RemoveUsers(commandName string, enableDebug bool, panicOnError bool, tenant
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 
 	for _, value := range GetUsers(commandName, enableDebug, panicOnError, tenant, accessToken) {
-		mapEntry := value.(map[string]interface{})
+		mapEntry := value.(map[string]any)
 		username := mapEntry["username"].(string)
 		usersMap := viper.GetStringMap(UsersKey)
 		if usersMap[username] == nil {
@@ -433,7 +433,7 @@ func CreateUsers(commandName string, enableDebug bool, panicOnError bool, existi
 	usersMap := viper.GetStringMap(UsersKey)
 
 	for username, value := range usersMap {
-		mapEntry := value.(map[string]interface{})
+		mapEntry := value.(map[string]any)
 		tenant := mapEntry["tenant"].(string)
 		if existingTenant != tenant {
 			continue
@@ -442,7 +442,7 @@ func CreateUsers(commandName string, enableDebug bool, panicOnError bool, existi
 		password := mapEntry["password"].(string)
 		firstName := mapEntry["first-name"].(string)
 		lastName := mapEntry["last-name"].(string)
-		userRoles := mapEntry["roles"].([]interface{})
+		userRoles := mapEntry["roles"].([]any)
 
 		userBytes, err := json.Marshal(map[string]any{
 			"username": username,
@@ -463,7 +463,7 @@ func CreateUsers(commandName string, enableDebug bool, panicOnError bool, existi
 		okapiBasedHeaders := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 		nonOkapiBasedHeaders := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, AuthorizationHeader: fmt.Sprintf("Bearer %s", accessToken)}
 
-		createdUserMap := DoPostReturnMapStringInteface(commandName, postUserRequestUrl, enableDebug, panicOnError, userBytes, okapiBasedHeaders)
+		createdUserMap := DoPostReturnMapStringAny(commandName, postUserRequestUrl, enableDebug, panicOnError, userBytes, okapiBasedHeaders)
 
 		userId := createdUserMap["id"].(string)
 
@@ -507,43 +507,43 @@ func CreateUsers(commandName string, enableDebug bool, panicOnError bool, existi
 
 // ######## Roles ########
 
-func GetRoles(commandName string, enableDebug bool, panicOnError bool, headers map[string]string) []interface{} {
-	var foundRoles []interface{}
+func GetRoles(commandName string, enableDebug bool, panicOnError bool, headers map[string]string) []any {
+	var foundRoles []any
 
 	requestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, "/roles?offset=0&limit=10000")
 
-	foundRolesMap := DoGetDecodeReturnMapStringInterface(commandName, requestUrl, enableDebug, panicOnError, headers)
-	if foundRolesMap["roles"] == nil || len(foundRolesMap["roles"].([]interface{})) == 0 {
+	foundRolesMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
+	if foundRolesMap["roles"] == nil || len(foundRolesMap["roles"].([]any)) == 0 {
 		return nil
 	}
 
-	foundRoles = foundRolesMap["roles"].([]interface{})
+	foundRoles = foundRolesMap["roles"].([]any)
 
 	return foundRoles
 }
 
-func GetRoleByName(commandName string, enableDebug bool, roleName string, headers map[string]string) map[string]interface{} {
+func GetRoleByName(commandName string, enableDebug bool, roleName string, headers map[string]string) map[string]any {
 	requestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, fmt.Sprintf("/roles?query=name==%s", roleName))
 
-	foundRolesMap := DoGetDecodeReturnMapStringInterface(commandName, requestUrl, enableDebug, true, headers)
+	foundRolesMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, true, headers)
 	if foundRolesMap["roles"] == nil {
 		return nil
 	}
 
-	foundRoles := foundRolesMap["roles"].([]interface{})
+	foundRoles := foundRolesMap["roles"].([]any)
 	if len(foundRoles) != 1 {
 		LogErrorPanic(commandName, fmt.Sprintf("internal.GetRoleByName - Number of found roles by %s role name is not 1", roleName))
 		return nil
 	}
 
-	return foundRoles[0].(map[string]interface{})
+	return foundRoles[0].(map[string]any)
 }
 
 func RemoveRoles(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) {
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 
 	for _, value := range GetRoles(commandName, enableDebug, panicOnError, headers) {
-		mapEntry := value.(map[string]interface{})
+		mapEntry := value.(map[string]any)
 		roleName := mapEntry["name"].(string)
 
 		rolesMap := viper.GetStringMap(RolesKey)
@@ -565,7 +565,7 @@ func CreateRoles(commandName string, enableDebug bool, panicOnError bool, existi
 	caser := cases.Title(language.English)
 
 	for role, value := range rolesMap {
-		mapEntry := value.(map[string]interface{})
+		mapEntry := value.(map[string]any)
 		tenant := mapEntry["tenant"].(string)
 		if existingTenant != tenant {
 			continue
@@ -587,32 +587,32 @@ func CreateRoles(commandName string, enableDebug bool, panicOnError bool, existi
 
 // ######## Capabilities ########
 
-func GetCapabilitySets(commandName string, enableDebug bool, panicOnError bool, headers map[string]string) []interface{} {
-	var foundCapabilitySets []interface{}
+func GetCapabilitySets(commandName string, enableDebug bool, panicOnError bool, headers map[string]string) []any {
+	var foundCapabilitySets []any
 
 	requestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, "/capability-sets?offset=0&limit=10000")
 
-	foundCapabilitySetsMap := DoGetDecodeReturnMapStringInterface(commandName, requestUrl, enableDebug, panicOnError, headers)
-	if foundCapabilitySetsMap["capabilitySets"] == nil || len(foundCapabilitySetsMap["capabilitySets"].([]interface{})) == 0 {
+	foundCapabilitySetsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
+	if foundCapabilitySetsMap["capabilitySets"] == nil || len(foundCapabilitySetsMap["capabilitySets"].([]any)) == 0 {
 		return nil
 	}
 
-	foundCapabilitySets = foundCapabilitySetsMap["capabilitySets"].([]interface{})
+	foundCapabilitySets = foundCapabilitySetsMap["capabilitySets"].([]any)
 
 	return foundCapabilitySets
 }
 
-func GetCapabilitySetsByName(commandName string, enableDebug bool, panicOnError bool, capabilitySetName string, headers map[string]string) []interface{} {
-	var foundCapabilitySets []interface{}
+func GetCapabilitySetsByName(commandName string, enableDebug bool, panicOnError bool, capabilitySetName string, headers map[string]string) []any {
+	var foundCapabilitySets []any
 
 	requestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", capabilitySetName))
 
-	foundCapabilitySetsMap := DoGetDecodeReturnMapStringInterface(commandName, requestUrl, enableDebug, panicOnError, headers)
-	if foundCapabilitySetsMap["capabilitySets"] == nil || len(foundCapabilitySetsMap["capabilitySets"].([]interface{})) == 0 {
+	foundCapabilitySetsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
+	if foundCapabilitySetsMap["capabilitySets"] == nil || len(foundCapabilitySetsMap["capabilitySets"].([]any)) == 0 {
 		return nil
 	}
 
-	foundCapabilitySets = foundCapabilitySetsMap["capabilitySets"].([]interface{})
+	foundCapabilitySets = foundCapabilitySetsMap["capabilitySets"].([]any)
 
 	return foundCapabilitySets
 }
@@ -621,7 +621,7 @@ func DetachCapabilitySetsFromRoles(commandName string, enableDebug bool, panicOn
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 
 	for _, value := range GetRoles(commandName, enableDebug, panicOnError, headers) {
-		mapEntry := value.(map[string]interface{})
+		mapEntry := value.(map[string]any)
 		roleName := mapEntry["name"].(string)
 
 		rolesMap := viper.GetStringMap(RolesKey)
@@ -643,7 +643,7 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 
 	for _, roleValue := range GetRoles(commandName, enableDebug, true, headers) {
-		roleMapEntry := roleValue.(map[string]interface{})
+		roleMapEntry := roleValue.(map[string]any)
 		roleId := roleMapEntry["id"].(string)
 		roleName := roleMapEntry["name"].(string)
 		rolesMapConfigByRole, ok := rolesMapConfig[strings.ToLower(roleName)]
@@ -651,17 +651,17 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 			continue
 		}
 
-		roleConfigMapEntry := rolesMapConfigByRole.(map[string]interface{})
+		roleConfigMapEntry := rolesMapConfigByRole.(map[string]any)
 		if tenant != roleConfigMapEntry["tenant"].(string) {
 			continue
 		}
 
-		capabilitySetsConfig := roleConfigMapEntry["capability-sets"].([]interface{})
+		capabilitySetsConfig := roleConfigMapEntry["capability-sets"].([]any)
 
-		var capabilitySetsMapList []map[string]interface{}
+		var capabilitySetsMapList []map[string]any
 		if len(capabilitySetsConfig) == 1 && slices.Contains(capabilitySetsConfig, "all") {
 			for _, capabilityValue := range GetCapabilitySets(commandName, enableDebug, true, headers) {
-				capabilityMapEntry := capabilityValue.(map[string]interface{})
+				capabilityMapEntry := capabilityValue.(map[string]any)
 
 				capabilitySetsMapList = append(capabilitySetsMapList, capabilityMapEntry)
 			}
@@ -670,7 +670,7 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 				capabilitySetConfigName := capabilitySetConfig.(string)
 
 				for _, capabilityValue := range GetCapabilitySetsByName(commandName, enableDebug, true, capabilitySetConfigName, headers) {
-					capabilityMapEntry := capabilityValue.(map[string]interface{})
+					capabilityMapEntry := capabilityValue.(map[string]any)
 
 					capabilitySetsMapList = append(capabilitySetsMapList, capabilityMapEntry)
 				}

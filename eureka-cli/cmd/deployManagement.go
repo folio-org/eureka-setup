@@ -18,6 +18,7 @@ package cmd
 import (
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
@@ -55,7 +56,8 @@ func DeployManagement() {
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### DEPLOYING MANAGEMENT MODULES ###")
 	deployModulesDto := internal.NewDeployManagementModulesDto(vaultRootToken, map[string]string{"eureka": ""}, registryModules, backendModulesMap, environment)
-	deployedModules := internal.DeployModules(deployManagementCommand, client, deployModulesDto)
+	deployedModules := internal.DeployModules(deployManagementCommand, client, deployModulesDto, "")
+	time.Sleep(5 * time.Second)
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### WAITING FOR MANAGEMENT MODULES TO INITIALIZE ###")
 	var waitMutex sync.WaitGroup

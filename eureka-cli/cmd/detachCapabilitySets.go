@@ -42,7 +42,7 @@ func DetachCapabilitySets() {
 	vaultRootToken := internal.GetRootVaultToken(detachCapabilitySetsCommand, client)
 
 	for _, value := range internal.GetTenants(detachCapabilitySetsCommand, enableDebug, false) {
-		mapEntry := value.(map[string]interface{})
+		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
 		if !internal.HasTenant(existingTenant) {

@@ -42,7 +42,7 @@ func RemoveUsers() {
 	vaultRootToken := internal.GetRootVaultToken(removeUsersCommand, client)
 
 	for _, value := range internal.GetTenants(removeUsersCommand, enableDebug, false) {
-		mapEntry := value.(map[string]interface{})
+		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
 		if !internal.HasTenant(existingTenant) {
