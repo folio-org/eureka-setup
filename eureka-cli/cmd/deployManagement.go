@@ -44,7 +44,7 @@ func DeployManagement() {
 	backendModulesMap := internal.GetBackendModulesFromConfig(deployManagementCommand, viper.GetStringMap(internal.BackendModuleKey), true)
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### READING BACKEND MODULE REGISTRIES ###")
-	registryModules := internal.GetModulesFromRegistries(deployManagementCommand, map[string]string{"eureka": viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)})
+	registryModules := internal.GetModulesFromRegistries(deployManagementCommand, map[string]string{internal.EurekaRegistry: viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)})
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### EXTRACTING MODULE NAME AND VERSION ###")
 	internal.ExtractModuleNameAndVersion(deployManagementCommand, enableDebug, registryModules)
@@ -55,8 +55,8 @@ func DeployManagement() {
 	vaultRootToken := internal.GetRootVaultToken(deployManagementCommand, client)
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### DEPLOYING MANAGEMENT MODULES ###")
-	deployModulesDto := internal.NewDeployManagementModulesDto(vaultRootToken, map[string]string{"eureka": ""}, registryModules, backendModulesMap, environment)
-	deployedModules := internal.DeployModules(deployManagementCommand, client, deployModulesDto, "")
+	deployModulesDto := internal.NewDeployManagementModulesDto(vaultRootToken, map[string]string{internal.EurekaRegistry: ""}, registryModules, backendModulesMap, environment)
+	deployedModules := internal.DeployModules(deployManagementCommand, client, deployModulesDto, "", nil)
 	time.Sleep(5 * time.Second)
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### WAITING FOR MANAGEMENT MODULES TO INITIALIZE ###")

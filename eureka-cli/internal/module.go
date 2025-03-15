@@ -67,9 +67,8 @@ func GetRootVaultToken(commandName string, client *client.Client) string {
 	}
 }
 
-func DeployModules(commandName string, client *client.Client, dto *DeployModulesDto, sidecarImage string) map[string]int {
+func DeployModules(commandName string, client *client.Client, dto *DeployModulesDto, sidecarImage string, sidecarResources *container.Resources) map[string]int {
 	deployedModules := make(map[string]int)
-
 	networkConfig := NewModuleNetworkConfig()
 
 	for registryName, registryModules := range dto.RegistryModules {
@@ -86,19 +85,17 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 				continue
 			}
 
-			deployModuleDto := NewDeployModuleDto(registryModule.Name, getModuleImage(commandName,
-				getModuleImageVersion(backendModule, registryModule), registryModule),
-				getCombinedModuleEnvironment(dto, backendModule), backendModule, networkConfig)
+			moduleVersion := getModuleImageVersion(backendModule, registryModule)
+			moduleImage := getModuleImage(commandName, moduleVersion, registryModule)
+			moduleEnvironment := getModuleEnvironment(dto, backendModule)
+			DeployModule(commandName, client, NewDeployModuleDto(registryModule.Name, moduleImage, moduleEnvironment, backendModule, networkConfig))
 
-			DeployModule(commandName, client, deployModuleDto)
 			deployedModules[registryModule.Name] = backendModule.ModuleExposedServerPort
 
 			if backendModule.DeploySidecar && sidecarImage != "" {
 				go func() {
-					deploySidecarDto := NewDeploySidecarDto(registryModule.SidecarName, sidecarImage,
-						getCombinedSidecarEnvironment(dto, registryModule, backendModule), backendModule, networkConfig)
-
-					DeployModule(commandName, client, deploySidecarDto)
+					sidecarEnvironment := getSidecarEnvironment(dto, registryModule, backendModule)
+					DeployModule(commandName, client, NewDeploySidecarDto(registryModule.SidecarName, sidecarImage, sidecarEnvironment, backendModule, networkConfig, sidecarResources))
 				}()
 			}
 		}
@@ -155,7 +152,7 @@ func getModuleImage(commandName string, moduleVersion string, registryModule *Re
 	return fmt.Sprintf("%s/%s:%s", GetImageRegistryNamespace(commandName, moduleVersion), registryModule.Name, moduleVersion)
 }
 
-func getCombinedModuleEnvironment(deployModulesDto *DeployModulesDto, backendModule BackendModule) []string {
+func getModuleEnvironment(deployModulesDto *DeployModulesDto, backendModule BackendModule) []string {
 	var combinedEnvironment []string
 	combinedEnvironment = append(combinedEnvironment, deployModulesDto.GlobalEnvironment...)
 	combinedEnvironment = AppendModuleEnvironment(combinedEnvironment, backendModule.ModuleEnvironment)
@@ -164,7 +161,7 @@ func getCombinedModuleEnvironment(deployModulesDto *DeployModulesDto, backendMod
 	return combinedEnvironment
 }
 
-func getCombinedSidecarEnvironment(deployModulesDto *DeployModulesDto, module *RegistryModule, backendModule BackendModule) []string {
+func getSidecarEnvironment(deployModulesDto *DeployModulesDto, module *RegistryModule, backendModule BackendModule) []string {
 	var combinedEnvironment []string
 	combinedEnvironment = append(combinedEnvironment, deployModulesDto.SidecarEnvironment...)
 	combinedEnvironment = AppendKeycloakEnvironment(combinedEnvironment)

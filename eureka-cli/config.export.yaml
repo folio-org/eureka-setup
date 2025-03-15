@@ -53,7 +53,7 @@ environment:
   # Management
   MT_URL: http://mgr-tenants.eureka:8081
   AM_CLIENT_URL: http://mgr-applications.eureka:8081
-  KONG_ADMIN_URL: http://api-gateway.eureka:8001
+  KONG_ADMIN_URL: http://kong-local.eureka:8001
   # Keycloak
   KC_URL: http://keycloak.eureka:8080
   KC_CONFIG_TTL: 3600s
@@ -120,7 +120,7 @@ sidecar-module:
     KC_URL: http://keycloak.eureka:8080
     MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
     MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
-    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://api-gateway.eureka:8000
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong-local.eureka:8000
 # Backend modules
 backend-modules:
   mod-data-export-spring:

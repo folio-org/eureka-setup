@@ -9,11 +9,8 @@ type RegisterModuleDto struct {
 	EnableDebug          bool
 }
 
-func NewRegisterModuleDto(registryUrls map[string]string,
-	registryModules map[string][]*RegistryModule,
-	backendModulesMap map[string]BackendModule,
-	frontendModulesMap map[string]FrontendModule,
-	enableDebug bool) *RegisterModuleDto {
+func NewRegisterModuleDto(registryUrls map[string]string, registryModules map[string][]*RegistryModule,
+	backendModulesMap map[string]BackendModule, frontendModulesMap map[string]FrontendModule, enableDebug bool) *RegisterModuleDto {
 	return &RegisterModuleDto{
 		RegistryUrls:         registryUrls,
 		RegistryModules:      registryModules,

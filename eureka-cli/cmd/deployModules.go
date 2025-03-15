@@ -62,17 +62,18 @@ func DeployModules() {
 	vaultRootToken := internal.GetRootVaultToken(deployModulesCommand, client)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### CREATING APPLICATIONS ###")
-	registryUrls := map[string]string{internal.FolioRegistry: registryUrl, "eureka": registryUrl}
+	registryUrls := map[string]string{internal.FolioRegistry: registryUrl, internal.EurekaRegistry: registryUrl}
 	registerModuleDto := internal.NewRegisterModuleDto(registryUrls, registryModules, backendModulesMap, frontendModulesMap, enableDebug)
 	internal.CreateApplications(deployModulesCommand, enableDebug, registerModuleDto)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### PULLING SIDECAR IMAGE ###")
-	deployModulesDto := internal.NewDeployModulesDto(vaultRootToken, map[string]string{internal.FolioRegistry: "", "eureka": ""}, registryModules, backendModulesMap, environment, sidecarEnvironment)
-	sidecarImage := internal.GetSidecarImage(deployManagementCommand, deployModulesDto.RegistryModules["eureka"])
+	deployModulesDto := internal.NewDeployModulesDto(vaultRootToken, map[string]string{internal.FolioRegistry: "", internal.EurekaRegistry: ""}, registryModules, backendModulesMap, environment, sidecarEnvironment)
+	sidecarImage := internal.GetSidecarImage(deployManagementCommand, deployModulesDto.RegistryModules[internal.EurekaRegistry])
+	sidecarResources := internal.CreateResources(viper.GetStringMap(internal.SidecarModuleResourcesKey))
 	internal.PullModule(deployManagementCommand, client, sidecarImage)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### DEPLOYING MODULES ###")
-	deployedModules := internal.DeployModules(deployModulesCommand, client, deployModulesDto, sidecarImage)
+	deployedModules := internal.DeployModules(deployModulesCommand, client, deployModulesDto, sidecarImage, sidecarResources)
 	time.Sleep(5 * time.Second)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### WAITING FOR MODULES TO INITIALIZE ###")

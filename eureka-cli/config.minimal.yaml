@@ -50,7 +50,7 @@ environment:
   # Management
   MT_URL: http://mgr-tenants.eureka:8081
   AM_CLIENT_URL: http://mgr-applications.eureka:8081
-  KONG_ADMIN_URL: http://api-gateway.eureka:8001
+  KONG_ADMIN_URL: http://kong-local.eureka:8001
   # Keycloak
   KC_URL: http://keycloak.eureka:8080
   KC_CONFIG_TTL: 3600s
@@ -117,7 +117,7 @@ sidecar-module:
     KC_URL: http://keycloak.eureka:8080
     MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
     MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
-    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://api-gateway.eureka:8000
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong-local.eureka:8000
 # Backend modules
 backend-modules:
   # Management modules
@@ -161,8 +161,8 @@ backend-modules:
       RETRIES_MODULE_MAX: '10'
   # Keycloak modules
   mod-users-keycloak:
+    deploy-sidecar: true
     port: 9904
-    sidecar: true
     environment:
       OKAPI_URL: http://mod-users-keycloak-sc.eureka:8081
       INCLUDE_ONLY_VISIBLE_PERMISSIONS: 'false'
@@ -173,16 +173,16 @@ backend-modules:
       SYSTEM_USER_NAME: mod-users-keycloak
       SYSTEM_USER_USERNAME: mod-users-keycloak
   mod-login-keycloak:
+    deploy-sidecar: true
     port: 9905
-    sidecar: true
     environment:
       X_OKAPI_TOKEN_HEADER_ENABLED: 'true'
   mod-roles-keycloak:
+    deploy-sidecar: true
     port: 9906
-    sidecar: true
   mod-scheduler:
+    deploy-sidecar: true
     port: 9907
-    sidecar: true
     environment:
       # Rancher secret: mod-scheduler-systemuser
       FOLIO_SYSTEM_USER_ENABLED: 'false'
@@ -193,8 +193,8 @@ backend-modules:
   # Keycloak Consortia modules
   mod-consortia-keycloak:
     deploy-module: false
+    deploy-sidecar: true
     port: 9908
-    sidecar: true
     environment:
       # Rancher secret: mod-consortia-keycloak-systemuser
       FOLIO_SYSTEM_USER_ENABLED: 'false'

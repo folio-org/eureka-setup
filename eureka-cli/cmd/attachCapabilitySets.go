@@ -31,9 +31,9 @@ import (
 
 const (
 	attachCapabilitySetsCommand string = "Attach Capability Sets"
-
-	NewLinePattern      string = `\r?\n`
-	ConsumerGroupSuffix string = "mod-roles-keycloak-capability-group"
+	NewLinePattern              string = `\r?\n`
+	KafkaUrl                    string = "kafka.eureka:9092"
+	ConsumerGroupSuffix         string = "mod-roles-keycloak-capability-group"
 )
 
 // attachCapabilitySetsCmd represents the attachCapabilitySets command
@@ -89,7 +89,7 @@ func pollCapabilitySetsCreation(tenant string) {
 
 func getConsumerGroupLag(tenant string, consumerGroup string) int {
 	stdout, stderr := internal.RunCommandReturnOutput(listSystemCommand, exec.Command("docker", "exec", "-i", "kafka", "bash", "-c",
-		fmt.Sprintf("kafka-consumer-groups.sh --bootstrap-server kafka:9092 --describe --group %s | grep %s | awk '{print $6}'", consumerGroup, tenant)))
+		fmt.Sprintf("kafka-consumer-groups.sh --bootstrap-server %s --describe --group %s | grep %s | awk '{print $6}'", KafkaUrl, consumerGroup, tenant)))
 	if stderr.Len() > 0 {
 		internal.LogErrorPrintStderrPanic(attachCapabilitySetsCommand, "internal.RunCommandReturnOutput error", stderr.String())
 		return 0
