@@ -69,7 +69,7 @@ func DeployUi() {
 	masterAccessToken := internal.GetKeycloakMasterRealmAccessToken(createUsersCommand, enableDebug)
 
 	for _, value := range internal.GetTenants(deployUiCommand, enableDebug, false) {
-		mapEntry := value.(map[string]interface{})
+		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
 		if !internal.HasTenant(existingTenant) || !internal.DeployUi(existingTenant) {
@@ -124,6 +124,9 @@ func DeployUi() {
 			"--hostname", containerName,
 			"--publish", "3000:80",
 			"--restart", "unless-stopped",
+			"--cpus", "1",
+			"--memory", "50m",
+			"--memory-swap", "0",
 			"--detach",
 			finalImageName,
 		))

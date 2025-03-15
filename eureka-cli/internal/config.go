@@ -70,7 +70,7 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			port         *int
 			portServer   *int
 			sidecar      *bool
-			environment  map[string]interface{}
+			environment  map[string]any
 		)
 
 		getDefaultPortServer := func() *int {
@@ -96,9 +96,9 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			if !strings.HasPrefix(name, ManagementModulePattern) {
 				sidecar = getDefaultSidecar()
 			}
-			environment = make(map[string]interface{})
+			environment = make(map[string]any)
 		} else {
-			mapEntry := value.(map[string]interface{})
+			mapEntry := value.(map[string]any)
 
 			if mapEntry[DeployModuleKey] != nil {
 				deployModule = mapEntry[DeployModuleKey].(bool)
@@ -137,9 +137,9 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			}
 
 			if mapEntry[ModuleEnvKey] != nil {
-				environment = mapEntry[ModuleEnvKey].(map[string]interface{})
+				environment = mapEntry[ModuleEnvKey].(map[string]any)
 			} else {
-				environment = make(map[string]interface{})
+				environment = make(map[string]any)
 			}
 		}
 
@@ -176,7 +176,7 @@ func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMaps ...
 			)
 
 			if value != nil {
-				mapEntry := value.(map[string]interface{})
+				mapEntry := value.(map[string]any)
 
 				if mapEntry[DeployModuleKey] != nil {
 					deployModule = mapEntry[DeployModuleKey].(bool)
@@ -298,7 +298,7 @@ func HasTenant(tenant string) bool {
 }
 
 func DeployUi(tenant string) bool {
-	mapEntry, ok := viper.GetStringMap(TenantsKey)[tenant].(map[string]interface{})
+	mapEntry, ok := viper.GetStringMap(TenantsKey)[tenant].(map[string]any)
 	if !ok {
 		return false
 	}

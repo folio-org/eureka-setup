@@ -1,6 +1,6 @@
 module github.com/folio-org/eureka-cli
 
-go 1.22.4
+go 1.24.1
 
 require (
 	github.com/aws/aws-sdk-go v1.54.15

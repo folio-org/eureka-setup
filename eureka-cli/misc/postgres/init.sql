@@ -10,20 +10,10 @@ grant connect on database kong to kong_rw;
 grant all privileges on database kong to kong_rw;
 
 -- Management
-create database mgr_applications;
-create user mgr_applications_rw with password 'supersecret';
-grant connect on database mgr_applications to mgr_applications_rw;
-grant all privileges on database mgr_applications to mgr_applications_rw;
-
-create database mgr_tenant;
-create user mgr_tenant_rw with password 'supersecret';
-grant connect on database mgr_tenant to mgr_tenant_rw;
-grant all privileges on database mgr_tenant to mgr_tenant_rw;
-
-create database mgr_tenant_entitlements;
-create user mgr_tenant_entitlements_rw with password 'supersecret';
-grant connect on database mgr_tenant_entitlements to mgr_tenant_entitlements_rw;
-grant all privileges on database mgr_tenant_entitlements to mgr_tenant_entitlements_rw;
+create database mgr;
+create user mgr_rw with password 'supersecret';
+grant connect on database mgr to mgr_rw;
+grant all privileges on database mgr to mgr_rw;
 
 -- Core and other modules
 create database folio;
@@ -41,14 +31,8 @@ alter schema public owner to keycloak_rw;
 alter schema public owner to kong_rw;
 
 -- Management
-\connect mgr_applications;
-alter schema public owner to mgr_applications_rw;
-
-\connect mgr_tenant;
-alter schema public owner to mgr_tenant_rw;
-
-\connect mgr_tenant_entitlements;
-alter schema public owner to mgr_tenant_entitlements_rw;
+\connect mgr;
+alter schema public owner to mgr_rw;
 
 -- Core and other modules
 \connect folio;

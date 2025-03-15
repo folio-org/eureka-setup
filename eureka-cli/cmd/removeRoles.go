@@ -47,7 +47,7 @@ func RemoveRoles() {
 	vaultRootToken := internal.GetRootVaultToken(removeRolesCommand, client)
 
 	for _, value := range internal.GetTenants(removeRolesCommand, enableDebug, false) {
-		mapEntry := value.(map[string]interface{})
+		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
 		if !internal.HasTenant(existingTenant) {

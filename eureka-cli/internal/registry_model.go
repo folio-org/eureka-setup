@@ -5,7 +5,7 @@ type RegisterModuleDto struct {
 	RegistryModules      map[string][]*RegistryModule
 	BackendModulesMap    map[string]BackendModule
 	FrontendModulesMap   map[string]FrontendModule
-	ModuleDescriptorsMap map[string]interface{}
+	ModuleDescriptorsMap map[string]any
 	EnableDebug          bool
 }
 
@@ -19,7 +19,7 @@ func NewRegisterModuleDto(registryUrls map[string]string,
 		RegistryModules:      registryModules,
 		BackendModulesMap:    backendModulesMap,
 		FrontendModulesMap:   frontendModulesMap,
-		ModuleDescriptorsMap: make(map[string]interface{}),
+		ModuleDescriptorsMap: make(map[string]any),
 		EnableDebug:          enableDebug,
 	}
 }

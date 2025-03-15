@@ -18,6 +18,7 @@ package cmd
 import (
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
@@ -65,10 +66,14 @@ func DeployModules() {
 	registerModuleDto := internal.NewRegisterModuleDto(registryUrls, registryModules, backendModulesMap, frontendModulesMap, enableDebug)
 	internal.CreateApplications(deployModulesCommand, enableDebug, registerModuleDto)
 
+	slog.Info(deployModulesCommand, internal.GetFuncName(), "### PULLING SIDECAR IMAGE ###")
+	deployModulesDto := internal.NewDeployModulesDto(vaultRootToken, map[string]string{internal.FolioRegistry: "", "eureka": ""}, registryModules, backendModulesMap, environment, sidecarEnvironment)
+	sidecarImage := internal.GetSidecarImage(deployManagementCommand, deployModulesDto.RegistryModules["eureka"])
+	internal.PullModule(deployManagementCommand, client, sidecarImage)
+
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### DEPLOYING MODULES ###")
-	registryHostnames := map[string]string{internal.FolioRegistry: "", "eureka": ""}
-	deployModulesDto := internal.NewDeployModulesDto(vaultRootToken, registryHostnames, registryModules, backendModulesMap, environment, sidecarEnvironment)
-	deployedModules := internal.DeployModules(deployModulesCommand, client, deployModulesDto)
+	deployedModules := internal.DeployModules(deployModulesCommand, client, deployModulesDto, sidecarImage)
+	time.Sleep(5 * time.Second)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### WAITING FOR MODULES TO INITIALIZE ###")
 	var waitMutex sync.WaitGroup

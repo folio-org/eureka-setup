@@ -42,7 +42,7 @@ func CreateUsers() {
 	vaultRootToken := internal.GetRootVaultToken(createUsersCommand, client)
 
 	for _, value := range internal.GetTenants(createUsersCommand, enableDebug, false) {
-		mapEntry := value.(map[string]interface{})
+		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
 		if !internal.HasTenant(existingTenant) {

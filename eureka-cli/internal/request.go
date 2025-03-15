@@ -80,8 +80,8 @@ func DoGetDecodeReturnString(commandName string, url string, enableDebug bool, p
 	return string(body)
 }
 
-func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool, panicOnError bool, headers map[string]string) interface{} {
-	var respMap interface{}
+func DoGetDecodeReturnAny(commandName string, url string, enableDebug bool, panicOnError bool, headers map[string]string) any {
+	var respMap any
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -123,8 +123,8 @@ func DoGetDecodeReturnInterface(commandName string, url string, enableDebug bool
 	return respMap
 }
 
-func DoGetDecodeReturnMapStringInterface(commandName string, url string, enableDebug bool, panicOnError bool, headers map[string]string) map[string]interface{} {
-	var respMap map[string]interface{}
+func DoGetDecodeReturnMapStringAny(commandName string, url string, enableDebug bool, panicOnError bool, headers map[string]string) map[string]any {
+	var respMap map[string]any
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -198,8 +198,8 @@ func DoPostReturnNoContent(commandName string, url string, enableDebug bool, pan
 	DumpHttpResponse(commandName, resp, enableDebug)
 }
 
-func DoPostReturnMapStringInteface(commandName string, url string, enableDebug bool, panicOnError bool, bodyBytes []byte, headers map[string]string) map[string]interface{} {
-	var respMap map[string]interface{}
+func DoPostReturnMapStringAny(commandName string, url string, enableDebug bool, panicOnError bool, bodyBytes []byte, headers map[string]string) map[string]any {
+	var respMap map[string]any
 
 	DumpHttpBody(commandName, enableDebug, bodyBytes)
 
@@ -243,8 +243,8 @@ func DoPostReturnMapStringInteface(commandName string, url string, enableDebug b
 	return respMap
 }
 
-func DoPostFormDataReturnMapStringInteface(commandName string, url string, enableDebug bool, formData url.Values, headers map[string]string) map[string]interface{} {
-	var respMap map[string]interface{}
+func DoPostFormDataReturnMapStringAny(commandName string, url string, enableDebug bool, formData url.Values, headers map[string]string) map[string]any {
+	var respMap map[string]any
 
 	DumpHttpFormData(commandName, enableDebug, formData)
 

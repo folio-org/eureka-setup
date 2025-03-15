@@ -1,4 +1,4 @@
-# AWS CLI Preparations
+# AWS CLI
 
 ## Purpose
 

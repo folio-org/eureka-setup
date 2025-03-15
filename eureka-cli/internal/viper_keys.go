@@ -13,7 +13,8 @@ const (
 	RegistryEurekaInstallJsonUrlKey         string = "registry.eureka-install-json-url"
 	RegistryNamespacesPlatformCompleteUiKey string = "registry.namespaces.platform-complete-ui"
 
-	EnvironmentKey string = "environment"
+	EnvironmentKey      string = "environment"
+	EnvironmentFolioKey string = "environment.ENV"
 
 	TenantsKey string = "tenants"
 	UsersKey   string = "users"

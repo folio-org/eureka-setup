@@ -42,7 +42,7 @@ func CreateRoles() {
 	vaultRootToken := internal.GetRootVaultToken(createRolesCommand, client)
 
 	for _, value := range internal.GetTenants(createRolesCommand, enableDebug, false) {
-		mapEntry := value.(map[string]interface{})
+		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
 		if !internal.HasTenant(existingTenant) {

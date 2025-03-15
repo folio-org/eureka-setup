@@ -31,7 +31,7 @@ func GetKeycloakAccessToken(commandName string, enableDebug bool, vaultRootToken
 	formData.Set("username", systemUser)
 	formData.Set("password", systemUserPassword)
 
-	tokensMap := DoPostFormDataReturnMapStringInteface(commandName, requestUrl, enableDebug, formData, headers)
+	tokensMap := DoPostFormDataReturnMapStringAny(commandName, requestUrl, enableDebug, formData, headers)
 	if tokensMap["access_token"] == nil {
 		LogErrorPanic(commandName, "internal.GetKeycloakAccessToken - Access token not found")
 		return ""
@@ -50,7 +50,7 @@ func GetKeycloakMasterRealmAccessToken(commandName string, enableDebug bool) str
 	formData.Set("username", adminUsername)
 	formData.Set("password", adminPassword)
 
-	tokensMap := DoPostFormDataReturnMapStringInteface(commandName, requestUrl, enableDebug, formData, headers)
+	tokensMap := DoPostFormDataReturnMapStringAny(commandName, requestUrl, enableDebug, formData, headers)
 	if tokensMap["access_token"] == nil {
 		LogErrorPanic(commandName, "internal.GetKeycloakAccessToken - Access token not found")
 		return ""
@@ -64,16 +64,16 @@ func UpdateKeycloakPublicClientParams(commandName string, enableDebug bool, tena
 
 	clientId := fmt.Sprintf("%s%s", tenant, GetEnvironmentFromMapByKey("KC_LOGIN_CLIENT_SUFFIX"))
 	getRequestUrl := fmt.Sprintf("%s/admin/realms/%s/clients?clientId=%s", KeycloakUrl, tenant, clientId)
-	foundClients := DoGetDecodeReturnInterface(commandName, getRequestUrl, enableDebug, true, headers).([]interface{})
+	foundClients := DoGetDecodeReturnAny(commandName, getRequestUrl, enableDebug, true, headers).([]any)
 	if len(foundClients) != 1 {
 		LogErrorPanic(commandName, fmt.Sprintf("internal.UpdateKeycloakPublicClientParams - Number of found cliends by %s client id is not 1", clientId))
 		return
 	}
 
-	clientUuid := foundClients[0].(map[string]interface{})["id"].(string)
+	clientUuid := foundClients[0].(map[string]any)["id"].(string)
 
 	putRequestUrl := fmt.Sprintf("%s/admin/realms/%s/clients/%s", KeycloakUrl, tenant, clientUuid)
-	clientParamsBytes, err := json.Marshal(map[string]interface{}{
+	clientParamsBytes, err := json.Marshal(map[string]any{
 		"rootUrl":                      platformCompleteUrl,
 		"baseUrl":                      platformCompleteUrl,
 		"adminUrl":                     platformCompleteUrl,
