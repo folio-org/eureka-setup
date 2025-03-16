@@ -125,7 +125,7 @@ func DeployUi() {
 			"--publish", "3000:80",
 			"--restart", "unless-stopped",
 			"--cpus", "1",
-			"--memory", "50m",
+			"--memory", "35m",
 			"--memory-swap", "0",
 			"--detach",
 			finalImageName,

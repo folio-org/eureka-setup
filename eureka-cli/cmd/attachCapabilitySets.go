@@ -81,7 +81,7 @@ func pollCapabilitySetsCreation(tenant string) {
 		}
 
 		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %s consumer group to process all messages, lag: %d", consumerGroup, lag))
-		time.Sleep(15 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 
 	slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Consumer group %s has no new message to process", consumerGroup))

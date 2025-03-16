@@ -43,7 +43,7 @@ services:
     image: provectuslabs/kafka-ui:v0.7.2
     restart: unless-stopped
     cpus: '0.5'
-    mem_limit: 400m
+    mem_limit: 350m
     depends_on:
       zookeeper:
         condition: service_healthy
@@ -150,7 +150,7 @@ services:
     image: nginx:1.27.4
     restart: unless-stopped
     cpus: 1
-    mem_limit: 50m
+    mem_limit: 35m
     depends_on:
       - keycloak-internal
     volumes:
@@ -308,7 +308,7 @@ services:
     image: netcat:latest
     restart: unless-stopped
     cpus: '0.25'
-    mem_limit: 50m
+    mem_limit: 35m
     networks: 
       - eureka-net
     ports:
