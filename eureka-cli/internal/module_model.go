@@ -12,12 +12,12 @@ import (
 const (
 	DefaultModuleCpus              int64 = 1
 	DefaultModuleMemoryReservation int64 = 128
-	DefaultModuleMemory            int64 = 450
+	DefaultModuleMemory            int64 = 750
 	DefaultModuleSwap              int64 = 0
 
 	DefaultSidecarCpus              int64 = 1
 	DefaultSidecarMemoryReservation int64 = 64
-	DefaultSidecarMemory            int64 = 250
+	DefaultSidecarMemory            int64 = 450
 	DefaultSidecarSwap              int64 = 0
 )
 
@@ -122,7 +122,7 @@ func NewBackendModule(dto BackendModuleDto) *BackendModule {
 
 func CreateResources(resources map[string]any) *container.Resources {
 	if len(resources) == 0 {
-		oomKillDisable := true
+		oomKillDisable := false
 
 		return &container.Resources{
 			CPUCount:          DefaultModuleCpus,
@@ -133,7 +133,7 @@ func CreateResources(resources map[string]any) *container.Resources {
 		}
 	}
 
-	oomKillDisable := getBoolValueOrDefault("oom-kill-disable", resources, true)
+	oomKillDisable := getBoolValueOrDefault("oom-kill-disable", resources, false)
 
 	return &container.Resources{
 		CPUCount:          getIntValueOrDefault("cpu-count", resources, DefaultModuleCpus),

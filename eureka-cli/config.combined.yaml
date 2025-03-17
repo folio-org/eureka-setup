@@ -140,7 +140,6 @@ backend-modules:
       VALIDATION_MODE: none
     resources:
       cpus: 2
-      memory: 550
   mgr-tenants:
     port: 9902
     environment:
@@ -151,6 +150,8 @@ backend-modules:
       # Management
       MODULE_URL: http://mgr-tenants.eureka:8081
       CACHE_EXPIRATION_TTL: 55s
+    resources:
+      cpus: 2
   mgr-tenant-entitlements:
     version: 2.0.2
     port: 9903
@@ -170,7 +171,6 @@ backend-modules:
       RETRIES_MODULE_MAX: '10'
     resources:
       cpus: 2
-      memory: 550
   # Keycloak modules
   mod-users-keycloak:
     deploy-sidecar: true
@@ -192,9 +192,6 @@ backend-modules:
   mod-roles-keycloak:
     deploy-sidecar: true
     port: 9906
-    resources:
-      cpus: 2
-      memory: 500
   mod-scheduler:
     deploy-sidecar: true
     port: 9907
@@ -228,83 +225,26 @@ backend-modules:
       OKAPI_URL: http://mod-consortia-keycloak.eureka:8082
   # Core Modules
   mod-permissions:
-    resources:
-      cpus: 1
-      memory: 200
   mod-configuration:
-    resources:
-      cpus: 1
-      memory: 200
   mod-users:
-    resources:
-      cpus: 1
-      memory: 250
   mod-users-bl:
-    resources:
-      cpus: 1
-      memory: 200
   mod-roles:
   mod-password-validator:
-    resources:
-      cpus: 1
-      memory: 350
   mod-settings:
-    resources:
-      cpus: 1
-      memory: 150
   mod-notes:
-    resources:
-      cpus: 1
-      memory: 350
   mod-tags:
-    resources:
-      cpus: 1
-      memory: 350
   mod-inventory-storage:
-    resources:
-      cpus: 1
-      memory: 250
   mod-inventory:
     port-server: 9403
-    resources:
-      cpus: 1
-      memory: 250
   mod-organizations-storage:
-    resources:
-      cpus: 1
-      memory: 250
   mod-organizations:
-    resources:
-      cpus: 1
-      memory: 200
   mod-invoice-storage:
-    resources:
-      cpus: 1
-      memory: 250
   mod-invoice:
-    resources:
-      cpus: 1
-      memory: 400
   mod-orders-storage:
-    resources:
-      cpus: 1
-      memory: 250
   mod-orders:
-    resources:
-      cpus: 1
-      memory: 350
   mod-finance:
-    resources:
-      cpus: 1
-      memory: 350
   mod-finance-storage:
-    resources:
-      cpus: 1
-      memory: 250
   mod-audit:
-    resources:
-      cpus: 1
-      memory: 350
   mod-pubsub:
     environment:
       # Rancher secret: mod-pubsub-systemuser
@@ -313,18 +253,9 @@ backend-modules:
       SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_NAME: mod-pubsub
       SYSTEM_USER_USERNAME: mod-pubsub
-    resources:
-      cpus: 1
-      memory: 300
   mod-circulation-storage:
-    resources:
-      cpus: 1
-      memory: 200
   mod-circulation:
     port-server: 9801
-    resources:
-      cpus: 1
-      memory: 200
   # Requires Elasticsearch to be uncommented in misc/docker-compose.yaml
   mod-search:
     deploy-module: false

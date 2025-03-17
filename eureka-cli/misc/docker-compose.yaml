@@ -126,8 +126,6 @@ services:
     build:
       context: ./folio-vault
       dockerfile: Dockerfile
-    cpus: 1
-    mem_limit: 200m
     environment:
       VAULT_ADDR: http://0.0.0.0:8200
       VAULT_API_ADDR: http://0.0.0.0:8200
