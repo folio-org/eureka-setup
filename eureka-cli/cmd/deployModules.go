@@ -69,7 +69,7 @@ func DeployModules() {
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### PULLING SIDECAR IMAGE ###")
 	deployModulesDto := internal.NewDeployModulesDto(vaultRootToken, map[string]string{internal.FolioRegistry: "", internal.EurekaRegistry: ""}, registryModules, backendModulesMap, environment, sidecarEnvironment)
 	sidecarImage := internal.GetSidecarImage(deployManagementCommand, deployModulesDto.RegistryModules[internal.EurekaRegistry])
-	sidecarResources := internal.CreateResources(viper.GetStringMap(internal.SidecarModuleResourcesKey))
+	sidecarResources := internal.CreateResources(false, viper.GetStringMap(internal.SidecarModuleResourcesKey))
 	internal.PullModule(deployManagementCommand, client, sidecarImage)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### DEPLOYING MODULES ###")

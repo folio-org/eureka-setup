@@ -96,7 +96,7 @@ func NewBackendModuleWithSidecar(dto BackendModuleDto) *BackendModule {
 		ModuleExposedPorts:      exposedPorts,
 		ModulePortBindings:      createPortBindings(*dto.port, *dto.port+1000, *dto.portServer),
 		ModuleEnvironment:       dto.environment,
-		ModuleResources:         *CreateResources(dto.resources),
+		ModuleResources:         *CreateResources(true, dto.resources),
 		DeploySidecar:           *dto.deploySidecar,
 		SidecarExposedPorts:     exposedPorts,
 		SidecarPortBindings:     createPortBindings(*dto.port+2000, *dto.port+3000, *dto.portServer),
@@ -113,35 +113,53 @@ func NewBackendModule(dto BackendModuleDto) *BackendModule {
 		ModuleExposedPorts:      createExposedPorts(*dto.portServer),
 		ModulePortBindings:      createPortBindings(*dto.port, *dto.port+1000, *dto.portServer),
 		ModuleEnvironment:       dto.environment,
-		ModuleResources:         *CreateResources(dto.resources),
+		ModuleResources:         *CreateResources(true, dto.resources),
 		DeploySidecar:           false,
 		SidecarExposedPorts:     nil,
 		SidecarPortBindings:     nil,
 	}
 }
 
-func CreateResources(resources map[string]any) *container.Resources {
+func CreateResources(isModule bool, resources map[string]any) *container.Resources {
 	if len(resources) == 0 {
-		oomKillDisable := false
-
-		return &container.Resources{
-			CPUCount:          DefaultModuleCpus,
-			MemoryReservation: DefaultModuleMemoryReservation * 1024 * 1024,
-			Memory:            DefaultModuleMemory * 1024 * 1024,
-			MemorySwap:        DefaultModuleSwap * 1024 * 1024,
-			OomKillDisable:    &oomKillDisable,
-		}
+		return createDefaultResources(isModule)
 	}
 
 	oomKillDisable := getBoolValueOrDefault("oom-kill-disable", resources, false)
 
 	return &container.Resources{
 		CPUCount:          getIntValueOrDefault("cpu-count", resources, DefaultModuleCpus),
-		MemoryReservation: getIntValueOrDefault("memory-reservation", resources, DefaultModuleMemoryReservation) * 1024 * 1024,
-		Memory:            getIntValueOrDefault("memory", resources, DefaultModuleMemory) * 1024 * 1024,
-		MemorySwap:        getIntValueOrDefault("memory-swap", resources, DefaultModuleSwap) * 1024 * 1024,
+		MemoryReservation: convertMiBToBytes(getIntValueOrDefault("memory-reservation", resources, DefaultModuleMemoryReservation)),
+		Memory:            convertMiBToBytes(getIntValueOrDefault("memory", resources, DefaultModuleMemory)),
+		MemorySwap:        convertMiBToBytes(getIntValueOrDefault("memory-swap", resources, DefaultModuleSwap)),
 		OomKillDisable:    &oomKillDisable,
 	}
+}
+
+func createDefaultResources(isModule bool) *container.Resources {
+	oomKillDisable := false
+
+	if isModule {
+		return &container.Resources{
+			CPUCount:          DefaultModuleCpus,
+			MemoryReservation: convertMiBToBytes(DefaultModuleMemoryReservation),
+			Memory:            convertMiBToBytes(DefaultModuleMemory),
+			MemorySwap:        convertMiBToBytes(DefaultModuleSwap),
+			OomKillDisable:    &oomKillDisable,
+		}
+	}
+
+	return &container.Resources{
+		CPUCount:          DefaultSidecarCpus,
+		MemoryReservation: convertMiBToBytes(DefaultSidecarMemoryReservation),
+		Memory:            convertMiBToBytes(DefaultSidecarMemory),
+		MemorySwap:        convertMiBToBytes(DefaultSidecarSwap),
+		OomKillDisable:    &oomKillDisable,
+	}
+}
+
+func convertMiBToBytes(mib int64) int64 {
+	return mib * 1024 * 1024
 }
 
 func getIntValueOrDefault(key string, resources map[string]any, defaultValue int64) int64 {

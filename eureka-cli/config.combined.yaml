@@ -118,12 +118,6 @@ sidecar-module:
     MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
     MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
     SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong-local.eureka:8000
-  resources:
-    cpu-count: 1
-    memory-reservation: 64
-    memory: 250
-    memory-swap: 0
-    oom-kill-disable: true
 # Backend modules
 backend-modules:
   # Management modules
@@ -184,6 +178,9 @@ backend-modules:
       SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_NAME: mod-users-keycloak
       SYSTEM_USER_USERNAME: mod-users-keycloak
+    resources:
+      cpus: 4
+      memory: 900
   mod-login-keycloak:
     deploy-sidecar: true
     port: 9905
@@ -192,6 +189,8 @@ backend-modules:
   mod-roles-keycloak:
     deploy-sidecar: true
     port: 9906
+    resources:
+      cpus: 4
   mod-scheduler:
     deploy-sidecar: true
     port: 9907
@@ -202,6 +201,8 @@ backend-modules:
       SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_NAME: mod-scheduler
       SYSTEM_USER_USERNAME: mod-scheduler
+    resources:
+      cpus: 4
   # Keycloak Consortia modules
   mod-consortia-keycloak:
     deploy-module: false
