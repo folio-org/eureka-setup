@@ -22,7 +22,7 @@ const (
 	EurekaRegistry string = "eureka"
 
 	DockerComposeWorkDir string = "./misc"
-	DefaultNetworkName   string = "fpm-net"
+	DefaultNetworkName   string = "eureka-net"
 	DefaultNetworkId     string = "eureka"
 	DefaultHostname      string = "http://host.docker.internal:%d%s"
 	DefaultHostIp        string = "0.0.0.0"
@@ -52,106 +52,25 @@ func GetGatewayHostname() string {
 }
 
 func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[string]any, managementOnly bool) map[string]BackendModule {
-	const (
-		DeployModuleKey = "deploy-module"
-		VersionKey      = "version"
-		PortKey         = "port"
-		PortKeyServer   = "port-server"
-		SidecarKey      = "sidecar"
-		ModuleEnvKey    = "environment"
-	)
-
 	backendModulesMap := make(map[string]BackendModule)
 
 	for name, value := range backendModulesAnyMap {
-		var (
-			deployModule bool = true
-			version      *string
-			port         *int
-			portServer   *int
-			sidecar      *bool
-			environment  map[string]interface{}
-		)
-
-		getDefaultPortServer := func() *int {
-			defaultServerPort, _ := strconv.Atoi(DefaultServerPort)
-			portServerValue := defaultServerPort
-			return &portServerValue
-		}
-
-		getDefaultPort := func() *int {
-			PortStartIndex++
-			return &PortStartIndex
-		}
-
-		getDefaultSidecar := func() *bool {
-			sidecarDefaultValue := true
-			return &sidecarDefaultValue
-		}
-
+		var dto BackendModuleDto
 		if value == nil {
-			port = getDefaultPort()
-			portServer = getDefaultPortServer()
-			// Avoid deploying a sidecar for mgr-* modules
-			if !strings.HasPrefix(name, ManagementModulePattern) {
-				sidecar = getDefaultSidecar()
-			}
-			environment = make(map[string]interface{})
+			dto = createDefaultBackendDto(name)
 		} else {
-			mapEntry := value.(map[string]interface{})
-
-			if mapEntry[DeployModuleKey] != nil {
-				deployModule = mapEntry[DeployModuleKey].(bool)
-			}
-
-			if mapEntry[VersionKey] != nil {
-				var versionValue string
-				_, ok := mapEntry[VersionKey].(float64)
-				if ok {
-					versionValue = strconv.FormatFloat(mapEntry[VersionKey].(float64), 'f', -1, 64)
-				} else {
-					versionValue = mapEntry[VersionKey].(string)
-				}
-				version = &versionValue
-			}
-
-			if mapEntry[PortKey] != nil {
-				portValue := mapEntry[PortKey].(int)
-				port = &portValue
-			} else {
-				port = getDefaultPort()
-			}
-
-			if mapEntry[PortKeyServer] != nil {
-				portServerValue := mapEntry[PortKeyServer].(int)
-				portServer = &portServerValue
-			} else {
-				portServer = getDefaultPortServer()
-			}
-
-			if mapEntry[SidecarKey] != nil {
-				sidecarValue := mapEntry[SidecarKey].(bool)
-				sidecar = &sidecarValue
-			} else if !strings.HasPrefix(name, ManagementModulePattern) {
-				sidecar = getDefaultSidecar()
-			}
-
-			if mapEntry[ModuleEnvKey] != nil {
-				environment = mapEntry[ModuleEnvKey].(map[string]interface{})
-			} else {
-				environment = make(map[string]interface{})
-			}
+			dto = createConfigurableBackendDto(value, name)
 		}
 
-		if sidecar != nil && *sidecar {
-			backendModulesMap[name] = *NewBackendModuleAndSidecar(deployModule, name, version, *port, *portServer, *sidecar, environment)
+		if dto.deploySidecar != nil && *dto.deploySidecar {
+			backendModulesMap[name] = *NewBackendModuleWithSidecar(dto)
 		} else {
-			backendModulesMap[name] = *NewBackendModule(name, version, *port, *portServer, environment)
+			backendModulesMap[name] = *NewBackendModule(dto)
 		}
 
 		moduleInfo := name
-		if version != nil {
-			moduleInfo = fmt.Sprintf("%s with fixed version %s", name, *version)
+		if dto.version != nil {
+			moduleInfo = fmt.Sprintf("%s with fixed version %s", name, *dto.version)
 		}
 
 		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found backend module in config: %s", moduleInfo))
@@ -160,12 +79,125 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 	return backendModulesMap
 }
 
-func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMaps ...map[string]any) map[string]FrontendModule {
-	const (
-		DeployModuleKey = "deploy-module"
-		VersionKey      = "version"
-	)
+func createDefaultBackendDto(name string) (dto BackendModuleDto) {
+	dto.deployModule = true
+	if !strings.HasPrefix(name, ManagementModulePattern) {
+		dto.deploySidecar = getDefaultDeploySidecar()
+	}
+	dto.version = nil
 
+	PortStartIndex++
+	dto.port = &PortStartIndex
+	dto.portServer = getDefaultPortServer()
+	dto.environment = make(map[string]any)
+	dto.resources = make(map[string]any)
+
+	return dto
+}
+
+func createConfigurableBackendDto(value any, name string) (dto BackendModuleDto) {
+	mapEntry := value.(map[string]any)
+
+	dto.deployModule = getDeployModule(mapEntry)
+	dto.deploySidecar = getDeploySidecar(mapEntry, name)
+	dto.version = getVersion(mapEntry)
+	dto.port = getPort(mapEntry)
+	dto.portServer = getPortServer(mapEntry)
+	dto.environment = createEnvironment(mapEntry)
+	dto.resources = createResources(mapEntry)
+
+	return dto
+}
+
+func getDeployModule(mapEntry map[string]any) bool {
+	if mapEntry["deploy-module"] != nil {
+		return mapEntry["deploy-module"].(bool)
+	}
+
+	return true
+}
+
+func getDeploySidecar(mapEntry map[string]any, name string) *bool {
+	var sidecar *bool
+	if mapEntry["deploy-sidecar"] != nil {
+		sidecarValue := mapEntry["deploy-sidecar"].(bool)
+		sidecar = &sidecarValue
+	} else if !strings.HasPrefix(name, ManagementModulePattern) {
+		sidecar = getDefaultDeploySidecar()
+	}
+
+	return sidecar
+}
+
+func getDefaultDeploySidecar() *bool {
+	deploySidecarDefaultValue := true
+	return &deploySidecarDefaultValue
+}
+
+func getVersion(mapEntry map[string]any) *string {
+	var version *string
+	if mapEntry["version"] != nil {
+		var versionValue string
+		_, ok := mapEntry["version"].(float64)
+		if ok {
+			versionValue = strconv.FormatFloat(mapEntry["version"].(float64), 'f', -1, 64)
+		} else {
+			versionValue = mapEntry["version"].(string)
+		}
+		version = &versionValue
+	}
+
+	return version
+}
+
+func getPort(mapEntry map[string]any) *int {
+	var port *int
+	if mapEntry["port"] != nil {
+		portValue := mapEntry["port"].(int)
+		port = &portValue
+	} else {
+		PortStartIndex++
+		port = &PortStartIndex
+	}
+
+	return port
+}
+
+func getPortServer(mapEntry map[string]any) *int {
+	var portServer *int
+	if mapEntry["port-server"] != nil {
+		portServerValue := mapEntry["port-server"].(int)
+		portServer = &portServerValue
+	} else {
+		portServer = getDefaultPortServer()
+	}
+
+	return portServer
+}
+
+func getDefaultPortServer() *int {
+	defaultServerPort, _ := strconv.Atoi(DefaultServerPort)
+	portServerValue := defaultServerPort
+	return &portServerValue
+}
+
+func createEnvironment(mapEntry map[string]any) map[string]any {
+	if mapEntry["environment"] != nil {
+		return mapEntry["environment"].(map[string]any)
+	}
+
+	return make(map[string]any)
+}
+
+func createResources(mapEntry map[string]any) map[string]any {
+	if mapEntry["resources"] != nil {
+		return mapEntry["resources"].(map[string]any)
+	}
+
+	return make(map[string]any)
+}
+
+func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMaps ...map[string]any) map[string]FrontendModule {
 	frontendModulesMap := make(map[string]FrontendModule)
 
 	for _, frontendModulesAnyMap := range frontendModulesAnyMaps {
@@ -176,14 +208,14 @@ func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMaps ...
 			)
 
 			if value != nil {
-				mapEntry := value.(map[string]interface{})
+				mapEntry := value.(map[string]any)
 
-				if mapEntry[DeployModuleKey] != nil {
-					deployModule = mapEntry[DeployModuleKey].(bool)
+				if mapEntry["deploy-module"] != nil {
+					deployModule = mapEntry["deploy-module"].(bool)
 				}
 
-				if mapEntry[VersionKey] != nil {
-					versionValue := mapEntry[VersionKey].(string)
+				if mapEntry["version"] != nil {
+					versionValue := mapEntry["version"].(string)
 					version = &versionValue
 				}
 			}
@@ -279,18 +311,17 @@ func PreparePackageJson(commandName string, configPath string, tenant string) {
 }
 
 func GetStripesBranch(commandName string, defaultBranch plumbing.ReferenceName) plumbing.ReferenceName {
-	var stripesBranch plumbing.ReferenceName
-
 	if viper.IsSet(ApplicationStripesBranchKey) {
 		branchStr := viper.GetString(ApplicationStripesBranchKey)
-		stripesBranch = plumbing.ReferenceName(branchStr)
+		stripesBranch := plumbing.ReferenceName(branchStr)
 		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Got stripes branch from config: %s", stripesBranch))
-	} else {
-		stripesBranch = defaultBranch
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf("No stripes branch in config. Using default branch: %s", stripesBranch))
+
+		return stripesBranch
 	}
 
-	return stripesBranch
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("No stripes branch in config. Using default branch: %s", defaultBranch))
+
+	return defaultBranch
 }
 
 func HasTenant(tenant string) bool {
@@ -298,7 +329,7 @@ func HasTenant(tenant string) bool {
 }
 
 func DeployUi(tenant string) bool {
-	mapEntry, ok := viper.GetStringMap(TenantsKey)[tenant].(map[string]interface{})
+	mapEntry, ok := viper.GetStringMap(TenantsKey)[tenant].(map[string]any)
 	if !ok {
 		return false
 	}

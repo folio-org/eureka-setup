@@ -51,7 +51,7 @@ func AppendManagementEnvironment(environment []string) []string {
 	return environment
 }
 
-func AppendModuleEnvironment(environment []string, extraEnvironmentMap map[string]interface{}) []string {
+func AppendModuleEnvironment(environment []string, extraEnvironmentMap map[string]any) []string {
 	for key, value := range extraEnvironmentMap {
 		if key == "" {
 			continue

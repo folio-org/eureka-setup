@@ -1,5 +1,5 @@
 networks:
-  fpm-net:
+  eureka-net:
     name: eureka
     driver: bridge
 
@@ -15,10 +15,11 @@ services:
   ### Postgres ###
   postgres:
     container_name: postgres
-    image: postgres:16.4
+    image: postgres:16.8
     restart: unless-stopped
     command: -c max_connections=500 -c shared_buffers=1024MB -c log_duration=on -c log_min_duration_statement=0ms -c shared_preload_libraries=pg_stat_statements -c max_locks_per_transaction=1024 -c jit=off
-    mem_limit: 2g
+    cpus: 2
+    mem_limit: 1g
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
@@ -27,7 +28,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks: 
-      - fpm-net
+      - eureka-net
     ports:
       - "5432:5432"
     healthcheck:
@@ -41,15 +42,19 @@ services:
     container_name: kafka-ui
     image: provectuslabs/kafka-ui:v0.7.2
     restart: unless-stopped
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_JMXPORT: 9997
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka.eureka:9092
+    cpus: '0.5'
+    mem_limit: 350m
     depends_on:
-      - zookeeper
-      - kafka
+      zookeeper:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: kafka-local
+      KAFKA_CLUSTERS_0_JMXPORT: 9997
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka.eureka:9091
     networks: 
-      - fpm-net
+      - eureka-net
     ports:
       - "9080:8080"
     healthcheck:
@@ -60,9 +65,18 @@ services:
 
   zookeeper:
     container_name: zookeeper
-    image: zookeeper:3.9.3-jre-17
+    image: bitnami/zookeeper:3.9.3
+    restart: unless-stopped
+    cpus: 1
+    mem_limit: 200m
+    environment:
+      ZOO_SERVER_ID: 1
+      ZOO_PORT_NUMBER: 2181
+      ZOO_TICK_TIME: 2000
+      ZOO_LOG_LEVEL: INFO
+      ALLOW_ANONYMOUS_LOGIN: "yes"
     networks: 
-      - fpm-net
+      - eureka-net
     ports:
       - "2181:2181"
     healthcheck:
@@ -74,29 +88,31 @@ services:
 
   kafka:
     container_name: kafka
-    image: wurstmeister/kafka:2.13-2.8.1
+    image: bitnami/kafka:3.9.0
     restart: unless-stopped
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_LISTENERS: INSIDE://:9091,OUTSIDE://:9092
-      KAFKA_ADVERTISED_LISTENERS: INSIDE://:9091,OUTSIDE://kafka.eureka:9092
-      KAFKA_ADVERTISED_HOST_NAME: kafka.eureka
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper.eureka:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
-      KAFKA_MESSAGE_MAX_BYTES: 1000000
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    cpus: 2
+    mem_limit: 2g
     depends_on:
       zookeeper:
         condition: service_healthy
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9091,EXTERNAL://:9092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://:9091,EXTERNAL://kafka.eureka:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper.eureka:2181
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CFG_LOG_RETENTION_BYTES: -1
+      KAFKA_CFG_LOG_RETENTION_HOURS: -1
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
     volumes:
       - kafka-data:/kafka
     networks: 
-      - fpm-net
+      - eureka-net
     ports:
       - "9092:9092"
     healthcheck:
-      test: nc -zv localhost 9092 || exit -1
+      test: [ "CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9091", "--list" ]
       interval: 10s
       timeout: 5s
       retries: 15
@@ -117,7 +133,7 @@ services:
       - vault-data:/vault/data:rw
     cap_add: [ IPC_LOCK ]
     networks: 
-      - fpm-net
+      - eureka-net
     ports:
       - "8200:8200"
     healthcheck:
@@ -129,14 +145,16 @@ services:
   ### Keycloak ###
   keycloak:
     container_name: keycloak
-    image: nginx:1.27.2
+    image: nginx:1.27.4
     restart: unless-stopped
+    cpus: 1
+    mem_limit: 35m
     depends_on:
       - keycloak-internal
     volumes:
       - ./folio-keycloak-nginx/keycloak-nginx.conf:/etc/nginx/nginx.conf:ro
     networks: 
-      - fpm-net
+      - eureka-net
     ports:
       - "8080:8080"
     healthcheck:
@@ -153,6 +171,13 @@ services:
     build:
       context: ./folio-keycloak
       dockerfile: Dockerfile
+    cpus: 4
+    mem_limit: 2g
+    depends_on:
+      postgres:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
@@ -173,32 +198,27 @@ services:
       KC_LOG_LEVEL: INFO
       DEBUG: true
       DEBUG_PORT: '*:8787'
-    depends_on:
-      postgres:
-        condition: service_healthy
-      vault:
-        condition: service_healthy
     networks: 
-      - fpm-net
+      - eureka-net
     ports:
       - "18081:8080"
       - "18787:8787"
-    deploy:
-      resources:
-        limits:
-          memory: 1200M
-        reservations:
-          memory: 1200M
+      - "19000:9000"
 
   ### Kong ###
   # Source repository: https://github.com/folio-org/folio-kong
-  api-gateway:
-    container_name: api-gateway
+  kong-local:
+    container_name: kong-local
     image: folio-kong:latest
     restart: unless-stopped
     build:
       context: ./folio-kong
       dockerfile: Dockerfile
+    cpus: 4
+    mem_limit: 2g
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       KONG_DATABASE: postgres
       KONG_PG_DATABASE: kong
@@ -217,11 +237,8 @@ services:
       KONG_PLUGINS: bundled
       KONG_LOG_LEVEL: debug
       ENV: local
-    depends_on:
-      postgres:
-        condition: service_healthy
     networks: 
-      - fpm-net
+      - eureka-net
     ports:
       - "8000:8000"
       - "8001:8001"
@@ -238,12 +255,17 @@ services:
   # An optional service when deploying mod-search
   # kibana:
   #   container_name: kibana
-  #   image: bitnami/kibana:8.16.1
+  #   image: bitnami/kibana:8.17.3
   #   restart: unless-stopped
+  #   cpus: 1
+  #   mem_limit: 1g
+  #   depends_on:
+  #     elasticsearch:
+  #       condition: service_healthy
   #   environment:
   #     ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
   #   networks: 
-  #     - fpm-net
+  #     - eureka-net
   #   ports:
   #     - 15601:5601 
   #   healthcheck:
@@ -255,13 +277,15 @@ services:
   # A required service when deploying mod-search
   # elasticsearch:
   #   container_name: elasticsearch
-  #   image: bitnami/elasticsearch:8.16.1
+  #   image: bitnami/elasticsearch:8.17.3
   #   restart: unless-stopped
+  #   cpus: 1
+  #   mem_limit: 1g
   #   environment:
   #     ELASTICSEARCH_PLUGINS:
   #       "analysis-icu,analysis-kuromoji,analysis-smartcn,analysis-nori,analysis-phonetic"
   #   networks: 
-  #     - fpm-net
+  #     - eureka-net
   #   ports:
   #     - 9200:9200
   #     - 9300:9300
@@ -277,12 +301,14 @@ services:
     build:
       context: .
       dockerfile_inline: |
-        FROM nginx:1.27.2
+        FROM nginx:1.27.4
         RUN apt update; apt install netcat-traditional -y 
     image: netcat:latest
     restart: unless-stopped
+    cpus: '0.25'
+    mem_limit: 35m
     networks: 
-      - fpm-net
+      - eureka-net
     ports:
       - "8445:80"
     healthcheck:

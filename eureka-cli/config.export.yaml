@@ -53,7 +53,7 @@ environment:
   # Management
   MT_URL: http://mgr-tenants.eureka:8081
   AM_CLIENT_URL: http://mgr-applications.eureka:8081
-  KONG_ADMIN_URL: http://api-gateway.eureka:8001
+  KONG_ADMIN_URL: http://kong-local.eureka:8001
   # Keycloak
   KC_URL: http://keycloak.eureka:8080
   KC_CONFIG_TTL: 3600s
@@ -71,7 +71,7 @@ environment:
   # Java
   JAVA_OPTIONS: >-
     -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
-    -XX:MaxRAMPercentage=70.0 -Xms128m -Xmx400m 
+    -XX:MaxRAMPercentage=80.0 -Xms128m -Xmx400m 
     -Djdk.internal.httpclient.disableHostnameVerification=true
 # Tenants
 tenants:
@@ -113,14 +113,14 @@ sidecar-module:
     QUARKUS_HTTP_LIMITS_MAX_INITIAL_LINE_LENGTH: 8192
     JAVA_OPTIONS: >-
       -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
-      -XX:+UseZGC -XX:MaxRAMPercentage=85.0 -Xms64m -Xmx64m
+      -XX:+UseZGC -XX:MaxRAMPercentage=80.0 -Xms64m -Xmx64m
       -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=INFO -Dquarkus.log.category.'org.apache.kafka'.level=INFO 
       -Djava.util.logging.manager=org.jboss.logmanager.LogManager
     # Rancher secret: eureka-common
     KC_URL: http://keycloak.eureka:8080
     MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
     MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
-    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://api-gateway.eureka:8000
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong-local.eureka:8000
 # Backend modules
 backend-modules:
   mod-data-export-spring:

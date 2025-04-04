@@ -46,7 +46,7 @@ func UndeployUi() {
 	defer client.Close()
 
 	for _, value := range internal.GetTenants(undeployUiCommand, enableDebug, false) {
-		mapEntry := value.(map[string]interface{})
+		mapEntry := value.(map[string]any)
 		tenant := mapEntry["name"].(string)
 
 		filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(singleUiContainerPattern, tenant)})

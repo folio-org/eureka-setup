@@ -85,7 +85,7 @@ func GetModulesFromRegistries(commandName string, installJsonUrls map[string]str
 					continue
 				}
 
-				mapEntry := value.(map[string]interface{})
+				mapEntry := value.(map[string]any)
 				if mapEntry["version"] == nil {
 					continue
 				}
