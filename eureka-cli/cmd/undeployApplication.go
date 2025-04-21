@@ -19,7 +19,9 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const undeployApplicationCommand string = "Undeploy Application"
@@ -30,6 +32,10 @@ var undeployApplicationCmd = &cobra.Command{
 	Short: "Undeploy application",
 	Long:  `Undeploy platform application.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(viper.GetStringMap(internal.ApplicationGatewayDependenciesKey)) > 0 {
+			UndeployChildApplication()
+			return
+		}
 		UndeployApplication()
 	},
 }

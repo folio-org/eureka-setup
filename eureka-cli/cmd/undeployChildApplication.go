@@ -36,6 +36,7 @@ var undeployChildApplicationCmd = &cobra.Command{
 
 func UndeployChildApplication() {
 	start := time.Now()
+	RemoveTenantEntitlements()
 	UndeployModules()
 	DetachCapabilitySets()
 	AttachCapabilitySets()

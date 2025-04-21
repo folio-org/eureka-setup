@@ -38,8 +38,7 @@ var redirectCmd = &cobra.Command{
 // TODO Fix redirectModules to work on host network
 func RedirectModules() {
 	slog.Info(redirectModuleCommand, internal.GetFuncName(), "### REDIRECT MODULE ###")
-	id = strings.ReplaceAll(id, ":", "-")
-	internal.UpdateApplicationModuleDiscovery(redirectModuleCommand, enableDebug, id, location, restore, internal.DefaultServerPort)
+	internal.UpdateApplicationModuleDiscovery(redirectModuleCommand, enableDebug, strings.ReplaceAll(id, ":", "-"), location, restore, internal.DefaultServerPort)
 }
 
 func init() {
