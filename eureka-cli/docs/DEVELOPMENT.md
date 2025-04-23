@@ -80,11 +80,23 @@ netsh interface portproxy add v4tov4 listenport=8081 listenaddress=mod-finance-s
 
 - Start the module instances in IntelliJ that which communicate with the other modules deployed in Eureka environment via their custom sidecars 
 
-> IntelliJ run configuration and env file for *mod-orders*
-![mod-orders](../images/mod_orders_run_config.png)
+<table>
+<caption>IntelliJ Run Configurations and Env Files</caption>
+<thead>
+<tr>
+<th>mod-orders</th>
+<th>mod-finance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img src="../images/mod_orders_run_config.png" alt="mod_orders_run_config" /></td>
+<td><img src="../images/mod_finance_run_config.png" alt="mod_finance_run_config" /></td>
+</tr>
+<tr>
+<td>
 
 ```conf
-; mod-orders .env
 ; PostgreSQL
 DB_HOST=localhost
 DB_PORT=5432
@@ -94,10 +106,12 @@ DB_PASSWORD=supersecret
 DB_CHARSET=UTF-8
 DB_MAXPOOLSIZE=50
 DB_QUERYTIMEOUT=60000
+
 ; Kafka
 ENV=folio
 KAFKA_HOST=localhost
 KAFKA_PORT=9092
+
 ; Okapi (compatible with Kong)
 OKAPI_HOST=localhost
 OKAPI_PORT=37001
@@ -107,11 +121,10 @@ OKAPI_SERVICE_URL=http://localhost:37001
 OKAPI_URL=http://localhost:37001
 ```
 
-> IntelliJ run configuration and module env file for *mod-finance*
-![mod-finance](../images/mod_finance_run_config.png)
+</td>
+<td>
 
 ```conf
-; mod-finance .env
 ; PostgreSQL
 DB_HOST=localhost
 DB_PORT=5432
@@ -121,10 +134,12 @@ DB_PASSWORD=supersecret
 DB_CHARSET=UTF-8
 DB_MAXPOOLSIZE=50
 DB_QUERYTIMEOUT=60000
+
 ; Kafka
 ENV=folio
 KAFKA_HOST=localhost
 KAFKA_PORT=9092
+
 ; Okapi (compatible with Kong)
 OKAPI_HOST=localhost
 OKAPI_PORT=37002
@@ -133,6 +148,10 @@ OKAPI_SERVICE_PORT=37002
 OKAPI_SERVICE_URL=http://localhost:37002
 OKAPI_URL=http://localhost:37002
 ```
+</td>
+</tr>
+</tbody>
+</table>
 
 - Perform module healthchecks: `curl -sw "\n" --connect-timeout 3 http://localhost:36001/admin/health http://localhost:36002/admin/health`
 > Expect: *"OK"*
