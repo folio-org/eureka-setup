@@ -78,7 +78,7 @@ netsh interface portproxy add v4tov4 listenport=8081 listenaddress=mod-orders-sc
 netsh interface portproxy add v4tov4 listenport=8081 listenaddress=mod-finance-sc.eureka connectport=37002 connectaddress=localhost
 ```
 
-- Start the module instances in IntelliJ that which communicate with the other modules deployed in Eureka environment via their custom sidecars 
+- Start the module instances in IntelliJ which will communicate with other modules deployed in Eureka environment via their custom sidecars 
 
 <table>
 <caption>IntelliJ Run Configurations and Env Files</caption>
