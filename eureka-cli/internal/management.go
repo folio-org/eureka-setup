@@ -258,7 +258,7 @@ func UpdateApplicationModuleDiscovery(commandName string, enableDebug bool, id s
 	name := TrimModuleName(ModuleIdRegexp.ReplaceAllString(id, `$1`))
 	version := ModuleIdRegexp.ReplaceAllString(id, `$2$3`)
 	if location == "" || restore {
-		location = fmt.Sprintf("http://%s.eureka:%s", name, portServer)
+		location = fmt.Sprintf("http://%s-sc.eureka:%s", name, portServer)
 	}
 
 	applicationDiscoveryBytes, err := json.Marshal(map[string]any{"id": id, "name": name, "version": version, "location": location})

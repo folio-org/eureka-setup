@@ -27,14 +27,14 @@ mkdir -p ./bin
 env GOOS=windows GOARCH=amd64 go build -o ./bin .
 ```
 
-> See BUILD.md to build a platform-specific binary
+> See docs/BUILD.md to build a platform-specific binary
 
 ### (Optional) Setup a default config in the home folder
 
 - This config will be used by default if `-c` or `--config` flag is not specified
 
 ```shell
-./bin/eureka-cli.exe setup
+./bin/eureka-cli setup
 ```
 
 ### (Optional) Install binary
@@ -43,10 +43,10 @@ env GOOS=windows GOARCH=amd64 go build -o ./bin .
 
 ```shell
 go install
-eureka-cli.exe -c ./config.minimal.yaml deployApplication
+eureka-cli -c ./config.combined.yaml deployApplication
 ```
 
-### Deploy a minimal platform application
+### Deploy the combined application with Acquisitions modules
 
 #### Using Public DockerHub container registry (folioci & folioorg namespaces)
 
@@ -54,7 +54,7 @@ eureka-cli.exe -c ./config.minimal.yaml deployApplication
 - Enable debug: `-d` or `--debug`
 
 ```shell
-./bin/eureka-cli -c ./config.minimal.yaml deployApplication
+./bin/eureka-cli -c ./config.combined.yaml deployApplication
 ```
 
 #### Using Private AWS ECR container registry
@@ -67,21 +67,23 @@ To use AWS ECR as your container registry rather than the public Folio DockerHub
 export AWS_ACCESS_KEY_ID=<access_key>
 export AWS_SECRET_ACCESS_KEY=<secret_key>
 export AWS_ECR_FOLIO_REPO=<repository_url> 
-./bin/eureka-cli.exe -c ./config.minimal.yaml deployApplication
+./bin/eureka-cli -c ./config.combined.yaml deployApplication
 ```
 
 - Reuse stored AWS credentials found in `~/.aws/config`
 
 ```shell
 export AWS_ECR_FOLIO_REPO=<repository_url>
-AWS_SDK_LOAD_CONFIG=true ./bin/eureka-cli.exe -c ./config.minimal.yaml deployApplication
+AWS_SDK_LOAD_CONFIG=true ./bin/eureka-cli. -c ./config.combined.yaml deployApplication
 ```
 
-> See AWS_CLI_PREPARATIONS.md to prepare AWS CLI beforehand
+> See docs/AWS_CLI.md to prepare AWS CLI beforehand
 
-- Undeploy using:
+### Undeploy the combined application
 
-> ./bin/eureka-cli.exe -c ./config.minimal.yaml undeployApplication
+```shell
+./bin/eureka-cli -c ./config.combined.yaml undeployApplication
+```
 
 ### Use the environment
 

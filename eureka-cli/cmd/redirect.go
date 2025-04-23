@@ -35,7 +35,7 @@ var redirectCmd = &cobra.Command{
 	},
 }
 
-// TODO Fix redirectModules to work on host network
+// TODO: Refactor or Recreate with a new name "InterceptModule"
 func RedirectModules() {
 	slog.Info(redirectModuleCommand, internal.GetFuncName(), "### REDIRECT MODULE ###")
 	id = strings.ReplaceAll(id, ":", "-")
