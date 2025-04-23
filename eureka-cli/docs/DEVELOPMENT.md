@@ -12,7 +12,7 @@
 - `cd` into `eureka-setup/eureka-cli`
 - Install `air` binary: `go install github.com/air-verse/air@latest`
 - Run `air` to enable live compilation
-> For saved code changes & after some polling interval a new binary will be made in `./bin` folder
+> Will poll for code changes to recreate a binary in `./bin` folder
 - See `.air.toml` for more settings on live compilation
 
 ### Enable Debugger in VSCode to analyze Eureka CLI commands
