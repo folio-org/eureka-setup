@@ -160,7 +160,7 @@ OKAPI_URL=http://localhost:37002
 - Finally test *mod-finance* interception by creating a *Fund Budget* in the *Finance App*
 - After that, create a *Purchase Order* with a *Purchase Order Line* and an attached *Fund Distribution*, using the *Fund* created in the *Finance App*, within the *Orders App*
 
-### Disable Module Interception in IntelliJ
+### Disable Module Interception
 
 - Stop the module instances in IntelliJ
 - Delete the previously created port-proxies

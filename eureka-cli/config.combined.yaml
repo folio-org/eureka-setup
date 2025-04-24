@@ -100,11 +100,6 @@ backend-modules:
   mgr-applications:
     port: 9901
     environment:
-      # DB
-      DB_DATABASE: mgr
-      DB_USERNAME: mgr_rw
-      DB_PASSWORD: supersecret
-      # Management
       MODULE_URL: http://mgr-applications.eureka:8081
       TE_URL: http://mgr-tenant-entitlements.eureka:8081
       VALIDATION_MODE: none
@@ -114,22 +109,12 @@ backend-modules:
   mgr-tenants:
     port: 9902
     environment:
-      # DB
-      DB_DATABASE: mgr
-      DB_USERNAME: mgr_rw
-      DB_PASSWORD: supersecret
-      # Management
       MODULE_URL: http://mgr-tenants.eureka:8081
     resources:
       cpus: 2
   mgr-tenant-entitlements:
     port: 9903
     environment:
-      # DB
-      DB_DATABASE: mgr
-      DB_USERNAME: mgr_rw
-      DB_PASSWORD: supersecret
-      # Management
       MODULE_URL: http://mgr-tenant-entitlements.eureka:8081
       TENANT_URL: http://mgr-tenants.eureka:8081
       AM_CLIENT_URL: http://mgr-applications.eureka:8081

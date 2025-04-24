@@ -46,11 +46,9 @@ func DetachCapabilitySets() {
 			continue
 		}
 
-		slog.Info(detachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("### ACQUIRING KEYCLOAK ACCESS TOKEN FOR %s TENANT ###", existingTenant))
-		accessToken := internal.GetKeycloakAccessToken(detachCapabilitySetsCommand, enableDebug, vaultRootToken, existingTenant)
-
 		slog.Info(detachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("### DETACHING CAPABILITY SETS FROM ROLES FOR %s TENANT ###", existingTenant))
-		internal.DetachCapabilitySetsFromRoles(detachCapabilitySetsCommand, enableDebug, false, existingTenant, accessToken)
+		keycloakAccessToken := internal.GetKeycloakAccessToken(detachCapabilitySetsCommand, enableDebug, vaultRootToken, existingTenant)
+		internal.DetachCapabilitySetsFromRoles(detachCapabilitySetsCommand, enableDebug, false, existingTenant, keycloakAccessToken)
 	}
 }
 

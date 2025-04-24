@@ -46,11 +46,9 @@ func CreateRoles() {
 			continue
 		}
 
-		slog.Info(createRolesCommand, internal.GetFuncName(), fmt.Sprintf("### ACQUIRING KEYCLOAK ACCESS TOKEN FOR %s TENANT ###", existingTenant))
-		accessToken := internal.GetKeycloakAccessToken(createRolesCommand, enableDebug, vaultRootToken, existingTenant)
-
 		slog.Info(createRolesCommand, internal.GetFuncName(), fmt.Sprintf("### CREATING ROLES FOR %s TENANT ###", existingTenant))
-		internal.CreateRoles(createRolesCommand, enableDebug, false, existingTenant, accessToken)
+		keycloakAccessToken := internal.GetKeycloakAccessToken(createRolesCommand, enableDebug, vaultRootToken, existingTenant)
+		internal.CreateRoles(createRolesCommand, enableDebug, false, existingTenant, keycloakAccessToken)
 	}
 }
 

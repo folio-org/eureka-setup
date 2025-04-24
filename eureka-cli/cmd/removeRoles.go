@@ -51,11 +51,9 @@ func RemoveRoles() {
 			continue
 		}
 
-		slog.Info(removeRolesCommand, internal.GetFuncName(), fmt.Sprintf("### ACQUIRING KEYCLOAK ACCESS TOKEN FOR %s TENANT ###", existingTenant))
-		accessToken := internal.GetKeycloakAccessToken(removeRolesCommand, enableDebug, vaultRootToken, existingTenant)
-
 		slog.Info(removeRolesCommand, internal.GetFuncName(), fmt.Sprintf("### REMOVING ROLES FOR %s TENANT ###", existingTenant))
-		internal.RemoveRoles(removeRolesCommand, enableDebug, false, existingTenant, accessToken)
+		keycloakAccessToken := internal.GetKeycloakAccessToken(removeRolesCommand, enableDebug, vaultRootToken, existingTenant)
+		internal.RemoveRoles(removeRolesCommand, enableDebug, false, existingTenant, keycloakAccessToken)
 	}
 }
 

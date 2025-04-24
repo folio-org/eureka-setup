@@ -60,11 +60,9 @@ func AttachCapabilitySets() {
 		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), "### POLLING FOR CAPABILITY SETS CREATION ###")
 		pollCapabilitySetsCreation(existingTenant)
 
-		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("### ACQUIRING KEYCLOAK ACCESS TOKEN FOR %s TENANT ###", existingTenant))
-		accessToken := internal.GetKeycloakAccessToken(attachCapabilitySetsCommand, enableDebug, vaultRootToken, existingTenant)
-
 		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("### ATTACHING CAPABILITY SETS TO ROLES FOR %s TENANT ###", existingTenant))
-		internal.AttachCapabilitySetsToRoles(attachCapabilitySetsCommand, enableDebug, existingTenant, accessToken)
+		keycloakAccessToken := internal.GetKeycloakAccessToken(attachCapabilitySetsCommand, enableDebug, vaultRootToken, existingTenant)
+		internal.AttachCapabilitySetsToRoles(attachCapabilitySetsCommand, enableDebug, existingTenant, keycloakAccessToken)
 	}
 }
 

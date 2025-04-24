@@ -46,11 +46,9 @@ func CreateUsers() {
 			continue
 		}
 
-		slog.Info(createUsersCommand, internal.GetFuncName(), fmt.Sprintf("### ACQUIRING KEYCLOAK ACCESS TOKEN FOR %s TENANT ###", existingTenant))
-		accessToken := internal.GetKeycloakAccessToken(createUsersCommand, enableDebug, vaultRootToken, existingTenant)
-
 		slog.Info(createUsersCommand, internal.GetFuncName(), fmt.Sprintf("### CREATING USERS FOR %s TENANT ###", existingTenant))
-		internal.CreateUsers(createUsersCommand, enableDebug, false, existingTenant, accessToken)
+		keycloakAccessToken := internal.GetKeycloakAccessToken(createUsersCommand, enableDebug, vaultRootToken, existingTenant)
+		internal.CreateUsers(createUsersCommand, enableDebug, false, existingTenant, keycloakAccessToken)
 	}
 }
 
