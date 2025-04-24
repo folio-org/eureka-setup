@@ -119,7 +119,7 @@ curl --request POST \
 
 #### Command-based
 
-- If during `deploySystem` or `deployUi` shells commands are failing to execute verify that all shell scripts located under `./misc` folder are saved using the **LF** (Line Feed) line break
+- If during `deploySystem` or `deployUi` shell commands are failing to execute verify that all shell scripts located under `./misc` folder are saved using the **LF** (Line Feed) line break
 - If during `deployManagement` or `deployModules` the healthchecks are failing make sure to either define **host.docker.internal** in `/etc/hosts` or set `application.gateway-hostname=172.17.0.1` in `config.*.yaml`
 - If during `deployModules` an exception contains **Bind for 0.0.0.0:XXXXX failed: port is already allocated.** make sure to set `application.port-start=20000` in `config.*.yaml`
 - If during `createTenantEntitlement` an exception contains **The module is not entitled on tenant ...** rerun `undeployApplication` and `deployApplication` once again with more available RAM
