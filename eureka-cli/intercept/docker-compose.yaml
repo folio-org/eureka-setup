@@ -7,7 +7,7 @@ services:
   mod-orders-sc:
     container_name: eureka-custom-mod-orders-sc
     hostname: mod-orders-sc
-    image: folioci/folio-module-sidecar:$SIDECAR_VERSION
+    image: $SIDECAR_VERSION
     restart: on-failure
     networks: 
       - eureka-net
@@ -17,7 +17,7 @@ services:
       SC_LOG_LEVEL: INFO
       ROOT_LOG_LEVEL: INFO
       QUARKUS_HTTP_LIMITS_MAX_INITIAL_LINE_LENGTH: 8192
-      SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong-local.eureka:8000
+      SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong.eureka:8000
       REQUEST_TIMEOUT: 604800000
       MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
       SIDECAR_FORWARD_UNKNOWN_REQUESTS: true
@@ -48,7 +48,7 @@ services:
   mod-finance-sc:
     container_name: eureka-custom-mod-finance-sc
     hostname: mod-finance-sc
-    image: folioci/folio-module-sidecar:$SIDECAR_VERSION
+    image: $SIDECAR_VERSION
     restart: on-failure
     networks: 
       - eureka-net
@@ -58,7 +58,7 @@ services:
       SC_LOG_LEVEL: INFO
       ROOT_LOG_LEVEL: INFO
       QUARKUS_HTTP_LIMITS_MAX_INITIAL_LINE_LENGTH: 8192
-      SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong-local.eureka:8000
+      SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong.eureka:8000
       REQUEST_TIMEOUT: 604800000
       MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
       SIDECAR_FORWARD_UNKNOWN_REQUESTS: true

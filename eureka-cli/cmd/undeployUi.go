@@ -42,7 +42,7 @@ var undeployUiCmd = &cobra.Command{
 
 func UndeployUi() {
 	slog.Info(undeployUiCommand, internal.GetFuncName(), "### UNDEPLOYING UI CONTAINERS ###")
-	client := internal.CreateClient(undeployUiCommand)
+	client := internal.CreateDockerClient(undeployUiCommand)
 	defer client.Close()
 
 	for _, value := range internal.GetTenants(undeployUiCommand, enableDebug, false) {

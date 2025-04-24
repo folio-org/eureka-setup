@@ -18,35 +18,30 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
 )
 
-const getVaultRootTokenCommand string = "Get Vault Root Token"
+const getKeycloakAccessTokenCommand string = "Get Keycloak Access Token"
 
-// getVaultRootTokenCmd represents the getVaultRootToken command
-var getVaultRootTokenCmd = &cobra.Command{
-	Use:   "getVaultRootToken",
-	Short: "Get vault root token",
-	Long:  `Get vault root token from the server.`,
+// getKeycloakAccessTokenCmd represents the getAccessToken command
+var getKeycloakAccessTokenCmd = &cobra.Command{
+	Use:   "getKeycloakAccessToken",
+	Short: "Get keyclaok access token",
+	Long:  `Get a keycloak master access token.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		vaultRootToken := GetVaultRootToken()
-		fmt.Println(vaultRootToken)
+		GetKeycloakAccessToken(vaultRootToken)
 	},
 }
 
-func GetVaultRootToken() string {
-	client := internal.CreateDockerClient(getVaultRootTokenCommand)
-	defer client.Close()
-	return internal.GetVaultRootToken(getVaultRootTokenCommand, client)
-}
-
-func GetVaultRootTokenWithDockerClient() (string, *client.Client) {
-	client := internal.CreateDockerClient(getVaultRootTokenCommand)
-	return internal.GetVaultRootToken(getVaultRootTokenCommand, client), client
+func GetKeycloakAccessToken(vaultRootToken string) {
+	keycloakAccessToken := internal.GetKeycloakAccessToken(getKeycloakAccessTokenCommand, enableDebug, vaultRootToken, tenant)
+	fmt.Println(keycloakAccessToken)
 }
 
 func init() {
-	rootCmd.AddCommand(getVaultRootTokenCmd)
+	rootCmd.AddCommand(getKeycloakAccessTokenCmd)
+	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&tenant, "tenant", "t", "", "Tenant (required)")
+	getKeycloakAccessTokenCmd.MarkPersistentFlagRequired("tenant")
 }

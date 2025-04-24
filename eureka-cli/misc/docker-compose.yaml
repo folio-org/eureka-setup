@@ -12,6 +12,27 @@ volumes:
     name: eureka_kafka_data
 
 services:
+  ### Netcat ###
+  netcat:
+    container_name: netcat
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM nginx:1.27.4
+        RUN apt update; apt install netcat-traditional -y 
+    image: netcat:latest
+    restart: unless-stopped
+    cpus: '0.25'
+    mem_limit: 35m
+    networks: 
+      - eureka-net
+    healthcheck:
+      test: nc -zv localhost 80 || exit -1
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
   ### Postgres ###
   postgres:
     container_name: postgres
@@ -200,15 +221,11 @@ services:
       DEBUG_PORT: '*:8787'
     networks: 
       - eureka-net
-    ports:
-      - "18081:8080"
-      - "18787:8787"
-      - "19000:9000"
 
   ### Kong ###
   # Source repository: https://github.com/folio-org/folio-kong
-  kong-local:
-    container_name: kong-local
+  kong:
+    container_name: kong
     image: folio-kong:latest
     restart: unless-stopped
     build:
@@ -243,8 +260,6 @@ services:
       - "8000:8000"
       - "8001:8001"
       - "8002:8002"
-      - "8443:8443"
-      - "8444:8444"
     healthcheck:
       test: [ "CMD", "kong", "health" ]
       interval: 10s
@@ -294,28 +309,5 @@ services:
   #     interval: 30s
   #     timeout: 10s
   #     retries: 30
-      
-  ### Netcat ###
-  netcat:
-    container_name: netcat
-    build:
-      context: .
-      dockerfile_inline: |
-        FROM nginx:1.27.4
-        RUN apt update; apt install netcat-traditional -y 
-    image: netcat:latest
-    restart: unless-stopped
-    cpus: '0.25'
-    mem_limit: 35m
-    networks: 
-      - eureka-net
-    ports:
-      - "8445:80"
-    healthcheck:
-      test: nc -zv localhost 80 || exit -1
-      interval: 10s
-      timeout: 5s
-      retries: 15
-      start_period: 5s
       
   # TODO Minio

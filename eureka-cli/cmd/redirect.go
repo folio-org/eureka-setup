@@ -23,29 +23,28 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const redirectModuleCommand = "Redirect Module"
+const updateModuleDiscoveryCommand = "Update Module Discovery"
 
-// redirectCmd represents the redirect command
-var redirectCmd = &cobra.Command{
-	Use:   "redirect",
-	Short: "Redirect modules",
-	Long:  `Redirect multiple modules.`,
+// updateModuleDiscoveryCmd represents the redirect command
+var updateModuleDiscoveryCmd = &cobra.Command{
+	Use:   "updateModuleDiscovery",
+	Short: "Update module discovery",
+	Long:  `Update module discovery to point to a different sidecar URL.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RedirectModules()
+		UpdateModuleDiscovery()
 	},
 }
 
-// TODO: Refactor or Recreate with a new name "InterceptModule"
-func RedirectModules() {
-	slog.Info(redirectModuleCommand, internal.GetFuncName(), "### REDIRECT MODULE ###")
+func UpdateModuleDiscovery() {
+	slog.Info(updateModuleDiscoveryCommand, internal.GetFuncName(), "### Update Module Discovery ###")
 	id = strings.ReplaceAll(id, ":", "-")
-	internal.UpdateApplicationModuleDiscovery(redirectModuleCommand, enableDebug, id, location, restore, internal.DefaultServerPort)
+	internal.UpdateModuleDiscovery(updateModuleDiscoveryCommand, enableDebug, id, location, restore, internal.DefaultServerPort)
 }
 
 func init() {
-	rootCmd.AddCommand(redirectCmd)
-	redirectCmd.PersistentFlags().StringVarP(&id, "id", "i", "", "Module id, e.g. mod-users:19.4.1-SNAPSHOT.323 (required)")
-	redirectCmd.PersistentFlags().StringVarP(&location, "location", "l", "", "Location")
-	redirectCmd.PersistentFlags().BoolVarP(&restore, "restore", "r", false, "Restore location")
-	redirectCmd.MarkPersistentFlagRequired("id")
+	rootCmd.AddCommand(updateModuleDiscoveryCmd)
+	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&id, "id", "i", "", "Module id, e.g. mod-users:19.4.1-SNAPSHOT.323 (required)")
+	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&location, "location", "l", "", "Location")
+	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&restore, "restore", "r", false, "Restore location")
+	updateModuleDiscoveryCmd.MarkPersistentFlagRequired("id")
 }

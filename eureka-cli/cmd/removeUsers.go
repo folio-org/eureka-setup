@@ -36,10 +36,7 @@ var removeUsersCmd = &cobra.Command{
 }
 
 func RemoveUsers() {
-	slog.Info(removeUsersCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
-	client := internal.CreateClient(removeUsersCommand)
-	defer client.Close()
-	vaultRootToken := internal.GetRootVaultToken(removeUsersCommand, client)
+	vaultRootToken := GetVaultRootToken()
 
 	for _, value := range internal.GetTenants(removeUsersCommand, enableDebug, false) {
 		mapEntry := value.(map[string]any)

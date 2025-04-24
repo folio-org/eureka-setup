@@ -41,10 +41,7 @@ func RemoveRoles() {
 		return
 	}
 
-	slog.Info(removeRolesCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
-	client := internal.CreateClient(removeRolesCommand)
-	defer client.Close()
-	vaultRootToken := internal.GetRootVaultToken(removeRolesCommand, client)
+	vaultRootToken := GetVaultRootToken()
 
 	for _, value := range internal.GetTenants(removeRolesCommand, enableDebug, false) {
 		mapEntry := value.(map[string]any)

@@ -36,10 +36,7 @@ var createUsersCmd = &cobra.Command{
 }
 
 func CreateUsers() {
-	slog.Info(createUsersCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
-	client := internal.CreateClient(createUsersCommand)
-	defer client.Close()
-	vaultRootToken := internal.GetRootVaultToken(createUsersCommand, client)
+	vaultRootToken := GetVaultRootToken()
 
 	for _, value := range internal.GetTenants(createUsersCommand, enableDebug, false) {
 		mapEntry := value.(map[string]any)

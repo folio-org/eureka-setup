@@ -42,7 +42,7 @@ func UndeployModules() {
 	internal.RemoveApplications(undeployModulesCommand, enableDebug, false)
 
 	slog.Info(undeployModulesCommand, internal.GetFuncName(), "### UNDEPLOYING MODULES ###")
-	client := internal.CreateClient(undeployModulesCommand)
+	client := internal.CreateDockerClient(undeployModulesCommand)
 	defer client.Close()
 
 	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.MultipleModulesContainerPattern, viper.GetString(internal.ProfileNameKey))})

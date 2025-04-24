@@ -39,7 +39,7 @@ var undeployModuleCmd = &cobra.Command{
 
 func UndeployModule() {
 	slog.Info(undeployModuleCommand, internal.GetFuncName(), "### UNDEPLOYING MODULE ###")
-	client := internal.CreateClient(undeployModuleCommand)
+	client := internal.CreateDockerClient(undeployModuleCommand)
 	defer client.Close()
 
 	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.SingleModuleContainerPattern, viper.GetString(internal.ProfileNameKey), moduleName)})

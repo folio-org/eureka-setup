@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -23,7 +24,7 @@ const (
 	SidecarProjectName    string = "folio-module-sidecar"
 )
 
-func CreateClient(commandName string) *client.Client {
+func CreateDockerClient(commandName string) *client.Client {
 	newClient, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "client.NewClientWithOpts error")
@@ -33,7 +34,7 @@ func CreateClient(commandName string) *client.Client {
 	return newClient
 }
 
-func GetRootVaultToken(commandName string, client *client.Client) string {
+func GetVaultRootToken(commandName string, client *client.Client) string {
 	logStream, err := client.ContainerLogs(context.Background(), "vault", container.LogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "cli.ContainerLogs error")
@@ -98,6 +99,8 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 					DeployModule(commandName, client, NewDeploySidecarDto(registryModule.SidecarName, sidecarImage, sidecarEnvironment, backendModule, networkConfig, sidecarResources))
 				}()
 			}
+
+			time.Sleep(5 * time.Second)
 		}
 	}
 
@@ -155,8 +158,8 @@ func getModuleImage(commandName string, moduleVersion string, registryModule *Re
 func getModuleEnvironment(deployModulesDto *DeployModulesDto, backendModule BackendModule) []string {
 	var combinedEnvironment []string
 	combinedEnvironment = append(combinedEnvironment, deployModulesDto.GlobalEnvironment...)
-	combinedEnvironment = AppendModuleEnvironment(combinedEnvironment, backendModule.ModuleEnvironment)
 	combinedEnvironment = AppendVaultEnvironment(combinedEnvironment, deployModulesDto.VaultRootToken)
+	combinedEnvironment = AppendModuleEnvironment(combinedEnvironment, backendModule.ModuleEnvironment)
 
 	return combinedEnvironment
 }
@@ -164,8 +167,8 @@ func getModuleEnvironment(deployModulesDto *DeployModulesDto, backendModule Back
 func getSidecarEnvironment(deployModulesDto *DeployModulesDto, module *RegistryModule, backendModule BackendModule) []string {
 	var combinedEnvironment []string
 	combinedEnvironment = append(combinedEnvironment, deployModulesDto.SidecarEnvironment...)
-	combinedEnvironment = AppendKeycloakEnvironment(combinedEnvironment)
 	combinedEnvironment = AppendVaultEnvironment(combinedEnvironment, deployModulesDto.VaultRootToken)
+	combinedEnvironment = AppendKeycloakEnvironment(combinedEnvironment)
 	combinedEnvironment = AppendManagementEnvironment(combinedEnvironment)
 	combinedEnvironment = AppendSidecarEnvironment(combinedEnvironment, module, strconv.Itoa(backendModule.ModuleServerPort))
 

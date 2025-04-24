@@ -47,10 +47,7 @@ var attachCapabilitySetsCmd = &cobra.Command{
 }
 
 func AttachCapabilitySets() {
-	slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
-	client := internal.CreateClient(attachCapabilitySetsCommand)
-	defer client.Close()
-	vaultRootToken := internal.GetRootVaultToken(attachCapabilitySetsCommand, client)
+	vaultRootToken := GetVaultRootToken()
 
 	for _, tenantValue := range internal.GetTenants(attachCapabilitySetsCommand, enableDebug, false) {
 		tenantMapEntry := tenantValue.(map[string]any)

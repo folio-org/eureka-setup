@@ -36,10 +36,7 @@ var detachCapabilitySetsCmd = &cobra.Command{
 }
 
 func DetachCapabilitySets() {
-	slog.Info(detachCapabilitySetsCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
-	client := internal.CreateClient(detachCapabilitySetsCommand)
-	defer client.Close()
-	vaultRootToken := internal.GetRootVaultToken(detachCapabilitySetsCommand, client)
+	vaultRootToken := GetVaultRootToken()
 
 	for _, value := range internal.GetTenants(detachCapabilitySetsCommand, enableDebug, false) {
 		mapEntry := value.(map[string]any)

@@ -36,10 +36,7 @@ var createRolesCmd = &cobra.Command{
 }
 
 func CreateRoles() {
-	slog.Info(createRolesCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
-	client := internal.CreateClient(createRolesCommand)
-	defer client.Close()
-	vaultRootToken := internal.GetRootVaultToken(createRolesCommand, client)
+	vaultRootToken := GetVaultRootToken()
 
 	for _, value := range internal.GetTenants(createRolesCommand, enableDebug, false) {
 		mapEntry := value.(map[string]any)

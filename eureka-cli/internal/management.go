@@ -53,7 +53,7 @@ var (
 
 func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryModulesMap map[string][]*RegistryModule) {
 	for registryName, registryModules := range registryModulesMap {
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Extracting %s registry module name and versions", registryName))
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Extracting %s registry module names and versions", registryName))
 
 		for moduleIndex, module := range registryModules {
 			if module.Id == "okapi" {
@@ -254,7 +254,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %d entries of application module discovery`, len(discoveryModules)))
 }
 
-func UpdateApplicationModuleDiscovery(commandName string, enableDebug bool, id string, location string, restore bool, portServer string) {
+func UpdateModuleDiscovery(commandName string, enableDebug bool, id string, location string, restore bool, portServer string) {
 	name := TrimModuleName(ModuleIdRegexp.ReplaceAllString(id, `$1`))
 	version := ModuleIdRegexp.ReplaceAllString(id, `$2$3`)
 	if location == "" || restore {
