@@ -113,8 +113,13 @@ curl --request POST \
 
 ### Troubleshooting
 
-- Verify that all shell scripts located under `./misc` folder are saved using the **LF** (Line Feed) line break
-- If you get a **SIGKILL** when trying to build the stripes container configure Rancher Desktop or other docker env with more RAM
-- If health checks are failing make sure **localhost** is mapped to **host.docker.internal** in your `/etc/hosts` file
-- If using Rancher Desktop on a system that also uses Docker Desktop, you may need to do set `DOCKER_HOST` in your env to where `docker.sock` is
-- During tenant entitlement if a thrown exception contains `The module is not entitled on tenant ...` it is recommended to rerun `deployApplication` again after undeploying the existing one
+#### General
+
+- If using Rancher Desktop on a system that also uses Docker Desktop make sure to set `DOCKER_HOST` to point to the correct container daemon, by default `/var/run/docker.sock` will be used
+
+#### Command-based
+
+- If during `deploySystem` or `deployUi` shells commands are failing to execute verify that all shell scripts located under `./misc` folder are saved using the **LF** (Line Feed) line break
+- If during `deployManagement` or `deployModules` the healthchecks are failing make sure to either define **host.docker.internal** in `/etc/hosts` or set `application.gateway-hostname=172.17.0.1` in `config.*.yaml`
+- If during `deployModules` an exception contains **Bind for 0.0.0.0:XXXXX failed: port is already allocated.** make sure to set `application.port-start=20000` in `config.*.yaml`
+- If during `createTenantEntitlement` an exception contains **The module is not entitled on tenant ...** rerun `undeployApplication` and `deployApplication` once again with more available RAM
