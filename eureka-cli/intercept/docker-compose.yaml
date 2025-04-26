@@ -40,10 +40,10 @@ services:
       AM_CLIENT_URL: http://mgr-applications.eureka:8081
       TE_CLIENT_URL: http://mgr-tenant-entitlements.eureka:8081
       MODULE_NAME: mod-orders
-      MODULE_VERSION: $MOD_ORDERS_VERSION
+      MODULE_VERSION: $MOD_ORDERS_VERSION_SHORT
       MODULE_URL: $MOD_ORDERS_URL
       SIDECAR_NAME: mod-orders-sc
-      SIDECAR_URL: http://mod-orders-sc.eureka:8081
+      SIDECAR_URL: $MOD_ORDERS_SC_URL
   
   mod-finance-sc:
     container_name: eureka-custom-mod-finance-sc
@@ -81,7 +81,7 @@ services:
       AM_CLIENT_URL: http://mgr-applications.eureka:8081
       TE_CLIENT_URL: http://mgr-tenant-entitlements.eureka:8081
       MODULE_NAME: mod-finance
-      MODULE_VERSION: $MOD_FINANCE_VERSION
+      MODULE_VERSION: $MOD_FINANCE_VERSION_SHORT
       MODULE_URL: $MOD_FINANCE_URL
       SIDECAR_NAME: mod-finance-sc
-      SIDECAR_URL: http://mod-finance-sc.eureka:8081
+      SIDECAR_URL: $MOD_FINANCE_SC_URL

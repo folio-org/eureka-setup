@@ -52,32 +52,16 @@
 
 - `cd` into `eureka-setup/eureka-cli`
 - Deploy the Eureka environment using the *combined* profile: `./bin/eureka-cli -c config.combined.yaml deployApplication`
-- Add new DNS entries into `/etc/hosts`
-
-```txt
-127.0.0.1 mod-orders-sc.eureka
-127.0.0.1 mod-finance-sc.eureka
-```
-
 - Set `VAULT_ROOT_TOKEN` env var in `intercept/.env` with the current Vault Root Token
   - Retrieve the Vault Root Token: `./bin/eureka-cli getVaultRootToken`
 - Set `SIDECAR_VERSION` env var in `intercept/.env` with the current sidecar version
   - Find the currently deployed module or sidecar versions: `./bin/eureka-cli -c config.combined.yaml listModules`
-- Set `MOD_ORDERS_VERSION` env var in `intercept/.env` with the current mod-orders version
-- Set `MOD_FINANCE_VERSION` env var in `intercept/.env` with the current mod-finance version
+- Set `MOD_ORDERS_VERSION_SHORT` env var in `intercept/.env` with the current mod-orders version
+- Set `MOD_FINANCE_VERSION_SHORT` env var in `intercept/.env` with the current mod-finance version
 - Stop the existing modules: `docker container stop eureka-combined-mod-orders eureka-combined-mod-finance`
 - Stop the existing sidecars: `docker container stop eureka-combined-mod-orders-sc eureka-combined-mod-finance-sc`
 - Start the custom sidecars: `docker compose -f intercept/*.yaml up -d`
   - Check the status of the custom sidecars: `docker compose -f intercept/*.yaml ps -a`
-- Add port-proxies to forward traffic from the IntelliJ module instances on the Host back to the container network where the custom sidecars are deployed
-  - Use a terminal opened with *Run as administrator*
-  - Check for any existing port proxies: `netsh interface portproxy show all`
-
-```bash
-netsh interface portproxy add v4tov4 listenport=8081 listenaddress=mod-orders-sc.eureka connectport=37001 connectaddress=localhost
-netsh interface portproxy add v4tov4 listenport=8081 listenaddress=mod-finance-sc.eureka connectport=37002 connectaddress=localhost
-```
-
 - Start the module instances in IntelliJ which will communicate with other modules deployed in Eureka environment via their custom sidecars 
 
 <table>
@@ -163,11 +147,4 @@ OKAPI_URL=http://localhost:37002
 ### Disable Module Interception
 
 - Stop the module instances in IntelliJ
-- Delete the previously created port-proxies
-
-```bash
-netsh interface portproxy delete v4tov4 listenport=8081 listenaddress=mod-orders-sc.eureka
-netsh interface portproxy delete v4tov4 listenport=8081 listenaddress=mod-finance-sc.eureka
-```
-
 - Stop the custom sidecars: `docker compose -f intercept/*.yaml down`
