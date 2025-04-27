@@ -64,11 +64,11 @@ func (dto *InterceptModuleDto) ClearUrls() {
 	dto.sidecarUrl = nil
 }
 
-// interceptModuleCmd represents the redirect command
+// interceptModuleCmd represents the interceptModule command
 var interceptModuleCmd = &cobra.Command{
 	Use:   "interceptModule",
 	Short: "Intercept module",
-	Long:  `Intercept a module to IntelliJ.`,
+	Long:  `Intercept/redirect module traffic to IntelliJ.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		InterceptModule()
 	},
