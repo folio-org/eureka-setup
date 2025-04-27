@@ -36,11 +36,6 @@ var removeRolesCmd = &cobra.Command{
 }
 
 func RemoveRoles() {
-	if internal.RemoveRoleUnsupported {
-		slog.Info(removeRolesCommand, internal.GetFuncName(), "### REMOVAL OF ROLES IS UNSUPPORTED BY CURRENT GATEWAY SETUP ###")
-		return
-	}
-
 	vaultRootToken := GetVaultRootToken()
 
 	for _, value := range internal.GetTenants(removeRolesCommand, enableDebug, false) {

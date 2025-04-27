@@ -17,7 +17,6 @@ package cmd
 
 import (
 	"log/slog"
-	"strings"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
@@ -36,15 +35,14 @@ var updateModuleDiscoveryCmd = &cobra.Command{
 }
 
 func UpdateModuleDiscovery() {
-	slog.Info(updateModuleDiscoveryCommand, internal.GetFuncName(), "### Update Module Discovery ###")
-	id = strings.ReplaceAll(id, ":", "-")
-	internal.UpdateModuleDiscovery(updateModuleDiscoveryCommand, enableDebug, id, location, restore, internal.DefaultServerPort)
+	slog.Info(updateModuleDiscoveryCommand, internal.GetFuncName(), "### UPDATING MODULE DISCOVERY URL ###")
+	internal.UpdateModuleDiscovery(updateModuleDiscoveryCommand, enableDebug, id, sidecarUrl, restore, internal.DefaultServerPort)
 }
 
 func init() {
 	rootCmd.AddCommand(updateModuleDiscoveryCmd)
-	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&id, "id", "i", "", "Module id, e.g. mod-users:19.4.1-SNAPSHOT.323 (required)")
-	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&location, "location", "l", "", "Location")
-	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&restore, "restore", "r", false, "Restore location")
+	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&id, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
+	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&sidecarUrl, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
+	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&restore, "restore", "r", false, "Restore module & sidecar")
 	updateModuleDiscoveryCmd.MarkPersistentFlagRequired("id")
 }

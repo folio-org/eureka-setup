@@ -39,7 +39,8 @@ var (
 	namespace         string
 	showAll           bool
 	id                string
-	location          string
+	moduleUrl         string
+	sidecarUrl        string
 	restore           bool
 )
 

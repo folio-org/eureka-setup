@@ -215,8 +215,8 @@ services:
       KC_HTTP_ENABLED: true
       KC_HOSTNAME_STRICT: true
       KC_HOSTNAME_STRICT_HTTPS: false
-      JAVA_OPTS_APPEND: "-Xms768m -Xmx1024m"
       KC_LOG_LEVEL: INFO
+      JAVA_OPTS_APPEND: "-Xms768m -Xmx1024m"
     networks: 
       - eureka-net
 

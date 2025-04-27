@@ -27,17 +27,35 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Eureka CLI Debugger",
+      "name": "Eureka CLI deployApplication command",
       "type": "go",
       "request": "launch",
       "mode": "auto",
-      "program": "${cwd}/eureka-setup/eureka-cli",
-      "output": "${cwd}/eureka-setup/eureka-cli/bin/eureka-cli-debug.exe",
+      "program": "${cwd}/eureka-cli",
+      "output": "${cwd}/bin/eureka-cli-debug.exe",
       "env": {
         "GOOS": "windows", 
         "GOARCH": "amd64"
       },
-      "args": ["deployApplication", "-d"],
+      "args": ["--config", "config.combined.yaml", "deployApplication", "-d"],
+      "showLog": true,
+    },
+    {
+      "name": "Eureka CLI interceptModule command",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${cwd}/eureka-cli",
+      "output": "${cwd}/bin/eureka-cli-debug.exe",
+      "env": {
+        "GOOS": "windows", 
+        "GOARCH": "amd64"
+      },
+      "args": ["--config", "config.combined.yaml", "interceptModule", 
+        "-i", "mod-orders:13.1.0-SNAPSHOT.1021",
+        "-m", "http://host.docker.internal:36001",
+        "-s", "http://host.docker.internal:37001"
+      ],
       "showLog": true,
     }
   ]
@@ -52,17 +70,15 @@
 
 - `cd` into `eureka-setup/eureka-cli`
 - Deploy the Eureka environment using the *combined* profile: `./bin/eureka-cli -c config.combined.yaml deployApplication`
-- Set `VAULT_ROOT_TOKEN` env var in `intercept/.env` with the current Vault Root Token
-  - Retrieve the Vault Root Token: `./bin/eureka-cli getVaultRootToken`
-- Set `SIDECAR_VERSION` env var in `intercept/.env` with the current sidecar version
-  - Find the currently deployed module or sidecar versions: `./bin/eureka-cli -c config.combined.yaml listModules`
-- Set `MOD_ORDERS_VERSION_SHORT` env var in `intercept/.env` with the current mod-orders version
-- Set `MOD_FINANCE_VERSION_SHORT` env var in `intercept/.env` with the current mod-finance version
-- Stop the existing modules: `docker container stop eureka-combined-mod-orders eureka-combined-mod-finance`
-- Stop the existing sidecars: `docker container stop eureka-combined-mod-orders-sc eureka-combined-mod-finance-sc`
-- Start the custom sidecars: `docker compose -f intercept/*.yaml up -d`
-  - Check the status of the custom sidecars: `docker compose -f intercept/*.yaml ps -a`
-- Start the module instances in IntelliJ which will communicate with other modules deployed in Eureka environment via their custom sidecars 
+- Deploy the custom sidecars into the Eureka environment
+> Verify that `host.docker.internal` is set in `/etc/hosts` or use default Docker Gateway IP `172.17.0.1` in Linux in the URLs
+
+```bash
+./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -m http://host.docker.internal:36001 -s http://host.docker.internal:37001
+./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -m http://host.docker.internal:36002 -s http://host.docker.internal:37002
+```
+
+- Start the module instances in IntelliJ
 
 <table>
 <caption>IntelliJ Run Configurations and Env Files</caption>
@@ -142,9 +158,16 @@ OKAPI_URL=http://localhost:37002
 - Perform sidecar healthchecks: `curl -sw "\n" --connect-timeout 3 http://localhost:37001/admin/health http://localhost:37002/admin/health`
 > Expect: *{ "status": "UP" }*
 - Finally test *mod-finance* interception by creating a *Fund Budget* in the *Finance App*
+> Expect: Logs being created for *mod-finance* deployed in IntelliJ
 - After that, create a *Purchase Order* with a *Purchase Order Line* and an attached *Fund Distribution*, using the *Fund* created in the *Finance App*, within the *Orders App*
+> Expect: Logs being created for *mod-orders* and *mod-finance* deployed in IntelliJ
 
 ### Disable Module Interception
 
 - Stop the module instances in IntelliJ
-- Stop the custom sidecars: `docker compose -f intercept/*.yaml down`
+- Restore the default modules and sidecars in the Eureka environment
+
+```bash
+./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -r
+./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -r
+```

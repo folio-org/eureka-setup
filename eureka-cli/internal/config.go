@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -21,13 +22,15 @@ const (
 	FolioRegistry  string = "folio"
 	EurekaRegistry string = "eureka"
 
-	DockerComposeWorkDir string = "./misc"
-	DefaultNetworkName   string = "eureka-net"
-	DefaultNetworkId     string = "eureka"
-	DefaultHostname      string = "http://host.docker.internal:%d%s"
-	DefaultHostIp        string = "0.0.0.0"
-	DefaultServerPort    string = "8081"
-	DefaultDebugPort     string = "5005"
+	DockerComposeWorkDir   string = "./misc"
+	DefaultNetworkId       string = "eureka"
+	DefaultNetworkAlias    string = "eureka-net"
+	DefaultDockerHostname  string = "host.docker.internal"
+	DefaultDockerGatewayIp string = "172.17.0.1"
+
+	DefaultHostIp     string = "0.0.0.0"
+	DefaultServerPort string = "8081"
+	DefaultDebugPort  string = "5005"
 
 	FolioKeycloakRepositoryUrl    string = "https://github.com/folio-org/folio-keycloak"
 	FolioKongRepositoryUrl        string = "https://github.com/folio-org/folio-kong"
@@ -42,13 +45,29 @@ const (
 )
 
 var PortStartIndex int = 30000
+var PortEndIndex int = 32000
 
-func GetGatewayHostname() string {
-	if viper.IsSet(ApplicationGatewayHostnameKey) {
-		return viper.GetString(ApplicationGatewayHostnameKey) + ":%d%s"
+func GetGatewayUrlTemplate(commandName string) string {
+	schemaAndUrl := getGatewaySchemaAndUrl(commandName)
+	if schemaAndUrl == "" {
+		LogErrorPanic(commandName, fmt.Sprintf("internal.GetGatewayUrlTemplate error - cannot construct geteway url template for %s platform", runtime.GOOS))
+		return ""
 	}
 
-	return DefaultHostname
+	return schemaAndUrl + ":%d%s"
+}
+
+func getGatewaySchemaAndUrl(commandName string) string {
+	var schemaAndUrl string
+	if viper.IsSet(ApplicationGatewayHostnameKey) {
+		schemaAndUrl = viper.GetString(ApplicationGatewayHostnameKey)
+	} else if IsHostnameExists(commandName, DefaultDockerHostname) {
+		schemaAndUrl = fmt.Sprintf("http://%s", DefaultDockerHostname)
+	} else if runtime.GOOS == "linux" {
+		schemaAndUrl = fmt.Sprintf("http://%s", DefaultDockerGatewayIp)
+	}
+
+	return schemaAndUrl
 }
 
 func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[string]any, managementOnly bool) map[string]BackendModule {
@@ -57,7 +76,7 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 	for name, value := range backendModulesAnyMap {
 		var dto BackendModuleDto
 		if value == nil {
-			dto = createDefaultBackendDto(name)
+			dto = createDefaultBackendDto(commandName, name)
 		} else {
 			dto = createConfigurableBackendDto(value, name)
 		}
@@ -79,12 +98,17 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 	return backendModulesMap
 }
 
-func createDefaultBackendDto(name string) (dto BackendModuleDto) {
+func createDefaultBackendDto(commandName string, name string) (dto BackendModuleDto) {
 	dto.deployModule = true
 	if !strings.HasPrefix(name, ManagementModulePattern) {
 		dto.deploySidecar = getDefaultDeploySidecar()
 	}
 	dto.version = nil
+
+	if PortStartIndex+1 >= PortEndIndex {
+		LogErrorPanic(commandName, "internal.createDefaultBackendDto error - incremented PortStartIndex is exceeding PortEndIndex limit")
+		return
+	}
 
 	PortStartIndex++
 	dto.port = &PortStartIndex

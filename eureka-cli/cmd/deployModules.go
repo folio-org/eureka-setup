@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -40,6 +41,7 @@ var deployModulesCmd = &cobra.Command{
 func DeployModules() {
 	registryUrl := viper.GetString(internal.RegistryUrlKey)
 	internal.PortStartIndex = viper.GetInt(internal.ApplicationPortStart)
+	internal.PortEndIndex = viper.GetInt(internal.ApplicationPortEnd)
 	environment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.EnvironmentKey)
 	sidecarEnvironment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.SidecarModuleEnvironmentKey)
 
@@ -67,6 +69,7 @@ func DeployModules() {
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### PULLING SIDECAR IMAGE ###")
 	deployModulesDto := internal.NewDeployModulesDto(vaultRootToken, map[string]string{internal.FolioRegistry: "", internal.EurekaRegistry: ""}, registryModules, backendModulesMap, environment, sidecarEnvironment)
 	sidecarImage := internal.GetSidecarImage(deployModulesCommand, deployModulesDto.RegistryModules[internal.EurekaRegistry])
+	slog.Info(deployModulesCommand, internal.GetFuncName(), fmt.Sprintf("Using sidecar image %s", sidecarImage))
 	sidecarResources := internal.CreateResources(false, viper.GetStringMap(internal.SidecarModuleResourcesKey))
 	internal.PullModule(deployModulesCommand, client, sidecarImage)
 

@@ -6,6 +6,7 @@ application:
   platform: base
   fetch-descriptors: false
   port-start: 35000
+  port-end: 37000
   dependencies:
     name: app-combined
     version: 1.0.0
