@@ -47,7 +47,7 @@ func Setup() {
 
 func getCurrentLocalConfig() string {
 	if configFile == "" {
-		return fmt.Sprintf("%s.%s", internal.ConfigMinimal, internal.ConfigType)
+		return fmt.Sprintf("%s.%s", internal.ConfigCombined, internal.ConfigType)
 	}
 	return configFile
 }

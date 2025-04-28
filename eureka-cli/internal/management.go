@@ -111,7 +111,7 @@ func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *s
 func GetApplications(commandName string, enableDebug bool, panicOnError bool) Applications {
 	var applications Applications
 
-	requestUrl := fmt.Sprintf(GetGatewayHostname(), ApplicationsPort, "/applications")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, "/applications")
 
 	resp := DoGetReturnResponse(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
 	if resp == nil {
@@ -134,7 +134,7 @@ func RemoveApplications(commandName string, enableDebug bool, panicOnError bool)
 	for _, value := range applications.ApplicationDescriptors {
 		id := value["id"].(string)
 
-		requestUrl := fmt.Sprintf(GetGatewayHostname(), ApplicationsPort, fmt.Sprintf("/applications/%s", id))
+		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, fmt.Sprintf("/applications/%s", id))
 
 		DoDelete(commandName, requestUrl, enableDebug, false, map[string]string{})
 
@@ -603,7 +603,7 @@ func GetCapabilitySets(commandName string, enableDebug bool, panicOnError bool, 
 	for _, value := range applications.ApplicationDescriptors {
 		applicationId := value["id"].(string)
 
-		requestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, fmt.Sprintf("/capability-sets?offset=0&limit=10000&query=applicationId==%s", applicationId))
+		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/capability-sets?offset=0&limit=10000&query=applicationId==%s", applicationId))
 
 		foundCapabilitySetsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
 		if foundCapabilitySetsMap["capabilitySets"] == nil || len(foundCapabilitySetsMap["capabilitySets"].([]any)) == 0 {
