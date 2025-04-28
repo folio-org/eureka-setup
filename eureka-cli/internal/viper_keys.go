@@ -5,6 +5,7 @@ const (
 
 	ApplicationKey                    string = "application"
 	ApplicationPortStart              string = "application.port-start"
+	ApplicationPortEnd                string = "application.port-end"
 	ApplicationStripesBranchKey       string = "application.stripes-branch"
 	ApplicationGatewayHostnameKey     string = "application.gateway-hostname"
 	ApplicationGatewayDependenciesKey string = "application.dependencies"

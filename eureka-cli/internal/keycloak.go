@@ -40,7 +40,7 @@ func GetKeycloakAccessToken(commandName string, enableDebug bool, vaultRootToken
 	return tokensMap["access_token"].(string)
 }
 
-func GetKeycloakMasterRealmAccessToken(commandName string, enableDebug bool) string {
+func GetKeycloakMasterAccessToken(commandName string, enableDebug bool) string {
 	requestUrl := fmt.Sprintf("%s/realms/master/protocol/openid-connect/token", KeycloakUrl)
 	headers := map[string]string{ContentTypeHeader: FormUrlEncodedContentType}
 

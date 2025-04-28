@@ -53,7 +53,7 @@ var (
 
 func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryModulesMap map[string][]*RegistryModule) {
 	for registryName, registryModules := range registryModulesMap {
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Extracting %s registry module name and versions", registryName))
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Extracting %s registry module names and versions", registryName))
 
 		for moduleIndex, module := range registryModules {
 			if module.Id == "okapi" {
@@ -72,7 +72,7 @@ func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryM
 
 func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *sync.WaitGroup, moduleName string, port int) {
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Waiting for module container %s on port %d to initialize", moduleName, port))
-	requestUrl := fmt.Sprintf(GetGatewayHostname(), port, HealtcheckUri)
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), port, HealtcheckUri)
 	healthcheckAttempts := HealtcheckMaxAttempts
 	for {
 		time.Sleep(HealthcheckDefaultDuration)
@@ -240,7 +240,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 		panic(err)
 	}
 
-	DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayHostname(), ApplicationsPort, "/applications?check=true"), enableDebug, true, applicationBytes, map[string]string{})
+	DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, "/applications?check=true"), enableDebug, true, applicationBytes, map[string]string{})
 
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %s application`, applicationId))
 
@@ -251,30 +251,35 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 			panic(err)
 		}
 
-		DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayHostname(), ApplicationsPort, "/modules/discovery"), enableDebug, true, applicationDiscoveryBytes, map[string]string{})
+		DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, "/modules/discovery"), enableDebug, true, applicationDiscoveryBytes, map[string]string{})
 	}
 
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %d entries of application module discovery`, len(discoveryModules)))
 }
 
-func UpdateApplicationModuleDiscovery(commandName string, enableDebug bool, id string, location string, restore bool, portServer string) {
+func UpdateModuleDiscovery(commandName string, enableDebug bool, id string, sidecarUrl string, restore bool, portServer string) {
+	id = strings.ReplaceAll(id, ":", "-")
 	name := TrimModuleName(ModuleIdRegexp.ReplaceAllString(id, `$1`))
-	version := ModuleIdRegexp.ReplaceAllString(id, `$2$3`)
-	if location == "" || restore {
-		location = fmt.Sprintf("http://%s.eureka:%s", name, portServer)
+	if sidecarUrl == "" || restore {
+		sidecarUrl = fmt.Sprintf("http://%s-sc.eureka:%s", name, portServer)
 	}
 
-	applicationDiscoveryBytes, err := json.Marshal(map[string]any{"id": id, "name": name, "version": version, "location": location})
+	applicationDiscoveryBytes, err := json.Marshal(map[string]any{
+		"id":       id,
+		"name":     name,
+		"version":  ModuleIdRegexp.ReplaceAllString(id, `$2$3`),
+		"location": sidecarUrl,
+	})
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "json.Marshal error")
 		panic(err)
 	}
 
-	requestUrl := fmt.Sprintf(GetGatewayHostname(), ApplicationsPort, fmt.Sprintf("/modules/%s/discovery", id))
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, fmt.Sprintf("/modules/%s/discovery", id))
 
 	DoPutReturnNoContent(commandName, requestUrl, enableDebug, applicationDiscoveryBytes, map[string]string{})
 
-	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Updated application module discovery for %s module with %s location`, name, location))
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Updated application module discovery for %s module with %s sidecar URL`, name, sidecarUrl))
 }
 
 // ######## Tenants ########
@@ -282,7 +287,7 @@ func UpdateApplicationModuleDiscovery(commandName string, enableDebug bool, id s
 func GetTenants(commandName string, enableDebug bool, panicOnError bool) []any {
 	var foundTenants []any
 
-	requestUrl := fmt.Sprintf(GetGatewayHostname(), TenantsPort, "/tenants")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), TenantsPort, "/tenants")
 
 	foundTenantsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
 	if foundTenantsMap["tenants"] == nil || len(foundTenantsMap["tenants"].([]any)) == 0 {
@@ -303,7 +308,7 @@ func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 			continue
 		}
 
-		requestUrl := fmt.Sprintf(GetGatewayHostname(), TenantsPort, fmt.Sprintf("/tenants/%s?purge=true", mapEntry["id"].(string)))
+		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), TenantsPort, fmt.Sprintf("/tenants/%s?purge=true", mapEntry["id"].(string)))
 
 		DoDelete(commandName, requestUrl, enableDebug, false, map[string]string{})
 
@@ -312,7 +317,7 @@ func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 }
 
 func CreateTenants(commandName string, enableDebug bool) {
-	requestUrl := fmt.Sprintf(GetGatewayHostname(), TenantsPort, "/tenants")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), TenantsPort, "/tenants")
 	tenants := ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey))
 
 	for _, tenant := range tenants {
@@ -331,7 +336,7 @@ func CreateTenants(commandName string, enableDebug bool) {
 // ######## Tenant Entitlements ########
 
 func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError bool) {
-	requestUrl := fmt.Sprintf(GetGatewayHostname(), TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false")
 	applicationMap := viper.GetStringMap(ApplicationKey)
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)
@@ -362,7 +367,7 @@ func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError
 }
 
 func CreateTenantEntitlement(commandName string, enableDebug bool) {
-	requestUrl := fmt.Sprintf(GetGatewayHostname(), TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=true,loadSample=true")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=true,loadSample=true")
 	applicationMap := viper.GetStringMap(ApplicationKey)
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)
@@ -397,7 +402,7 @@ func CreateTenantEntitlement(commandName string, enableDebug bool) {
 func GetUsers(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) []any {
 	var foundUsers []any
 
-	requestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, "/users?offset=0&limit=10000")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/users?offset=0&limit=10000")
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 
 	foundTenantsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
@@ -421,7 +426,7 @@ func RemoveUsers(commandName string, enableDebug bool, panicOnError bool, tenant
 			continue
 		}
 
-		requestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, fmt.Sprintf("/users-keycloak/users/%s", mapEntry["id"].(string)))
+		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/users-keycloak/users/%s", mapEntry["id"].(string)))
 
 		DoDelete(commandName, requestUrl, enableDebug, false, headers)
 
@@ -430,9 +435,9 @@ func RemoveUsers(commandName string, enableDebug bool, panicOnError bool, tenant
 }
 
 func CreateUsers(commandName string, enableDebug bool, panicOnError bool, existingTenant string, accessToken string) {
-	postUserRequestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, "/users-keycloak/users")
-	postUserPasswordRequestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, "/authn/credentials")
-	postUserRoleRequestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, "/roles/users")
+	postUserRequestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/users-keycloak/users")
+	postUserPasswordRequestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/authn/credentials")
+	postUserRoleRequestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/roles/users")
 	usersMap := viper.GetStringMap(UsersKey)
 
 	for username, value := range usersMap {
@@ -513,7 +518,7 @@ func CreateUsers(commandName string, enableDebug bool, panicOnError bool, existi
 func GetRoles(commandName string, enableDebug bool, panicOnError bool, headers map[string]string) []any {
 	var foundRoles []any
 
-	requestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, "/roles?offset=0&limit=10000")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/roles?offset=0&limit=10000")
 
 	foundRolesMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
 	if foundRolesMap["roles"] == nil || len(foundRolesMap["roles"].([]any)) == 0 {
@@ -526,7 +531,7 @@ func GetRoles(commandName string, enableDebug bool, panicOnError bool, headers m
 }
 
 func GetRoleByName(commandName string, enableDebug bool, roleName string, headers map[string]string) map[string]any {
-	requestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, fmt.Sprintf("/roles?query=name==%s", roleName))
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/roles?query=name==%s", roleName))
 
 	foundRolesMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, true, headers)
 	if foundRolesMap["roles"] == nil {
@@ -554,7 +559,7 @@ func RemoveRoles(commandName string, enableDebug bool, panicOnError bool, tenant
 			continue
 		}
 
-		requestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, fmt.Sprintf("/roles-keycloak/roles/%s", mapEntry["id"].(string)))
+		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/roles-keycloak/roles/%s", mapEntry["id"].(string)))
 
 		DoDelete(commandName, requestUrl, enableDebug, false, headers)
 
@@ -563,7 +568,7 @@ func RemoveRoles(commandName string, enableDebug bool, panicOnError bool, tenant
 }
 
 func CreateRoles(commandName string, enableDebug bool, panicOnError bool, existingTenant string, accessToken string) {
-	requestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, "/roles")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/roles")
 	rolesMap := viper.GetStringMap(RolesKey)
 	caser := cases.Title(language.English)
 
@@ -614,7 +619,7 @@ func GetCapabilitySets(commandName string, enableDebug bool, panicOnError bool, 
 func GetCapabilitySetsByName(commandName string, enableDebug bool, panicOnError bool, headers map[string]string, capabilitySetName string) []any {
 	var foundCapabilitySets []any
 
-	requestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", capabilitySetName))
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", capabilitySetName))
 
 	foundCapabilitySetsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
 	if foundCapabilitySetsMap["capabilitySets"] == nil || len(foundCapabilitySetsMap["capabilitySets"].([]any)) == 0 {
@@ -638,7 +643,7 @@ func DetachCapabilitySetsFromRoles(commandName string, enableDebug bool, panicOn
 			continue
 		}
 
-		requestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, fmt.Sprintf("/roles/%s/capability-sets", mapEntry["id"].(string)))
+		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/roles/%s/capability-sets", mapEntry["id"].(string)))
 
 		DoDelete(commandName, requestUrl, enableDebug, false, headers)
 
@@ -647,7 +652,7 @@ func DetachCapabilitySetsFromRoles(commandName string, enableDebug bool, panicOn
 }
 
 func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant string, accessToken string) {
-	requestUrl := fmt.Sprintf(GetGatewayHostname(), GatewayPort, "/roles/capability-sets")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/roles/capability-sets")
 	rolesMapConfig := viper.GetStringMap(RolesKey)
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 

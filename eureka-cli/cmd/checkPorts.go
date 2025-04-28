@@ -35,7 +35,7 @@ const checkPortsCommand = "Undeploy Modules"
 var checkPortsCmd = &cobra.Command{
 	Use:   "checkPorts",
 	Short: "Check ports",
-	Long:  `Check container ports .`,
+	Long:  `Check container ports.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		CheckPorts()
 	},
@@ -43,7 +43,7 @@ var checkPortsCmd = &cobra.Command{
 
 func CheckPorts() {
 	slog.Info(checkPortsCommand, internal.GetFuncName(), "### CHECKING CONTAINER PORTS ###")
-	client := internal.CreateClient(checkPortsCommand)
+	client := internal.CreateDockerClient(checkPortsCommand)
 	defer client.Close()
 
 	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.MultipleModulesContainerPattern, viper.GetString(internal.ProfileNameKey))})

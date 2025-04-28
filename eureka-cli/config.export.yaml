@@ -1,27 +1,20 @@
-# Profile
 profile:
   name: export
-# Application
 application:
   name: app-export
   version: 1.0.0
   platform: base
   fetch-descriptors: false
   port-start: 35000
+  port-end: 37000
   dependencies:
     name: app-combined
     version: 1.0.0
-# Registry
 registry:
   registry-url: https://folio-registry.dev.folio.org
   folio-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
   eureka-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
-  namespaces:
-    platform-complete-ui: bkadirkhodjaev
-# Environment
 environment:
-  # General
-  ENV: folio
   # PostgreSQL
   DB_HOST: postgres.eureka
   DB_PORT: 5432
@@ -31,10 +24,9 @@ environment:
   DB_CHARSET: UTF-8
   DB_QUERYTIMEOUT: 60000
   # Kafka
+  ENV: folio
   KAFKA_HOST: kafka.eureka
   KAFKA_PORT: 9092
-  # Elasticsearch
-  ELASTICSEARCH_URL: http://host.docker.internal:9200
   # AWS S3/MinIO
   AWS_URL: http://host.docker.internal:9000
   AWS_REGION: us-east-1
@@ -48,12 +40,10 @@ environment:
   S3_SECRET_ACCESS_KEY: minioadmin
   S3_BUCKET: example-bucket
   SPLIT_FILES_ENABLED: true
-  # Consortia
-  SYSTEM_USER_PASSWORD: system_user_password
   # Management
   MT_URL: http://mgr-tenants.eureka:8081
   AM_CLIENT_URL: http://mgr-applications.eureka:8081
-  KONG_ADMIN_URL: http://kong-local.eureka:8001
+  KONG_ADMIN_URL: http://kong.eureka:8001
   # Keycloak
   KC_URL: http://keycloak.eureka:8080
   KC_CONFIG_TTL: 3600s
@@ -73,33 +63,13 @@ environment:
     -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
     -XX:MaxRAMPercentage=80.0 -Xms128m -Xmx400m 
     -Djdk.internal.httpclient.disableHostnameVerification=true
-# Tenants
 tenants:
   diku:
     deploy-ui: false
-# Roles
 roles:
   Admin:
     tenant: diku
     capability-sets: [ "all" ]
-  User:
-    tenant: diku
-    capability-sets: []
-# Users
-users:
-  diku_admin:
-    tenant: diku
-    password: admin
-    last-name: John
-    first-name: Doe
-    roles: [ "Admin", "User" ] 
-  diku_user:
-    tenant: diku
-    password: user
-    last-name: John
-    first-name: Smith
-    roles: [ "User" ]
-# Sidecar module
 sidecar-module:
   image: folio-module-sidecar
   environment:
@@ -120,8 +90,7 @@ sidecar-module:
     KC_URL: http://keycloak.eureka:8080
     MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
     MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
-    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong-local.eureka:8000
-# Backend modules
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong.eureka:8000
 backend-modules:
   mod-data-export-spring:
     environment:
@@ -132,7 +101,6 @@ backend-modules:
       SYSTEM_USER_NAME: mod-data-export-spring
       SYSTEM_USER_USERNAME: mod-data-export-spring
   mod-data-export-worker:
-# Frontend modules
 frontend-modules:
   folio_data-export:
   folio_export-manager:

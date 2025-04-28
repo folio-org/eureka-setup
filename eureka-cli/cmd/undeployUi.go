@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/docker/docker/api/types/filters"
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
 )
@@ -42,18 +41,11 @@ var undeployUiCmd = &cobra.Command{
 
 func UndeployUi() {
 	slog.Info(undeployUiCommand, internal.GetFuncName(), "### UNDEPLOYING UI CONTAINERS ###")
-	client := internal.CreateClient(undeployUiCommand)
+	client := internal.CreateDockerClient(undeployUiCommand)
 	defer client.Close()
 
 	for _, value := range internal.GetTenants(undeployUiCommand, enableDebug, false) {
-		mapEntry := value.(map[string]any)
-		tenant := mapEntry["name"].(string)
-
-		filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(singleUiContainerPattern, tenant)})
-		deployedModules := internal.GetDeployedModules(undeployUiCommand, client, filters)
-		for _, deployedModule := range deployedModules {
-			internal.UndeployModule(undeployUiCommand, client, deployedModule)
-		}
+		internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(singleUiContainerPattern, value.(map[string]any)["name"].(string)), true)
 	}
 }
 

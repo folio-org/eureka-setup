@@ -1,4 +1,4 @@
-# Build
+# Build guide
 
 ## Purpose
 

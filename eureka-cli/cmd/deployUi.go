@@ -64,9 +64,7 @@ func DeployUi() {
 	}
 
 	slog.Info(deployUiCommand, internal.GetFuncName(), "### DEPLOYING UI ###")
-
-	slog.Info(deployUiCommand, internal.GetFuncName(), "Acquiring keycloak master access token")
-	masterAccessToken := internal.GetKeycloakMasterRealmAccessToken(createUsersCommand, enableDebug)
+	keycloakMasterAccessToken := internal.GetKeycloakMasterAccessToken(createUsersCommand, enableDebug)
 
 	for _, value := range internal.GetTenants(deployUiCommand, enableDebug, false) {
 		mapEntry := value.(map[string]any)
@@ -77,7 +75,7 @@ func DeployUi() {
 		}
 
 		slog.Info(deployUiCommand, internal.GetFuncName(), "Updating keycloak public client")
-		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, existingTenant, masterAccessToken, platformCompleteExternalUrl)
+		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, existingTenant, keycloakMasterAccessToken, platformCompleteExternalUrl)
 
 		imageName := fmt.Sprintf("platform-complete-ui-%s", existingTenant)
 

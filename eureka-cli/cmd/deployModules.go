@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -40,6 +41,7 @@ var deployModulesCmd = &cobra.Command{
 func DeployModules() {
 	registryUrl := viper.GetString(internal.RegistryUrlKey)
 	internal.PortStartIndex = viper.GetInt(internal.ApplicationPortStart)
+	internal.PortEndIndex = viper.GetInt(internal.ApplicationPortEnd)
 	environment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.EnvironmentKey)
 	sidecarEnvironment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.SidecarModuleEnvironmentKey)
 
@@ -56,10 +58,8 @@ func DeployModules() {
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### EXTRACTING MODULE NAME AND VERSION ###")
 	internal.ExtractModuleNameAndVersion(deployModulesCommand, enableDebug, registryModules)
 
-	slog.Info(deployModulesCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
-	client := internal.CreateClient(deployModulesCommand)
+	vaultRootToken, client := GetVaultRootTokenWithDockerClient()
 	defer client.Close()
-	vaultRootToken := internal.GetRootVaultToken(deployModulesCommand, client)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### CREATING APPLICATIONS ###")
 	registryUrls := map[string]string{internal.FolioRegistry: registryUrl, internal.EurekaRegistry: registryUrl}
@@ -68,9 +68,10 @@ func DeployModules() {
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### PULLING SIDECAR IMAGE ###")
 	deployModulesDto := internal.NewDeployModulesDto(vaultRootToken, map[string]string{internal.FolioRegistry: "", internal.EurekaRegistry: ""}, registryModules, backendModulesMap, environment, sidecarEnvironment)
-	sidecarImage := internal.GetSidecarImage(deployManagementCommand, deployModulesDto.RegistryModules[internal.EurekaRegistry])
+	sidecarImage := internal.GetSidecarImage(deployModulesCommand, deployModulesDto.RegistryModules[internal.EurekaRegistry])
+	slog.Info(deployModulesCommand, internal.GetFuncName(), fmt.Sprintf("Using sidecar image %s", sidecarImage))
 	sidecarResources := internal.CreateResources(false, viper.GetStringMap(internal.SidecarModuleResourcesKey))
-	internal.PullModule(deployManagementCommand, client, sidecarImage)
+	internal.PullModule(deployModulesCommand, client, sidecarImage)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### DEPLOYING MODULES ###")
 	deployedModules := internal.DeployModules(deployModulesCommand, client, deployModulesDto, sidecarImage, sidecarResources)
