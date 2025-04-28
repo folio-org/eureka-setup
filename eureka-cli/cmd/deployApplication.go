@@ -54,6 +54,15 @@ func DeployApplication() {
 	slog.Info(deployApplicationCommand, "Elapsed, duration", time.Since(start))
 }
 
+func DeployChildApplication() {
+	start := time.Now()
+	DeployModules()
+	CreateTenantEntitlements()
+	DetachCapabilitySets()
+	AttachCapabilitySets()
+	slog.Info(deployApplicationCommand, "Elapsed, duration", time.Since(start))
+}
+
 func init() {
 	rootCmd.AddCommand(deployApplicationCmd)
 	deployApplicationCmd.PersistentFlags().BoolVarP(&buildImages, "buildImages", "b", false, "Build images")

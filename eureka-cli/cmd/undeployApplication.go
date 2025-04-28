@@ -49,6 +49,15 @@ func UndeployApplication() {
 	slog.Info(undeployApplicationCommand, "Elapsed, duration", time.Since(start))
 }
 
+func UndeployChildApplication() {
+	start := time.Now()
+	RemoveTenantEntitlements()
+	UndeployModules()
+	DetachCapabilitySets()
+	AttachCapabilitySets()
+	slog.Info(undeployApplicationCommand, "Elapsed, duration", time.Since(start))
+}
+
 func init() {
 	rootCmd.AddCommand(undeployApplicationCmd)
 }

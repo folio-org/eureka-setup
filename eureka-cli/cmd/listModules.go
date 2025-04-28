@@ -44,22 +44,21 @@ var listModulesCmd = &cobra.Command{
 
 func ListModules() {
 	slog.Info(listModulesCommand, internal.GetFuncName(), "### LISTING MODULES ###")
-	internal.RunCommand(listSystemCommand, exec.Command("docker", "container", "ls", "--all", "--filter", fmt.Sprintf("name=%s", createFilter())))
-}
-
-func createFilter() string {
-	if !showAll {
-		return fmt.Sprintf(currentProfileModulesPattern, viper.GetString(internal.ProfileNameKey))
+	var filter string
+	if showAll {
+		filter = allProfilesModulesPattern
+	} else {
+		filter = fmt.Sprintf(currentProfileModulesPattern, viper.GetString(internal.ProfileNameKey))
+		if moduleName != "" {
+			filter = fmt.Sprintf(internal.SingleModuleContainerPattern, viper.GetString(internal.ProfileNameKey), moduleName)
+		}
 	}
-	if moduleName != "" {
-		return fmt.Sprintf(internal.SingleModuleContainerPattern, viper.GetString(internal.ProfileNameKey), moduleName)
-	}
-	return allProfilesModulesPattern
+	internal.RunCommand(listSystemCommand, exec.Command("docker", "container", "ls", "--all", "--filter", fmt.Sprintf("name=%s", filter)))
 }
 
 func init() {
 	rootCmd.AddCommand(listModulesCmd)
 	listModulesCmd.Flags().StringVarP(&moduleName, "moduleName", "m", "", "Module name, e.g. mod-users")
-	listModulesCmd.Flags().BoolVarP(&showAll, "all", "a", false, "Show all modules for all profiles")
+	listModulesCmd.Flags().BoolVarP(&showAll, "showAll", "s", false, "Show all modules for all profiles")
 	listModulesCmd.MarkPersistentFlagRequired("moduleName")
 }
