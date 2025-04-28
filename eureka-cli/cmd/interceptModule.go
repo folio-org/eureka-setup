@@ -142,17 +142,18 @@ func prepareContainerNetwork(dto *InterceptModuleDto, moduleAndSidecar bool) {
 		dto.backendModule.ModulePortBindings = internal.CreatePortBindings(moduleServerPort, moduleDebugPort, dto.backendModule.ModuleServerPort)
 		dto.backendModule.SidecarPortBindings = internal.CreatePortBindings(sidecarServerPort, sidecarDebugPort, dto.backendModule.ModuleServerPort)
 		dto.backendModule.ModuleExposedServerPort = moduleServerPort
-	} else {
-		sidecarServer, err := strconv.Atoi(strings.TrimSpace(regexp.MustCompile(internal.ColonDelimitedPattern).ReplaceAllString(sidecarUrl, `$1`)))
-		if err != nil {
-			slog.Error(interceptModuleCommand, internal.GetFuncName(), "strconv.Atoi error")
-			panic(err)
-		}
-		sidecarDebugPort := internal.GetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, []int{sidecarServer})
-
-		dto.backendModule, dto.registryModule = internal.GetBackendModule(interceptModuleCommand, dto.deployModulesDto, dto.moduleName)
-		dto.backendModule.SidecarPortBindings = internal.CreatePortBindings(sidecarServer, sidecarDebugPort, dto.backendModule.ModuleServerPort)
+		return
 	}
+
+	sidecarServer, err := strconv.Atoi(strings.TrimSpace(regexp.MustCompile(internal.ColonDelimitedPattern).ReplaceAllString(sidecarUrl, `$1`)))
+	if err != nil {
+		slog.Error(interceptModuleCommand, internal.GetFuncName(), "strconv.Atoi error")
+		panic(err)
+	}
+	sidecarDebugPort := internal.GetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, []int{sidecarServer})
+
+	dto.backendModule, dto.registryModule = internal.GetBackendModule(interceptModuleCommand, dto.deployModulesDto, dto.moduleName)
+	dto.backendModule.SidecarPortBindings = internal.CreatePortBindings(sidecarServer, sidecarDebugPort, dto.backendModule.ModuleServerPort)
 }
 
 func deployModule(dto *InterceptModuleDto, client *client.Client) {
