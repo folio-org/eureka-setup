@@ -1,24 +1,19 @@
-# Profile
 profile:
   name: combined
-# Application
 application:
   name: app-combined
   version: 1.0.0
   platform: base
   fetch-descriptors: false
   port-start: 30000
-# Registry
+  port-end: 32000
 registry:
   registry-url: https://folio-registry.dev.folio.org
   folio-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
   eureka-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
   namespaces:
     platform-complete-ui: bkadirkhodjaev
-# Environment
 environment:
-  # General
-  ENV: folio
   # PostgreSQL
   DB_HOST: postgres.eureka
   DB_PORT: 5432
@@ -28,29 +23,17 @@ environment:
   DB_CHARSET: UTF-8
   DB_QUERYTIMEOUT: 60000
   # Kafka
+  ENV: folio
   KAFKA_HOST: kafka.eureka
   KAFKA_PORT: 9092
   # Elasticsearch
   ELASTICSEARCH_URL: http://host.docker.internal:9200
-  # AWS S3/MinIO
-  AWS_URL: http://host.docker.internal:9000
-  AWS_REGION: us-east-1
-  AWS_BUCKET: example-bucket
-  AWS_ACCESS_KEY_ID: minioadmin
-  AWS_SECRET_ACCESS_KEY: minioadmin
-  S3_IS_AWS: false
-  S3_URL: http://host.docker.internal:9000
-  S3_REGION: us-east-1
-  S3_ACCESS_KEY_ID: minioadmin
-  S3_SECRET_ACCESS_KEY: minioadmin
-  S3_BUCKET: example-bucket
-  SPLIT_FILES_ENABLED: true
   # Consortia
   SYSTEM_USER_PASSWORD: system_user_password
   # Management
   MT_URL: http://mgr-tenants.eureka:8081
   AM_CLIENT_URL: http://mgr-applications.eureka:8081
-  KONG_ADMIN_URL: http://kong-local.eureka:8001
+  KONG_ADMIN_URL: http://kong.eureka:8001
   # Keycloak
   KC_URL: http://keycloak.eureka:8080
   KC_CONFIG_TTL: 3600s
@@ -70,11 +53,9 @@ environment:
     -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
     -XX:MaxRAMPercentage=80.0 -Xms128m -Xmx400m 
     -Djdk.internal.httpclient.disableHostnameVerification=true
-# Tenants
 tenants:
   diku:
     deploy-ui: true
-# Roles
 roles:
   Admin:
     tenant: diku
@@ -82,7 +63,6 @@ roles:
   User:
     tenant: diku
     capability-sets: []
-# Users
 users:
   diku_admin:
     tenant: diku
@@ -93,10 +73,9 @@ users:
   diku_user:
     tenant: diku
     password: user
-    last-name: John
-    first-name: Smith
+    last-name: Jane
+    first-name: Doe
     roles: [ "User" ]
-# Sidecar module
 sidecar-module:
   image: folio-module-sidecar
   environment:
@@ -117,44 +96,26 @@ sidecar-module:
     KC_URL: http://keycloak.eureka:8080
     MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
     MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
-    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong-local.eureka:8000
-# Backend modules
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong.eureka:8000
 backend-modules:
-  # Management modules
   mgr-applications:
     port: 9901
     environment:
-      # DB
-      DB_DATABASE: mgr
-      DB_USERNAME: mgr_rw
-      DB_PASSWORD: supersecret
-      # Management
       MODULE_URL: http://mgr-applications.eureka:8081
       TE_URL: http://mgr-tenant-entitlements.eureka:8081
       VALIDATION_MODE: none
+      ROUTEMANAGEMENT_ENABLE: 'true'
     resources:
       cpus: 2
   mgr-tenants:
     port: 9902
     environment:
-      # DB
-      DB_DATABASE: mgr
-      DB_USERNAME: mgr_rw
-      DB_PASSWORD: supersecret
-      # Management
       MODULE_URL: http://mgr-tenants.eureka:8081
-      CACHE_EXPIRATION_TTL: 55s
     resources:
       cpus: 2
   mgr-tenant-entitlements:
-    version: 2.0.2
     port: 9903
     environment:
-      # DB
-      DB_DATABASE: mgr
-      DB_USERNAME: mgr_rw
-      DB_PASSWORD: supersecret
-      # Management
       MODULE_URL: http://mgr-tenant-entitlements.eureka:8081
       TENANT_URL: http://mgr-tenants.eureka:8081
       AM_CLIENT_URL: http://mgr-applications.eureka:8081
@@ -165,7 +126,6 @@ backend-modules:
       RETRIES_MODULE_MAX: '10'
     resources:
       cpus: 2
-  # Keycloak modules
   mod-users-keycloak:
     deploy-sidecar: true
     port: 9904
@@ -203,7 +163,6 @@ backend-modules:
       SYSTEM_USER_USERNAME: mod-scheduler
     resources:
       cpus: 4
-  # Keycloak Consortia modules
   mod-consortia-keycloak:
     deploy-module: false
     deploy-sidecar: true
@@ -224,7 +183,6 @@ backend-modules:
       OKAPI_SERVICE_HOST: mod-consortia-keycloak.eureka
       OKAPI_SERVICE_URL: http://mod-consortia-keycloak.eureka:8082
       OKAPI_URL: http://mod-consortia-keycloak.eureka:8082
-  # Core Modules
   mod-permissions:
   mod-configuration:
   mod-users:
@@ -267,7 +225,6 @@ backend-modules:
       SYSTEM_USER_ENABLED: 'false'
       SYSTEM_USER_NAME: mod-search
       SYSTEM_USER_USERNAME: mod-search
-# Frontend modules
 frontend-modules:
   folio_stripes-core:
   folio_developer:
@@ -291,7 +248,6 @@ frontend-modules:
   folio_plugin-find-po-line:
   folio_plugin-find-user:
   folio_plugin-find-authority:
-# Custom Frontend modules
 custom-frontend-modules:
   folio_authorization-roles:
     version: 2.0.109900000000126

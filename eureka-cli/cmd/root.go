@@ -39,7 +39,8 @@ var (
 	namespace         string
 	showAll           bool
 	id                string
-	location          string
+	moduleUrl         string
+	sidecarUrl        string
 	restore           bool
 )
 
@@ -63,7 +64,6 @@ func init() {
 }
 
 func initConfig() {
-	slog.Info(rootCommand, internal.GetFuncName(), "### READING CONFIG ###")
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
 	} else {
@@ -75,12 +75,7 @@ func initConfig() {
 		viper.SetConfigName(internal.ConfigMinimal)
 	}
 	viper.AutomaticEnv()
-	if err := viper.ReadInConfig(); err == nil {
-		profile := viper.GetString(internal.ProfileNameKey)
-		applicationsMap := viper.GetStringMap(internal.ApplicationKey)
-		slog.Info(rootCommand, internal.GetFuncName(), fmt.Sprintf("Using config profile: %s", profile))
-		slog.Info(rootCommand, internal.GetFuncName(), fmt.Sprintf("Using config application: %s", fmt.Sprintf("%s-%s", applicationsMap["name"], applicationsMap["version"])))
-	} else {
+	if err := viper.ReadInConfig(); err != nil {
 		slog.Error(rootCommand, internal.GetFuncName(), fmt.Sprintf("Cannot find or parse configuration file. Check that file exists and doesn’t contain errors.: %s", configFile))
 		panic(err)
 	}

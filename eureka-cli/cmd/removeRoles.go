@@ -36,15 +36,7 @@ var removeRolesCmd = &cobra.Command{
 }
 
 func RemoveRoles() {
-	if internal.RemoveRoleUnsupported {
-		slog.Info(removeRolesCommand, internal.GetFuncName(), "### REMOVAL OF ROLES IS UNSUPPORTED BY CURRENT GATEWAY SETUP ###")
-		return
-	}
-
-	slog.Info(removeRolesCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
-	client := internal.CreateClient(removeRolesCommand)
-	defer client.Close()
-	vaultRootToken := internal.GetRootVaultToken(removeRolesCommand, client)
+	vaultRootToken := GetVaultRootToken()
 
 	for _, value := range internal.GetTenants(removeRolesCommand, enableDebug, false) {
 		mapEntry := value.(map[string]any)
@@ -54,11 +46,9 @@ func RemoveRoles() {
 			continue
 		}
 
-		slog.Info(removeRolesCommand, internal.GetFuncName(), fmt.Sprintf("### ACQUIRING KEYCLOAK ACCESS TOKEN FOR %s TENANT ###", existingTenant))
-		accessToken := internal.GetKeycloakAccessToken(removeRolesCommand, enableDebug, vaultRootToken, existingTenant)
-
 		slog.Info(removeRolesCommand, internal.GetFuncName(), fmt.Sprintf("### REMOVING ROLES FOR %s TENANT ###", existingTenant))
-		internal.RemoveRoles(removeRolesCommand, enableDebug, false, existingTenant, accessToken)
+		keycloakAccessToken := internal.GetKeycloakAccessToken(removeRolesCommand, enableDebug, vaultRootToken, existingTenant)
+		internal.RemoveRoles(removeRolesCommand, enableDebug, false, existingTenant, keycloakAccessToken)
 	}
 }
 

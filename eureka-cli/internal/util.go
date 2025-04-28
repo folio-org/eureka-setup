@@ -7,12 +7,15 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -229,4 +232,36 @@ func GetFuncName() string {
 	pc, _, _, _ := runtime.Caller(1)
 
 	return runtime.FuncForPC(pc).Name()
+}
+
+// ######## Net ########
+
+func GetFreePortFromRange(commandName string, portStart, portEnd int, excludeReservedPorts []int) int {
+	for port := portStart + 1; port <= portEnd; port++ {
+		if !slices.Contains(excludeReservedPorts, port) && IsPortFree(commandName, portStart, portEnd, port) {
+			return port
+		}
+	}
+	LogErrorPanic(commandName, fmt.Sprintf("getFreePortFromRange() error - Cannot find free TCP ports in range %d-%d", portStart, portEnd))
+	return 0
+}
+
+func IsPortFree(commandName string, portStart, portEnd int, port int) bool {
+	tcpListen, err := net.Listen("tcp", fmt.Sprintf(":%s", strconv.Itoa(port)))
+	if err != nil {
+		slog.Debug(commandName, GetFuncName(), fmt.Sprintf("TCP %d port is reserved or already bound in range %d-%d", port, portStart, portEnd))
+		return false
+	}
+	defer tcpListen.Close()
+
+	return true
+}
+
+func IsHostnameExists(commandName string, hostname string) bool {
+	_, err := net.LookupHost(hostname)
+	if err != nil {
+		slog.Debug(commandName, GetFuncName(), fmt.Sprintf("Host %s is unreacheable: %s", hostname, err.Error()))
+	}
+
+	return err == nil
 }

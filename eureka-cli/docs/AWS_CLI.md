@@ -1,8 +1,8 @@
-# AWS CLI
+# AWS CLI guide
 
 ## Purpose
 
-- AWS CLI preparation commands
+- AWS CLI commands to prepare Eureka CLI for the private registry hosted on AWS
 
 ## Commands
 

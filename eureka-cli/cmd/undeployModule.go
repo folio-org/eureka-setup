@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/docker/docker/api/types/filters"
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -39,14 +38,10 @@ var undeployModuleCmd = &cobra.Command{
 
 func UndeployModule() {
 	slog.Info(undeployModuleCommand, internal.GetFuncName(), "### UNDEPLOYING MODULE ###")
-	client := internal.CreateClient(undeployModuleCommand)
+	client := internal.CreateDockerClient(undeployModuleCommand)
 	defer client.Close()
 
-	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.SingleModuleContainerPattern, viper.GetString(internal.ProfileNameKey), moduleName)})
-	deployedModules := internal.GetDeployedModules(undeployModuleCommand, client, filters)
-	for _, deployedModule := range deployedModules {
-		internal.UndeployModule(undeployModuleCommand, client, deployedModule)
-	}
+	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(internal.SingleModuleContainerPattern, viper.GetString(internal.ProfileNameKey), moduleName), true)
 }
 
 func init() {
