@@ -94,12 +94,12 @@ func NewBackendModuleWithSidecar(dto BackendModuleDto) *BackendModule {
 		ModuleExposedServerPort: *dto.port,
 		ModuleServerPort:        *dto.portServer,
 		ModuleExposedPorts:      exposedPorts,
-		ModulePortBindings:      createPortBindings(*dto.port, *dto.port+1000, *dto.portServer),
+		ModulePortBindings:      CreatePortBindings(*dto.port, *dto.port+100, *dto.portServer),
 		ModuleEnvironment:       dto.environment,
 		ModuleResources:         *CreateResources(true, dto.resources),
 		DeploySidecar:           *dto.deploySidecar,
 		SidecarExposedPorts:     exposedPorts,
-		SidecarPortBindings:     createPortBindings(*dto.port+2000, *dto.port+3000, *dto.portServer),
+		SidecarPortBindings:     CreatePortBindings(*dto.port+200, *dto.port+300, *dto.portServer),
 	}
 }
 
@@ -111,7 +111,7 @@ func NewBackendModule(dto BackendModuleDto) *BackendModule {
 		ModuleExposedServerPort: *dto.port,
 		ModuleServerPort:        *dto.portServer,
 		ModuleExposedPorts:      createExposedPorts(*dto.portServer),
-		ModulePortBindings:      createPortBindings(*dto.port, *dto.port+1000, *dto.portServer),
+		ModulePortBindings:      CreatePortBindings(*dto.port, *dto.port+1000, *dto.portServer),
 		ModuleEnvironment:       dto.environment,
 		ModuleResources:         *CreateResources(true, dto.resources),
 		DeploySidecar:           false,
@@ -250,7 +250,12 @@ func NewDeploySidecarDto(name string, image string, env []string, backendModule 
 
 func NewModuleNetworkConfig() *network.NetworkingConfig {
 	return &network.NetworkingConfig{
-		EndpointsConfig: map[string]*network.EndpointSettings{DefaultNetworkName: {NetworkID: DefaultNetworkId}},
+		EndpointsConfig: map[string]*network.EndpointSettings{
+			DefaultNetworkId: {
+				NetworkID: DefaultNetworkId,
+				Aliases:   []string{DefaultNetworkAlias},
+			},
+		},
 	}
 }
 
@@ -265,7 +270,7 @@ func createExposedPorts(serverPort int) *nat.PortSet {
 	return &portSet
 }
 
-func createPortBindings(hostServerPort int, hostServerDebugPort int, serverPort int) *nat.PortMap {
+func CreatePortBindings(hostServerPort int, hostServerDebugPort int, serverPort int) *nat.PortMap {
 	var (
 		serverPortBinding      []nat.PortBinding
 		serverDebugPortBinding []nat.PortBinding

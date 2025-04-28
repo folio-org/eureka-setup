@@ -18,7 +18,6 @@ package cmd
 import (
 	"log/slog"
 
-	"github.com/docker/docker/api/types/filters"
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
 )
@@ -42,14 +41,10 @@ var undeployManagementCmd = &cobra.Command{
 
 func UndeployManagement() {
 	slog.Info(undeployManagementCommand, internal.GetFuncName(), "### UNDEPLOYING MANAGEMENT MODULES ###")
-	client := internal.CreateClient(undeployManagementCommand)
+	client := internal.CreateDockerClient(undeployManagementCommand)
 	defer client.Close()
 
-	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: managementModuleContainerPattern})
-	deployedModules := internal.GetDeployedModules(undeployManagementCommand, client, filters)
-	for _, deployedModule := range deployedModules {
-		internal.UndeployModule(undeployManagementCommand, client, deployedModule)
-	}
+	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, managementModuleContainerPattern, true)
 }
 
 func init() {

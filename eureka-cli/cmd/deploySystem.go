@@ -77,7 +77,7 @@ func DeploySystem() {
 	}
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "### WAITING FOR SYSTEM TO INITIALIZE ###")
 	time.Sleep(15 * time.Second)
-	slog.Info(deployModulesCommand, internal.GetFuncName(), "All system components have initialized")
+	slog.Info(deploySystemCommand, internal.GetFuncName(), "All system components have initialized")
 }
 
 func init() {

@@ -17,7 +17,7 @@ const (
 )
 
 func GetVaultSecretKey(commandName string, enableDebug bool, vaultRootToken string, secretPath string) map[string]any {
-	serverUrl := fmt.Sprintf(GetGatewayHostname(), VaultServerPort, "")
+	serverUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), VaultServerPort, "")
 
 	client, err := vault.New(vault.WithAddress(serverUrl), vault.WithRequestTimeout(VaultTimeout))
 	if err != nil {

@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"log/slog"
 	"os/exec"
 
 	"github.com/folio-org/eureka-cli/internal"
@@ -36,7 +35,6 @@ var listSystemCmd = &cobra.Command{
 }
 
 func ListSystem() {
-	slog.Info(listSystemCommand, internal.GetFuncName(), "### LISTING SYSTEM CONTAINERS ###")
 	internal.RunCommand(listSystemCommand, exec.Command("docker", "compose", "--project-name", "eureka", "ps", "--all"))
 }
 

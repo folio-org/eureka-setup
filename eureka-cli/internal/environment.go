@@ -62,12 +62,22 @@ func AppendModuleEnvironment(environment []string, extraEnvironmentMap map[strin
 	return environment
 }
 
-func AppendSidecarEnvironment(environment []string, module *RegistryModule, portServer string) []string {
-	extraEnvironment := []string{fmt.Sprintf("MODULE_NAME=%s", module.Name),
-		fmt.Sprintf("MODULE_VERSION=%s", *module.Version),
-		fmt.Sprintf("MODULE_URL=http://%s.eureka:%s", module.Name, portServer),
-		fmt.Sprintf("SIDECAR_NAME=%s", module.SidecarName),
-		fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%s", module.SidecarName, portServer),
+func AppendSidecarEnvironment(environment []string, module *RegistryModule, portServer string, moduleUrl *string, sidecarUrl *string) []string {
+	var extraEnvironment []string
+	if moduleUrl == nil && sidecarUrl == nil {
+		extraEnvironment = []string{fmt.Sprintf("MODULE_NAME=%s", module.Name),
+			fmt.Sprintf("MODULE_VERSION=%s", *module.Version),
+			fmt.Sprintf("MODULE_URL=http://%s.eureka:%s", module.Name, portServer),
+			fmt.Sprintf("SIDECAR_NAME=%s", module.SidecarName),
+			fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%s", module.SidecarName, portServer),
+		}
+	} else {
+		extraEnvironment = []string{fmt.Sprintf("MODULE_NAME=%s", module.Name),
+			fmt.Sprintf("MODULE_VERSION=%s", *module.Version),
+			fmt.Sprintf("MODULE_URL=%s", *moduleUrl),
+			fmt.Sprintf("SIDECAR_NAME=%s", module.SidecarName),
+			fmt.Sprintf("SIDECAR_URL=%s", *sidecarUrl),
+		}
 	}
 	// Change the default port on netty server of the sidecar written in Quarkus
 	if portServer != DefaultServerPort {

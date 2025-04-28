@@ -36,10 +36,7 @@ var createUsersCmd = &cobra.Command{
 }
 
 func CreateUsers() {
-	slog.Info(createUsersCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
-	client := internal.CreateClient(createUsersCommand)
-	defer client.Close()
-	vaultRootToken := internal.GetRootVaultToken(createUsersCommand, client)
+	vaultRootToken := GetVaultRootToken()
 
 	for _, value := range internal.GetTenants(createUsersCommand, enableDebug, false) {
 		mapEntry := value.(map[string]any)
@@ -49,11 +46,9 @@ func CreateUsers() {
 			continue
 		}
 
-		slog.Info(createUsersCommand, internal.GetFuncName(), fmt.Sprintf("### ACQUIRING KEYCLOAK ACCESS TOKEN FOR %s TENANT ###", existingTenant))
-		accessToken := internal.GetKeycloakAccessToken(createUsersCommand, enableDebug, vaultRootToken, existingTenant)
-
 		slog.Info(createUsersCommand, internal.GetFuncName(), fmt.Sprintf("### CREATING USERS FOR %s TENANT ###", existingTenant))
-		internal.CreateUsers(createUsersCommand, enableDebug, false, existingTenant, accessToken)
+		keycloakAccessToken := internal.GetKeycloakAccessToken(createUsersCommand, enableDebug, vaultRootToken, existingTenant)
+		internal.CreateUsers(createUsersCommand, enableDebug, false, existingTenant, keycloakAccessToken)
 	}
 }
 

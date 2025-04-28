@@ -49,10 +49,8 @@ func DeployManagement() {
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### EXTRACTING MODULE NAME AND VERSION ###")
 	internal.ExtractModuleNameAndVersion(deployManagementCommand, enableDebug, registryModules)
 
-	slog.Info(deployManagementCommand, internal.GetFuncName(), "### ACQUIRING VAULT ROOT TOKEN ###")
-	client := internal.CreateClient(deployManagementCommand)
+	vaultRootToken, client := GetVaultRootTokenWithDockerClient()
 	defer client.Close()
-	vaultRootToken := internal.GetRootVaultToken(deployManagementCommand, client)
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### DEPLOYING MANAGEMENT MODULES ###")
 	deployModulesDto := internal.NewDeployManagementModulesDto(vaultRootToken, map[string]string{internal.EurekaRegistry: ""}, registryModules, backendModulesMap, environment)
