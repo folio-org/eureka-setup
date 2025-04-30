@@ -46,6 +46,18 @@ go install
 eureka-cli -c ./config.combined.yaml deployApplication
 ```
 
+### (Optional) Enable autocompletion
+
+- Command autocompletion can be enabled in the shell of your choice, below is an example for the **Bash** shell
+
+```bash
+go install
+echo "source <(eureka-cli completion bash)" >> ~/.bashrc
+source ~/.bashrc
+```
+
+> After typing the command partially and hitting the TAB key, the command will autocomplete, e.g. `eureka-cli intercept` + TAB key will result in `eureka-cli interceptModule`
+
 ### Deploy the combined application with Acquisitions modules
 
 #### Using Public DockerHub container registry (folioci & folioorg namespaces)

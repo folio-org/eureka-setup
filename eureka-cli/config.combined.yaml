@@ -245,6 +245,7 @@ frontend-modules:
   folio_servicepoints:
   folio_acquisition-units:
   folio_requests:
+  folio_mosaic-settings:
   folio_plugin-find-instance:
   folio_plugin-find-organization:
   folio_plugin-find-po-line:

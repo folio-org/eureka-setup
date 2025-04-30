@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os/exec"
+	"time"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
@@ -38,6 +39,8 @@ var buildAndPushUiCmd = &cobra.Command{
 
 func BuildAndPushUi() {
 	slog.Info(deployUiCommand, internal.GetFuncName(), "### CLONING & UPDATING UI ###")
+
+	start := time.Now()
 
 	slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", platformCompleteDir, defaultStripesBranch))
 	outputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
@@ -76,6 +79,8 @@ func BuildAndPushUi() {
 
 	slog.Info(buildAndPushUiCmdCommand, internal.GetFuncName(), "Pushing platform complete UI image to DockerHub")
 	internal.RunCommand(buildAndPushUiCmdCommand, exec.Command("docker", "push", fmt.Sprintf("%s/%s:latest", namespace, imageName)))
+
+	slog.Info(deployApplicationCommand, "Elapsed, duration", time.Since(start))
 }
 
 func init() {
