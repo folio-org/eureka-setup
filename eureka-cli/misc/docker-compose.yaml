@@ -10,6 +10,8 @@ volumes:
     name: eureka_vault_data
   kafka-data: 
     name: eureka_kafka_data
+  minio-data:
+    name: eureka_minio_data
 
 services:
   ### Netcat ###
@@ -307,5 +309,37 @@ services:
   #     interval: 30s
   #     timeout: 10s
   #     retries: 30
-      
-  # TODO Minio
+  
+  ### Minio ###
+  minio:
+    container_name: minio
+    image: minio/minio:RELEASE.2025-03-12T18-04-18Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    mem_limit: 500m
+    volumes:
+      - minio-data:/data
+    networks: 
+      - eureka-net
+    ports:
+      - 9000:9000
+      - 9001:9001
+    healthcheck:
+      test: "curl -k -f http://127.0.0.1:9001/minio/health/live || exit 1"
+ 
+  createbuckets: # This container will terminate after running its commands to create a bucket in minio
+    container_name: createbuckets
+    image: minio/mc:RELEASE.2025-03-12T17-29-24Z
+    restart: on-failure
+    mem_limit: 300m
+    networks: 
+      - eureka-net
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add myminio http://host.docker.internal:9000 minioadmin minioadmin;
+      /usr/bin/mc rm -r --force myminio/example-bucket;
+      /usr/bin/mc mb myminio/example-bucket;
+      exit 0;
+      "

@@ -108,25 +108,28 @@ func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *s
 
 // ######## Application & Application Discovery ########
 
-func RemoveApplications(commandName string, enableDebug bool, panicOnError bool) {
-	resp := DoGetReturnResponse(commandName, fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, "/applications"), enableDebug, panicOnError, map[string]string{})
+func GetApplications(commandName string, enableDebug bool, panicOnError bool) Applications {
+	var applications Applications
+
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, "/applications")
+
+	resp := DoGetReturnResponse(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
 	if resp == nil {
-		return
+		return applications
 	}
 	defer resp.Body.Close()
-
-	type Applications struct {
-		ApplicationDescriptors []map[string]any `json:"applicationDescriptors"`
-		TotalRecords           int              `json:"totalRecords"`
-	}
-
-	var applications Applications
 
 	err := json.NewDecoder(resp.Body).Decode(&applications)
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "json.NewDecoder error")
 		panic(err)
 	}
+
+	return applications
+}
+
+func RemoveApplications(commandName string, enableDebug bool, panicOnError bool) {
+	applications := GetApplications(commandName, enableDebug, panicOnError)
 
 	for _, value := range applications.ApplicationDescriptors {
 		id := value["id"].(string)
@@ -595,19 +598,25 @@ func CreateRoles(commandName string, enableDebug bool, panicOnError bool, existi
 func GetCapabilitySets(commandName string, enableDebug bool, panicOnError bool, headers map[string]string) []any {
 	var foundCapabilitySets []any
 
-	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/capability-sets?offset=0&limit=10000")
+	applications := GetApplications(commandName, enableDebug, panicOnError)
 
-	foundCapabilitySetsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
-	if foundCapabilitySetsMap["capabilitySets"] == nil || len(foundCapabilitySetsMap["capabilitySets"].([]any)) == 0 {
-		return nil
+	for _, value := range applications.ApplicationDescriptors {
+		applicationId := value["id"].(string)
+
+		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/capability-sets?offset=0&limit=10000&query=applicationId==%s", applicationId))
+
+		foundCapabilitySetsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
+		if foundCapabilitySetsMap["capabilitySets"] == nil || len(foundCapabilitySetsMap["capabilitySets"].([]any)) == 0 {
+			return nil
+		}
+
+		foundCapabilitySets = append(foundCapabilitySets, foundCapabilitySetsMap["capabilitySets"].([]any)...)
 	}
-
-	foundCapabilitySets = foundCapabilitySetsMap["capabilitySets"].([]any)
 
 	return foundCapabilitySets
 }
 
-func GetCapabilitySetsByName(commandName string, enableDebug bool, panicOnError bool, capabilitySetName string, headers map[string]string) []any {
+func GetCapabilitySetsByName(commandName string, enableDebug bool, panicOnError bool, headers map[string]string, capabilitySetName string) []any {
 	var foundCapabilitySets []any
 
 	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", capabilitySetName))
@@ -665,21 +674,9 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 
 		var capabilitySetsMapList []map[string]any
 		if len(capabilitySetsConfig) == 1 && slices.Contains(capabilitySetsConfig, "all") {
-			for _, capabilityValue := range GetCapabilitySets(commandName, enableDebug, true, headers) {
-				capabilityMapEntry := capabilityValue.(map[string]any)
-
-				capabilitySetsMapList = append(capabilitySetsMapList, capabilityMapEntry)
-			}
+			capabilitySetsMapList = addAllCapabilitySets(commandName, enableDebug, headers, capabilitySetsMapList)
 		} else {
-			for _, capabilitySetConfig := range capabilitySetsConfig {
-				capabilitySetConfigName := capabilitySetConfig.(string)
-
-				for _, capabilityValue := range GetCapabilitySetsByName(commandName, enableDebug, true, capabilitySetConfigName, headers) {
-					capabilityMapEntry := capabilityValue.(map[string]any)
-
-					capabilitySetsMapList = append(capabilitySetsMapList, capabilityMapEntry)
-				}
-			}
+			capabilitySetsMapList = addSelectedCapabilitySets(commandName, enableDebug, headers, capabilitySetsConfig, capabilitySetsMapList)
 		}
 
 		var capabilitySetIds []string
@@ -704,4 +701,28 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 
 		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Attached %d capability sets to %s role in %s tenant (realm)`, len(capabilitySetIds), roleName, tenant))
 	}
+}
+
+func addSelectedCapabilitySets(commandName string, enableDebug bool, headers map[string]string, capabilitySetsConfig []any, capabilitySetsMapList []map[string]any) []map[string]any {
+	for _, capabilitySetConfig := range capabilitySetsConfig {
+		capabilitySetConfigName := capabilitySetConfig.(string)
+
+		for _, capabilityValue := range GetCapabilitySetsByName(commandName, enableDebug, true, headers, capabilitySetConfigName) {
+			capabilityMapEntry := capabilityValue.(map[string]any)
+
+			capabilitySetsMapList = append(capabilitySetsMapList, capabilityMapEntry)
+		}
+	}
+
+	return capabilitySetsMapList
+}
+
+func addAllCapabilitySets(commandName string, enableDebug bool, headers map[string]string, capabilitySetsMapList []map[string]any) []map[string]any {
+	for _, capabilityValue := range GetCapabilitySets(commandName, enableDebug, true, headers) {
+		capabilityMapEntry := capabilityValue.(map[string]any)
+
+		capabilitySetsMapList = append(capabilitySetsMapList, capabilityMapEntry)
+	}
+
+	return capabilitySetsMapList
 }

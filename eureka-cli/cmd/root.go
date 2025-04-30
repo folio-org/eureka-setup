@@ -59,7 +59,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", fmt.Sprintf("Config file (default is $HOME/%s/%s.%s)", internal.ConfigDir, internal.ConfigMinimal, internal.ConfigType))
+	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", fmt.Sprintf("Config file (default is $HOME/%s/%s.%s)", internal.ConfigDir, internal.ConfigCombined, internal.ConfigType))
 	rootCmd.PersistentFlags().BoolVarP(&enableDebug, "debug", "d", false, "Enable debug")
 }
 
@@ -72,7 +72,7 @@ func initConfig() {
 		configPath := path.Join(home, internal.ConfigDir)
 		viper.AddConfigPath(configPath)
 		viper.SetConfigType(internal.ConfigType)
-		viper.SetConfigName(internal.ConfigMinimal)
+		viper.SetConfigName(internal.ConfigCombined)
 	}
 	viper.AutomaticEnv()
 	if err := viper.ReadInConfig(); err != nil {

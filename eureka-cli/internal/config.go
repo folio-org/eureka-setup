@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	ConfigDir     string = ".eureka"
-	ConfigMinimal string = "config.minimal"
-	ConfigType    string = "yaml"
+	ConfigDir      string = ".eureka"
+	ConfigCombined string = "config.combined"
+	ConfigType     string = "yaml"
 
 	FolioRegistry  string = "folio"
 	EurekaRegistry string = "eureka"
