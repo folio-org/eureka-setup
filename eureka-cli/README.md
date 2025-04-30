@@ -122,4 +122,5 @@ curl --request POST \
 - If during `Deploy System` or `Deploy Ui` shell commands are failing to execute verify that all shell scripts located under `./misc` folder are saved using the **LF** (Line Feed) line break
 - If during `Deploy Management` or `Deploy Modules` the healthchecks are failing make sure to either define **host.docker.internal** in `/etc/hosts` or set `application.gateway-hostname=172.17.0.1` in the `config.*.yaml`
 - If during `Deploy Modules` an exception contains **"Bind for 0.0.0.0:XXXXX failed: port is already allocated."** make sure to set `application.port-start=20000` in the `config.*.yaml`
+- If during `Deploy Modules` an exception contains **"Failed to load module descriptor by url: <https://folio-registry.dev.folio.org/_/proxy/modules/mod-XXX>"** make sure that the module descriptor for this version exists or use an older module version by setting `mod-XXX.version` in the `config.*.yaml`
 - If during `Create Tenant Entitlement` an exception contains **"The module is not entitled on tenant ..."** rerun `undeployApplication` and `deployApplication` once again with more available RAM

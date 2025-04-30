@@ -78,6 +78,8 @@
 ./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -m http://host.docker.internal:36002 -s http://host.docker.internal:37002
 ```
 
+> Module and sidecar exposed ports in the example are not fixed and can be changed to suit your needs, e.g. if your mod-orders in IntelliJ is usually started on port 9800, `--moduleUrl` / `-m` will be <http://host.docker.internal:9800>
+
 - Start the module instances in IntelliJ
 
 <table>

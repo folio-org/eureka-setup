@@ -146,6 +146,7 @@ backend-modules:
     port: 9905
     environment:
       X_OKAPI_TOKEN_HEADER_ENABLED: 'true'
+      KC_ADMIN_TOKEN_TTL: 59s
   mod-roles-keycloak:
     deploy-sidecar: true
     port: 9906
@@ -203,6 +204,7 @@ backend-modules:
   mod-orders:
   mod-finance:
   mod-finance-storage:
+  mod-mosaic:
   mod-audit:
   mod-pubsub:
     environment:
@@ -250,8 +252,8 @@ frontend-modules:
   folio_plugin-find-authority:
 custom-frontend-modules:
   folio_authorization-roles:
-    version: 2.0.109900000000126
+    version: 2.1.109900000000179
   folio_authorization-policies:
-    version: 2.0.10990000000060
+    version: 2.0.10990000000080
   folio_plugin-select-application:
-    version: 2.0.10990000000042
+    version: 2.0.10990000000058
