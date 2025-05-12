@@ -36,7 +36,7 @@ var removeTenantsCmd = &cobra.Command{
 
 func RemoveTenants() {
 	slog.Info(removeTenantsCommand, internal.GetFuncName(), "### REMOVING TENANTS ###")
-	internal.RemoveTenants(removeTenantsCommand, enableDebug, false)
+	internal.RemoveTenants(removeTenantsCommand, withEnableDebug, false)
 }
 
 func init() {

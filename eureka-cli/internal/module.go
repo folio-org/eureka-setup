@@ -73,7 +73,9 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 	networkConfig := NewModuleNetworkConfig()
 
 	for registryName, registryModules := range dto.RegistryModules {
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Deploying %s modules", registryName))
+		if len(registryModules) > 0 {
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Deploying %s modules", registryName))
+		}
 
 		for _, registryModule := range registryModules {
 			managementModule := strings.Contains(registryModule.Name, ManagementModulePattern)
@@ -88,8 +90,9 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 
 			moduleVersion := GetModuleImageVersion(backendModule, registryModule)
 			moduleImage := GetModuleImage(commandName, moduleVersion, registryModule)
-			moduleEnvironment := GetModuleEnvironment(dto, backendModule)
+			moduleEnvironment := GetModuleEnvironment(dto, registryModule, backendModule)
 			moduleDeployDto := NewDeployModuleDto(registryModule.Name, moduleImage, moduleEnvironment, backendModule, networkConfig)
+
 			DeployModule(commandName, client, moduleDeployDto)
 
 			deployedModules[registryModule.Name] = backendModule.ModuleExposedServerPort
@@ -174,10 +177,18 @@ func GetModuleImage(commandName string, moduleVersion string, registryModule *Re
 	return fmt.Sprintf("%s/%s:%s", GetImageRegistryNamespace(commandName, moduleVersion), registryModule.Name, moduleVersion)
 }
 
-func GetModuleEnvironment(deployModulesDto *DeployModulesDto, backendModule BackendModule) []string {
+func GetModuleEnvironment(deployModulesDto *DeployModulesDto, module *RegistryModule, backendModule BackendModule) []string {
 	var combinedEnvironment []string
 	combinedEnvironment = append(combinedEnvironment, deployModulesDto.GlobalEnvironment...)
-	combinedEnvironment = AppendVaultEnvironment(combinedEnvironment, deployModulesDto.VaultRootToken)
+
+	if backendModule.UseVault {
+		combinedEnvironment = AppendVaultEnvironment(combinedEnvironment, deployModulesDto.VaultRootToken)
+	}
+
+	if backendModule.DisableSystemUser {
+		combinedEnvironment = AppendDisableSystemUserEnvironment(combinedEnvironment, module)
+	}
+
 	combinedEnvironment = AppendModuleEnvironment(combinedEnvironment, backendModule.ModuleEnvironment)
 
 	return combinedEnvironment
@@ -188,7 +199,6 @@ func GetSidecarEnvironment(deployModulesDto *DeployModulesDto, module *RegistryM
 	combinedEnvironment = append(combinedEnvironment, deployModulesDto.SidecarEnvironment...)
 	combinedEnvironment = AppendVaultEnvironment(combinedEnvironment, deployModulesDto.VaultRootToken)
 	combinedEnvironment = AppendKeycloakEnvironment(combinedEnvironment)
-	combinedEnvironment = AppendManagementEnvironment(combinedEnvironment)
 	combinedEnvironment = AppendSidecarEnvironment(combinedEnvironment, module, strconv.Itoa(backendModule.ModuleServerPort), moduleUrl, sidecarUrl)
 
 	return combinedEnvironment

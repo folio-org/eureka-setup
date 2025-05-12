@@ -47,13 +47,24 @@ type InterceptModuleDto struct {
 	registryModule   *internal.RegistryModule
 }
 
-func NewInterceptModuleDto(id, moduleUrl, sidecarUrl string, portStart, portEnd int) *InterceptModuleDto {
+func NewInterceptModuleDto(id string, defaultGateway bool, moduleUrl, sidecarUrl string, portStart, portEnd int) *InterceptModuleDto {
 	id = strings.ReplaceAll(id, ":", "-")
+
+	var moduleUrlTemp, sidecarUrlTemp string
+	if defaultGateway {
+		schemaAndUrl := internal.GetGatewaySchemaAndUrl(interceptModuleCommand)
+		moduleUrlTemp = fmt.Sprintf("%s:%s", schemaAndUrl, moduleUrl)
+		sidecarUrlTemp = fmt.Sprintf("%s:%s", schemaAndUrl, sidecarUrl)
+	} else {
+		moduleUrlTemp = moduleUrl
+		sidecarUrlTemp = sidecarUrl
+	}
+
 	return &InterceptModuleDto{
 		id:         id,
 		moduleName: internal.TrimModuleName(internal.ModuleIdRegexp.ReplaceAllString(id, `$1`)),
-		moduleUrl:  &moduleUrl,
-		sidecarUrl: &sidecarUrl,
+		moduleUrl:  &moduleUrlTemp,
+		sidecarUrl: &sidecarUrlTemp,
 		portStart:  portStart,
 		portEnd:    portEnd,
 	}
@@ -75,9 +86,14 @@ var interceptModuleCmd = &cobra.Command{
 }
 
 func InterceptModule() {
-	dto := NewInterceptModuleDto(id, moduleUrl, sidecarUrl, viper.GetInt(internal.ApplicationPortStart), viper.GetInt(internal.ApplicationPortEnd))
+	dto := NewInterceptModuleDto(withId, withDefaultGateway, withModuleUrl, withSidecarUrl, viper.GetInt(internal.ApplicationPortStart), viper.GetInt(internal.ApplicationPortEnd))
 
 	slog.Info(interceptModuleCommand, internal.GetFuncName(), fmt.Sprintf("### INTERCEPTING %s MODULE ###", dto.moduleName))
+	if withRestore {
+		slog.Info(interceptModuleCommand, internal.GetFuncName(), "Restoring default module and sidecar URLs")
+	} else {
+		slog.Info(interceptModuleCommand, internal.GetFuncName(), fmt.Sprintf("Using moduleUrl: %s, sidecarUrl: %s", *dto.moduleUrl, *dto.sidecarUrl))
+	}
 	internal.PortStartIndex = viper.GetInt(internal.ApplicationPortStart)
 	internal.PortEndIndex = viper.GetInt(internal.ApplicationPortEnd)
 	globalEnvironment := internal.GetEnvironmentFromConfig(interceptModuleCommand, internal.EnvironmentKey)
@@ -91,7 +107,7 @@ func InterceptModule() {
 	registryModules := internal.GetModulesFromRegistries(interceptModuleCommand, instalJsonUrls)
 
 	slog.Info(interceptModuleCommand, internal.GetFuncName(), "### EXTRACTING MODULE NAME AND VERSION ###")
-	internal.ExtractModuleNameAndVersion(interceptModuleCommand, enableDebug, registryModules)
+	internal.ExtractModuleNameAndVersion(interceptModuleCommand, withEnableDebug, registryModules)
 
 	vaultRootToken, client := GetVaultRootTokenWithDockerClient()
 	defer client.Close()
@@ -100,8 +116,8 @@ func InterceptModule() {
 	internal.UndeployModuleByNamePattern(interceptModuleCommand, client, fmt.Sprintf(internal.SingleModuleContainerPattern, viper.GetString(internal.ProfileNameKey), dto.moduleName), false)
 	dto.deployModulesDto = internal.NewDeployModulesDto(vaultRootToken, map[string]string{internal.FolioRegistry: "", internal.EurekaRegistry: ""}, registryModules, backendModulesMap, globalEnvironment, globalSidecarEnvironment)
 
-	UpdateModuleDiscovery()
-	if restore {
+	UpdateModuleDiscovery(*dto.sidecarUrl)
+	if withRestore {
 		deployDefaultModuleAndSidecar(dto, client)
 		return
 	}
@@ -119,7 +135,7 @@ func deployDefaultModuleAndSidecar(dto *InterceptModuleDto, client *client.Clien
 	slog.Info(interceptModuleCommand, internal.GetFuncName(), "### WAITING FOR MODULE TO INITIALIZE ###")
 	var waitMutex sync.WaitGroup
 	waitMutex.Add(1)
-	go internal.PerformModuleHealthcheck(interceptModuleCommand, enableDebug, &waitMutex, dto.moduleName, dto.backendModule.ModuleExposedServerPort)
+	go internal.PerformModuleHealthcheck(interceptModuleCommand, withEnableDebug, &waitMutex, dto.moduleName, dto.backendModule.ModuleExposedServerPort)
 	waitMutex.Wait()
 }
 
@@ -145,7 +161,7 @@ func prepareContainerNetwork(dto *InterceptModuleDto, moduleAndSidecar bool) {
 		return
 	}
 
-	sidecarServer, err := strconv.Atoi(strings.TrimSpace(regexp.MustCompile(internal.ColonDelimitedPattern).ReplaceAllString(sidecarUrl, `$1`)))
+	sidecarServer, err := strconv.Atoi(strings.TrimSpace(regexp.MustCompile(internal.ColonDelimitedPattern).ReplaceAllString(withSidecarUrl, `$1`)))
 	if err != nil {
 		slog.Error(interceptModuleCommand, internal.GetFuncName(), "strconv.Atoi error")
 		panic(err)
@@ -159,7 +175,7 @@ func prepareContainerNetwork(dto *InterceptModuleDto, moduleAndSidecar bool) {
 func deployModule(dto *InterceptModuleDto, client *client.Client) {
 	moduleVersion := internal.GetModuleImageVersion(*dto.backendModule, dto.registryModule)
 	moduleImage := internal.GetModuleImage(interceptModuleCommand, moduleVersion, dto.registryModule)
-	moduleEnvironment := internal.GetModuleEnvironment(dto.deployModulesDto, *dto.backendModule)
+	moduleEnvironment := internal.GetModuleEnvironment(dto.deployModulesDto, dto.registryModule, *dto.backendModule)
 	moduleDeployDto := internal.NewDeployModuleDto(dto.registryModule.Name, moduleImage, moduleEnvironment, *dto.backendModule, dto.networkConfig)
 	internal.DeployModule(interceptModuleCommand, client, moduleDeployDto)
 }
@@ -174,9 +190,10 @@ func deploySidecar(dto *InterceptModuleDto, client *client.Client) {
 
 func init() {
 	rootCmd.AddCommand(interceptModuleCmd)
-	interceptModuleCmd.PersistentFlags().StringVarP(&id, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
-	interceptModuleCmd.PersistentFlags().StringVarP(&moduleUrl, "moduleUrl", "m", "", "Module URL, e.g. http://host.docker.internal:36002")
-	interceptModuleCmd.PersistentFlags().StringVarP(&sidecarUrl, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
-	interceptModuleCmd.PersistentFlags().BoolVarP(&restore, "restore", "r", false, "Restore module & sidecar")
+	interceptModuleCmd.PersistentFlags().StringVarP(&withId, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
+	interceptModuleCmd.PersistentFlags().StringVarP(&withModuleUrl, "moduleUrl", "m", "", "Module URL, e.g. http://host.docker.internal:36002")
+	interceptModuleCmd.PersistentFlags().StringVarP(&withSidecarUrl, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
+	interceptModuleCmd.PersistentFlags().BoolVarP(&withRestore, "restore", "r", false, "Restore module & sidecar")
+	interceptModuleCmd.PersistentFlags().BoolVarP(&withDefaultGateway, "defaultGateway", "g", false, "Use default gateway in URLs, .e.g http://host.docker.internal:{{port}} will be set automatically")
 	interceptModuleCmd.MarkPersistentFlagRequired("id")
 }

@@ -49,7 +49,7 @@ var attachCapabilitySetsCmd = &cobra.Command{
 func AttachCapabilitySets() {
 	vaultRootToken := GetVaultRootToken()
 
-	for _, tenantValue := range internal.GetTenants(attachCapabilitySetsCommand, enableDebug, false) {
+	for _, tenantValue := range internal.GetTenants(attachCapabilitySetsCommand, withEnableDebug, false) {
 		tenantMapEntry := tenantValue.(map[string]any)
 
 		existingTenant := tenantMapEntry["name"].(string)
@@ -61,8 +61,8 @@ func AttachCapabilitySets() {
 		pollCapabilitySetsCreation(existingTenant)
 
 		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("### ATTACHING CAPABILITY SETS TO ROLES FOR %s TENANT ###", existingTenant))
-		keycloakAccessToken := internal.GetKeycloakAccessToken(attachCapabilitySetsCommand, enableDebug, vaultRootToken, existingTenant)
-		internal.AttachCapabilitySetsToRoles(attachCapabilitySetsCommand, enableDebug, existingTenant, keycloakAccessToken)
+		keycloakAccessToken := internal.GetKeycloakAccessToken(attachCapabilitySetsCommand, withEnableDebug, vaultRootToken, existingTenant)
+		internal.AttachCapabilitySetsToRoles(attachCapabilitySetsCommand, withEnableDebug, existingTenant, keycloakAccessToken)
 	}
 }
 

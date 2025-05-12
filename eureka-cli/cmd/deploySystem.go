@@ -52,29 +52,30 @@ func DeploySystem() {
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "### CLONING & UPDATING SYSTEM COMPONENTS ###")
 
 	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", folioKeycloakDir, defaultFolioKeycloakBranchName))
-	internal.GitCloneRepository(deploySystemCommand, enableDebug, internal.FolioKeycloakRepositoryUrl, defaultFolioKeycloakBranchName, folioKeycloakOutputDir, false)
+	internal.GitCloneRepository(deploySystemCommand, withEnableDebug, internal.FolioKeycloakRepositoryUrl, defaultFolioKeycloakBranchName, folioKeycloakOutputDir, false)
 
 	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", folioKongDir, defaultFolioKongBranchName))
-	internal.GitCloneRepository(deploySystemCommand, enableDebug, internal.FolioKongRepositoryUrl, defaultFolioKongBranchName, folioKongOutputDir, false)
+	internal.GitCloneRepository(deploySystemCommand, withEnableDebug, internal.FolioKongRepositoryUrl, defaultFolioKongBranchName, folioKongOutputDir, false)
 
-	if updateCloned {
+	if withUpdateCloned {
 		slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", folioKeycloakDir))
-		internal.GitResetHardPullFromOriginRepository(deploySystemCommand, enableDebug, internal.FolioKeycloakRepositoryUrl, defaultFolioKeycloakBranchName, folioKeycloakOutputDir)
+		internal.GitResetHardPullFromOriginRepository(deploySystemCommand, withEnableDebug, internal.FolioKeycloakRepositoryUrl, defaultFolioKeycloakBranchName, folioKeycloakOutputDir)
 
 		slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", folioKongDir))
-		internal.GitResetHardPullFromOriginRepository(deploySystemCommand, enableDebug, internal.FolioKongRepositoryUrl, defaultFolioKongBranchName, folioKongOutputDir)
+		internal.GitResetHardPullFromOriginRepository(deploySystemCommand, withEnableDebug, internal.FolioKongRepositoryUrl, defaultFolioKongBranchName, folioKongOutputDir)
 	}
 
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "### DEPLOYING SYSTEM CONTAINERS ###")
 	var preparedCommands []*exec.Cmd
-	if buildImages {
+	if withBuildImages {
 		preparedCommands = []*exec.Cmd{exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache")}
 	}
-	preparedCommands = append(preparedCommands, exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"))
 
+	preparedCommands = append(preparedCommands, exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"))
 	for _, preparedCommand := range preparedCommands {
 		internal.RunCommandFromDir(deployManagementCommand, preparedCommand, internal.DockerComposeWorkDir)
 	}
+
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "### WAITING FOR SYSTEM TO INITIALIZE ###")
 	time.Sleep(15 * time.Second)
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "All system components have initialized")
@@ -82,6 +83,6 @@ func DeploySystem() {
 
 func init() {
 	rootCmd.AddCommand(deploySystemCmd)
-	deploySystemCmd.PersistentFlags().BoolVarP(&buildImages, "buildImages", "b", false, "Build images")
-	deploySystemCmd.PersistentFlags().BoolVarP(&updateCloned, "updateCloned", "u", false, "Update cloned projects")
+	deploySystemCmd.PersistentFlags().BoolVarP(&withBuildImages, "buildImages", "b", false, "Build images")
+	deploySystemCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update cloned projects")
 }

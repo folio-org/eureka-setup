@@ -45,11 +45,11 @@ func BuildAndPushUi() {
 	slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", platformCompleteDir, defaultStripesBranch))
 	outputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
 	stripesBranch := internal.GetStripesBranch(deployUiCommand, defaultStripesBranch)
-	internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, stripesBranch, outputDir, false)
+	internal.GitCloneRepository(deployUiCommand, withEnableDebug, internal.PlatformCompleteRepositoryUrl, stripesBranch, outputDir, false)
 
-	if updateCloned {
+	if withUpdateCloned {
 		slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", platformCompleteDir))
-		internal.GitResetHardPullFromOriginRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, defaultStripesBranch, outputDir)
+		internal.GitResetHardPullFromOriginRepository(deployUiCommand, withEnableDebug, internal.PlatformCompleteRepositoryUrl, defaultStripesBranch, outputDir)
 	}
 
 	slog.Info(deployUiCommand, internal.GetFuncName(), "### BUILDING AND PUSHING UI IMAGE TO DOCKER HUB ###")
@@ -59,15 +59,15 @@ func BuildAndPushUi() {
 	internal.CopySingleFile(buildAndPushUiCmdCommand, fmt.Sprintf("%s/eureka-tpl/%s", outputDir, configName), fmt.Sprintf("%s/%s", outputDir, configName))
 
 	slog.Info(buildAndPushUiCmdCommand, internal.GetFuncName(), "Preparing platform complete UI config")
-	internal.PrepareStripesConfigJs(buildAndPushUiCmdCommand, outputDir, tenant, kongExternalUrl, keycloakExternalUrl, platformCompleteExternalUrl, enableEcsRequests)
-	internal.PreparePackageJson(buildAndPushUiCmdCommand, outputDir, tenant)
+	internal.PrepareStripesConfigJs(buildAndPushUiCmdCommand, outputDir, withTenant, kongExternalUrl, keycloakExternalUrl, platformCompleteExternalUrl, withEnableEcsRequests)
+	internal.PreparePackageJson(buildAndPushUiCmdCommand, outputDir, withTenant)
 
-	imageName := fmt.Sprintf("platform-complete-ui-%s", tenant)
+	imageName := fmt.Sprintf("platform-complete-ui-%s", withTenant)
 
 	slog.Info(buildAndPushUiCmdCommand, internal.GetFuncName(), "Building platform complete UI from a Dockerfile")
 	internal.RunCommandFromDir(buildAndPushUiCmdCommand, exec.Command("docker", "build", "--tag", imageName,
 		"--build-arg", fmt.Sprintf("OKAPI_URL=%s", kongExternalUrl),
-		"--build-arg", fmt.Sprintf("TENANT_ID=%s", tenant),
+		"--build-arg", fmt.Sprintf("TENANT_ID=%s", withTenant),
 		"--file", "./docker/Dockerfile",
 		"--progress", "plain",
 		"--no-cache",
@@ -75,20 +75,20 @@ func BuildAndPushUi() {
 	), outputDir)
 
 	slog.Info(buildAndPushUiCmdCommand, internal.GetFuncName(), "Tagging platform complete image UI")
-	internal.RunCommand(buildAndPushUiCmdCommand, exec.Command("docker", "tag", imageName, fmt.Sprintf("%s/%s", namespace, imageName)))
+	internal.RunCommand(buildAndPushUiCmdCommand, exec.Command("docker", "tag", imageName, fmt.Sprintf("%s/%s", withNamespace, imageName)))
 
 	slog.Info(buildAndPushUiCmdCommand, internal.GetFuncName(), "Pushing platform complete UI image to DockerHub")
-	internal.RunCommand(buildAndPushUiCmdCommand, exec.Command("docker", "push", fmt.Sprintf("%s/%s:latest", namespace, imageName)))
+	internal.RunCommand(buildAndPushUiCmdCommand, exec.Command("docker", "push", fmt.Sprintf("%s/%s:latest", withNamespace, imageName)))
 
 	slog.Info(deployApplicationCommand, "Elapsed, duration", time.Since(start))
 }
 
 func init() {
 	rootCmd.AddCommand(buildAndPushUiCmd)
-	buildAndPushUiCmd.PersistentFlags().StringVarP(&tenant, "tenant", "t", "", "Tenant (required)")
-	buildAndPushUiCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "", "DockerHub namespace (required)")
-	buildAndPushUiCmd.PersistentFlags().BoolVarP(&updateCloned, "updateCloned", "u", false, "Update cloned projects")
-	buildAndPushUiCmd.PersistentFlags().BoolVarP(&enableEcsRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&withTenant, "tenant", "t", "", "Tenant (required)")
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&withNamespace, "namespace", "n", "", "DockerHub namespace (required)")
+	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update cloned projects")
+	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withEnableEcsRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
 	buildAndPushUiCmd.MarkPersistentFlagRequired("tenant")
 	buildAndPushUiCmd.MarkPersistentFlagRequired("namespace")
 }

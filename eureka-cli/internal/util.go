@@ -119,8 +119,8 @@ func LogErrorPrintStderrPanic(commandName string, errorMessage string, stackTrac
 func LogWarn(commandName string, enableDebug bool, errorMessage string) {
 	if !enableDebug {
 		return
-
 	}
+
 	slog.Warn(commandName, GetFuncName(), errorMessage)
 }
 

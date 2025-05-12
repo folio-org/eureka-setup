@@ -19,10 +19,6 @@ import (
 const (
 	GatewayPort int = 8000
 
-	ApplicationsPort       int = 9901
-	TenantsPort            int = 9902
-	TenantEntitlementsPort int = 9903
-
 	JsonContentType           string = "application/json"
 	FormUrlEncodedContentType string = "application/x-www-form-urlencoded"
 
@@ -35,10 +31,6 @@ const (
 
 	HealtcheckUri         string = "/admin/health"
 	HealtcheckMaxAttempts int    = 50
-
-	MgrTenantsUrl            string = "http://mgr-tenants.eureka:8081"
-	MgrApplicationsUrl       string = "http://mgr-applications.eureka:8081"
-	MgrTenantEntitlementsUrl string = "http://mgr-tenant-entitlements.eureka:8081"
 
 	ModuleIdPattern string = "([a-z-_]+)([\\d-_.]+)([a-zA-Z0-9-_.]+)"
 )
@@ -72,38 +64,41 @@ func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryM
 
 func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *sync.WaitGroup, moduleName string, port int) {
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Waiting for module container %s on port %d to initialize", moduleName, port))
+
 	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), port, HealtcheckUri)
 	healthcheckAttempts := HealtcheckMaxAttempts
 	for {
 		time.Sleep(HealthcheckDefaultDuration)
 
-		isHealthyVertxContainer := false
-		actuatorHealthStr := DoGetDecodeReturnString(commandName, requestUrl, enableDebug, false, map[string]string{})
-		if strings.Contains(actuatorHealthStr, "OK") {
-			isHealthyVertxContainer = !isHealthyVertxContainer
-		}
-
-		isHealthySpringBootContainer := false
-		actuatorHealthMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, false, map[string]string{})
-		if actuatorHealthMap != nil && strings.Contains(actuatorHealthMap["status"].(string), "UP") {
-			isHealthySpringBootContainer = !isHealthySpringBootContainer
-		}
-
-		if isHealthyVertxContainer || isHealthySpringBootContainer {
+		if checkVertxContainer(commandName, requestUrl, enableDebug) || checkSpringContainer(commandName, requestUrl, enableDebug) {
 			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Module container %s is healthy", moduleName))
 			waitMutex.Done()
 			break
 		}
 
 		healthcheckAttempts--
-		if healthcheckAttempts > 0 {
-			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Module container %s is unhealthy, %d/%d attempts left", moduleName, healthcheckAttempts, HealtcheckMaxAttempts))
-		} else {
+
+		if healthcheckAttempts == 0 {
 			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Module container %s is unhealthy, out of attempts", moduleName))
 			waitMutex.Done()
 			LogErrorPanic(commandName, fmt.Sprintf("internal.PerformModuleHealthcheck - Module container %s did not initialize, cannot continue", moduleName))
 		}
+
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Module container %s is unhealthy, %d/%d attempts left", moduleName, healthcheckAttempts, HealtcheckMaxAttempts))
 	}
+}
+
+func checkSpringContainer(commandName string, requestUrl string, enableDebug bool) bool {
+	respMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, false, map[string]string{})
+	if respMap != nil && strings.Contains(respMap["status"].(string), "UP") {
+		return true
+	}
+	return false
+}
+
+func checkVertxContainer(commandName string, requestUrl string, enableDebug bool) bool {
+	respMap := DoGetDecodeReturnString(commandName, requestUrl, enableDebug, false, map[string]string{})
+	return strings.Contains(respMap, "OK")
 }
 
 // ######## Application & Application Discovery ########
@@ -111,7 +106,7 @@ func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *s
 func GetApplications(commandName string, enableDebug bool, panicOnError bool) Applications {
 	var applications Applications
 
-	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, "/applications")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/applications")
 
 	resp := DoGetReturnResponse(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
 	if resp == nil {
@@ -134,7 +129,7 @@ func RemoveApplications(commandName string, enableDebug bool, panicOnError bool)
 	for _, value := range applications.ApplicationDescriptors {
 		id := value["id"].(string)
 
-		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, fmt.Sprintf("/applications/%s", id))
+		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/applications/%s", id))
 
 		DoDelete(commandName, requestUrl, enableDebug, false, map[string]string{})
 
@@ -240,7 +235,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 		panic(err)
 	}
 
-	DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, "/applications?check=true"), enableDebug, true, applicationBytes, map[string]string{})
+	DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/applications?check=true"), enableDebug, true, applicationBytes, map[string]string{})
 
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %s application`, applicationId))
 
@@ -251,7 +246,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 			panic(err)
 		}
 
-		DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, "/modules/discovery"), enableDebug, true, applicationDiscoveryBytes, map[string]string{})
+		DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/modules/discovery"), enableDebug, true, applicationDiscoveryBytes, map[string]string{})
 	}
 
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %d entries of application module discovery`, len(discoveryModules)))
@@ -275,7 +270,7 @@ func UpdateModuleDiscovery(commandName string, enableDebug bool, id string, side
 		panic(err)
 	}
 
-	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, fmt.Sprintf("/modules/%s/discovery", id))
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/modules/%s/discovery", id))
 
 	DoPutReturnNoContent(commandName, requestUrl, enableDebug, applicationDiscoveryBytes, map[string]string{})
 
@@ -287,7 +282,7 @@ func UpdateModuleDiscovery(commandName string, enableDebug bool, id string, side
 func GetTenants(commandName string, enableDebug bool, panicOnError bool) []any {
 	var foundTenants []any
 
-	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), TenantsPort, "/tenants")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/tenants")
 
 	foundTenantsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
 	if foundTenantsMap["tenants"] == nil || len(foundTenantsMap["tenants"].([]any)) == 0 {
@@ -308,7 +303,7 @@ func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 			continue
 		}
 
-		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), TenantsPort, fmt.Sprintf("/tenants/%s?purge=true", mapEntry["id"].(string)))
+		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/tenants/%s?purge=true", mapEntry["id"].(string)))
 
 		DoDelete(commandName, requestUrl, enableDebug, false, map[string]string{})
 
@@ -317,7 +312,7 @@ func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 }
 
 func CreateTenants(commandName string, enableDebug bool) {
-	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), TenantsPort, "/tenants")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/tenants")
 	tenants := ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey))
 
 	for _, tenant := range tenants {
@@ -336,7 +331,7 @@ func CreateTenants(commandName string, enableDebug bool) {
 // ######## Tenant Entitlements ########
 
 func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError bool) {
-	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false")
 	applicationMap := viper.GetStringMap(ApplicationKey)
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)
@@ -367,7 +362,7 @@ func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError
 }
 
 func CreateTenantEntitlement(commandName string, enableDebug bool) {
-	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=true,loadSample=true")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=true,loadSample=true")
 	applicationMap := viper.GetStringMap(ApplicationKey)
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)

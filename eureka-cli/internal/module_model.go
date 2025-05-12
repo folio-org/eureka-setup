@@ -43,18 +43,22 @@ type DeployModulesDto struct {
 }
 
 type BackendModuleDto struct {
-	deployModule  bool
-	deploySidecar *bool
-	name          string
-	version       *string
-	port          *int
-	portServer    *int
-	environment   map[string]any
-	resources     map[string]any
+	deployModule      bool
+	deploySidecar     *bool
+	useVault          bool
+	disableSystemUser bool
+	name              string
+	version           *string
+	port              *int
+	portServer        *int
+	environment       map[string]any
+	resources         map[string]any
 }
 
 type BackendModule struct {
 	DeployModule            bool
+	UseVault                bool
+	DisableSystemUser       bool
 	ModuleName              string
 	ModuleVersion           *string
 	ModuleExposedServerPort int
@@ -89,6 +93,8 @@ func NewBackendModuleWithSidecar(dto BackendModuleDto) *BackendModule {
 
 	return &BackendModule{
 		DeployModule:            dto.deployModule,
+		UseVault:                dto.useVault,
+		DisableSystemUser:       dto.disableSystemUser,
 		ModuleName:              dto.name,
 		ModuleVersion:           dto.version,
 		ModuleExposedServerPort: *dto.port,
@@ -106,6 +112,8 @@ func NewBackendModuleWithSidecar(dto BackendModuleDto) *BackendModule {
 func NewBackendModule(dto BackendModuleDto) *BackendModule {
 	return &BackendModule{
 		DeployModule:            dto.deployModule,
+		UseVault:                dto.useVault,
+		DisableSystemUser:       dto.disableSystemUser,
 		ModuleName:              dto.name,
 		ModuleVersion:           dto.version,
 		ModuleExposedServerPort: *dto.port,

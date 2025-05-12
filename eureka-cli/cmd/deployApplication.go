@@ -32,16 +32,17 @@ var deployApplicationCmd = &cobra.Command{
 	Short: "Deploy application",
 	Long:  `Deploy platform application.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
 		if len(viper.GetStringMap(internal.ApplicationGatewayDependenciesKey)) > 0 {
 			DeployChildApplication()
 			return
 		}
 		DeployApplication()
+		slog.Info(deployApplicationCommand, "Elapsed, duration", time.Since(start))
 	},
 }
 
 func DeployApplication() {
-	start := time.Now()
 	DeploySystem()
 	DeployManagement()
 	DeployModules()
@@ -51,20 +52,17 @@ func DeployApplication() {
 	CreateUsers()
 	AttachCapabilitySets()
 	DeployUi()
-	slog.Info(deployApplicationCommand, "Elapsed, duration", time.Since(start))
 }
 
 func DeployChildApplication() {
-	start := time.Now()
 	DeployModules()
 	CreateTenantEntitlements()
 	DetachCapabilitySets()
 	AttachCapabilitySets()
-	slog.Info(deployApplicationCommand, "Elapsed, duration", time.Since(start))
 }
 
 func init() {
 	rootCmd.AddCommand(deployApplicationCmd)
-	deployApplicationCmd.PersistentFlags().BoolVarP(&buildImages, "buildImages", "b", false, "Build images")
-	deployApplicationCmd.PersistentFlags().BoolVarP(&updateCloned, "updateCloned", "u", false, "Update cloned projects")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&withBuildImages, "buildImages", "b", false, "Build images")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update cloned projects")
 }

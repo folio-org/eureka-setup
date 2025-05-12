@@ -38,7 +38,7 @@ var detachCapabilitySetsCmd = &cobra.Command{
 func DetachCapabilitySets() {
 	vaultRootToken := GetVaultRootToken()
 
-	for _, value := range internal.GetTenants(detachCapabilitySetsCommand, enableDebug, false) {
+	for _, value := range internal.GetTenants(detachCapabilitySetsCommand, withEnableDebug, false) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
@@ -47,8 +47,8 @@ func DetachCapabilitySets() {
 		}
 
 		slog.Info(detachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("### DETACHING CAPABILITY SETS FROM ROLES FOR %s TENANT ###", existingTenant))
-		keycloakAccessToken := internal.GetKeycloakAccessToken(detachCapabilitySetsCommand, enableDebug, vaultRootToken, existingTenant)
-		internal.DetachCapabilitySetsFromRoles(detachCapabilitySetsCommand, enableDebug, false, existingTenant, keycloakAccessToken)
+		keycloakAccessToken := internal.GetKeycloakAccessToken(detachCapabilitySetsCommand, withEnableDebug, vaultRootToken, existingTenant)
+		internal.DetachCapabilitySetsFromRoles(detachCapabilitySetsCommand, withEnableDebug, false, existingTenant, keycloakAccessToken)
 	}
 }
 

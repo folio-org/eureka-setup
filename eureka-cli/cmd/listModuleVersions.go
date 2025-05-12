@@ -17,6 +17,8 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
+	"net/http/httputil"
 	"strings"
 
 	"github.com/folio-org/eureka-cli/internal"
@@ -24,7 +26,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-const listModuleVersionsCommand string = "List Module Versions"
+const (
+	listModuleVersionsCommand string = "List Module Versions"
+
+	newLineSeparatorPattern = "\r\n\r\n"
+)
 
 // listModuleVersionsCmd represents the listModuleVersions command
 var listModuleVersionsCmd = &cobra.Command{
@@ -38,7 +44,7 @@ var listModuleVersionsCmd = &cobra.Command{
 
 func ListModuleVersions() {
 	registryUrl := viper.GetString(internal.RegistryUrlKey)
-	if id != "" {
+	if withId != "" {
 		getModuleDescritorById(registryUrl)
 		return
 	}
@@ -46,16 +52,33 @@ func ListModuleVersions() {
 }
 
 func getModuleDescritorById(registryUrl string) {
-	requestUrl := fmt.Sprintf("%s/_/proxy/modules/%s", registryUrl, id)
-	internal.DoGetDecodeReturnAny(listModuleVersionsCommand, requestUrl, true, true, map[string]string{})
+	resp := internal.DoGetReturnResponse(listModuleVersionsCommand, fmt.Sprintf("%s/_/proxy/modules/%s", registryUrl, withId), withEnableDebug, true, map[string]string{})
+	defer resp.Body.Close()
+
+	if !withEnableDebug {
+		respBytes, err := httputil.DumpResponse(resp, true)
+		if err != nil {
+			slog.Error(listModuleVersionsCommand, internal.GetFuncName(), "httputil.DumpResponse error")
+			panic(err)
+		}
+
+		idx := strings.Index(string(respBytes), newLineSeparatorPattern)
+		if idx == -1 {
+			slog.Error(listModuleVersionsCommand, internal.GetFuncName(), fmt.Sprintf("strings.Index() found no index for a newline separator pattern %s", newLineSeparatorPattern))
+			return
+		}
+
+		fmt.Println(string([]byte(respBytes[idx:])))
+	}
 }
 
 func listModuleVersions(registryUrl string) {
-	requestUrl := fmt.Sprintf("%s/_/proxy/modules", registryUrl)
-	response := internal.DoGetDecodeReturnAny(listModuleVersionsCommand, requestUrl, enableDebug, true, map[string]string{})
-	for _, value := range response.([]any) {
+	resp := internal.DoGetDecodeReturnAny(listModuleVersionsCommand, fmt.Sprintf("%s/_/proxy/modules", registryUrl), withEnableDebug, true, map[string]string{})
+
+	for _, value := range resp.([]any) {
 		mapEntry := value.(map[string]any)
-		if strings.Contains(mapEntry["id"].(string), moduleName) {
+
+		if strings.Contains(mapEntry["id"].(string), withModuleName) {
 			fmt.Println(mapEntry["id"])
 		}
 	}
@@ -63,7 +86,7 @@ func listModuleVersions(registryUrl string) {
 
 func init() {
 	rootCmd.AddCommand(listModuleVersionsCmd)
-	listModuleVersionsCmd.PersistentFlags().StringVarP(&moduleName, "moduleName", "m", "", "Module name, e.g. mod-users (required)")
-	listModuleVersionsCmd.PersistentFlags().StringVarP(&id, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021")
+	listModuleVersionsCmd.PersistentFlags().StringVarP(&withModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders (required)")
+	listModuleVersionsCmd.PersistentFlags().StringVarP(&withId, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021")
 	listModuleVersionsCmd.MarkPersistentFlagRequired("moduleName")
 }

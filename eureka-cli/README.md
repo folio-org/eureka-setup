@@ -19,12 +19,13 @@
   - [Vault](<http://localhost:8200>) UI: Find a Vault root token in the container logs using `docker logs vault` or use `getVaultRootToken` command
   - [Kafka](<http://localhost:9080>) UI: No auth
   - [Kong](<http://localhost:8002>) Admin GUI: No auth  
+  - [MinIO](<http://localhost:9001>) Consol: admin:admin  
 
 ### Build a binary
   
 ```shell
 mkdir -p ./bin
-env GOOS=windows GOARCH=amd64 go build -o ./bin .
+env GOOS=windows GOARCH=amd64 go build -o ./bin/ .
 ```
 
 > See docs/BUILD.md to build a platform-specific binary
@@ -48,12 +49,12 @@ eureka-cli -c ./config.combined.yaml deployApplication
 
 ### (Optional) Enable autocompletion
 
-- Command autocompletion can be enabled in the shell of your choice, below is an example for the **Bash** shell
+- Command autocompletion can be enabled in the shell of your choice, below is an example for the **Bash** shell (`.bash_profile` is preferred on Windows because it is auto-sourced)
 
 ```bash
 go install
-echo "source <(eureka-cli completion bash)" >> ~/.bashrc
-source ~/.bashrc
+echo "source <(eureka-cli completion bash)" >> ~/.bash_profile
+source ~/.bash_profile
 ```
 
 > After typing the command partially and hitting the TAB key, the command will autocomplete, e.g. `eureka-cli intercept` + TAB key will result in `eureka-cli interceptModule`
@@ -68,6 +69,8 @@ source ~/.bashrc
 ```shell
 ./bin/eureka-cli -c ./config.combined.yaml deployApplication
 ```
+
+> Use the debug flag to troubleshoot your environment deployment to see how the CLI interacts with **Kong** through HTTP
 
 #### Using Private AWS ECR container registry
 

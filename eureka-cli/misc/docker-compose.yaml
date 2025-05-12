@@ -12,6 +12,8 @@ volumes:
     name: eureka_kafka_data
   minio-data:
     name: eureka_minio_data
+  ftp-data:
+    name: eureka_ftp_data
 
 services:
   ### Netcat ###
@@ -338,8 +340,26 @@ services:
       - minio
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc config host add myminio http://host.docker.internal:9000 minioadmin minioadmin;
-      /usr/bin/mc rm -r --force myminio/example-bucket;
-      /usr/bin/mc mb myminio/example-bucket;
+      /usr/bin/mc config host add minio http://minio.eureka:9000 minioadmin minioadmin;
+      /usr/bin/mc rm -r --force minio/example-bucket;
+      /usr/bin/mc mb minio/example-bucket;
       exit 0;
       "
+
+  ### FTP ###
+  ftp-server:
+    container_name: ftp-server
+    image: garethflowers/ftp-server
+    restart: on-failure
+    mem_limit: 100m
+    volumes:
+      - ftp-data:/home/folio
+    networks: 
+      - eureka-net
+    environment:
+      - PUBLIC_IP=0.0.0.0
+      - FTP_USER=folio
+      - FTP_PASS=folio
+    ports:
+      - "20-21:20-21/tcp"
+      - "40000-40009:40000-40009/tcp" 

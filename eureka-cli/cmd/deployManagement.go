@@ -47,7 +47,7 @@ func DeployManagement() {
 	registryModules := internal.GetModulesFromRegistries(deployManagementCommand, map[string]string{internal.EurekaRegistry: viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)})
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### EXTRACTING MODULE NAME AND VERSION ###")
-	internal.ExtractModuleNameAndVersion(deployManagementCommand, enableDebug, registryModules)
+	internal.ExtractModuleNameAndVersion(deployManagementCommand, withEnableDebug, registryModules)
 
 	vaultRootToken, client := GetVaultRootTokenWithDockerClient()
 	defer client.Close()
@@ -61,7 +61,7 @@ func DeployManagement() {
 	var waitMutex sync.WaitGroup
 	waitMutex.Add(len(deployedModules))
 	for deployedModule := range deployedModules {
-		go internal.PerformModuleHealthcheck(deployManagementCommand, enableDebug, &waitMutex, deployedModule, deployedModules[deployedModule])
+		go internal.PerformModuleHealthcheck(deployManagementCommand, withEnableDebug, &waitMutex, deployedModule, deployedModules[deployedModule])
 	}
 	waitMutex.Wait()
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "All management modules have initialized")

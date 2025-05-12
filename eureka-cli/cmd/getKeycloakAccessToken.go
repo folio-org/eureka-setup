@@ -36,12 +36,12 @@ var getKeycloakAccessTokenCmd = &cobra.Command{
 }
 
 func GetKeycloakAccessToken(vaultRootToken string) {
-	keycloakAccessToken := internal.GetKeycloakAccessToken(getKeycloakAccessTokenCommand, enableDebug, vaultRootToken, tenant)
+	keycloakAccessToken := internal.GetKeycloakAccessToken(getKeycloakAccessTokenCommand, withEnableDebug, vaultRootToken, withTenant)
 	fmt.Println(keycloakAccessToken)
 }
 
 func init() {
 	rootCmd.AddCommand(getKeycloakAccessTokenCmd)
-	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&tenant, "tenant", "t", "", "Tenant (required)")
+	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&withTenant, "tenant", "t", "", "Tenant (required)")
 	getKeycloakAccessTokenCmd.MarkPersistentFlagRequired("tenant")
 }

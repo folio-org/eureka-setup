@@ -48,7 +48,7 @@ var PortStartIndex int = 30000
 var PortEndIndex int = 32000
 
 func GetGatewayUrlTemplate(commandName string) string {
-	schemaAndUrl := getGatewaySchemaAndUrl(commandName)
+	schemaAndUrl := GetGatewaySchemaAndUrl(commandName)
 	if schemaAndUrl == "" {
 		LogErrorPanic(commandName, fmt.Sprintf("internal.GetGatewayUrlTemplate error - cannot construct geteway url template for %s platform", runtime.GOOS))
 		return ""
@@ -57,7 +57,7 @@ func GetGatewayUrlTemplate(commandName string) string {
 	return schemaAndUrl + ":%d%s"
 }
 
-func getGatewaySchemaAndUrl(commandName string) string {
+func GetGatewaySchemaAndUrl(commandName string) string {
 	var schemaAndUrl string
 	if viper.IsSet(ApplicationGatewayHostnameKey) {
 		schemaAndUrl = viper.GetString(ApplicationGatewayHostnameKey)
@@ -103,6 +103,8 @@ func createDefaultBackendDto(commandName string, name string) (dto BackendModule
 	if !strings.HasPrefix(name, ManagementModulePattern) {
 		dto.deploySidecar = getDefaultDeploySidecar()
 	}
+	dto.useVault = false
+	dto.disableSystemUser = false
 	dto.version = nil
 
 	if PortStartIndex+1 >= PortEndIndex {
@@ -124,6 +126,8 @@ func createConfigurableBackendDto(value any, name string) (dto BackendModuleDto)
 
 	dto.deployModule = getDeployModule(mapEntry)
 	dto.deploySidecar = getDeploySidecar(mapEntry, name)
+	dto.useVault = getUseVault(mapEntry)
+	dto.disableSystemUser = getDisableSystemUser(mapEntry)
 	dto.version = getVersion(mapEntry)
 	dto.port = getPort(mapEntry)
 	dto.portServer = getPortServer(mapEntry)
@@ -156,6 +160,22 @@ func getDeploySidecar(mapEntry map[string]any, name string) *bool {
 func getDefaultDeploySidecar() *bool {
 	deploySidecarDefaultValue := true
 	return &deploySidecarDefaultValue
+}
+
+func getUseVault(mapEntry map[string]any) bool {
+	if mapEntry["use-vault"] != nil {
+		return mapEntry["use-vault"].(bool)
+	}
+
+	return false
+}
+
+func getDisableSystemUser(mapEntry map[string]any) bool {
+	if mapEntry["disable-system-user"] != nil {
+		return mapEntry["disable-system-user"].(bool)
+	}
+
+	return false
 }
 
 func getVersion(mapEntry map[string]any) *string {

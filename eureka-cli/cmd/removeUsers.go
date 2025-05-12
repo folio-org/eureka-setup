@@ -38,7 +38,7 @@ var removeUsersCmd = &cobra.Command{
 func RemoveUsers() {
 	vaultRootToken := GetVaultRootToken()
 
-	for _, value := range internal.GetTenants(removeUsersCommand, enableDebug, false) {
+	for _, value := range internal.GetTenants(removeUsersCommand, withEnableDebug, false) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
@@ -47,8 +47,8 @@ func RemoveUsers() {
 		}
 
 		slog.Info(removeUsersCommand, internal.GetFuncName(), fmt.Sprintf("### REMOVING USERS FOR %s TENANT ###", existingTenant))
-		keycloakAccessToken := internal.GetKeycloakAccessToken(removeUsersCommand, enableDebug, vaultRootToken, existingTenant)
-		internal.RemoveUsers(removeUsersCommand, enableDebug, false, existingTenant, keycloakAccessToken)
+		keycloakAccessToken := internal.GetKeycloakAccessToken(removeUsersCommand, withEnableDebug, vaultRootToken, existingTenant)
+		internal.RemoveUsers(removeUsersCommand, withEnableDebug, false, existingTenant, keycloakAccessToken)
 	}
 }
 

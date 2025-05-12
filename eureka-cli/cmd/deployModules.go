@@ -56,15 +56,15 @@ func DeployModules() {
 	registryModules := internal.GetModulesFromRegistries(deployModulesCommand, instalJsonUrls)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### EXTRACTING MODULE NAME AND VERSION ###")
-	internal.ExtractModuleNameAndVersion(deployModulesCommand, enableDebug, registryModules)
+	internal.ExtractModuleNameAndVersion(deployModulesCommand, withEnableDebug, registryModules)
 
 	vaultRootToken, client := GetVaultRootTokenWithDockerClient()
 	defer client.Close()
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### CREATING APPLICATIONS ###")
 	registryUrls := map[string]string{internal.FolioRegistry: registryUrl, internal.EurekaRegistry: registryUrl}
-	registerModuleDto := internal.NewRegisterModuleDto(registryUrls, registryModules, backendModulesMap, frontendModulesMap, enableDebug)
-	internal.CreateApplications(deployModulesCommand, enableDebug, registerModuleDto)
+	registerModuleDto := internal.NewRegisterModuleDto(registryUrls, registryModules, backendModulesMap, frontendModulesMap, withEnableDebug)
+	internal.CreateApplications(deployModulesCommand, withEnableDebug, registerModuleDto)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### PULLING SIDECAR IMAGE ###")
 	deployModulesDto := internal.NewDeployModulesDto(vaultRootToken, map[string]string{internal.FolioRegistry: "", internal.EurekaRegistry: ""}, registryModules, backendModulesMap, environment, sidecarEnvironment)
@@ -81,7 +81,7 @@ func DeployModules() {
 	var waitMutex sync.WaitGroup
 	waitMutex.Add(len(deployedModules))
 	for deployedModule := range deployedModules {
-		go internal.PerformModuleHealthcheck(deployModulesCommand, enableDebug, &waitMutex, deployedModule, deployedModules[deployedModule])
+		go internal.PerformModuleHealthcheck(deployModulesCommand, withEnableDebug, &waitMutex, deployedModule, deployedModules[deployedModule])
 	}
 	waitMutex.Wait()
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "All modules have initialized")

@@ -32,30 +32,28 @@ var undeployApplicationCmd = &cobra.Command{
 	Short: "Undeploy application",
 	Long:  `Undeploy platform application.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		start := time.Now()
 		if len(viper.GetStringMap(internal.ApplicationGatewayDependenciesKey)) > 0 {
 			UndeployChildApplication()
 			return
 		}
 		UndeployApplication()
+		slog.Info(undeployApplicationCommand, "Elapsed, duration", time.Since(start))
 	},
 }
 
 func UndeployApplication() {
-	start := time.Now()
 	UndeployUi()
 	UndeployModules()
 	UndeployManagement()
 	UndeploySystem()
-	slog.Info(undeployApplicationCommand, "Elapsed, duration", time.Since(start))
 }
 
 func UndeployChildApplication() {
-	start := time.Now()
 	RemoveTenantEntitlements()
 	UndeployModules()
 	DetachCapabilitySets()
 	AttachCapabilitySets()
-	slog.Info(undeployApplicationCommand, "Elapsed, duration", time.Since(start))
 }
 
 func init() {

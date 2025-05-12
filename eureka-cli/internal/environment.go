@@ -41,16 +41,6 @@ func AppendKeycloakEnvironment(environment []string) []string {
 	return environment
 }
 
-func AppendManagementEnvironment(environment []string) []string {
-	extraEnvironment := []string{fmt.Sprintf("TM_CLIENT_URL=%s", MgrTenantsUrl),
-		fmt.Sprintf("AM_CLIENT_URL=%s", MgrApplicationsUrl),
-		fmt.Sprintf("TE_CLIENT_URL=%s", MgrTenantEntitlementsUrl),
-	}
-	environment = append(environment, extraEnvironment...)
-
-	return environment
-}
-
 func AppendModuleEnvironment(environment []string, extraEnvironmentMap map[string]any) []string {
 	for key, value := range extraEnvironmentMap {
 		if key == "" {
@@ -79,9 +69,21 @@ func AppendSidecarEnvironment(environment []string, module *RegistryModule, port
 			fmt.Sprintf("SIDECAR_URL=%s", *sidecarUrl),
 		}
 	}
-	// Change the default port on netty server of the sidecar written in Quarkus
+	// Change the default port on netty server in Quarkus
 	if portServer != DefaultServerPort {
 		extraEnvironment = append(extraEnvironment, fmt.Sprintf("QUARKUS_HTTP_PORT=%s", portServer))
+	}
+	environment = append(environment, extraEnvironment...)
+
+	return environment
+}
+
+func AppendDisableSystemUserEnvironment(environment []string, module *RegistryModule) []string {
+	extraEnvironment := []string{"FOLIO_SYSTEM_USER_ENABLED=false",
+		"SYSTEM_USER_CREATE=false",
+		"SYSTEM_USER_ENABLED=false",
+		fmt.Sprintf("SYSTEM_USER_NAME=%s", module.Name),
+		fmt.Sprintf("SYSTEM_USER_USERNAME=%s", module.Name),
 	}
 	environment = append(environment, extraEnvironment...)
 

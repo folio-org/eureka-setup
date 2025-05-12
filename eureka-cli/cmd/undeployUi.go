@@ -44,7 +44,7 @@ func UndeployUi() {
 	client := internal.CreateDockerClient(undeployUiCommand)
 	defer client.Close()
 
-	for _, value := range internal.GetTenants(undeployUiCommand, enableDebug, false) {
+	for _, value := range internal.GetTenants(undeployUiCommand, withEnableDebug, false) {
 		internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(singleUiContainerPattern, value.(map[string]any)["name"].(string)), true)
 	}
 }

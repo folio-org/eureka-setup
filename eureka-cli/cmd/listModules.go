@@ -42,22 +42,22 @@ var listModulesCmd = &cobra.Command{
 }
 
 func ListModules() {
-	internal.RunCommand(listModulesCommand, exec.Command("docker", "container", "ls", "--all", "--filter", fmt.Sprintf("name=%s", createFilter())))
+	internal.RunCommand(listModulesCommand, exec.Command("docker", "container", "ls", "--all", "--filter", fmt.Sprintf("name=%s", createFilter(withModuleName, withShowAll))))
 }
 
-func createFilter() string {
+func createFilter(moduleName string, showAll bool) string {
 	if !showAll {
 		return fmt.Sprintf(currentProfileModulesPattern, viper.GetString(internal.ProfileNameKey))
 	}
 	if moduleName != "" {
 		return fmt.Sprintf(internal.SingleModuleContainerPattern, viper.GetString(internal.ProfileNameKey), moduleName)
 	}
+
 	return allProfilesModulesPattern
 }
 
 func init() {
 	rootCmd.AddCommand(listModulesCmd)
-	listModulesCmd.Flags().StringVarP(&moduleName, "moduleName", "m", "", "Module name, e.g. mod-users")
-	listModulesCmd.Flags().BoolVarP(&showAll, "all", "a", false, "Show all modules for all profiles")
-	listModulesCmd.MarkPersistentFlagRequired("moduleName")
+	listModulesCmd.Flags().StringVarP(&withModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders")
+	listModulesCmd.Flags().BoolVarP(&withShowAll, "all", "a", false, "Show all modules for all profiles")
 }

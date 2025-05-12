@@ -49,24 +49,24 @@ var deployUiCmd = &cobra.Command{
 func DeployUi() {
 	var outputDir string
 
-	if buildImages {
+	if withBuildImages {
 		slog.Info(deployUiCommand, internal.GetFuncName(), "### CLONING & UPDATING UI ###")
 
 		slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", platformCompleteDir, defaultStripesBranch))
 		outputDir = fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
 		stripesBranch := internal.GetStripesBranch(deployUiCommand, defaultStripesBranch)
-		internal.GitCloneRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, stripesBranch, outputDir, false)
+		internal.GitCloneRepository(deployUiCommand, withEnableDebug, internal.PlatformCompleteRepositoryUrl, stripesBranch, outputDir, false)
 
-		if updateCloned {
+		if withUpdateCloned {
 			slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", platformCompleteDir))
-			internal.GitResetHardPullFromOriginRepository(deployUiCommand, enableDebug, internal.PlatformCompleteRepositoryUrl, defaultStripesBranch, outputDir)
+			internal.GitResetHardPullFromOriginRepository(deployUiCommand, withEnableDebug, internal.PlatformCompleteRepositoryUrl, defaultStripesBranch, outputDir)
 		}
 	}
 
 	slog.Info(deployUiCommand, internal.GetFuncName(), "### DEPLOYING UI ###")
-	keycloakMasterAccessToken := internal.GetKeycloakMasterAccessToken(createUsersCommand, enableDebug)
+	keycloakMasterAccessToken := internal.GetKeycloakMasterAccessToken(createUsersCommand, withEnableDebug)
 
-	for _, value := range internal.GetTenants(deployUiCommand, enableDebug, false) {
+	for _, value := range internal.GetTenants(deployUiCommand, withEnableDebug, false) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
@@ -75,18 +75,18 @@ func DeployUi() {
 		}
 
 		slog.Info(deployUiCommand, internal.GetFuncName(), "Updating keycloak public client")
-		internal.UpdateKeycloakPublicClientParams(deployUiCommand, enableDebug, existingTenant, keycloakMasterAccessToken, platformCompleteExternalUrl)
+		internal.UpdateKeycloakPublicClientParams(deployUiCommand, withEnableDebug, existingTenant, keycloakMasterAccessToken, platformCompleteExternalUrl)
 
 		imageName := fmt.Sprintf("platform-complete-ui-%s", existingTenant)
 
 		var finalImageName string
-		if buildImages {
+		if withBuildImages {
 			slog.Info(deployUiCommand, internal.GetFuncName(), "Copying platform complete UI configs")
 			configName := "stripes.config.js"
 			internal.CopySingleFile(deployUiCommand, fmt.Sprintf("%s/eureka-tpl/%s", outputDir, configName), fmt.Sprintf("%s/%s", outputDir, configName))
 
 			slog.Info(deployUiCommand, internal.GetFuncName(), "Preparing platform complete UI config")
-			internal.PrepareStripesConfigJs(deployUiCommand, outputDir, existingTenant, kongExternalUrl, keycloakExternalUrl, platformCompleteExternalUrl, enableEcsRequests)
+			internal.PrepareStripesConfigJs(deployUiCommand, outputDir, existingTenant, kongExternalUrl, keycloakExternalUrl, platformCompleteExternalUrl, withEnableEcsRequests)
 			internal.PreparePackageJson(deployUiCommand, outputDir, existingTenant)
 
 			slog.Info(deployUiCommand, internal.GetFuncName(), "Building platform complete UI from a Dockerfile")
@@ -136,7 +136,7 @@ func DeployUi() {
 
 func init() {
 	rootCmd.AddCommand(deployUiCmd)
-	deployUiCmd.PersistentFlags().BoolVarP(&buildImages, "buildImages", "b", false, "Build images")
-	deployUiCmd.PersistentFlags().BoolVarP(&updateCloned, "updateCloned", "u", false, "Update cloned projects")
-	deployUiCmd.PersistentFlags().BoolVarP(&enableEcsRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
+	deployUiCmd.PersistentFlags().BoolVarP(&withBuildImages, "buildImages", "b", false, "Build images")
+	deployUiCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update cloned projects")
+	deployUiCmd.PersistentFlags().BoolVarP(&withEnableEcsRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
 }

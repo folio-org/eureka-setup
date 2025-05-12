@@ -29,19 +29,20 @@ import (
 const rootCommand string = "Root"
 
 var (
-	configFile        string
-	moduleName        string
-	enableDebug       bool
-	buildImages       bool
-	updateCloned      bool
-	enableEcsRequests bool
-	tenant            string
-	namespace         string
-	showAll           bool
-	id                string
-	moduleUrl         string
-	sidecarUrl        string
-	restore           bool
+	withConfigFile        string
+	withModuleName        string
+	withEnableDebug       bool
+	withBuildImages       bool
+	withUpdateCloned      bool
+	withEnableEcsRequests bool
+	withTenant            string
+	withNamespace         string
+	withShowAll           bool
+	withId                string
+	withModuleUrl         string
+	withSidecarUrl        string
+	withRestore           bool
+	withDefaultGateway    bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -59,13 +60,13 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", fmt.Sprintf("Config file (default is $HOME/%s/%s.%s)", internal.ConfigDir, internal.ConfigCombined, internal.ConfigType))
-	rootCmd.PersistentFlags().BoolVarP(&enableDebug, "debug", "d", false, "Enable debug")
+	rootCmd.PersistentFlags().StringVarP(&withConfigFile, "config", "c", "", fmt.Sprintf("Config file (default is $HOME/%s/%s.%s)", internal.ConfigDir, internal.ConfigCombined, internal.ConfigType))
+	rootCmd.PersistentFlags().BoolVarP(&withEnableDebug, "debug", "d", false, "Enable debug")
 }
 
 func initConfig() {
-	if configFile != "" {
-		viper.SetConfigFile(configFile)
+	if withConfigFile != "" {
+		viper.SetConfigFile(withConfigFile)
 	} else {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
@@ -76,7 +77,7 @@ func initConfig() {
 	}
 	viper.AutomaticEnv()
 	if err := viper.ReadInConfig(); err != nil {
-		slog.Error(rootCommand, internal.GetFuncName(), fmt.Sprintf("Cannot find or parse configuration file. Check that file exists and doesn’t contain errors.: %s", configFile))
+		slog.Error(rootCommand, internal.GetFuncName(), fmt.Sprintf("Cannot find or parse configuration file. Check that file exists and does not contain errors.: %s", withConfigFile))
 		panic(err)
 	}
 }
