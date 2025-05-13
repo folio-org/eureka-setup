@@ -23,7 +23,7 @@ environment:
   DB_PASSWORD: supersecret
   DB_CHARSET: UTF-8
   DB_QUERYTIMEOUT: 60000
-  DB_MAXPOOLSIZE: 10
+  DB_MAXPOOLSIZE: 4
   # Kafka
   ENV: folio
   KAFKA_HOST: kafka.eureka

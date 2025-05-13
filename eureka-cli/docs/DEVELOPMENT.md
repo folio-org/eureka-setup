@@ -79,8 +79,15 @@
 > Verify that `host.docker.internal` is set in `/etc/hosts` or use default Docker Gateway IP `172.17.0.1` in Linux in the URLs
 
 ```bash
+# Find the module id that you want to intercept with listModules command 
+./bin/eureka-cli -c config.combined.yaml listModules
+
 ./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -m http://host.docker.internal:36001 -s http://host.docker.internal:37001
 ./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -m http://host.docker.internal:36002 -s http://host.docker.internal:37002
+
+# Alternatively you can use the default Kong gateway with --defaultGateway/-g flag which will all to just pass the module and sidecar port respectively
+./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -g -m 36001 -s 37001
+./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -g -m 36002 -s 37002
 ```
 
 > Module and sidecar exposed ports in the example are not fixed and can be changed to suit your needs, e.g. if your mod-orders in IntelliJ is usually started on port 9800, `--moduleUrl` / `-m` will be <http://host.docker.internal:9800>

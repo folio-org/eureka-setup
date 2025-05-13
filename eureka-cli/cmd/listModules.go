@@ -46,7 +46,7 @@ func ListModules() {
 }
 
 func createFilter(moduleName string, showAll bool) string {
-	if !showAll {
+	if !showAll && moduleName == "" {
 		return fmt.Sprintf(currentProfileModulesPattern, viper.GetString(internal.ProfileNameKey))
 	}
 	if moduleName != "" {
