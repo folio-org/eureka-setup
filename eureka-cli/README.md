@@ -18,8 +18,9 @@
   - [Keycloak](<http://keycloak.eureka:8080>) Admin Console: admin:admin
   - [Vault](<http://localhost:8200>) UI: Find a Vault root token in the container logs using `docker logs vault` or use `getVaultRootToken` command
   - [Kafka](<http://localhost:9080>) UI: No auth
-  - [Kong](<http://localhost:8002>) Admin GUI: No auth  
-  - [MinIO](<http://localhost:9001>) Consol: admin:admin  
+  - [Kong](<http://localhost:8002>) Admin GUI: No auth
+  - [MinIO](<http://localhost:9001>) Console: admin:admin
+  - [Kibana](<http://localhost:15601>) UI: No auth
 
 ### Build a binary
   

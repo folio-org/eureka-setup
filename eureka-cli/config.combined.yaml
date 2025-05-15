@@ -213,6 +213,11 @@ backend-modules:
   mod-circulation-storage:
   mod-circulation:
     port-server: 9801
+  # Required for Eureka-based Karate tests
+  mod-template-engine:
+    deploy-module: false
+  mod-feesfines:
+    deploy-module: false
   # Requires Elasticsearch to be uncommented in misc/docker-compose.yaml
   mod-search:
     deploy-module: false

@@ -3,5 +3,6 @@ log
 misc/folio-keycloak
 misc/folio-kong
 misc/platform-complete
-SETUP.md
+INSTALL.md
+UPGRADE.md
 TODO.md
