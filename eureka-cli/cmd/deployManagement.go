@@ -41,13 +41,13 @@ func DeployManagement() {
 	environment := internal.GetEnvironmentFromConfig(deployManagementCommand, internal.EnvironmentKey)
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### READING BACKEND MODULES FROM CONFIG ###")
-	backendModulesMap := internal.GetBackendModulesFromConfig(deployManagementCommand, viper.GetStringMap(internal.BackendModuleKey), true)
+	backendModulesMap := internal.GetBackendModulesFromConfig(deployManagementCommand, viper.GetStringMap(internal.BackendModuleKey), true, true)
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### READING BACKEND MODULE REGISTRIES ###")
-	registryModules := internal.GetModulesFromRegistries(deployManagementCommand, map[string]string{internal.EurekaRegistry: viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)})
+	registryModules := internal.GetModulesFromRegistries(deployManagementCommand, map[string]string{internal.EurekaRegistry: viper.GetString(internal.InstallEurekaKey)}, true)
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### EXTRACTING MODULE NAME AND VERSION ###")
-	internal.ExtractModuleNameAndVersion(deployManagementCommand, withEnableDebug, registryModules)
+	internal.ExtractModuleNameAndVersion(deployManagementCommand, withEnableDebug, registryModules, true)
 
 	vaultRootToken, client := GetVaultRootTokenWithDockerClient()
 	defer client.Close()

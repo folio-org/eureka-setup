@@ -21,6 +21,7 @@ import (
 
 const (
 	ColonDelimitedPattern string = ".*:"
+	VaultContainerName    string = "vault"
 	SidecarProjectName    string = "folio-module-sidecar"
 )
 
@@ -35,7 +36,7 @@ func CreateDockerClient(commandName string) *client.Client {
 }
 
 func GetVaultRootToken(commandName string, client *client.Client) string {
-	logStream, err := client.ContainerLogs(context.Background(), "vault", container.LogsOptions{ShowStdout: true, ShowStderr: true})
+	logStream, err := client.ContainerLogs(context.Background(), VaultContainerName, container.LogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "client.ContainerLogs error")
 		panic(err)
@@ -143,10 +144,10 @@ func GetModuleImageVersion(backendModule BackendModule, registryModule *Registry
 }
 
 func GetSidecarImage(commandName string, registryModules []*RegistryModule) string {
-	sidecarModule := viper.GetStringMap(SidecarModule)
-	sidecarImageVersion := getSidecarImageVersion(commandName, registryModules, sidecarModule["version"])
+	sidecarModule := viper.GetStringMap(SidecarModuleKey)
+	sidecarImageVersion := getSidecarImageVersion(commandName, registryModules, sidecarModule[SidecarModuleVersionEntryKey])
 
-	return fmt.Sprintf("%s/%s", GetImageRegistryNamespace(commandName, sidecarImageVersion), fmt.Sprintf("%s:%s", sidecarModule["image"].(string), sidecarImageVersion))
+	return fmt.Sprintf("%s/%s", GetImageRegistryNamespace(commandName, sidecarImageVersion), fmt.Sprintf("%s:%s", sidecarModule[SidecarModuleImageEntryKey].(string), sidecarImageVersion))
 }
 
 func getSidecarImageVersion(commandName string, registryModules []*RegistryModule, sidecarConfigVersion any) string {

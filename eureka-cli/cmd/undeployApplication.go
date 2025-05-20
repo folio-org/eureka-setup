@@ -52,6 +52,7 @@ func UndeployApplication() {
 func UndeployChildApplication() {
 	RemoveTenantEntitlements()
 	UndeployModules()
+	UndeployAdditionalSystem()
 	DetachCapabilitySets()
 	AttachCapabilitySets()
 }

@@ -40,23 +40,23 @@ var deployModulesCmd = &cobra.Command{
 
 func DeployModules() {
 	registryUrl := viper.GetString(internal.RegistryUrlKey)
-	internal.PortStartIndex = viper.GetInt(internal.ApplicationPortStart)
-	internal.PortEndIndex = viper.GetInt(internal.ApplicationPortEnd)
+	internal.PortStartIndex = viper.GetInt(internal.ApplicationPortStartKey)
+	internal.PortEndIndex = viper.GetInt(internal.ApplicationPortEndKey)
 	environment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.EnvironmentKey)
 	sidecarEnvironment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.SidecarModuleEnvironmentKey)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING BACKEND MODULES FROM CONFIG ###")
-	backendModulesMap := internal.GetBackendModulesFromConfig(deployModulesCommand, viper.GetStringMap(internal.BackendModuleKey), false)
+	backendModulesMap := internal.GetBackendModulesFromConfig(deployModulesCommand, viper.GetStringMap(internal.BackendModuleKey), false, true)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING FRONTEND MODULES FROM CONFIG ###")
 	frontendModulesMap := internal.GetFrontendModulesFromConfig(deployModulesCommand, viper.GetStringMap(internal.FrontendModuleKey), viper.GetStringMap(internal.CustomFrontendModuleKey))
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING BACKEND MODULE REGISTRIES ###")
-	instalJsonUrls := map[string]string{internal.FolioRegistry: viper.GetString(internal.RegistryFolioInstallJsonUrlKey), internal.EurekaRegistry: viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)}
-	registryModules := internal.GetModulesFromRegistries(deployModulesCommand, instalJsonUrls)
+	instalJsonUrls := map[string]string{internal.FolioRegistry: viper.GetString(internal.InstallFolioKey), internal.EurekaRegistry: viper.GetString(internal.InstallEurekaKey)}
+	registryModules := internal.GetModulesFromRegistries(deployModulesCommand, instalJsonUrls, true)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### EXTRACTING MODULE NAME AND VERSION ###")
-	internal.ExtractModuleNameAndVersion(deployModulesCommand, withEnableDebug, registryModules)
+	internal.ExtractModuleNameAndVersion(deployModulesCommand, withEnableDebug, registryModules, true)
 
 	vaultRootToken, client := GetVaultRootTokenWithDockerClient()
 	defer client.Close()

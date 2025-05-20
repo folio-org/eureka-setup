@@ -73,21 +73,21 @@
 ### Enable Module Interception in IntelliJ (an example for mod-orders and mod-finance)
 
 - `cd` into `eureka-setup/eureka-cli`
-- Deploy the Eureka environment using the *combined* profile: `./bin/eureka-cli -c config.combined.yaml deployApplication`
+- Deploy the Eureka environment using the *combined* profile: `eureka-cli -c config.combined.yaml deployApplication`
 - Deploy the custom sidecars into the Eureka environment
 
 > Verify that `host.docker.internal` is set in `/etc/hosts` or use default Docker Gateway IP `172.17.0.1` in Linux in the URLs
 
 ```bash
 # Find the module id that you want to intercept with listModules command 
-./bin/eureka-cli -c config.combined.yaml listModules
+eureka-cli -c config.combined.yaml listModules
 
-./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -m http://host.docker.internal:36001 -s http://host.docker.internal:37001
-./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -m http://host.docker.internal:36002 -s http://host.docker.internal:37002
+eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -m http://host.docker.internal:36001 -s http://host.docker.internal:37001
+eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -m http://host.docker.internal:36002 -s http://host.docker.internal:37002
 
 # Alternatively, you can use the default Kong gateway with --defaultGateway/-g flag, and by passing module and sidecar ports directly
-./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -g -m 36001 -s 37001
-./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -g -m 36002 -s 37002
+eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -g -m 36001 -s 37001
+eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -g -m 36002 -s 37002
 ```
 
 > Module and sidecar exposed ports in the example are not fixed and can be changed to suit your needs, e.g. if your mod-orders in IntelliJ is usually started on port 9800, `--moduleUrl` / `-m` will be <http://host.docker.internal:9800>
@@ -190,6 +190,6 @@ OKAPI_URL=http://localhost:37002
 - Restore the default modules and sidecars in the Eureka environment
 
 ```bash
-./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -r
-./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -r
+eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -r
+eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -r
 ```

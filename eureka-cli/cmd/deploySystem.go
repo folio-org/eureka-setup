@@ -24,16 +24,20 @@ import (
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const (
 	deploySystemCommand string = "Deploy System"
-	folioKeycloakDir    string = "folio-keycloak"
-	folioKongDir        string = "folio-kong"
+
+	folioKeycloakDir string = "folio-keycloak"
+	folioKongDir     string = "folio-kong"
 
 	defaultFolioKeycloakBranchName plumbing.ReferenceName = "master"
 	defaultFolioKongBranchName     plumbing.ReferenceName = "master"
 )
+
+var coreRequiredContainers = []string{"postgres", "zookeeper", "kafka", "vault", "keycloak", "keycloak-internal", "kong"}
 
 // deploySystemCmd represents the deploySystem command
 var deploySystemCmd = &cobra.Command{
@@ -46,10 +50,35 @@ var deploySystemCmd = &cobra.Command{
 }
 
 func DeploySystem() {
+	cloneUpdateSystemComponents()
+
+	var preparedCommands []*exec.Cmd
+	if withBuildImages {
+		preparedCommands = []*exec.Cmd{exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache")}
+	}
+
+	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}
+	if withRequired {
+		requiredContainers := GetRequiredContainers(coreRequiredContainers)
+		subCommand = append(subCommand, requiredContainers...)
+	}
+
+	slog.Info(deploySystemCommand, internal.GetFuncName(), "### DEPLOYING SYSTEM CONTAINERS ###")
+	preparedCommands = append(preparedCommands, exec.Command("docker", subCommand...))
+	for _, preparedCommand := range preparedCommands {
+		internal.RunCommandFromDir(deploySystemCommand, preparedCommand, internal.DockerComposeWorkDir)
+	}
+
+	slog.Info(deploySystemCommand, internal.GetFuncName(), "### WAITING FOR SYSTEM TO INITIALIZE ###")
+	time.Sleep(15 * time.Second)
+	slog.Info(deploySystemCommand, internal.GetFuncName(), "All system containers have initialized")
+}
+
+func cloneUpdateSystemComponents() {
+	slog.Info(deploySystemCommand, internal.GetFuncName(), "### CLONING & UPDATING SYSTEM COMPONENTS ###")
+
 	folioKeycloakOutputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, folioKeycloakDir)
 	folioKongOutputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, folioKongDir)
-
-	slog.Info(deploySystemCommand, internal.GetFuncName(), "### CLONING & UPDATING SYSTEM COMPONENTS ###")
 
 	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", folioKeycloakDir, defaultFolioKeycloakBranchName))
 	internal.GitCloneRepository(deploySystemCommand, withEnableDebug, internal.FolioKeycloakRepositoryUrl, defaultFolioKeycloakBranchName, folioKeycloakOutputDir, false)
@@ -64,25 +93,44 @@ func DeploySystem() {
 		slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", folioKongDir))
 		internal.GitResetHardPullFromOriginRepository(deploySystemCommand, withEnableDebug, internal.FolioKongRepositoryUrl, defaultFolioKongBranchName, folioKongOutputDir)
 	}
+}
 
+func DeployAdditionalSystem() {
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "### DEPLOYING SYSTEM CONTAINERS ###")
-	var preparedCommands []*exec.Cmd
-	if withBuildImages {
-		preparedCommands = []*exec.Cmd{exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache")}
+
+	additionalRequiredContainers := GetRequiredContainers([]string{})
+	if len(additionalRequiredContainers) == 0 {
+		slog.Info(deploySystemCommand, internal.GetFuncName(), "No addititional system containers deployed")
+		return
 	}
 
-	preparedCommands = append(preparedCommands, exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"))
-	for _, preparedCommand := range preparedCommands {
-		internal.RunCommandFromDir(deployManagementCommand, preparedCommand, internal.DockerComposeWorkDir)
-	}
+	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}, additionalRequiredContainers...)
+	internal.RunCommandFromDir(deploySystemCommand, exec.Command("docker", subCommand...), internal.DockerComposeWorkDir)
 
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "### WAITING FOR SYSTEM TO INITIALIZE ###")
 	time.Sleep(15 * time.Second)
-	slog.Info(deploySystemCommand, internal.GetFuncName(), "All system components have initialized")
+	slog.Info(deploySystemCommand, internal.GetFuncName(), "All system containers have initialized")
+}
+
+func GetRequiredContainers(requiredContainers []string) []string {
+	if hasModuleDeployed(internal.BackendModuleModSearchKey, internal.BackendModuleModSearchDeployModuleKey) {
+		requiredContainers = append(requiredContainers, "elasticsearch")
+	}
+	if hasModuleDeployed(internal.BackendModuleModDataExportWorkerKey, internal.BackendModuleModDataExportWorkerDeployModuleKey) {
+		requiredContainers = append(requiredContainers, []string{"minio", "createbuckets", "ftp-server"}...)
+	}
+	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Retrieved required containers: %s", requiredContainers))
+
+	return requiredContainers
+}
+
+func hasModuleDeployed(moduleKey, deployModuleKey string) bool {
+	return viper.GetBool(deployModuleKey) || viper.IsSet(moduleKey)
 }
 
 func init() {
 	rootCmd.AddCommand(deploySystemCmd)
 	deploySystemCmd.PersistentFlags().BoolVarP(&withBuildImages, "buildImages", "b", false, "Build images")
 	deploySystemCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update cloned projects")
+	deploySystemCmd.PersistentFlags().BoolVarP(&withRequired, "required", "R", false, "Use only required system containers")
 }

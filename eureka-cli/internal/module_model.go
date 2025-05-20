@@ -133,13 +133,13 @@ func CreateResources(isModule bool, resources map[string]any) *container.Resourc
 		return createDefaultResources(isModule)
 	}
 
-	oomKillDisable := getBoolValueOrDefault("oom-kill-disable", resources, false)
+	oomKillDisable := getBoolValueOrDefault(ModuleResourceOomKillDisableEntryKey, resources, false)
 
 	return &container.Resources{
-		CPUCount:          getIntValueOrDefault("cpu-count", resources, DefaultModuleCpus),
-		MemoryReservation: convertMiBToBytes(getIntValueOrDefault("memory-reservation", resources, DefaultModuleMemoryReservation)),
-		Memory:            convertMiBToBytes(getIntValueOrDefault("memory", resources, DefaultModuleMemory)),
-		MemorySwap:        convertMiBToBytes(getIntValueOrDefault("memory-swap", resources, DefaultModuleSwap)),
+		CPUCount:          getIntValueOrDefault(ModuleResourceCpuCountEntryKey, resources, DefaultModuleCpus),
+		MemoryReservation: convertMiBToBytes(getIntValueOrDefault(ModuleResourceMemoryReservationEntryKey, resources, DefaultModuleMemoryReservation)),
+		Memory:            convertMiBToBytes(getIntValueOrDefault(ModuleResourceMemoryEntryKey, resources, DefaultModuleMemory)),
+		MemorySwap:        convertMiBToBytes(getIntValueOrDefault(ModuleResourceMemorySwapEntryKey, resources, DefaultModuleSwap)),
 		OomKillDisable:    &oomKillDisable,
 	}
 }

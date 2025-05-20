@@ -8,11 +8,12 @@ application:
   port-start: 30000
   port-end: 32000
 registry:
-  registry-url: https://folio-registry.dev.folio.org
-  folio-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
-  eureka-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
-  namespaces:
-    platform-complete-ui: bkadirkhodjaev
+  url: https://folio-registry.dev.folio.org
+install:
+  folio: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
+  eureka: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
+namespaces:
+  platform-complete-ui: bkadirkhodjaev
 environment:
   # PostgreSQL
   DB_HOST: postgres.eureka
@@ -218,7 +219,8 @@ backend-modules:
     deploy-module: false
   mod-feesfines:
     deploy-module: false
-  # Requires Elasticsearch to be uncommented in misc/docker-compose.yaml
+  mod-ebsconet:
+    deploy-module: false
   mod-search:
     deploy-module: false
     disable-system-user: true
@@ -250,8 +252,8 @@ frontend-modules:
   folio_plugin-find-authority:
 custom-frontend-modules:
   folio_authorization-roles:
-    version: 2.1.109900000000179
+    version: 2.1.109900000000194
   folio_authorization-policies:
-    version: 2.0.10990000000080
+    version: 2.0.10990000000085
   folio_plugin-select-application:
-    version: 2.0.10990000000058
+    version: 2.0.10990000000063

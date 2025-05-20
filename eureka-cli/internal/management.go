@@ -43,9 +43,11 @@ var (
 
 // ######## Auxiliary ########
 
-func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryModulesMap map[string][]*RegistryModule) {
+func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryModulesMap map[string][]*RegistryModule, printOutput bool) {
 	for registryName, registryModules := range registryModulesMap {
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Extracting %s registry module names and versions", registryName))
+		if printOutput {
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Extracting %s registry module names and versions", registryName))
+		}
 
 		for moduleIndex, module := range registryModules {
 			if module.Id == "okapi" {
@@ -108,13 +110,13 @@ func GetApplications(commandName string, enableDebug bool, panicOnError bool) Ap
 
 	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/applications")
 
-	resp := DoGetReturnResponse(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
-	if resp == nil {
+	response := DoGetReturnResponse(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
+	if response == nil {
 		return applications
 	}
-	defer resp.Body.Close()
+	defer response.Body.Close()
 
-	err := json.NewDecoder(resp.Body).Decode(&applications)
+	err := json.NewDecoder(response.Body).Decode(&applications)
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "json.NewDecoder error")
 		panic(err)
@@ -280,8 +282,6 @@ func UpdateModuleDiscovery(commandName string, enableDebug bool, id string, side
 // ######## Tenants ########
 
 func GetTenants(commandName string, enableDebug bool, panicOnError bool) []any {
-	var foundTenants []any
-
 	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/tenants")
 
 	foundTenantsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
@@ -289,9 +289,7 @@ func GetTenants(commandName string, enableDebug bool, panicOnError bool) []any {
 		return nil
 	}
 
-	foundTenants = foundTenantsMap["tenants"].([]any)
-
-	return foundTenants
+	return foundTenantsMap["tenants"].([]any)
 }
 
 func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
@@ -395,8 +393,6 @@ func CreateTenantEntitlement(commandName string, enableDebug bool) {
 // ######## Users ########
 
 func GetUsers(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) []any {
-	var foundUsers []any
-
 	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/users?offset=0&limit=10000")
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 
@@ -405,9 +401,7 @@ func GetUsers(commandName string, enableDebug bool, panicOnError bool, tenant st
 		return nil
 	}
 
-	foundUsers = foundTenantsMap["users"].([]any)
-
-	return foundUsers
+	return foundTenantsMap["users"].([]any)
 }
 
 func RemoveUsers(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) {
@@ -511,8 +505,6 @@ func CreateUsers(commandName string, enableDebug bool, panicOnError bool, existi
 // ######## Roles ########
 
 func GetRoles(commandName string, enableDebug bool, panicOnError bool, headers map[string]string) []any {
-	var foundRoles []any
-
 	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/roles?offset=0&limit=10000")
 
 	foundRolesMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
@@ -520,9 +512,7 @@ func GetRoles(commandName string, enableDebug bool, panicOnError bool, headers m
 		return nil
 	}
 
-	foundRoles = foundRolesMap["roles"].([]any)
-
-	return foundRoles
+	return foundRolesMap["roles"].([]any)
 }
 
 func GetRoleByName(commandName string, enableDebug bool, roleName string, headers map[string]string) map[string]any {
@@ -612,8 +602,6 @@ func GetCapabilitySets(commandName string, enableDebug bool, panicOnError bool, 
 }
 
 func GetCapabilitySetsByName(commandName string, enableDebug bool, panicOnError bool, headers map[string]string, capabilitySetName string) []any {
-	var foundCapabilitySets []any
-
 	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", capabilitySetName))
 
 	foundCapabilitySetsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
@@ -621,9 +609,7 @@ func GetCapabilitySetsByName(commandName string, enableDebug bool, panicOnError 
 		return nil
 	}
 
-	foundCapabilitySets = foundCapabilitySetsMap["capabilitySets"].([]any)
-
-	return foundCapabilitySets
+	return foundCapabilitySetsMap["capabilitySets"].([]any)
 }
 
 func DetachCapabilitySetsFromRoles(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) {
@@ -666,13 +652,7 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 		}
 
 		capabilitySetsConfig := roleConfigMapEntry["capability-sets"].([]any)
-
-		var capabilitySetsMapList []map[string]any
-		if len(capabilitySetsConfig) == 1 && slices.Contains(capabilitySetsConfig, "all") {
-			capabilitySetsMapList = addAllCapabilitySets(commandName, enableDebug, headers, capabilitySetsMapList)
-		} else {
-			capabilitySetsMapList = addSelectedCapabilitySets(commandName, enableDebug, headers, capabilitySetsConfig, capabilitySetsMapList)
-		}
+		capabilitySetsMapList := populateCapabilitySetMapList(capabilitySetsConfig, commandName, enableDebug, headers)
 
 		var capabilitySetIds []string
 		for _, mapEntry := range capabilitySetsMapList {
@@ -698,7 +678,16 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 	}
 }
 
-func addSelectedCapabilitySets(commandName string, enableDebug bool, headers map[string]string, capabilitySetsConfig []any, capabilitySetsMapList []map[string]any) []map[string]any {
+func populateCapabilitySetMapList(capabilitySetsConfig []any, commandName string, enableDebug bool, headers map[string]string) []map[string]any {
+	var capabilitySetsMapList []map[string]any
+	if len(capabilitySetsConfig) == 1 && slices.Contains(capabilitySetsConfig, "all") {
+		return appendAllCapabilitySets(commandName, enableDebug, headers, capabilitySetsMapList)
+	}
+
+	return appendSelectedCapabilitySets(commandName, enableDebug, headers, capabilitySetsConfig, capabilitySetsMapList)
+}
+
+func appendSelectedCapabilitySets(commandName string, enableDebug bool, headers map[string]string, capabilitySetsConfig []any, capabilitySetsMapList []map[string]any) []map[string]any {
 	for _, capabilitySetConfig := range capabilitySetsConfig {
 		capabilitySetConfigName := capabilitySetConfig.(string)
 
@@ -712,7 +701,7 @@ func addSelectedCapabilitySets(commandName string, enableDebug bool, headers map
 	return capabilitySetsMapList
 }
 
-func addAllCapabilitySets(commandName string, enableDebug bool, headers map[string]string, capabilitySetsMapList []map[string]any) []map[string]any {
+func appendAllCapabilitySets(commandName string, enableDebug bool, headers map[string]string, capabilitySetsMapList []map[string]any) []map[string]any {
 	for _, capabilityValue := range GetCapabilitySets(commandName, enableDebug, true, headers) {
 		capabilityMapEntry := capabilityValue.(map[string]any)
 

@@ -60,7 +60,7 @@ func GetRegistryAuthTokenIfPresent(commandName string) string {
 	return encodedAuth
 }
 
-func GetModulesFromRegistries(commandName string, installJsonUrls map[string]string) map[string][]*RegistryModule {
+func GetModulesFromRegistries(commandName string, installJsonUrls map[string]string, printOutput bool) map[string][]*RegistryModule {
 	registryModulesMap := make(map[string][]*RegistryModule)
 
 	for registryName, installJsonUrl := range installJsonUrls {
@@ -86,16 +86,18 @@ func GetModulesFromRegistries(commandName string, installJsonUrls map[string]str
 				}
 
 				mapEntry := value.(map[string]any)
-				if mapEntry["version"] == nil {
+				if mapEntry[ModuleVersionEntryKey] == nil {
 					continue
 				}
 
-				registryModules = append(registryModules, &RegistryModule{Id: fmt.Sprintf("%s-%s", name, mapEntry["version"].(string)), Action: "enable"})
+				registryModules = append(registryModules, &RegistryModule{Id: fmt.Sprintf("%s-%s", name, mapEntry[ModuleVersionEntryKey].(string)), Action: "enable"})
 			}
 		}
 
 		if len(registryModules) > 0 {
-			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found %s modules: %d", registryName, len(registryModules)))
+			if printOutput {
+				slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found %s modules: %d", registryName, len(registryModules)))
+			}
 
 			sort.Slice(registryModules, func(i, j int) bool {
 				switch strings.Compare(registryModules[i].Id, registryModules[j].Id) {

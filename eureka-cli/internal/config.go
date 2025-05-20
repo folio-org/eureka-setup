@@ -44,8 +44,10 @@ const (
 	MultipleModulesContainerPattern string = "eureka-%s-mod-"
 )
 
-var PortStartIndex int = 30000
-var PortEndIndex int = 32000
+var (
+	PortStartIndex int = 30000
+	PortEndIndex   int = 32000
+)
 
 func GetGatewayUrlTemplate(commandName string) string {
 	schemaAndUrl := GetGatewaySchemaAndUrl(commandName)
@@ -61,7 +63,7 @@ func GetGatewaySchemaAndUrl(commandName string) string {
 	var schemaAndUrl string
 	if viper.IsSet(ApplicationGatewayHostnameKey) {
 		schemaAndUrl = viper.GetString(ApplicationGatewayHostnameKey)
-	} else if IsHostnameExists(commandName, DefaultDockerHostname) {
+	} else if HostnameExists(commandName, DefaultDockerHostname) {
 		schemaAndUrl = fmt.Sprintf("http://%s", DefaultDockerHostname)
 	} else if runtime.GOOS == "linux" {
 		schemaAndUrl = fmt.Sprintf("http://%s", DefaultDockerGatewayIp)
@@ -70,7 +72,7 @@ func GetGatewaySchemaAndUrl(commandName string) string {
 	return schemaAndUrl
 }
 
-func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[string]any, managementOnly bool) map[string]BackendModule {
+func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[string]any, managementOnly bool, printOutput bool) map[string]BackendModule {
 	backendModulesMap := make(map[string]BackendModule)
 
 	for name, value := range backendModulesAnyMap {
@@ -92,7 +94,9 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			moduleInfo = fmt.Sprintf("%s with fixed version %s", name, *dto.version)
 		}
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found backend module in config: %s", moduleInfo))
+		if printOutput {
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found backend module in config: %s", moduleInfo))
+		}
 	}
 
 	return backendModulesMap
@@ -138,8 +142,8 @@ func createConfigurableBackendDto(value any, name string) (dto BackendModuleDto)
 }
 
 func getDeployModule(mapEntry map[string]any) bool {
-	if mapEntry["deploy-module"] != nil {
-		return mapEntry["deploy-module"].(bool)
+	if mapEntry[ModuleDeployModuleEntryKey] != nil {
+		return mapEntry[ModuleDeployModuleEntryKey].(bool)
 	}
 
 	return true
@@ -147,8 +151,8 @@ func getDeployModule(mapEntry map[string]any) bool {
 
 func getDeploySidecar(mapEntry map[string]any, name string) *bool {
 	var sidecar *bool
-	if mapEntry["deploy-sidecar"] != nil {
-		sidecarValue := mapEntry["deploy-sidecar"].(bool)
+	if mapEntry[ModuleDeploySidecarEntryKey] != nil {
+		sidecarValue := mapEntry[ModuleDeploySidecarEntryKey].(bool)
 		sidecar = &sidecarValue
 	} else if !strings.HasPrefix(name, ManagementModulePattern) {
 		sidecar = getDefaultDeploySidecar()
@@ -163,16 +167,16 @@ func getDefaultDeploySidecar() *bool {
 }
 
 func getUseVault(mapEntry map[string]any) bool {
-	if mapEntry["use-vault"] != nil {
-		return mapEntry["use-vault"].(bool)
+	if mapEntry[ModuleUseVaultEntryKey] != nil {
+		return mapEntry[ModuleUseVaultEntryKey].(bool)
 	}
 
 	return false
 }
 
 func getDisableSystemUser(mapEntry map[string]any) bool {
-	if mapEntry["disable-system-user"] != nil {
-		return mapEntry["disable-system-user"].(bool)
+	if mapEntry[ModuleDisableSystemUserEntryKey] != nil {
+		return mapEntry[ModuleDisableSystemUserEntryKey].(bool)
 	}
 
 	return false
@@ -180,13 +184,13 @@ func getDisableSystemUser(mapEntry map[string]any) bool {
 
 func getVersion(mapEntry map[string]any) *string {
 	var version *string
-	if mapEntry["version"] != nil {
+	if mapEntry[ModuleVersionEntryKey] != nil {
 		var versionValue string
-		_, ok := mapEntry["version"].(float64)
+		_, ok := mapEntry[ModuleVersionEntryKey].(float64)
 		if ok {
-			versionValue = strconv.FormatFloat(mapEntry["version"].(float64), 'f', -1, 64)
+			versionValue = strconv.FormatFloat(mapEntry[ModuleVersionEntryKey].(float64), 'f', -1, 64)
 		} else {
-			versionValue = mapEntry["version"].(string)
+			versionValue = mapEntry[ModuleVersionEntryKey].(string)
 		}
 		version = &versionValue
 	}
@@ -196,8 +200,8 @@ func getVersion(mapEntry map[string]any) *string {
 
 func getPort(mapEntry map[string]any) *int {
 	var port *int
-	if mapEntry["port"] != nil {
-		portValue := mapEntry["port"].(int)
+	if mapEntry[ModulePortEntryKey] != nil {
+		portValue := mapEntry[ModulePortEntryKey].(int)
 		port = &portValue
 	} else {
 		PortStartIndex++
@@ -209,8 +213,8 @@ func getPort(mapEntry map[string]any) *int {
 
 func getPortServer(mapEntry map[string]any) *int {
 	var portServer *int
-	if mapEntry["port-server"] != nil {
-		portServerValue := mapEntry["port-server"].(int)
+	if mapEntry[ModulePortServerEntryKey] != nil {
+		portServerValue := mapEntry[ModulePortServerEntryKey].(int)
 		portServer = &portServerValue
 	} else {
 		portServer = getDefaultPortServer()
@@ -226,16 +230,16 @@ func getDefaultPortServer() *int {
 }
 
 func createEnvironment(mapEntry map[string]any) map[string]any {
-	if mapEntry["environment"] != nil {
-		return mapEntry["environment"].(map[string]any)
+	if mapEntry[ModuleEnvironmentEntryKey] != nil {
+		return mapEntry[ModuleEnvironmentEntryKey].(map[string]any)
 	}
 
 	return make(map[string]any)
 }
 
 func createResources(mapEntry map[string]any) map[string]any {
-	if mapEntry["resources"] != nil {
-		return mapEntry["resources"].(map[string]any)
+	if mapEntry[ModuleResourceEntryKey] != nil {
+		return mapEntry[ModuleResourceEntryKey].(map[string]any)
 	}
 
 	return make(map[string]any)
@@ -254,12 +258,12 @@ func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMaps ...
 			if value != nil {
 				mapEntry := value.(map[string]any)
 
-				if mapEntry["deploy-module"] != nil {
-					deployModule = mapEntry["deploy-module"].(bool)
+				if mapEntry[ModuleDeployModuleEntryKey] != nil {
+					deployModule = mapEntry[ModuleDeployModuleEntryKey].(bool)
 				}
 
-				if mapEntry["version"] != nil {
-					versionValue := mapEntry["version"].(string)
+				if mapEntry[ModuleVersionEntryKey] != nil {
+					versionValue := mapEntry[ModuleVersionEntryKey].(string)
 					version = &versionValue
 				}
 			}
@@ -378,7 +382,7 @@ func DeployUi(tenant string) bool {
 		return false
 	}
 
-	deployUi, ok := mapEntry["deploy-ui"]
+	deployUi, ok := mapEntry[TenantsDeployUiEntryKey]
 	if !ok || deployUi == nil || !deployUi.(bool) {
 		return false
 	}

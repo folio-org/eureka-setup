@@ -48,19 +48,8 @@ var deployUiCmd = &cobra.Command{
 
 func DeployUi() {
 	var outputDir string
-
 	if withBuildImages {
-		slog.Info(deployUiCommand, internal.GetFuncName(), "### CLONING & UPDATING UI ###")
-
-		slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", platformCompleteDir, defaultStripesBranch))
-		outputDir = fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
-		stripesBranch := internal.GetStripesBranch(deployUiCommand, defaultStripesBranch)
-		internal.GitCloneRepository(deployUiCommand, withEnableDebug, internal.PlatformCompleteRepositoryUrl, stripesBranch, outputDir, false)
-
-		if withUpdateCloned {
-			slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", platformCompleteDir))
-			internal.GitResetHardPullFromOriginRepository(deployUiCommand, withEnableDebug, internal.PlatformCompleteRepositoryUrl, defaultStripesBranch, outputDir)
-		}
+		outputDir = cloneUpdateUi()
 	}
 
 	slog.Info(deployUiCommand, internal.GetFuncName(), "### DEPLOYING UI ###")
@@ -78,42 +67,9 @@ func DeployUi() {
 		internal.UpdateKeycloakPublicClientParams(deployUiCommand, withEnableDebug, existingTenant, keycloakMasterAccessToken, platformCompleteExternalUrl)
 
 		imageName := fmt.Sprintf("platform-complete-ui-%s", existingTenant)
-
-		var finalImageName string
-		if withBuildImages {
-			slog.Info(deployUiCommand, internal.GetFuncName(), "Copying platform complete UI configs")
-			configName := "stripes.config.js"
-			internal.CopySingleFile(deployUiCommand, fmt.Sprintf("%s/eureka-tpl/%s", outputDir, configName), fmt.Sprintf("%s/%s", outputDir, configName))
-
-			slog.Info(deployUiCommand, internal.GetFuncName(), "Preparing platform complete UI config")
-			internal.PrepareStripesConfigJs(deployUiCommand, outputDir, existingTenant, kongExternalUrl, keycloakExternalUrl, platformCompleteExternalUrl, withEnableEcsRequests)
-			internal.PreparePackageJson(deployUiCommand, outputDir, existingTenant)
-
-			slog.Info(deployUiCommand, internal.GetFuncName(), "Building platform complete UI from a Dockerfile")
-			internal.RunCommandFromDir(deployUiCommand, exec.Command("docker", "build", "--tag", imageName,
-				"--build-arg", fmt.Sprintf("OKAPI_URL=%s", kongExternalUrl),
-				"--build-arg", fmt.Sprintf("TENANT_ID=%s", existingTenant),
-				"--file", "./docker/Dockerfile",
-				"--progress", "plain",
-				"--no-cache",
-				".",
-			), outputDir)
-
-			finalImageName = imageName
-		} else {
-			if !viper.IsSet(internal.RegistryNamespacesPlatformCompleteUiKey) {
-				errorMessage := fmt.Sprintf("cmd.deployUi - Cannot run %s image, key %s is not set in current config file", imageName, internal.RegistryNamespacesPlatformCompleteUiKey)
-				internal.LogErrorPanic(deployUiCommand, errorMessage)
-				return
-			}
-
-			finalImageName = fmt.Sprintf("%s/%s", viper.GetString(internal.RegistryNamespacesPlatformCompleteUiKey), imageName)
-
-			slog.Info(deployUiCommand, internal.GetFuncName(), "Removing old platform complete UI image")
-			internal.RunCommand(deployUiCommand, exec.Command("docker", "image", "rm", "--force", finalImageName))
-
-			slog.Info(deployUiCommand, internal.GetFuncName(), "Pulling new platform complete UI image from DockerHub")
-			internal.RunCommand(deployUiCommand, exec.Command("docker", "image", "pull", finalImageName))
+		finalImageName, shouldReturn := prepareImage(outputDir, existingTenant, imageName)
+		if shouldReturn {
+			return
 		}
 
 		slog.Info(deployUiCommand, internal.GetFuncName(), "Running platform complete UI container")
@@ -132,6 +88,71 @@ func DeployUi() {
 		slog.Info(deployUiCommand, internal.GetFuncName(), "Connecting platform complete UI container to Eureka network")
 		internal.RunCommand(deployUiCommand, exec.Command("docker", "network", "connect", "eureka", containerName))
 	}
+}
+
+func prepareImage(outputDir string, existingTenant string, imageName string) (string, bool) {
+	if withBuildImages {
+		buildImageLocally(outputDir, existingTenant, imageName)
+
+		return imageName, false
+	}
+
+	if !viper.IsSet(internal.NamespacesPlatformCompleteUiKey) {
+		errorMessage := fmt.Sprintf("cmd.deployUi - Cannot run %s image, key %s is not set in current config file", imageName, internal.NamespacesPlatformCompleteUiKey)
+		internal.LogErrorPanic(deployUiCommand, errorMessage)
+
+		return "", true
+	}
+
+	return pullImageFromRegistry(imageName), false
+}
+
+func buildImageLocally(outputDir string, existingTenant string, imageName string) {
+	slog.Info(deployUiCommand, internal.GetFuncName(), "Copying platform complete UI configs")
+	configName := "stripes.config.js"
+	internal.CopySingleFile(deployUiCommand, fmt.Sprintf("%s/eureka-tpl/%s", outputDir, configName), fmt.Sprintf("%s/%s", outputDir, configName))
+
+	slog.Info(deployUiCommand, internal.GetFuncName(), "Preparing platform complete UI config")
+	internal.PrepareStripesConfigJs(deployUiCommand, outputDir, existingTenant, kongExternalUrl, keycloakExternalUrl, platformCompleteExternalUrl, withEnableEcsRequests)
+	internal.PreparePackageJson(deployUiCommand, outputDir, existingTenant)
+
+	slog.Info(deployUiCommand, internal.GetFuncName(), "Building platform complete UI from a Dockerfile")
+	internal.RunCommandFromDir(deployUiCommand, exec.Command("docker", "build", "--tag", imageName,
+		"--build-arg", fmt.Sprintf("OKAPI_URL=%s", kongExternalUrl),
+		"--build-arg", fmt.Sprintf("TENANT_ID=%s", existingTenant),
+		"--file", "./docker/Dockerfile",
+		"--progress", "plain",
+		"--no-cache",
+		".",
+	), outputDir)
+}
+
+func pullImageFromRegistry(imageName string) (finalImageName string) {
+	finalImageName = fmt.Sprintf("%s/%s", viper.GetString(internal.NamespacesPlatformCompleteUiKey), imageName)
+
+	slog.Info(deployUiCommand, internal.GetFuncName(), "Removing old platform complete UI image")
+	internal.RunCommand(deployUiCommand, exec.Command("docker", "image", "rm", "--force", finalImageName))
+
+	slog.Info(deployUiCommand, internal.GetFuncName(), "Pulling new platform complete UI image from DockerHub")
+	internal.RunCommand(deployUiCommand, exec.Command("docker", "image", "pull", finalImageName))
+
+	return finalImageName
+}
+
+func cloneUpdateUi() (outputDir string) {
+	slog.Info(deployUiCommand, internal.GetFuncName(), "### CLONING & UPDATING UI ###")
+
+	slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", platformCompleteDir, defaultStripesBranch))
+	outputDir = fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
+	stripesBranch := internal.GetStripesBranch(deployUiCommand, defaultStripesBranch)
+	internal.GitCloneRepository(deployUiCommand, withEnableDebug, internal.PlatformCompleteRepositoryUrl, stripesBranch, outputDir, false)
+
+	if withUpdateCloned {
+		slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", platformCompleteDir))
+		internal.GitResetHardPullFromOriginRepository(deployUiCommand, withEnableDebug, internal.PlatformCompleteRepositoryUrl, defaultStripesBranch, outputDir)
+	}
+
+	return outputDir
 }
 
 func init() {

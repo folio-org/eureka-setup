@@ -257,7 +257,7 @@ func IsPortFree(commandName string, portStart, portEnd int, port int) bool {
 	return true
 }
 
-func IsHostnameExists(commandName string, hostname string) bool {
+func HostnameExists(commandName string, hostname string) bool {
 	_, err := net.LookupHost(hostname)
 	if err != nil {
 		slog.Debug(commandName, GetFuncName(), fmt.Sprintf("Host %s is unreacheable: %s", hostname, err.Error()))
