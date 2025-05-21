@@ -214,18 +214,37 @@ backend-modules:
   mod-circulation-storage:
   mod-circulation:
     port-server: 9801
-  # Required for Eureka-based Karate tests
+  mod-search:
+    deploy-module: false
   mod-template-engine:
     deploy-module: false
   mod-feesfines:
     deploy-module: false
+  mod-gobi:
+    deploy-module: false
   mod-ebsconet:
     deploy-module: false
-  mod-search:
-    deploy-module: false
-    disable-system-user: true
+  mod-okapi-facade:
+    deploy-module: true
     environment:
-      ELASTICSEARCH_URL: http://elasticsearch.eureka:9200
+      TENANT_APPS_TTL: 600s
+      AM_TLS_ENABLED: 'false'
+      TM_TLS_ENABLED: 'false'
+      TE_TLS_ENABLED: 'false'
+      AM_CLIENT_URL: http://mgr-applications.eureka:8081
+      MT_CLIENT_URL: http://mgr-tenants.eureka:8081
+      TE_URL: http://mgr-tenant-entitlements.eureka:8081
+  edge-orders:
+    deploy-module: true
+    deploy-sidecar: false
+    environment:
+      JAVA_OPTIONS: >-
+        -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
+        -Dokapi_url=http://kong.eureka:8000
+        -Dsecure_store_props=/etc/edge/ephemeral.properties 
+        -Dapi_config=/etc/edge/api_configuration.json
+    volumes:
+      - $CWD\misc\edge-modules\edge-orders:/etc/edge
 frontend-modules:
   folio_stripes-core:
   folio_developer:

@@ -59,7 +59,7 @@ func DeployUi() {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
-		if !internal.HasTenant(existingTenant) || !internal.DeployUi(existingTenant) {
+		if !internal.HasTenant(existingTenant) || !internal.CanDeployUi(existingTenant) {
 			continue
 		}
 

@@ -46,10 +46,10 @@ func DeployModules() {
 	sidecarEnvironment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.SidecarModuleEnvironmentKey)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING BACKEND MODULES FROM CONFIG ###")
-	backendModulesMap := internal.GetBackendModulesFromConfig(deployModulesCommand, viper.GetStringMap(internal.BackendModuleKey), false, true)
+	backendModulesMap := internal.GetBackendModulesFromConfig(deployModulesCommand, viper.GetStringMap(internal.BackendModulesKey), false, true)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING FRONTEND MODULES FROM CONFIG ###")
-	frontendModulesMap := internal.GetFrontendModulesFromConfig(deployModulesCommand, viper.GetStringMap(internal.FrontendModuleKey), viper.GetStringMap(internal.CustomFrontendModuleKey))
+	frontendModulesMap := internal.GetFrontendModulesFromConfig(deployModulesCommand, viper.GetStringMap(internal.FrontendModulesKey), viper.GetStringMap(internal.CustomFrontendModulesKey))
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING BACKEND MODULE REGISTRIES ###")
 	instalJsonUrls := map[string]string{internal.FolioRegistry: viper.GetString(internal.InstallFolioKey), internal.EurekaRegistry: viper.GetString(internal.InstallEurekaKey)}

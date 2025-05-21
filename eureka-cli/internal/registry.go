@@ -80,7 +80,7 @@ func GetModulesFromRegistries(commandName string, installJsonUrls map[string]str
 		}
 
 		if registryName == FolioRegistry {
-			for name, value := range viper.GetStringMap(CustomFrontendModuleKey) {
+			for name, value := range viper.GetStringMap(CustomFrontendModulesKey) {
 				if value == nil {
 					continue
 				}

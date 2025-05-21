@@ -1,0 +1,100 @@
+{
+  "routing": [
+    {
+      "type": "GOBI",
+      "method": "POST",
+      "pathPattern": "/orders",
+      "proxyPath": "/gobi/orders"
+    },
+    {
+      "type": "GOBI",
+      "method": "POST",
+      "pathPattern": "/orders/validate",
+      "proxyPath": "/gobi/validate"
+    },
+    {
+      "type": "GOBI",
+      "method": "GET",
+      "pathPattern": "/orders/validate",
+      "proxyPath": "/gobi/validate"
+    },
+    {
+      "type": "EBSCONET",
+      "method": "GET",
+      "pathPattern": "/orders/order-lines/:id",
+      "proxyPath": "/ebsconet/orders/order-lines/:id"
+    },
+    {
+      "type": "EBSCONET",
+      "method": "PUT",
+      "pathPattern": "/orders/order-lines/:id",
+      "proxyPath": "/ebsconet/orders/order-lines/:id"
+    },
+    {
+      "type": "EBSCONET",
+      "method": "GET",
+      "pathPattern": "/orders/validate",
+      "proxyPath": "/ebsconet/validate"
+    },
+    {
+      "type": "MOSAIC",
+      "method": "GET",
+      "pathPattern": "/mosaic/validate",
+      "proxyPath": "/mosaic/validate"
+    },
+    {
+      "type": "MOSAIC",
+      "method": "POST",
+      "pathPattern": "/mosaic/orders",
+      "proxyPath": "/mosaic/orders"
+    },
+    {
+      "type": "COMMON",
+      "method": "GET",
+      "pathPattern": "/orders/order-templates",
+      "proxyPath": "/orders/order-templates?offset=:offset&limit=:limit&query=:query"
+    },
+    {
+      "type": "COMMON",
+      "method": "GET",
+      "pathPattern": "/orders/custom-fields",
+      "proxyPath": "/custom-fields?offset=:offset&limit=:limit&query=:query"
+    },
+    {
+      "type": "COMMON",
+      "method": "GET",
+      "pathPattern": "/finance/funds",
+      "proxyPath": "/finance/funds?offset=:offset&limit=:limit&query=:query"
+    },
+    {
+      "type": "COMMON",
+      "method": "GET",
+      "pathPattern": "/finance/expense-classes",
+      "proxyPath": "/finance/expense-classes?offset=:offset&limit=:limit&query=:query"
+    },
+    {
+      "type": "COMMON",
+      "method": "GET",
+      "pathPattern": "/acquisitions-units",
+      "proxyPath": "/acquisitions-units/units?offset=:offset&limit=:limit&query=:query"
+    },
+    {
+      "type": "COMMON",
+      "method": "GET",
+      "pathPattern": "/acquisition-methods",
+      "proxyPath": "/orders/acquisition-methods?offset=:offset&limit=:limit&query=:query"
+    },
+    {
+      "type": "COMMON",
+      "method": "GET",
+      "pathPattern": "/organizations",
+      "proxyPath": "/organizations/organizations?offset=:offset&limit=:limit&query=:query"
+    },
+    {
+      "type": "COMMON",
+      "method": "GET",
+      "pathPattern": "/addresses/billing-and-shipping",
+      "proxyPath": "/configurations/entries?query=configName==tenant.addresses"
+    }
+  ]
+}

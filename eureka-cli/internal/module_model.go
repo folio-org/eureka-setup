@@ -53,6 +53,7 @@ type BackendModuleDto struct {
 	portServer        *int
 	environment       map[string]any
 	resources         map[string]any
+	volumes           []string
 }
 
 type BackendModule struct {
@@ -66,6 +67,7 @@ type BackendModule struct {
 	ModulePortBindings      *nat.PortMap
 	ModuleEnvironment       map[string]any
 	ModuleResources         container.Resources
+	ModuleVolumes           []string
 	DeploySidecar           bool
 	SidecarExposedPorts     *nat.PortSet
 	SidecarPortBindings     *nat.PortMap
@@ -103,6 +105,7 @@ func NewBackendModuleWithSidecar(dto BackendModuleDto) *BackendModule {
 		ModulePortBindings:      CreatePortBindings(*dto.port, *dto.port+100, *dto.portServer),
 		ModuleEnvironment:       dto.environment,
 		ModuleResources:         *CreateResources(true, dto.resources),
+		ModuleVolumes:           dto.volumes,
 		DeploySidecar:           *dto.deploySidecar,
 		SidecarExposedPorts:     exposedPorts,
 		SidecarPortBindings:     CreatePortBindings(*dto.port+200, *dto.port+300, *dto.portServer),
@@ -122,6 +125,7 @@ func NewBackendModule(dto BackendModuleDto) *BackendModule {
 		ModulePortBindings:      CreatePortBindings(*dto.port, *dto.port+1000, *dto.portServer),
 		ModuleEnvironment:       dto.environment,
 		ModuleResources:         *CreateResources(true, dto.resources),
+		ModuleVolumes:           dto.volumes,
 		DeploySidecar:           false,
 		SidecarExposedPorts:     nil,
 		SidecarPortBindings:     nil,
@@ -225,13 +229,19 @@ func NewDeployModulesDto(vaultRootToken string, registryHostnames map[string]str
 func NewDeployModuleDto(name string, image string, env []string, backendModule BackendModule,
 	networkConfig *network.NetworkingConfig) *DeployModuleDto {
 	return &DeployModuleDto{
-		Name:   name,
-		Image:  image,
-		Config: &container.Config{Image: image, Hostname: name, Env: env, ExposedPorts: *backendModule.ModuleExposedPorts},
+		Name:  name,
+		Image: image,
+		Config: &container.Config{
+			Image:        image,
+			Hostname:     name,
+			Env:          env,
+			ExposedPorts: *backendModule.ModuleExposedPorts,
+		},
 		HostConfig: &container.HostConfig{
 			PortBindings:  *backendModule.ModulePortBindings,
 			RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyAlways},
 			Resources:     backendModule.ModuleResources,
+			Binds:         backendModule.ModuleVolumes,
 		},
 		NetworkConfig: networkConfig,
 		Platform:      &v1.Platform{},

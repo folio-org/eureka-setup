@@ -44,6 +44,7 @@ var (
 	withRestore           bool
 	withDefaultGateway    bool
 	withRequired          bool
+	withUser              string
 )
 
 // rootCmd represents the base command when called without any subcommands

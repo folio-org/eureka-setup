@@ -57,7 +57,12 @@ func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryM
 			module.Name = TrimModuleName(ModuleIdRegexp.ReplaceAllString(module.Id, `$1`))
 			moduleVersion := ModuleIdRegexp.ReplaceAllString(module.Id, `$2$3`)
 			module.Version = &moduleVersion
-			module.SidecarName = fmt.Sprintf("%s-sc", module.Name)
+
+			if strings.HasPrefix(module.Name, "edge") {
+				module.SidecarName = module.Name
+			} else {
+				module.SidecarName = fmt.Sprintf("%s-sc", module.Name)
+			}
 
 			registryModules[moduleIndex] = module
 		}
@@ -258,7 +263,11 @@ func UpdateModuleDiscovery(commandName string, enableDebug bool, id string, side
 	id = strings.ReplaceAll(id, ":", "-")
 	name := TrimModuleName(ModuleIdRegexp.ReplaceAllString(id, `$1`))
 	if sidecarUrl == "" || restore {
-		sidecarUrl = fmt.Sprintf("http://%s-sc.eureka:%s", name, portServer)
+		if strings.HasPrefix(name, "edge") {
+			sidecarUrl = fmt.Sprintf("http://%s.eureka:%s", name, portServer)
+		} else {
+			sidecarUrl = fmt.Sprintf("http://%s-sc.eureka:%s", name, portServer)
+		}
 	}
 
 	applicationDiscoveryBytes, err := json.Marshal(map[string]any{

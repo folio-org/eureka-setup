@@ -226,6 +226,16 @@ func CopySingleFile(commandName string, srcPath string, dstPath string) {
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Copied a single file from %s to %s", filepath.FromSlash(srcPath), filepath.FromSlash(dstPath)))
 }
 
+func GetCurrentWorkDirPath(commandName string) string {
+	path, err := os.Getwd()
+	if err != nil {
+		slog.Error(commandName, GetFuncName(), "json.Marshal error")
+		panic(err)
+	}
+
+	return path
+}
+
 // ######## Runtime ########
 
 func GetFuncName() string {

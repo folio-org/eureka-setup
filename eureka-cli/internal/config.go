@@ -41,7 +41,7 @@ const (
 	ManagementModulePattern string = "mgr-"
 
 	SingleModuleContainerPattern    string = "^(eureka-%s-)(%[2]s|%[2]s-sc)$"
-	MultipleModulesContainerPattern string = "eureka-%s-mod-"
+	MultipleModulesContainerPattern string = "eureka-%s-*-"
 )
 
 var (
@@ -80,7 +80,7 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 		if value == nil {
 			dto = createDefaultBackendDto(commandName, name)
 		} else {
-			dto = createConfigurableBackendDto(value, name)
+			dto = createConfigurableBackendDto(commandName, value, name)
 		}
 
 		if dto.deploySidecar != nil && *dto.deploySidecar {
@@ -121,11 +121,12 @@ func createDefaultBackendDto(commandName string, name string) (dto BackendModule
 	dto.portServer = getDefaultPortServer()
 	dto.environment = make(map[string]any)
 	dto.resources = make(map[string]any)
+	dto.volumes = []string{}
 
 	return dto
 }
 
-func createConfigurableBackendDto(value any, name string) (dto BackendModuleDto) {
+func createConfigurableBackendDto(commandName string, value any, name string) (dto BackendModuleDto) {
 	mapEntry := value.(map[string]any)
 
 	dto.deployModule = getDeployModule(mapEntry)
@@ -137,16 +138,17 @@ func createConfigurableBackendDto(value any, name string) (dto BackendModuleDto)
 	dto.portServer = getPortServer(mapEntry)
 	dto.environment = createEnvironment(mapEntry)
 	dto.resources = createResources(mapEntry)
+	dto.volumes = createVolumes(commandName, mapEntry)
 
 	return dto
 }
 
 func getDeployModule(mapEntry map[string]any) bool {
-	if mapEntry[ModuleDeployModuleEntryKey] != nil {
-		return mapEntry[ModuleDeployModuleEntryKey].(bool)
+	if mapEntry[ModuleDeployModuleEntryKey] == nil {
+		return true
 	}
 
-	return true
+	return mapEntry[ModuleDeployModuleEntryKey].(bool)
 }
 
 func getDeploySidecar(mapEntry map[string]any, name string) *bool {
@@ -167,19 +169,19 @@ func getDefaultDeploySidecar() *bool {
 }
 
 func getUseVault(mapEntry map[string]any) bool {
-	if mapEntry[ModuleUseVaultEntryKey] != nil {
-		return mapEntry[ModuleUseVaultEntryKey].(bool)
+	if mapEntry[ModuleUseVaultEntryKey] == nil {
+		return false
 	}
 
-	return false
+	return mapEntry[ModuleUseVaultEntryKey].(bool)
 }
 
 func getDisableSystemUser(mapEntry map[string]any) bool {
-	if mapEntry[ModuleDisableSystemUserEntryKey] != nil {
-		return mapEntry[ModuleDisableSystemUserEntryKey].(bool)
+	if mapEntry[ModuleDisableSystemUserEntryKey] == nil {
+		return false
 	}
 
-	return false
+	return mapEntry[ModuleDisableSystemUserEntryKey].(bool)
 }
 
 func getVersion(mapEntry map[string]any) *string {
@@ -230,19 +232,45 @@ func getDefaultPortServer() *int {
 }
 
 func createEnvironment(mapEntry map[string]any) map[string]any {
-	if mapEntry[ModuleEnvironmentEntryKey] != nil {
-		return mapEntry[ModuleEnvironmentEntryKey].(map[string]any)
+	if mapEntry[ModuleEnvironmentEntryKey] == nil {
+		return make(map[string]any)
 	}
 
-	return make(map[string]any)
+	return mapEntry[ModuleEnvironmentEntryKey].(map[string]any)
 }
 
 func createResources(mapEntry map[string]any) map[string]any {
-	if mapEntry[ModuleResourceEntryKey] != nil {
-		return mapEntry[ModuleResourceEntryKey].(map[string]any)
+	if mapEntry[ModuleResourceEntryKey] == nil {
+		return make(map[string]any)
 	}
 
-	return make(map[string]any)
+	return mapEntry[ModuleResourceEntryKey].(map[string]any)
+}
+
+func createVolumes(commandName string, mapEntry map[string]any) []string {
+	if mapEntry[ModuleVolumesEntryKey] == nil {
+		return []string{}
+	}
+
+	var volumes []string
+	for _, value := range mapEntry[ModuleVolumesEntryKey].([]any) {
+		var volume string = value.(string)
+		if runtime.GOOS == "windows" && strings.Contains(volume, "$CWD") {
+			cwd := GetCurrentWorkDirPath(commandName)
+			volume = strings.ReplaceAll(volume, "$CWD", cwd)
+		}
+
+		if _, err := os.Stat(volume); os.IsNotExist(err) {
+			if err != nil {
+				slog.Error(commandName, GetFuncName(), "os.IsNotExist error")
+				panic(err)
+			}
+		}
+
+		volumes = append(volumes, volume)
+	}
+
+	return volumes
 }
 
 func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMaps ...map[string]any) map[string]FrontendModule {
@@ -376,7 +404,7 @@ func HasTenant(tenant string) bool {
 	return slices.Contains(ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey)), tenant)
 }
 
-func DeployUi(tenant string) bool {
+func CanDeployUi(tenant string) bool {
 	mapEntry, ok := viper.GetStringMap(TenantsKey)[tenant].(map[string]any)
 	if !ok {
 		return false
@@ -388,4 +416,23 @@ func DeployUi(tenant string) bool {
 	}
 
 	return true
+}
+
+func CanDeployModule(module string) bool {
+	for name, value := range viper.GetStringMap(BackendModulesKey) {
+		if name == module {
+			if value == nil {
+				return true
+			}
+
+			deployModule, ok := value.(map[string]any)[ModuleDeployModuleEntryKey].(bool)
+			if !ok {
+				return false
+			}
+
+			return deployModule
+		}
+	}
+
+	return false
 }

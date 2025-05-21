@@ -24,7 +24,6 @@ import (
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -113,19 +112,15 @@ func DeployAdditionalSystem() {
 }
 
 func GetRequiredContainers(requiredContainers []string) []string {
-	if hasModuleDeployed(internal.BackendModuleModSearchKey, internal.BackendModuleModSearchDeployModuleKey) {
+	if internal.CanDeployModule("mod-search") {
 		requiredContainers = append(requiredContainers, "elasticsearch")
 	}
-	if hasModuleDeployed(internal.BackendModuleModDataExportWorkerKey, internal.BackendModuleModDataExportWorkerDeployModuleKey) {
+	if internal.CanDeployModule("mod-data-export-worker") {
 		requiredContainers = append(requiredContainers, []string{"minio", "createbuckets", "ftp-server"}...)
 	}
 	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Retrieved required containers: %s", requiredContainers))
 
 	return requiredContainers
-}
-
-func hasModuleDeployed(moduleKey, deployModuleKey string) bool {
-	return viper.GetBool(deployModuleKey) || viper.IsSet(moduleKey)
 }
 
 func init() {

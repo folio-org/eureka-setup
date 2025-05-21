@@ -36,14 +36,9 @@ const (
 	SidecarModuleImageEntryKey   string = "image"
 	SidecarModuleVersionEntryKey string = "version"
 
-	BackendModuleKey                                string = "backend-modules"
-	BackendModuleModSearchKey                       string = "backend-modules.mod-search"
-	BackendModuleModSearchDeployModuleKey           string = "backend-modules.mod-search.deploy-module"
-	BackendModuleModDataExportWorkerKey             string = "backend-modules.mod-data-export-worker"
-	BackendModuleModDataExportWorkerDeployModuleKey string = "backend-modules.mod-data-export-worker.deploy-module"
-
-	FrontendModuleKey       string = "frontend-modules"
-	CustomFrontendModuleKey string = "custom-frontend-modules"
+	BackendModulesKey        string = "backend-modules"
+	FrontendModulesKey       string = "frontend-modules"
+	CustomFrontendModulesKey string = "custom-frontend-modules"
 
 	ModuleDeployModuleEntryKey              string = "deploy-module"
 	ModuleDeploySidecarEntryKey             string = "deploy-sidecar"
@@ -59,4 +54,5 @@ const (
 	ModuleResourceOomKillDisableEntryKey    string = "oom-kill-disable"
 	ModuleUseVaultEntryKey                  string = "use-vault"
 	ModuleDisableSystemUserEntryKey         string = "disable-system-user"
+	ModuleVolumesEntryKey                   string = "volumes"
 )
