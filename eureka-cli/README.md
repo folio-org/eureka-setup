@@ -66,9 +66,13 @@ source ~/.bash_profile
 
 - Use a specific config: `-c` or `--config`
 - Enable debug: `-d` or `--debug`
+- Use only required system containers: `-R` or `-onlyRequired`
 
 ```shell
 ./bin/eureka-cli -c ./config.combined.yaml deployApplication
+
+# Deploy without optional system containers such as Netcat, Kafka-Ui, MinIO, MinIO MC (createbuckets), Kibana and FTP server to save more RAM
+./bin/eureka-cli -c ./config.combined.yaml deployApplication -R
 ```
 
 > Use the debug flag to troubleshoot your environment deployment to see how the CLI interacts with **Kong** through HTTP
