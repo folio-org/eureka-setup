@@ -35,9 +35,9 @@ var undeployApplicationCmd = &cobra.Command{
 		start := time.Now()
 		if len(viper.GetStringMap(internal.ApplicationGatewayDependenciesKey)) > 0 {
 			UndeployChildApplication()
-			return
+		} else {
+			UndeployApplication()
 		}
-		UndeployApplication()
 		slog.Info(undeployApplicationCommand, "Elapsed, duration", time.Since(start))
 	},
 }

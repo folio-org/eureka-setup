@@ -35,9 +35,9 @@ var deployApplicationCmd = &cobra.Command{
 		start := time.Now()
 		if len(viper.GetStringMap(internal.ApplicationGatewayDependenciesKey)) > 0 {
 			DeployChildApplication()
-			return
+		} else {
+			DeployApplication()
 		}
-		DeployApplication()
 		slog.Info(deployApplicationCommand, "Elapsed, duration", time.Since(start))
 	},
 }

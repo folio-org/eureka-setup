@@ -4,9 +4,7 @@
 
 - A CLI to deploy local Eureka development environment
 
-## Commands
-
-### Prerequisites
+## Prerequisites
 
 - Install dependencies:
   - [GO](<https://go.dev/doc/install>) compiler: last development-tested version is `go1.24.1 windows/amd64`
@@ -15,12 +13,14 @@
   - Add `127.0.0.1 keycloak.eureka` entry to `/etc/hosts`
   - Add `127.0.0.1 kafka.eureka` entry to `/etc/hosts`
 - Monitor using system components:
-  - [Keycloak](<http://keycloak.eureka:8080>) Admin Console: admin:admin
+  - [Keycloak](<http://keycloak.eureka:8080>) Admin Console: admin/admin
   - [Vault](<http://localhost:8200>) UI: Find a Vault root token in the container logs using `docker logs vault` or use `getVaultRootToken` command
   - [Kafka](<http://localhost:9080>) UI: No auth
   - [Kong](<http://localhost:8002>) Admin GUI: No auth
-  - [MinIO](<http://localhost:9001>) Console: admin:admin
+  - [MinIO](<http://localhost:9001>) Console: admin/admin
   - [Kibana](<http://localhost:15601>) UI: No auth
+
+## Commands
 
 ### Build a binary
   
@@ -48,6 +48,8 @@ go install
 eureka-cli -c ./config.combined.yaml deployApplication
 ```
 
+> If you wish to avoid the binary installation please use the relative path of the CLI binary, e.g. `./bin/eureka-cli`
+
 ### (Optional) Enable autocompletion
 
 - Command autocompletion can be enabled in the shell of your choice, below is an example for the **Bash** shell (`.bash_profile` is preferred on Windows because it is auto-sourced)
@@ -58,26 +60,38 @@ echo "source <(eureka-cli completion bash)" >> ~/.bash_profile
 source ~/.bash_profile
 ```
 
-> After typing the command partially and hitting the TAB key, the command will autocomplete, e.g. `eureka-cli intercept` + TAB key will result in `eureka-cli interceptModule`
+> Type the command partially and hit TAB to see the available command suggestions or full command autocomplete
 
-### Deploy the combined application with Acquisitions modules
+### Deploy the combined application
 
-#### Using Public DockerHub container registry (folioci & folioorg namespaces)
-
+- By default will use public images available in DockerHub (folioci & folioorg namespaces)
 - Use a specific config: `-c` or `--config`
 - Enable debug: `-d` or `--debug`
 - Use only required system containers: `-R` or `-onlyRequired`
 
 ```shell
-./bin/eureka-cli -c ./config.combined.yaml deployApplication
-
-# Deploy without optional system containers such as Netcat, Kafka-Ui, MinIO, MinIO MC (createbuckets), Kibana and FTP server to save more RAM
-./bin/eureka-cli -c ./config.combined.yaml deployApplication -R
+eureka-cli -c ./config.combined.yaml deployApplication
 ```
 
-> Use the debug flag to troubleshoot your environment deployment to see how the CLI interacts with **Kong** through HTTP
+> Use the debug flag to troubleshoot your environment deployment to see how the CLI interacts with **Kong** via HTTP
 
-#### Using Private AWS ECR container registry
+- If you are resource constrained the CLI supports deploying on the environment with only required system containers
+
+```shell
+eureka-cli -c ./config.combined.yaml deployApplication -R
+```
+
+![CLI Deploy Combined with Only Required System Containers](images/cli_deploy_combined_only_required.png)
+
+> Deploys the system without optional containers such as *netcat*, *kafka-ui*, *minio*, *createbuckets*, *kibana* and *ftp-server*
+
+### Undeploy the combined application
+
+```shell
+eureka-cli -c ./config.combined.yaml undeployApplication
+```
+
+### Deploy the combined application from AWS ECR
 
 To use AWS ECR as your container registry rather than the public Folio DockerHub, set `AWS_ECR_FOLIO_REPO` in your environment. When this env variable is defined it is assumed that this repository is private and you have also defined credentials in your environment. The value of this variable should be the URL of your repository.
 
@@ -87,29 +101,115 @@ To use AWS ECR as your container registry rather than the public Folio DockerHub
 export AWS_ACCESS_KEY_ID=<access_key>
 export AWS_SECRET_ACCESS_KEY=<secret_key>
 export AWS_ECR_FOLIO_REPO=<repository_url> 
-./bin/eureka-cli -c ./config.combined.yaml deployApplication
+eureka-cli -c ./config.combined.yaml deployApplication
 ```
 
 - Reuse stored AWS credentials found in `~/.aws/config`
 
 ```shell
 export AWS_ECR_FOLIO_REPO=<repository_url>
-AWS_SDK_LOAD_CONFIG=true ./bin/eureka-cli. -c ./config.combined.yaml deployApplication
+AWS_SDK_LOAD_CONFIG=true eureka-cli. -c ./config.combined.yaml deployApplication
 ```
 
 > See docs/AWS_CLI.md to prepare AWS CLI beforehand
 
-### Undeploy the combined application
+### Deploy child applications
+
+The CLI also supports deploying child applications on top of the existing one. The command used is `deployApplication` that behave differently when `application.dependencies` is being set in the config file.
+
+![CLI Deploy Edge Application](images/cli_deploy_edge_application.png)
+
+#### Deploy the export application
+
+- This application contains modules and system containers required for data export functionality that relies on MinIO and FTP
 
 ```shell
-./bin/eureka-cli -c ./config.combined.yaml undeployApplication
+eureka-cli -c ./config.export.yaml deployApplication
 ```
 
-### Use the environment
+#### Deploy the search application
+
+- The search application provides Elastic search capability as required by the Inventory App and the ECS setup to work
+
+```shell
+eureka-cli -c ./config.search.yaml deployApplication
+```
+
+#### Deploy the edge application
+
+- Edge application provides modules with an included mod-okapi-facade to work with the Edge API, Karate tests or with Mosaic integration
+
+```shell
+eureka-cli -c ./config.edge.yaml deployApplication
+```
+
+### Undeploy child applications
+
+- All child applications can be undeployed with the same `undeployApplication` command, which will remove both the modules and system containers used by the app
+
+```shell
+eureka-cli -c ./config.{{app}}.yaml undeployApplication
+```
+
+> Replace `{{app}}` with either of the supported profiles: *export*, *search* or *edge*
+
+### Other commands
+
+The CLI also contains other usual commands to aid with developer productivity. The most important ones that can be used independently are outlined below:
+
+- Lists deployed system containers
+
+```bash
+eureka-cli listSystem
+```
+
+- List deployed modules in a profile
+
+```bash
+eureka-cli listModules
+```
+
+- List the available module versions in the registry or fetch a specific module descriptor by version
+
+```bash
+eureka-cli listModuleVersions
+```
+
+- Get current Vault Root Token used by the modules
+
+```bash
+eureka-cli getVaultRootToken
+```
+
+- Get Keycloak Access Token for a tenant
+
+```bash
+eureka-cli getKeycloakAccessToken
+```
+
+- Get an Edge API key for a user and tenant
+
+```bash
+eureka-cli getEdgeApiKey
+```
+
+- Intercept a module gateway in Kong to reroute traffic from the environment to an instance started in IntelliJ
+
+```bash
+eureka-cli interceptModule
+```
+
+> See docs/DEVELOPMENT.md for more information on `interceptModule` command or use `-h` or `--help` flag to see some examples
+
+## Using the environment
 
 - Access the UI from `http://localhost:3000` using `diku_admin` username and `admin` password:
 
-![UI](images/ui_form.png)
+![UI Login page](images/ui_login_page.png)
+
+- After successful login the UI can be used just as any other Folio application:
+
+![UI Main page](images/ui_main_page.png)
 
 - Kong gateway is available at `localhost:8000` and can be used to get an access token directly from the backend:
 
@@ -131,13 +231,13 @@ curl --request POST \
   --verbose
 ```
 
-### Troubleshooting
+## Troubleshooting
 
-#### General
+### General
 
 - If using Rancher Desktop on a system that also uses Docker Desktop make sure to set `DOCKER_HOST` to point to the correct container daemon, by default `/var/run/docker.sock` will be used
 
-#### Command-based
+### Command-based
 
 - If during `Deploy System` or `Deploy Ui` shell commands are failing to execute verify that all shell scripts located under `./misc` folder are saved using the **LF** (Line Feed) line break
 - If during `Deploy Management` or `Deploy Modules` the healthchecks are failing make sure to either define **host.docker.internal** in `/etc/hosts` or set `application.gateway-hostname=172.17.0.1` in the `config.*.yaml`
