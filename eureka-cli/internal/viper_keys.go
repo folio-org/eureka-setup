@@ -5,6 +5,10 @@ const (
 	ProfileNameKey string = "profile.name"
 
 	ApplicationKey                    string = "application"
+	ApplicationNameKey                string = "application.name"
+	ApplicationVersionKey             string = "application.version"
+	ApplicationPlatformKey            string = "application.platform"
+	ApplicationFetchDescriptorsKey    string = "application.fetch-descriptors"
 	ApplicationPortStartKey           string = "application.port-start"
 	ApplicationPortEndKey             string = "application.port-end"
 	ApplicationStripesBranchKey       string = "application.stripes-branch"

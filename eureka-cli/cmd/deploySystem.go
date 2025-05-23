@@ -58,7 +58,7 @@ func DeploySystem() {
 
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}
 	if withRequired {
-		requiredContainers := GetRequiredContainers(coreRequiredContainers)
+		requiredContainers := internal.GetRequiredContainers(deploySystemCommand, coreRequiredContainers)
 		subCommand = append(subCommand, requiredContainers...)
 	}
 
@@ -92,35 +92,6 @@ func cloneUpdateSystemComponents() {
 		slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", folioKongDir))
 		internal.GitResetHardPullFromOriginRepository(deploySystemCommand, withEnableDebug, internal.FolioKongRepositoryUrl, defaultFolioKongBranchName, folioKongOutputDir)
 	}
-}
-
-func DeployAdditionalSystem() {
-	slog.Info(deploySystemCommand, internal.GetFuncName(), "### DEPLOYING SYSTEM CONTAINERS ###")
-
-	additionalRequiredContainers := GetRequiredContainers([]string{})
-	if len(additionalRequiredContainers) == 0 {
-		slog.Info(deploySystemCommand, internal.GetFuncName(), "No addititional system containers deployed")
-		return
-	}
-
-	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}, additionalRequiredContainers...)
-	internal.RunCommandFromDir(deploySystemCommand, exec.Command("docker", subCommand...), internal.DockerComposeWorkDir)
-
-	slog.Info(deploySystemCommand, internal.GetFuncName(), "### WAITING FOR SYSTEM TO INITIALIZE ###")
-	time.Sleep(15 * time.Second)
-	slog.Info(deploySystemCommand, internal.GetFuncName(), "All system containers have initialized")
-}
-
-func GetRequiredContainers(requiredContainers []string) []string {
-	if internal.CanDeployModule("mod-search") {
-		requiredContainers = append(requiredContainers, "elasticsearch")
-	}
-	if internal.CanDeployModule("mod-data-export-worker") {
-		requiredContainers = append(requiredContainers, []string{"minio", "createbuckets", "ftp-server"}...)
-	}
-	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Retrieved required containers: %s", requiredContainers))
-
-	return requiredContainers
 }
 
 func init() {

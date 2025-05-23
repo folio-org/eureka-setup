@@ -41,22 +41,6 @@ func UndeploySystem() {
 	internal.RunCommand(undeploySystemCommand, preparedCommand)
 }
 
-func UndeployAdditionalSystem() {
-	slog.Info(deploySystemCommand, internal.GetFuncName(), "### UNDEPLOYING SYSTEM CONTAINERS ###")
-
-	additionalRequiredContainers := GetRequiredContainers([]string{})
-	if len(additionalRequiredContainers) == 0 {
-		slog.Info(deploySystemCommand, internal.GetFuncName(), "No addititional system containers undeployed")
-		return
-	}
-
-	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "stop"}, additionalRequiredContainers...)
-	internal.RunCommand(undeploySystemCommand, exec.Command("docker", subCommand...))
-
-	subCommand = append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "rm", "--volumes", "--force"}, additionalRequiredContainers...)
-	internal.RunCommand(undeploySystemCommand, exec.Command("docker", subCommand...))
-}
-
 func init() {
 	rootCmd.AddCommand(undeploySystemCmd)
 }

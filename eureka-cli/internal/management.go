@@ -127,18 +127,12 @@ func GetApplications(commandName string, enableDebug bool, panicOnError bool) Ap
 	return applications
 }
 
-func RemoveApplications(commandName string, enableDebug bool, panicOnError bool) {
-	applications := GetApplications(commandName, enableDebug, panicOnError)
+func RemoveApplication(commandName string, enableDebug bool, panicOnError bool, applicationId string) {
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/applications/%s", applicationId))
 
-	for _, value := range applications.ApplicationDescriptors {
-		id := value["id"].(string)
+	DoDelete(commandName, requestUrl, enableDebug, false, map[string]string{})
 
-		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/applications/%s", id))
-
-		DoDelete(commandName, requestUrl, enableDebug, false, map[string]string{})
-
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed %s application`, id))
-	}
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed %s application`, applicationId))
 }
 
 func CreateApplications(commandName string, enableDebug bool, dto *RegisterModuleDto) {

@@ -45,9 +45,19 @@ const (
 	MultipleModulesContainerPattern string = "eureka-%s-*-"
 )
 
+const (
+	ModSearchModuleName           string = "mod-search"
+	ModDataExportWorkerModuleName string = "mod-data-export-worker"
+
+	ElasticsearchContainerName string = "elasticsearch"
+	MinioContainerName         string = "minio"
+	CreateBucketsContainerName string = "createbuckets"
+	FtpServerContainerName     string = "ftp-server"
+)
+
 var (
 	PortStartIndex int = 30000
-	PortEndIndex   int = 32000
+	PortEndIndex   int = 30999
 )
 
 func GetGatewayUrlTemplate(commandName string) string {
@@ -419,6 +429,18 @@ func CanDeployUi(tenant string) bool {
 	return true
 }
 
+func GetRequiredContainers(commandName string, requiredContainers []string) []string {
+	if CanDeployModule(ModSearchModuleName) {
+		requiredContainers = append(requiredContainers, ElasticsearchContainerName)
+	}
+	if CanDeployModule(ModDataExportWorkerModuleName) {
+		requiredContainers = append(requiredContainers, []string{MinioContainerName, CreateBucketsContainerName, FtpServerContainerName}...)
+	}
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Retrieved required containers: %s", requiredContainers))
+
+	return requiredContainers
+}
+
 func CanDeployModule(module string) bool {
 	for name, value := range viper.GetStringMap(BackendModulesKey) {
 		if name == module {
@@ -426,12 +448,12 @@ func CanDeployModule(module string) bool {
 				return true
 			}
 
-			deployModule, ok := value.(map[string]any)[ModuleDeployModuleEntryKey].(bool)
+			deployModule, ok := value.(map[string]any)[ModuleDeployModuleEntryKey]
 			if !ok {
-				return false
+				return true
 			}
 
-			return deployModule
+			return deployModule != nil && deployModule.(bool)
 		}
 	}
 
