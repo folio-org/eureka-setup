@@ -18,8 +18,6 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -37,6 +35,8 @@ type InterceptModuleDto struct {
 	moduleName string
 	moduleUrl  *string
 	sidecarUrl *string
+
+	sidecarServerPort int
 
 	portStart int
 	portEnd   int
@@ -155,15 +155,13 @@ func prepareContainerNetwork(dto *InterceptModuleDto, moduleAndSidecar bool) {
 		return
 	}
 
-	sidecarServer, err := strconv.Atoi(strings.TrimSpace(regexp.MustCompile(internal.ColonDelimitedPattern).ReplaceAllString(withSidecarUrl, `$1`)))
-	if err != nil {
-		slog.Error(interceptModuleCommand, internal.GetFuncName(), "strconv.Atoi error")
-		panic(err)
-	}
-	sidecarDebugPort := internal.GetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, []int{sidecarServer})
+	sidecarServerPort := internal.ExtractPortFromUrl(interceptModuleCommand, *dto.sidecarUrl)
+	sidecarDebugPort := internal.GetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, []int{sidecarServerPort})
+
+	dto.sidecarServerPort = sidecarServerPort
 
 	dto.backendModule, dto.registryModule = internal.GetBackendModule(interceptModuleCommand, dto.deployModulesDto, dto.moduleName)
-	dto.backendModule.SidecarPortBindings = internal.CreatePortBindings(sidecarServer, sidecarDebugPort, dto.backendModule.ModuleServerPort)
+	dto.backendModule.SidecarPortBindings = internal.CreatePortBindings(sidecarServerPort, sidecarDebugPort, dto.backendModule.ModuleServerPort)
 }
 
 func deployModule(dto *InterceptModuleDto, client *client.Client) {
@@ -183,17 +181,17 @@ func deploySidecar(printModuleEnvironment bool, dto *InterceptModuleDto, client 
 
 	if printModuleEnvironment {
 		moduleOkapiEnvironment := []string{"OKAPI_HOST=localhost",
-			fmt.Sprintf("OKAPI_PORT=%s", *dto.sidecarUrl),
+			fmt.Sprintf("OKAPI_PORT=%d", dto.sidecarServerPort),
 			"OKAPI_SERVICE_HOST=localhost",
-			fmt.Sprintf("OKAPI_SERVICE_PORT=%s", *dto.sidecarUrl),
-			fmt.Sprintf("OKAPI_SERVICE_URL=http://localhost:%s", *dto.sidecarUrl),
-			fmt.Sprintf("OKAPI_URL=http://localhost:%s", *dto.sidecarUrl),
+			fmt.Sprintf("OKAPI_SERVICE_PORT=%d", dto.sidecarServerPort),
+			fmt.Sprintf("OKAPI_SERVICE_URL=http://localhost:%d", dto.sidecarServerPort),
+			fmt.Sprintf("OKAPI_URL=http://localhost:%d", dto.sidecarServerPort),
 		}
 		moduleEnvironment := internal.GetModuleEnvironment(dto.deployModulesDto, dto.registryModule, *dto.backendModule)
 		moduleEnvironment = append(moduleEnvironment, moduleOkapiEnvironment...)
 
 		fmt.Println()
-		fmt.Printf("### %s ###\n", "With module environment (Use in IntelliJ)")
+		fmt.Printf("### %s ###\n", "Can be embedded into IntelliJ Run/Debug Configuration")
 		for _, value := range moduleEnvironment {
 			fmt.Println(value)
 		}
@@ -204,8 +202,8 @@ func deploySidecar(printModuleEnvironment bool, dto *InterceptModuleDto, client 
 func init() {
 	rootCmd.AddCommand(interceptModuleCmd)
 	interceptModuleCmd.PersistentFlags().StringVarP(&withId, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
-	interceptModuleCmd.PersistentFlags().StringVarP(&withModuleUrl, "moduleUrl", "m", "", "Module URL, e.g. http://host.docker.internal:36002")
-	interceptModuleCmd.PersistentFlags().StringVarP(&withSidecarUrl, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
+	interceptModuleCmd.PersistentFlags().StringVarP(&withModuleUrl, "moduleUrl", "m", "", "Module URL, e.g. http://host.docker.internal:36002 or 36002 (if -g is used)")
+	interceptModuleCmd.PersistentFlags().StringVarP(&withSidecarUrl, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002 or 37002 (if -g is used)")
 	interceptModuleCmd.PersistentFlags().BoolVarP(&withRestore, "restore", "r", false, "Restore module & sidecar")
 	interceptModuleCmd.PersistentFlags().BoolVarP(&withDefaultGateway, "defaultGateway", "g", false, "Use default gateway in URLs, .e.g http://host.docker.internal:{{port}} will be set automatically")
 	interceptModuleCmd.MarkPersistentFlagRequired("id")

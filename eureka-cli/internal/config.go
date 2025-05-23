@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"regexp"
 	"runtime"
 	"slices"
 	"strconv"
@@ -435,4 +436,14 @@ func CanDeployModule(module string) bool {
 	}
 
 	return false
+}
+
+func ExtractPortFromUrl(commandName string, url string) int {
+	sidecarServer, err := strconv.Atoi(strings.TrimSpace(regexp.MustCompile(ColonDelimitedPattern).ReplaceAllString(url, `$1`)))
+	if err != nil {
+		slog.Error(commandName, GetFuncName(), "strconv.Atoi error")
+		panic(err)
+	}
+
+	return sidecarServer
 }

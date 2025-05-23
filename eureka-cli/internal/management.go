@@ -77,7 +77,7 @@ func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *s
 	for {
 		time.Sleep(HealthcheckDefaultDuration)
 
-		if checkVertxContainer(commandName, requestUrl, enableDebug) || checkSpringContainer(commandName, requestUrl, enableDebug) {
+		if checkContainerStatusCode(commandName, requestUrl, enableDebug) {
 			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Module container %s is healthy", moduleName))
 			waitMutex.Done()
 			break
@@ -95,17 +95,14 @@ func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *s
 	}
 }
 
-func checkSpringContainer(commandName string, requestUrl string, enableDebug bool) bool {
-	respMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, false, map[string]string{})
-	if respMap != nil && strings.Contains(respMap["status"].(string), "UP") {
-		return true
+func checkContainerStatusCode(commandName string, requestUrl string, enableDebug bool) bool {
+	response := DoGetReturnResponse(commandName, requestUrl, enableDebug, false, map[string]string{})
+	if response == nil {
+		return false
 	}
-	return false
-}
+	defer response.Body.Close()
 
-func checkVertxContainer(commandName string, requestUrl string, enableDebug bool) bool {
-	respMap := DoGetDecodeReturnString(commandName, requestUrl, enableDebug, false, map[string]string{})
-	return strings.Contains(respMap, "OK")
+	return response.StatusCode == 200
 }
 
 // ######## Application & Application Discovery ########

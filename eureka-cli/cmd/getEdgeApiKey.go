@@ -16,12 +16,12 @@ limitations under the License.
 package cmd
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"math/rand"
-	"time"
+	"math/big"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
@@ -33,20 +33,18 @@ const (
 	charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 )
 
-var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
-
 // getEdgeApiKeyCmd represents the generateApiKey command
 var getEdgeApiKeyCmd = &cobra.Command{
 	Use:   "getEdgeApiKey",
-	Short: "Get edge api key",
-	Long:  `Get edge api key for a tenant`,
+	Short: "Get Edge API key",
+	Long:  `Get Edge API key for a tenant`,
 	Run: func(cmd *cobra.Command, args []string) {
 		GetEdgeApiKey()
 	},
 }
 
 func GetEdgeApiKey() {
-	apiKeyBytes, err := json.Marshal(map[string]any{"s": getRandString(10, charset), "t": withTenant, "u": withUser})
+	apiKeyBytes, err := json.Marshal(map[string]any{"s": getRandomString(withLength), "t": withTenant, "u": withUser})
 	if err != nil {
 		slog.Error(getEdgeApiKeyCommand, internal.GetFuncName(), "json.Marshal error")
 		panic(err)
@@ -57,19 +55,26 @@ func GetEdgeApiKey() {
 	fmt.Println(apiKey)
 }
 
-func getRandString(length int, charset string) string {
-	randBytes := make([]byte, length)
-	for i := range randBytes {
-		randBytes[i] = charset[seededRand.Intn(len(charset))]
+func getRandomString(length int) string {
+	bytes := make([]byte, length)
+	for i := range length {
+		charsetIdx, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			slog.Error(getEdgeApiKeyCommand, internal.GetFuncName(), "rand.Int error")
+			panic(err)
+		}
+
+		bytes[i] = charset[charsetIdx.Int64()]
 	}
 
-	return string(randBytes)
+	return string(bytes)
 }
 
 func init() {
 	rootCmd.AddCommand(getEdgeApiKeyCmd)
 	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&withTenant, "tenant", "t", "", "Tenant (required)")
 	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&withUser, "user", "U", "", "User (required)")
+	getEdgeApiKeyCmd.PersistentFlags().IntVarP(&withLength, "length", "l", 17, "Salt length")
 	getEdgeApiKeyCmd.MarkPersistentFlagRequired("tenant")
 	getEdgeApiKeyCmd.MarkPersistentFlagRequired("user")
 }

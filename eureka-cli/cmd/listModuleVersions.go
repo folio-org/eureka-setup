@@ -29,7 +29,7 @@ import (
 const (
 	listModuleVersionsCommand string = "List Module Versions"
 
-	newLineSeparatorPattern = "\r\n\r\n"
+	emptyLinePattern = "\r\n\r\n"
 )
 
 // listModuleVersionsCmd represents the listModuleVersions command
@@ -62,9 +62,9 @@ func getModuleDescritorById(registryUrl string) {
 			panic(err)
 		}
 
-		idx := strings.Index(string(respBytes), newLineSeparatorPattern)
+		idx := strings.Index(string(respBytes), emptyLinePattern)
 		if idx == -1 {
-			slog.Error(listModuleVersionsCommand, internal.GetFuncName(), fmt.Sprintf("strings.Index() found no index for a newline separator pattern %s", newLineSeparatorPattern))
+			slog.Error(listModuleVersionsCommand, internal.GetFuncName(), "strings.Index() warning - response from %s does not contain an empty line")
 			return
 		}
 
