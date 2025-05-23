@@ -106,7 +106,6 @@ backend-modules:
       MT_CLIENT_URL: http://mgr-tenants.eureka:8081
       TE_URL: http://mgr-tenant-entitlements.eureka:8081
   edge-orders:
-    deploy-sidecar: false
     environment:
       JAVA_OPTIONS: >-
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 

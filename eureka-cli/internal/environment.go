@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -30,6 +31,30 @@ func AppendVaultEnvironment(environment []string, vaultRootToken string) []strin
 	return environment
 }
 
+func AppendOkapiEnvironment(environment []string, sidecarName string, portServer int) []string {
+	extraEnvironment := []string{fmt.Sprintf("OKAPI_HOST=%s.eureka", sidecarName),
+		fmt.Sprintf("OKAPI_PORT=%d", portServer),
+		fmt.Sprintf("OKAPI_SERVICE_HOST=%s.eureka", sidecarName),
+		fmt.Sprintf("OKAPI_SERVICE_URL=http://%s.eureka:%d", sidecarName, portServer),
+		fmt.Sprintf("OKAPI_URL=http://%s.eureka:%d", sidecarName, portServer),
+	}
+	environment = append(environment, extraEnvironment...)
+
+	return environment
+}
+
+func AppendDisableSystemUserEnvironment(environment []string, moduleName string) []string {
+	extraEnvironment := []string{"FOLIO_SYSTEM_USER_ENABLED=false",
+		"SYSTEM_USER_CREATE=false",
+		"SYSTEM_USER_ENABLED=false",
+		fmt.Sprintf("SYSTEM_USER_NAME=%s", moduleName),
+		fmt.Sprintf("SYSTEM_USER_USERNAME=%s", moduleName),
+	}
+	environment = append(environment, extraEnvironment...)
+
+	return environment
+}
+
 func AppendKeycloakEnvironment(environment []string) []string {
 	extraEnvironment := []string{fmt.Sprintf("KC_URL=%s", KeycloakUrl),
 		fmt.Sprintf("KC_ADMIN_CLIENT_ID=%s", GetEnvironmentFromMapByKey("KC_ADMIN_CLIENT_ID")),
@@ -52,14 +77,14 @@ func AppendModuleEnvironment(environment []string, extraEnvironmentMap map[strin
 	return environment
 }
 
-func AppendSidecarEnvironment(environment []string, module *RegistryModule, portServer string, moduleUrl *string, sidecarUrl *string) []string {
+func AppendSidecarEnvironment(environment []string, module *RegistryModule, portServer int, moduleUrl *string, sidecarUrl *string) []string {
 	var extraEnvironment []string
 	if moduleUrl == nil && sidecarUrl == nil {
 		extraEnvironment = []string{fmt.Sprintf("MODULE_NAME=%s", module.Name),
 			fmt.Sprintf("MODULE_VERSION=%s", *module.Version),
-			fmt.Sprintf("MODULE_URL=http://%s.eureka:%s", module.Name, portServer),
+			fmt.Sprintf("MODULE_URL=http://%s.eureka:%d", module.Name, portServer),
 			fmt.Sprintf("SIDECAR_NAME=%s", module.SidecarName),
-			fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%s", module.SidecarName, portServer),
+			fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%d", module.SidecarName, portServer),
 		}
 	} else {
 		extraEnvironment = []string{fmt.Sprintf("MODULE_NAME=%s", module.Name),
@@ -70,20 +95,8 @@ func AppendSidecarEnvironment(environment []string, module *RegistryModule, port
 		}
 	}
 	// Change the default port on netty server in Quarkus
-	if portServer != DefaultServerPort {
-		extraEnvironment = append(extraEnvironment, fmt.Sprintf("QUARKUS_HTTP_PORT=%s", portServer))
-	}
-	environment = append(environment, extraEnvironment...)
-
-	return environment
-}
-
-func AppendDisableSystemUserEnvironment(environment []string, module *RegistryModule) []string {
-	extraEnvironment := []string{"FOLIO_SYSTEM_USER_ENABLED=false",
-		"SYSTEM_USER_CREATE=false",
-		"SYSTEM_USER_ENABLED=false",
-		fmt.Sprintf("SYSTEM_USER_NAME=%s", module.Name),
-		fmt.Sprintf("SYSTEM_USER_USERNAME=%s", module.Name),
+	if strconv.Itoa(portServer) != DefaultServerPort {
+		extraEnvironment = append(extraEnvironment, fmt.Sprintf("QUARKUS_HTTP_PORT=%d", portServer))
 	}
 	environment = append(environment, extraEnvironment...)
 

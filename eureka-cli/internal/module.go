@@ -8,7 +8,6 @@ import (
 	"io"
 	"log/slog"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -185,11 +184,12 @@ func GetModuleEnvironment(deployModulesDto *DeployModulesDto, module *RegistryMo
 	if backendModule.UseVault {
 		combinedEnvironment = AppendVaultEnvironment(combinedEnvironment, deployModulesDto.VaultRootToken)
 	}
-
-	if backendModule.DisableSystemUser {
-		combinedEnvironment = AppendDisableSystemUserEnvironment(combinedEnvironment, module)
+	if backendModule.UseOkapiUrl {
+		combinedEnvironment = AppendOkapiEnvironment(combinedEnvironment, module.SidecarName, backendModule.ModuleServerPort)
 	}
-
+	if backendModule.DisableSystemUser {
+		combinedEnvironment = AppendDisableSystemUserEnvironment(combinedEnvironment, module.Name)
+	}
 	combinedEnvironment = AppendModuleEnvironment(combinedEnvironment, backendModule.ModuleEnvironment)
 
 	return combinedEnvironment
@@ -200,7 +200,7 @@ func GetSidecarEnvironment(deployModulesDto *DeployModulesDto, module *RegistryM
 	combinedEnvironment = append(combinedEnvironment, deployModulesDto.SidecarEnvironment...)
 	combinedEnvironment = AppendVaultEnvironment(combinedEnvironment, deployModulesDto.VaultRootToken)
 	combinedEnvironment = AppendKeycloakEnvironment(combinedEnvironment)
-	combinedEnvironment = AppendSidecarEnvironment(combinedEnvironment, module, strconv.Itoa(backendModule.ModuleServerPort), moduleUrl, sidecarUrl)
+	combinedEnvironment = AppendSidecarEnvironment(combinedEnvironment, module, backendModule.ModuleServerPort, moduleUrl, sidecarUrl)
 
 	return combinedEnvironment
 }

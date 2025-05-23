@@ -46,6 +46,7 @@ type BackendModuleDto struct {
 	deployModule      bool
 	deploySidecar     *bool
 	useVault          bool
+	useOkapiUrl       bool
 	disableSystemUser bool
 	name              string
 	version           *string
@@ -59,6 +60,7 @@ type BackendModuleDto struct {
 type BackendModule struct {
 	DeployModule            bool
 	UseVault                bool
+	UseOkapiUrl             bool
 	DisableSystemUser       bool
 	ModuleName              string
 	ModuleVersion           *string
@@ -96,6 +98,7 @@ func NewBackendModuleWithSidecar(dto BackendModuleDto) *BackendModule {
 	return &BackendModule{
 		DeployModule:            dto.deployModule,
 		UseVault:                dto.useVault,
+		UseOkapiUrl:             dto.useOkapiUrl,
 		DisableSystemUser:       dto.disableSystemUser,
 		ModuleName:              dto.name,
 		ModuleVersion:           dto.version,
@@ -116,6 +119,7 @@ func NewBackendModule(dto BackendModuleDto) *BackendModule {
 	return &BackendModule{
 		DeployModule:            dto.deployModule,
 		UseVault:                dto.useVault,
+		UseOkapiUrl:             dto.useOkapiUrl,
 		DisableSystemUser:       dto.disableSystemUser,
 		ModuleName:              dto.name,
 		ModuleVersion:           dto.version,

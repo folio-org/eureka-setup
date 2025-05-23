@@ -139,37 +139,29 @@ backend-modules:
     resources:
       cpus: 2
   mod-users-keycloak:
-    deploy-sidecar: true
     use-vault: true
+    use-okapi-url: true
     disable-system-user: true
     port: 9904
     environment:
       SINGLE_TENANT_UX: 'true'
       INCLUDE_ONLY_VISIBLE_PERMISSIONS: 'false'
-      OKAPI_HOST: mod-users-keycloak-sc.eureka
-      OKAPI_PORT: 8081
-      OKAPI_SERVICE_HOST: mod-users-keycloak-sc.eureka
-      OKAPI_SERVICE_URL: http://mod-users-keycloak-sc.eureka:8081
-      OKAPI_URL: http://mod-users-keycloak-sc.eureka:8081
     resources:
       cpus: 4
       memory: 900
   mod-login-keycloak:
-    deploy-sidecar: true
     use-vault: true
     port: 9905
     environment:
       X_OKAPI_TOKEN_HEADER_ENABLED: 'true'
       KC_ADMIN_TOKEN_TTL: 59s
   mod-roles-keycloak:
-    deploy-sidecar: true
     use-vault: true
     disable-system-user: true
     port: 9906
     resources:
       cpus: 4
   mod-scheduler:
-    deploy-sidecar: true
     use-vault: true
     disable-system-user: true
     port: 9907
@@ -177,16 +169,10 @@ backend-modules:
       cpus: 4
   mod-consortia-keycloak:
     deploy-module: false
-    deploy-sidecar: true
     use-vault: true
+    use-okapi-url: true
     disable-system-user: true
     port: 9908
-    environment:
-      OKAPI_HOST: mod-consortia-keycloak-sc.eureka
-      OKAPI_PORT: 8081
-      OKAPI_SERVICE_HOST: mod-consortia-keycloak-sc.eureka
-      OKAPI_SERVICE_URL: http://mod-consortia-keycloak-sc.eureka:8081
-      OKAPI_URL: http://mod-consortia-keycloak-sc.eureka:8081
   mod-permissions:
   mod-configuration:
   mod-users:

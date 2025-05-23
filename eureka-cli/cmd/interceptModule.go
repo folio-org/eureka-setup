@@ -98,7 +98,7 @@ func InterceptModule() {
 	internal.PortEndIndex = viper.GetInt(internal.ApplicationPortEndKey)
 	globalEnvironment := internal.GetEnvironmentFromConfig(interceptModuleCommand, internal.EnvironmentKey)
 	globalSidecarEnvironment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.SidecarModuleEnvironmentKey)
-	backendModulesMap := internal.GetBackendModulesFromConfig(interceptModuleCommand, viper.GetStringMap(internal.BackendModulesKey), false, false)
+	backendModulesMap := internal.GetBackendModulesFromConfig(interceptModuleCommand, false, false, viper.GetStringMap(internal.BackendModulesKey))
 	instalJsonUrls := map[string]string{internal.FolioRegistry: viper.GetString(internal.InstallFolioKey), internal.EurekaRegistry: viper.GetString(internal.InstallEurekaKey)}
 	registryModules := internal.GetModulesFromRegistries(interceptModuleCommand, instalJsonUrls, false)
 	internal.ExtractModuleNameAndVersion(interceptModuleCommand, withEnableDebug, registryModules, false)
