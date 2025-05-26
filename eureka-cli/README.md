@@ -48,7 +48,7 @@ go install
 eureka-cli -c ./config.combined.yaml deployApplication
 ```
 
-> If you wish to avoid the binary installation please use the relative path of the CLI binary, e.g. `./bin/eureka-cli`
+> If you wish to avoid the binary installation please use the relative path of the CLI binary, e.g. `./bin/eureka-cli` with the correct path to the config
 
 ### (Optional) Enable autocompletion
 
@@ -73,9 +73,13 @@ source ~/.bash_profile
 eureka-cli -c ./config.combined.yaml deployApplication
 ```
 
-> Use the debug flag to troubleshoot your environment deployment to see how the CLI interacts with **Kong** via HTTP
+- Use the debug `-d` flag to troubleshoot your environment deployment to see how the CLI interacts with **Kong** via HTTP
 
-- If you are resource constrained the CLI supports deploying the environment with only required system containers
+```shell
+eureka-cli -c ./config.combined.yaml deployApplication -d
+```
+
+- If you are resource constrained the also CLI supports deploying the environment with only required system containers with `-R`
 
 ```shell
 eureka-cli -c ./config.combined.yaml deployApplication -R
@@ -117,8 +121,6 @@ AWS_SDK_LOAD_CONFIG=true eureka-cli. -c ./config.combined.yaml deployApplication
 
 The CLI also supports deploying child applications on top of the existing one. The command used is `deployApplication` that behave differently when `application.dependencies` is being set in the config file.
 
-![CLI Deploy Edge Application](images/cli_deploy_edge_application.png)
-
 #### Deploy the export application
 
 - This application contains modules and system containers required for data export functionality that relies on MinIO and FTP
@@ -126,6 +128,8 @@ The CLI also supports deploying child applications on top of the existing one. T
 ```shell
 eureka-cli -c ./config.export.yaml deployApplication
 ```
+
+![CLI Deploy Export Application](images/cli_deploy_export_application.png)
 
 #### Deploy the search application
 
@@ -135,6 +139,8 @@ eureka-cli -c ./config.export.yaml deployApplication
 eureka-cli -c ./config.search.yaml deployApplication
 ```
 
+![CLI Deploy Search Application](images/cli_deploy_search_application.png)
+
 #### Deploy the edge application
 
 - Edge application provides modules with an included mod-okapi-facade to work with the Edge API, Karate tests or with Mosaic integration
@@ -142,6 +148,8 @@ eureka-cli -c ./config.search.yaml deployApplication
 ```shell
 eureka-cli -c ./config.edge.yaml deployApplication
 ```
+
+![CLI Deploy Edge Application](images/cli_deploy_edge_application.png)
 
 ### Undeploy child applications
 
@@ -207,11 +215,12 @@ eureka-cli getEdgeApiKey -t diku -U diku_admin
 - Check if module internal ports are accessible
 
 ```bash
-# Requires *netcat* container to be deployed if the environment is deployed with `-R` flag
-docker compose -f ./misc/docker-compose.yaml -p eureka up -d netcat
-
 eureka-cli checkPorts
 ```
+
+![CLI Check Ports](images/cli_check_ports.png)
+
+> The CLI also exposes an internal port 5005 for all modules and sidecars that can be used for remote debugging in IntelliJ
 
 - Intercept a module gateway service in Kong to reroute traffic from the environment to an instance started in IntelliJ
 

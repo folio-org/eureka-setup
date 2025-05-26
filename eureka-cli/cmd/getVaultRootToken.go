@@ -39,11 +39,13 @@ var getVaultRootTokenCmd = &cobra.Command{
 func GetVaultRootToken() string {
 	client := internal.CreateDockerClient(getVaultRootTokenCommand)
 	defer client.Close()
+
 	return internal.GetVaultRootToken(getVaultRootTokenCommand, client)
 }
 
 func GetVaultRootTokenWithDockerClient() (string, *client.Client) {
 	client := internal.CreateDockerClient(getVaultRootTokenCommand)
+
 	return internal.GetVaultRootToken(getVaultRootTokenCommand, client), client
 }
 

@@ -43,17 +43,32 @@ var checkPortsCmd = &cobra.Command{
 
 func CheckPorts() {
 	slog.Info(checkPortsCommand, internal.GetFuncName(), "### CHECKING CONTAINER PORTS ###")
+	deployNetcatContainer()
+
+	modules := getDeployedModules()
+	runNetcat(modules)
+}
+
+func deployNetcatContainer() {
+	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach", "netcat")
+	internal.RunCommandFromDir(deploySystemCommand, preparedCommand, internal.DockerComposeWorkDir)
+}
+
+func getDeployedModules() []types.Container {
 	client := internal.CreateDockerClient(checkPortsCommand)
 	defer client.Close()
 
 	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.MultipleModulesContainerPattern, viper.GetString(internal.ProfileNameKey))})
-	runNetcat(internal.GetDeployedModules(checkPortsCommand, client, filters))
+	containers := internal.GetDeployedModules(checkPortsCommand, client, filters)
+
+	return containers
 }
 
 func runNetcat(modules []types.Container) {
 	slog.Info(checkPortsCommand, internal.GetFuncName(), "Running netcat -zv [container] [private port]")
 	for _, module := range modules {
 		moduleName := fmt.Sprintf("%s.eureka", strings.ReplaceAll(module.Names[0], "/", ""))
+
 		for _, portPair := range module.Ports {
 			modulePrivatePort := strconv.Itoa(int(portPair.PrivatePort))
 			internal.RunCommandIgnoreError(listSystemCommand, exec.Command("docker", "exec", "-i", "netcat", "nc", "-zv", moduleName, modulePrivatePort))

@@ -419,7 +419,9 @@ func GetRequiredContainers(commandName string, requiredContainers []string) []st
 	if CanDeployModule(ModDataExportWorkerModuleName) {
 		requiredContainers = append(requiredContainers, []string{MinioContainerName, CreateBucketsContainerName, FtpServerContainerName}...)
 	}
-	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Retrieved required containers: %s", requiredContainers))
+	if len(requiredContainers) > 0 {
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Retrieved required containers: %s", requiredContainers))
+	}
 
 	return requiredContainers
 }
