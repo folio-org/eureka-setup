@@ -7,7 +7,7 @@
 ## Prerequisites
 
 - Install dependencies:
-  - [GO](<https://go.dev/doc/install>) compiler: last development-tested version is `go1.24.1 windows/amd64`
+  - [Go](<https://go.dev/doc/install>) compiler: last development-tested version is `go1.24.1 windows/amd64`
   - [Rancher Desktop](<https://rancherdesktop.io/>) container daemon: last development-tested version is `v1.16.0` (make sure to enable **dockerd (Moby)** container engine)
 - Configure hosts:
   - Add `127.0.0.1 keycloak.eureka` entry to `/etc/hosts`
@@ -67,7 +67,7 @@ source ~/.bash_profile
 - By default will use public images available in DockerHub (folioci & folioorg namespaces)
 - Use a specific config: `-c` or `--config`
 - Enable debug: `-d` or `--debug`
-- Use only required system containers: `-R` or `-onlyRequired`
+- Use only required system containers: `-R` or `--onlyRequired`
 
 ```shell
 eureka-cli -c ./config.combined.yaml deployApplication
@@ -79,7 +79,7 @@ eureka-cli -c ./config.combined.yaml deployApplication
 eureka-cli -c ./config.combined.yaml deployApplication -d
 ```
 
-- If you are resource constrained the also CLI supports deploying the environment with only required system containers with `-R`
+- If you are resource constrained the CLI also supports deploying the environment with only required system containers with `-R`
 
 ```shell
 eureka-cli -c ./config.combined.yaml deployApplication -R
@@ -112,7 +112,7 @@ eureka-cli -c ./config.combined.yaml deployApplication
 
 ```shell
 export AWS_ECR_FOLIO_REPO=<repository_url>
-AWS_SDK_LOAD_CONFIG=true eureka-cli. -c ./config.combined.yaml deployApplication
+AWS_SDK_LOAD_CONFIG=true eureka-cli -c ./config.combined.yaml deployApplication
 ```
 
 > See docs/AWS_CLI.md to prepare AWS CLI beforehand
