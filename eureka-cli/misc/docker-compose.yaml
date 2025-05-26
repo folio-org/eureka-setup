@@ -295,7 +295,7 @@ services:
     image: bitnami/elasticsearch:8.18.0
     restart: unless-stopped
     cpus: 1
-    mem_limit: 1g
+    mem_limit: 2g
     environment:
       ELASTICSEARCH_PLUGINS:
         "analysis-icu,analysis-kuromoji,analysis-smartcn,analysis-nori,analysis-phonetic"
