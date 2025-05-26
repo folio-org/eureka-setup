@@ -17,7 +17,7 @@
   - [Vault](<http://localhost:8200>) UI: Find a Vault root token in the container logs using `docker logs vault` or use `getVaultRootToken` command
   - [Kafka](<http://localhost:9080>) UI: No auth
   - [Kong](<http://localhost:8002>) Admin GUI: No auth
-  - [MinIO](<http://localhost:9001>) Console: admin/admin
+  - [MinIO](<http://localhost:9001>) Console: minioadmin/minioadmin
   - [Kibana](<http://localhost:15601>) UI: No auth
 
 ## Commands
