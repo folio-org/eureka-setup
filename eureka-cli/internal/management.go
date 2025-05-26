@@ -19,10 +19,6 @@ import (
 const (
 	GatewayPort int = 8000
 
-	ApplicationsPort       int = 9901
-	TenantsPort            int = 9902
-	TenantEntitlementsPort int = 9903
-
 	JsonContentType           string = "application/json"
 	FormUrlEncodedContentType string = "application/x-www-form-urlencoded"
 
@@ -36,10 +32,6 @@ const (
 	HealtcheckUri         string = "/admin/health"
 	HealtcheckMaxAttempts int    = 50
 
-	MgrTenantsUrl            string = "http://mgr-tenants.eureka:8081"
-	MgrApplicationsUrl       string = "http://mgr-applications.eureka:8081"
-	MgrTenantEntitlementsUrl string = "http://mgr-tenant-entitlements.eureka:8081"
-
 	ModuleIdPattern string = "([a-z-_]+)([\\d-_.]+)([a-zA-Z0-9-_.]+)"
 )
 
@@ -51,9 +43,11 @@ var (
 
 // ######## Auxiliary ########
 
-func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryModulesMap map[string][]*RegistryModule) {
+func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryModulesMap map[string][]*RegistryModule, printOutput bool) {
 	for registryName, registryModules := range registryModulesMap {
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Extracting %s registry module names and versions", registryName))
+		if printOutput {
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Extracting %s registry module names and versions", registryName))
+		}
 
 		for moduleIndex, module := range registryModules {
 			if module.Id == "okapi" {
@@ -63,7 +57,12 @@ func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryM
 			module.Name = TrimModuleName(ModuleIdRegexp.ReplaceAllString(module.Id, `$1`))
 			moduleVersion := ModuleIdRegexp.ReplaceAllString(module.Id, `$2$3`)
 			module.Version = &moduleVersion
-			module.SidecarName = fmt.Sprintf("%s-sc", module.Name)
+
+			if strings.HasPrefix(module.Name, "edge") {
+				module.SidecarName = module.Name
+			} else {
+				module.SidecarName = fmt.Sprintf("%s-sc", module.Name)
+			}
 
 			registryModules[moduleIndex] = module
 		}
@@ -72,38 +71,38 @@ func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryM
 
 func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *sync.WaitGroup, moduleName string, port int) {
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Waiting for module container %s on port %d to initialize", moduleName, port))
+
 	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), port, HealtcheckUri)
 	healthcheckAttempts := HealtcheckMaxAttempts
 	for {
 		time.Sleep(HealthcheckDefaultDuration)
 
-		isHealthyVertxContainer := false
-		actuatorHealthStr := DoGetDecodeReturnString(commandName, requestUrl, enableDebug, false, map[string]string{})
-		if strings.Contains(actuatorHealthStr, "OK") {
-			isHealthyVertxContainer = !isHealthyVertxContainer
-		}
-
-		isHealthySpringBootContainer := false
-		actuatorHealthMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, false, map[string]string{})
-		if actuatorHealthMap != nil && strings.Contains(actuatorHealthMap["status"].(string), "UP") {
-			isHealthySpringBootContainer = !isHealthySpringBootContainer
-		}
-
-		if isHealthyVertxContainer || isHealthySpringBootContainer {
+		if checkContainerStatusCode(commandName, requestUrl, enableDebug) {
 			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Module container %s is healthy", moduleName))
 			waitMutex.Done()
 			break
 		}
 
 		healthcheckAttempts--
-		if healthcheckAttempts > 0 {
-			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Module container %s is unhealthy, %d/%d attempts left", moduleName, healthcheckAttempts, HealtcheckMaxAttempts))
-		} else {
+
+		if healthcheckAttempts == 0 {
 			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Module container %s is unhealthy, out of attempts", moduleName))
 			waitMutex.Done()
 			LogErrorPanic(commandName, fmt.Sprintf("internal.PerformModuleHealthcheck - Module container %s did not initialize, cannot continue", moduleName))
 		}
+
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Module container %s is unhealthy, %d/%d attempts left", moduleName, healthcheckAttempts, HealtcheckMaxAttempts))
 	}
+}
+
+func checkContainerStatusCode(commandName string, requestUrl string, enableDebug bool) bool {
+	response := DoGetReturnResponse(commandName, requestUrl, enableDebug, false, map[string]string{})
+	if response == nil {
+		return false
+	}
+	defer response.Body.Close()
+
+	return response.StatusCode == 200
 }
 
 // ######## Application & Application Discovery ########
@@ -111,15 +110,15 @@ func PerformModuleHealthcheck(commandName string, enableDebug bool, waitMutex *s
 func GetApplications(commandName string, enableDebug bool, panicOnError bool) Applications {
 	var applications Applications
 
-	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, "/applications")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/applications")
 
-	resp := DoGetReturnResponse(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
-	if resp == nil {
+	response := DoGetReturnResponse(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
+	if response == nil {
 		return applications
 	}
-	defer resp.Body.Close()
+	defer response.Body.Close()
 
-	err := json.NewDecoder(resp.Body).Decode(&applications)
+	err := json.NewDecoder(response.Body).Decode(&applications)
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "json.NewDecoder error")
 		panic(err)
@@ -128,18 +127,12 @@ func GetApplications(commandName string, enableDebug bool, panicOnError bool) Ap
 	return applications
 }
 
-func RemoveApplications(commandName string, enableDebug bool, panicOnError bool) {
-	applications := GetApplications(commandName, enableDebug, panicOnError)
+func RemoveApplication(commandName string, enableDebug bool, panicOnError bool, applicationId string) {
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/applications/%s", applicationId))
 
-	for _, value := range applications.ApplicationDescriptors {
-		id := value["id"].(string)
+	DoDelete(commandName, requestUrl, enableDebug, false, map[string]string{})
 
-		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, fmt.Sprintf("/applications/%s", id))
-
-		DoDelete(commandName, requestUrl, enableDebug, false, map[string]string{})
-
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed %s application`, id))
-	}
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Removed %s application`, applicationId))
 }
 
 func CreateApplications(commandName string, enableDebug bool, dto *RegisterModuleDto) {
@@ -240,7 +233,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 		panic(err)
 	}
 
-	DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, "/applications?check=true"), enableDebug, true, applicationBytes, map[string]string{})
+	DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/applications?check=true"), enableDebug, true, applicationBytes, map[string]string{})
 
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %s application`, applicationId))
 
@@ -251,7 +244,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 			panic(err)
 		}
 
-		DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, "/modules/discovery"), enableDebug, true, applicationDiscoveryBytes, map[string]string{})
+		DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/modules/discovery"), enableDebug, true, applicationDiscoveryBytes, map[string]string{})
 	}
 
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf(`Created %d entries of application module discovery`, len(discoveryModules)))
@@ -261,7 +254,11 @@ func UpdateModuleDiscovery(commandName string, enableDebug bool, id string, side
 	id = strings.ReplaceAll(id, ":", "-")
 	name := TrimModuleName(ModuleIdRegexp.ReplaceAllString(id, `$1`))
 	if sidecarUrl == "" || restore {
-		sidecarUrl = fmt.Sprintf("http://%s-sc.eureka:%s", name, portServer)
+		if strings.HasPrefix(name, "edge") {
+			sidecarUrl = fmt.Sprintf("http://%s.eureka:%s", name, portServer)
+		} else {
+			sidecarUrl = fmt.Sprintf("http://%s-sc.eureka:%s", name, portServer)
+		}
 	}
 
 	applicationDiscoveryBytes, err := json.Marshal(map[string]any{
@@ -275,7 +272,7 @@ func UpdateModuleDiscovery(commandName string, enableDebug bool, id string, side
 		panic(err)
 	}
 
-	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), ApplicationsPort, fmt.Sprintf("/modules/%s/discovery", id))
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/modules/%s/discovery", id))
 
 	DoPutReturnNoContent(commandName, requestUrl, enableDebug, applicationDiscoveryBytes, map[string]string{})
 
@@ -285,18 +282,14 @@ func UpdateModuleDiscovery(commandName string, enableDebug bool, id string, side
 // ######## Tenants ########
 
 func GetTenants(commandName string, enableDebug bool, panicOnError bool) []any {
-	var foundTenants []any
-
-	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), TenantsPort, "/tenants")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/tenants")
 
 	foundTenantsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, map[string]string{})
 	if foundTenantsMap["tenants"] == nil || len(foundTenantsMap["tenants"].([]any)) == 0 {
 		return nil
 	}
 
-	foundTenants = foundTenantsMap["tenants"].([]any)
-
-	return foundTenants
+	return foundTenantsMap["tenants"].([]any)
 }
 
 func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
@@ -308,7 +301,7 @@ func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 			continue
 		}
 
-		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), TenantsPort, fmt.Sprintf("/tenants/%s?purge=true", mapEntry["id"].(string)))
+		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/tenants/%s?purge=true", mapEntry["id"].(string)))
 
 		DoDelete(commandName, requestUrl, enableDebug, false, map[string]string{})
 
@@ -317,7 +310,7 @@ func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 }
 
 func CreateTenants(commandName string, enableDebug bool) {
-	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), TenantsPort, "/tenants")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/tenants")
 	tenants := ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey))
 
 	for _, tenant := range tenants {
@@ -336,7 +329,7 @@ func CreateTenants(commandName string, enableDebug bool) {
 // ######## Tenant Entitlements ########
 
 func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError bool) {
-	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false")
 	applicationMap := viper.GetStringMap(ApplicationKey)
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)
@@ -367,7 +360,7 @@ func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError
 }
 
 func CreateTenantEntitlement(commandName string, enableDebug bool) {
-	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), TenantEntitlementsPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=true,loadSample=true")
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=true,loadSample=true")
 	applicationMap := viper.GetStringMap(ApplicationKey)
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)
@@ -400,8 +393,6 @@ func CreateTenantEntitlement(commandName string, enableDebug bool) {
 // ######## Users ########
 
 func GetUsers(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) []any {
-	var foundUsers []any
-
 	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/users?offset=0&limit=10000")
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 
@@ -410,9 +401,7 @@ func GetUsers(commandName string, enableDebug bool, panicOnError bool, tenant st
 		return nil
 	}
 
-	foundUsers = foundTenantsMap["users"].([]any)
-
-	return foundUsers
+	return foundTenantsMap["users"].([]any)
 }
 
 func RemoveUsers(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) {
@@ -516,8 +505,6 @@ func CreateUsers(commandName string, enableDebug bool, panicOnError bool, existi
 // ######## Roles ########
 
 func GetRoles(commandName string, enableDebug bool, panicOnError bool, headers map[string]string) []any {
-	var foundRoles []any
-
 	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/roles?offset=0&limit=10000")
 
 	foundRolesMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
@@ -525,9 +512,7 @@ func GetRoles(commandName string, enableDebug bool, panicOnError bool, headers m
 		return nil
 	}
 
-	foundRoles = foundRolesMap["roles"].([]any)
-
-	return foundRoles
+	return foundRolesMap["roles"].([]any)
 }
 
 func GetRoleByName(commandName string, enableDebug bool, roleName string, headers map[string]string) map[string]any {
@@ -617,8 +602,6 @@ func GetCapabilitySets(commandName string, enableDebug bool, panicOnError bool, 
 }
 
 func GetCapabilitySetsByName(commandName string, enableDebug bool, panicOnError bool, headers map[string]string, capabilitySetName string) []any {
-	var foundCapabilitySets []any
-
 	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", capabilitySetName))
 
 	foundCapabilitySetsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
@@ -626,9 +609,7 @@ func GetCapabilitySetsByName(commandName string, enableDebug bool, panicOnError 
 		return nil
 	}
 
-	foundCapabilitySets = foundCapabilitySetsMap["capabilitySets"].([]any)
-
-	return foundCapabilitySets
+	return foundCapabilitySetsMap["capabilitySets"].([]any)
 }
 
 func DetachCapabilitySetsFromRoles(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) {
@@ -671,13 +652,7 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 		}
 
 		capabilitySetsConfig := roleConfigMapEntry["capability-sets"].([]any)
-
-		var capabilitySetsMapList []map[string]any
-		if len(capabilitySetsConfig) == 1 && slices.Contains(capabilitySetsConfig, "all") {
-			capabilitySetsMapList = addAllCapabilitySets(commandName, enableDebug, headers, capabilitySetsMapList)
-		} else {
-			capabilitySetsMapList = addSelectedCapabilitySets(commandName, enableDebug, headers, capabilitySetsConfig, capabilitySetsMapList)
-		}
+		capabilitySetsMapList := populateCapabilitySetMapList(capabilitySetsConfig, commandName, enableDebug, headers)
 
 		var capabilitySetIds []string
 		for _, mapEntry := range capabilitySetsMapList {
@@ -703,7 +678,16 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 	}
 }
 
-func addSelectedCapabilitySets(commandName string, enableDebug bool, headers map[string]string, capabilitySetsConfig []any, capabilitySetsMapList []map[string]any) []map[string]any {
+func populateCapabilitySetMapList(capabilitySetsConfig []any, commandName string, enableDebug bool, headers map[string]string) []map[string]any {
+	var capabilitySetsMapList []map[string]any
+	if len(capabilitySetsConfig) == 1 && slices.Contains(capabilitySetsConfig, "all") {
+		return appendAllCapabilitySets(commandName, enableDebug, headers, capabilitySetsMapList)
+	}
+
+	return appendSelectedCapabilitySets(commandName, enableDebug, headers, capabilitySetsConfig, capabilitySetsMapList)
+}
+
+func appendSelectedCapabilitySets(commandName string, enableDebug bool, headers map[string]string, capabilitySetsConfig []any, capabilitySetsMapList []map[string]any) []map[string]any {
 	for _, capabilitySetConfig := range capabilitySetsConfig {
 		capabilitySetConfigName := capabilitySetConfig.(string)
 
@@ -717,7 +701,7 @@ func addSelectedCapabilitySets(commandName string, enableDebug bool, headers map
 	return capabilitySetsMapList
 }
 
-func addAllCapabilitySets(commandName string, enableDebug bool, headers map[string]string, capabilitySetsMapList []map[string]any) []map[string]any {
+func appendAllCapabilitySets(commandName string, enableDebug bool, headers map[string]string, capabilitySetsMapList []map[string]any) []map[string]any {
 	for _, capabilityValue := range GetCapabilitySets(commandName, enableDebug, true, headers) {
 		capabilityMapEntry := capabilityValue.(map[string]any)
 

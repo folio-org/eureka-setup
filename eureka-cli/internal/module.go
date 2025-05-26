@@ -8,7 +8,6 @@ import (
 	"io"
 	"log/slog"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +20,7 @@ import (
 
 const (
 	ColonDelimitedPattern string = ".*:"
+	VaultContainerName    string = "vault"
 	SidecarProjectName    string = "folio-module-sidecar"
 )
 
@@ -35,7 +35,7 @@ func CreateDockerClient(commandName string) *client.Client {
 }
 
 func GetVaultRootToken(commandName string, client *client.Client) string {
-	logStream, err := client.ContainerLogs(context.Background(), "vault", container.LogsOptions{ShowStdout: true, ShowStderr: true})
+	logStream, err := client.ContainerLogs(context.Background(), VaultContainerName, container.LogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "client.ContainerLogs error")
 		panic(err)
@@ -73,7 +73,9 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 	networkConfig := NewModuleNetworkConfig()
 
 	for registryName, registryModules := range dto.RegistryModules {
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Deploying %s modules", registryName))
+		if len(registryModules) > 0 {
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Deploying %s modules", registryName))
+		}
 
 		for _, registryModule := range registryModules {
 			managementModule := strings.Contains(registryModule.Name, ManagementModulePattern)
@@ -88,8 +90,9 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 
 			moduleVersion := GetModuleImageVersion(backendModule, registryModule)
 			moduleImage := GetModuleImage(commandName, moduleVersion, registryModule)
-			moduleEnvironment := GetModuleEnvironment(dto, backendModule)
+			moduleEnvironment := GetModuleEnvironment(dto, registryModule, backendModule)
 			moduleDeployDto := NewDeployModuleDto(registryModule.Name, moduleImage, moduleEnvironment, backendModule, networkConfig)
+
 			DeployModule(commandName, client, moduleDeployDto)
 
 			deployedModules[registryModule.Name] = backendModule.ModuleExposedServerPort
@@ -140,10 +143,10 @@ func GetModuleImageVersion(backendModule BackendModule, registryModule *Registry
 }
 
 func GetSidecarImage(commandName string, registryModules []*RegistryModule) string {
-	sidecarModule := viper.GetStringMap(SidecarModule)
-	sidecarImageVersion := getSidecarImageVersion(commandName, registryModules, sidecarModule["version"])
+	sidecarModule := viper.GetStringMap(SidecarModuleKey)
+	sidecarImageVersion := getSidecarImageVersion(commandName, registryModules, sidecarModule[SidecarModuleVersionEntryKey])
 
-	return fmt.Sprintf("%s/%s", GetImageRegistryNamespace(commandName, sidecarImageVersion), fmt.Sprintf("%s:%s", sidecarModule["image"].(string), sidecarImageVersion))
+	return fmt.Sprintf("%s/%s", GetImageRegistryNamespace(commandName, sidecarImageVersion), fmt.Sprintf("%s:%s", sidecarModule[SidecarModuleImageEntryKey].(string), sidecarImageVersion))
 }
 
 func getSidecarImageVersion(commandName string, registryModules []*RegistryModule, sidecarConfigVersion any) string {
@@ -174,10 +177,19 @@ func GetModuleImage(commandName string, moduleVersion string, registryModule *Re
 	return fmt.Sprintf("%s/%s:%s", GetImageRegistryNamespace(commandName, moduleVersion), registryModule.Name, moduleVersion)
 }
 
-func GetModuleEnvironment(deployModulesDto *DeployModulesDto, backendModule BackendModule) []string {
+func GetModuleEnvironment(deployModulesDto *DeployModulesDto, module *RegistryModule, backendModule BackendModule) []string {
 	var combinedEnvironment []string
 	combinedEnvironment = append(combinedEnvironment, deployModulesDto.GlobalEnvironment...)
-	combinedEnvironment = AppendVaultEnvironment(combinedEnvironment, deployModulesDto.VaultRootToken)
+
+	if backendModule.UseVault {
+		combinedEnvironment = AppendVaultEnvironment(combinedEnvironment, deployModulesDto.VaultRootToken)
+	}
+	if backendModule.UseOkapiUrl {
+		combinedEnvironment = AppendOkapiEnvironment(combinedEnvironment, module.SidecarName, backendModule.ModuleServerPort)
+	}
+	if backendModule.DisableSystemUser {
+		combinedEnvironment = AppendDisableSystemUserEnvironment(combinedEnvironment, module.Name)
+	}
 	combinedEnvironment = AppendModuleEnvironment(combinedEnvironment, backendModule.ModuleEnvironment)
 
 	return combinedEnvironment
@@ -188,8 +200,7 @@ func GetSidecarEnvironment(deployModulesDto *DeployModulesDto, module *RegistryM
 	combinedEnvironment = append(combinedEnvironment, deployModulesDto.SidecarEnvironment...)
 	combinedEnvironment = AppendVaultEnvironment(combinedEnvironment, deployModulesDto.VaultRootToken)
 	combinedEnvironment = AppendKeycloakEnvironment(combinedEnvironment)
-	combinedEnvironment = AppendManagementEnvironment(combinedEnvironment)
-	combinedEnvironment = AppendSidecarEnvironment(combinedEnvironment, module, strconv.Itoa(backendModule.ModuleServerPort), moduleUrl, sidecarUrl)
+	combinedEnvironment = AppendSidecarEnvironment(combinedEnvironment, module, backendModule.ModuleServerPort, moduleUrl, sidecarUrl)
 
 	return combinedEnvironment
 }

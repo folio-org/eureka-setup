@@ -40,31 +40,31 @@ var deployModulesCmd = &cobra.Command{
 
 func DeployModules() {
 	registryUrl := viper.GetString(internal.RegistryUrlKey)
-	internal.PortStartIndex = viper.GetInt(internal.ApplicationPortStart)
-	internal.PortEndIndex = viper.GetInt(internal.ApplicationPortEnd)
+	internal.PortStartIndex = viper.GetInt(internal.ApplicationPortStartKey)
+	internal.PortEndIndex = viper.GetInt(internal.ApplicationPortEndKey)
 	environment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.EnvironmentKey)
 	sidecarEnvironment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.SidecarModuleEnvironmentKey)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING BACKEND MODULES FROM CONFIG ###")
-	backendModulesMap := internal.GetBackendModulesFromConfig(deployModulesCommand, viper.GetStringMap(internal.BackendModuleKey), false)
+	backendModulesMap := internal.GetBackendModulesFromConfig(deployModulesCommand, false, true, viper.GetStringMap(internal.BackendModulesKey))
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING FRONTEND MODULES FROM CONFIG ###")
-	frontendModulesMap := internal.GetFrontendModulesFromConfig(deployModulesCommand, viper.GetStringMap(internal.FrontendModuleKey), viper.GetStringMap(internal.CustomFrontendModuleKey))
+	frontendModulesMap := internal.GetFrontendModulesFromConfig(deployModulesCommand, true, viper.GetStringMap(internal.FrontendModulesKey), viper.GetStringMap(internal.CustomFrontendModulesKey))
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### READING BACKEND MODULE REGISTRIES ###")
-	instalJsonUrls := map[string]string{internal.FolioRegistry: viper.GetString(internal.RegistryFolioInstallJsonUrlKey), internal.EurekaRegistry: viper.GetString(internal.RegistryEurekaInstallJsonUrlKey)}
-	registryModules := internal.GetModulesFromRegistries(deployModulesCommand, instalJsonUrls)
+	instalJsonUrls := map[string]string{internal.FolioRegistry: viper.GetString(internal.InstallFolioKey), internal.EurekaRegistry: viper.GetString(internal.InstallEurekaKey)}
+	registryModules := internal.GetModulesFromRegistries(deployModulesCommand, instalJsonUrls, true)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### EXTRACTING MODULE NAME AND VERSION ###")
-	internal.ExtractModuleNameAndVersion(deployModulesCommand, enableDebug, registryModules)
+	internal.ExtractModuleNameAndVersion(deployModulesCommand, withEnableDebug, registryModules, true)
 
 	vaultRootToken, client := GetVaultRootTokenWithDockerClient()
 	defer client.Close()
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### CREATING APPLICATIONS ###")
 	registryUrls := map[string]string{internal.FolioRegistry: registryUrl, internal.EurekaRegistry: registryUrl}
-	registerModuleDto := internal.NewRegisterModuleDto(registryUrls, registryModules, backendModulesMap, frontendModulesMap, enableDebug)
-	internal.CreateApplications(deployModulesCommand, enableDebug, registerModuleDto)
+	registerModuleDto := internal.NewRegisterModuleDto(registryUrls, registryModules, backendModulesMap, frontendModulesMap, withEnableDebug)
+	internal.CreateApplications(deployModulesCommand, withEnableDebug, registerModuleDto)
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### PULLING SIDECAR IMAGE ###")
 	deployModulesDto := internal.NewDeployModulesDto(vaultRootToken, map[string]string{internal.FolioRegistry: "", internal.EurekaRegistry: ""}, registryModules, backendModulesMap, environment, sidecarEnvironment)
@@ -81,7 +81,7 @@ func DeployModules() {
 	var waitMutex sync.WaitGroup
 	waitMutex.Add(len(deployedModules))
 	for deployedModule := range deployedModules {
-		go internal.PerformModuleHealthcheck(deployModulesCommand, enableDebug, &waitMutex, deployedModule, deployedModules[deployedModule])
+		go internal.PerformModuleHealthcheck(deployModulesCommand, withEnableDebug, &waitMutex, deployedModule, deployedModules[deployedModule])
 	}
 	waitMutex.Wait()
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "All modules have initialized")

@@ -30,19 +30,19 @@ var updateModuleDiscoveryCmd = &cobra.Command{
 	Short: "Update module discovery",
 	Long:  `Update module discovery to point to a different sidecar URL.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		UpdateModuleDiscovery()
+		UpdateModuleDiscovery(withSidecarUrl)
 	},
 }
 
-func UpdateModuleDiscovery() {
+func UpdateModuleDiscovery(sidecarUrl string) {
 	slog.Info(updateModuleDiscoveryCommand, internal.GetFuncName(), "### UPDATING MODULE DISCOVERY URL ###")
-	internal.UpdateModuleDiscovery(updateModuleDiscoveryCommand, enableDebug, id, sidecarUrl, restore, internal.DefaultServerPort)
+	internal.UpdateModuleDiscovery(updateModuleDiscoveryCommand, withEnableDebug, withId, sidecarUrl, withRestore, internal.DefaultServerPort)
 }
 
 func init() {
 	rootCmd.AddCommand(updateModuleDiscoveryCmd)
-	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&id, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
-	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&sidecarUrl, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
-	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&restore, "restore", "r", false, "Restore module & sidecar")
+	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&withId, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
+	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&withSidecarUrl, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
+	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&withRestore, "restore", "r", false, "Restore sidecar URL")
 	updateModuleDiscoveryCmd.MarkPersistentFlagRequired("id")
 }

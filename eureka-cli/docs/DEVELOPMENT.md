@@ -12,7 +12,9 @@
 - `cd` into `eureka-setup/eureka-cli`
 - Install `air` binary: `go install github.com/air-verse/air@latest`
 - Run `air` to enable live compilation
+
 > Will poll for code changes to recreate a binary in `./bin` folder
+
 - See `.air.toml` for more settings on live compilation
 
 ### Enable Debugger in VSCode to analyze Eureka CLI commands
@@ -63,19 +65,29 @@
 ```
 
 - Add breakpoints and click on *RUN AND DEBUG Start Debugging*
+
 > Must undeploy previously deployed application before starting
+
 - The `args` can be modified to reflect which CLI command is to be debugged, e.g. `"args": ["createUsers", "-d"]` will run `createUsers` command in the debugged mode with verbose logs
 
 ### Enable Module Interception in IntelliJ (an example for mod-orders and mod-finance)
 
 - `cd` into `eureka-setup/eureka-cli`
-- Deploy the Eureka environment using the *combined* profile: `./bin/eureka-cli -c config.combined.yaml deployApplication`
+- Deploy the Eureka environment using the *combined* profile: `eureka-cli -c config.combined.yaml deployApplication`
 - Deploy the custom sidecars into the Eureka environment
+
 > Verify that `host.docker.internal` is set in `/etc/hosts` or use default Docker Gateway IP `172.17.0.1` in Linux in the URLs
 
 ```bash
-./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -m http://host.docker.internal:36001 -s http://host.docker.internal:37001
-./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -m http://host.docker.internal:36002 -s http://host.docker.internal:37002
+# Find the module id that you want to intercept with listModules command 
+eureka-cli -c config.combined.yaml listModules
+
+eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -m http://host.docker.internal:36001 -s http://host.docker.internal:37001
+eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -m http://host.docker.internal:36002 -s http://host.docker.internal:37002
+
+# Alternatively, you can use the default Kong gateway with --defaultGateway/-g flag, and by passing module and sidecar ports directly
+eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -g -m 36001 -s 37001
+eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -g -m 36002 -s 37002
 ```
 
 > Module and sidecar exposed ports in the example are not fixed and can be changed to suit your needs, e.g. if your mod-orders in IntelliJ is usually started on port 9800, `--moduleUrl` / `-m` will be <http://host.docker.internal:9800>
@@ -150,18 +162,26 @@ OKAPI_SERVICE_PORT=37002
 OKAPI_SERVICE_URL=http://localhost:37002
 OKAPI_URL=http://localhost:37002
 ```
+
 </td>
 </tr>
 </tbody>
 </table>
 
 - Perform module healthchecks: `curl -sw "\n" --connect-timeout 3 http://localhost:36001/admin/health http://localhost:36002/admin/health`
+
 > Expect: *"OK"*
+
 - Perform sidecar healthchecks: `curl -sw "\n" --connect-timeout 3 http://localhost:37001/admin/health http://localhost:37002/admin/health`
+
 > Expect: *{ "status": "UP" }*
+
 - Finally test *mod-finance* interception by creating a *Fund Budget* in the *Finance App*
+
 > Expect: Logs being created for *mod-finance* deployed in IntelliJ
+
 - After that, create a *Purchase Order* with a *Purchase Order Line* and an attached *Fund Distribution*, using the *Fund* created in the *Finance App*, within the *Orders App*
+
 > Expect: Logs being created for *mod-orders* and *mod-finance* deployed in IntelliJ
 
 ### Disable Module Interception
@@ -170,6 +190,6 @@ OKAPI_URL=http://localhost:37002
 - Restore the default modules and sidecars in the Eureka environment
 
 ```bash
-./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -r
-./bin/eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -r
+eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -r
+eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -r
 ```

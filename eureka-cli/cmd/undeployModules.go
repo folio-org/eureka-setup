@@ -38,7 +38,8 @@ var undeployModulesCmd = &cobra.Command{
 
 func UndeployModules() {
 	slog.Info(undeployModulesCommand, internal.GetFuncName(), "### REMOVING APPLICATIONS ###")
-	internal.RemoveApplications(undeployModulesCommand, enableDebug, false)
+	applicationId := fmt.Sprintf("%s-%s", viper.GetString(internal.ApplicationNameKey), viper.GetString(internal.ApplicationVersionKey))
+	internal.RemoveApplication(undeployModulesCommand, withEnableDebug, false, applicationId)
 
 	slog.Info(undeployModulesCommand, internal.GetFuncName(), "### UNDEPLOYING MODULES ###")
 	client := internal.CreateDockerClient(undeployModulesCommand)

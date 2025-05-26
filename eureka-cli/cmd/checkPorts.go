@@ -47,8 +47,7 @@ func CheckPorts() {
 	defer client.Close()
 
 	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.MultipleModulesContainerPattern, viper.GetString(internal.ProfileNameKey))})
-	deployedModules := internal.GetDeployedModules(checkPortsCommand, client, filters)
-	runNetcat(deployedModules)
+	runNetcat(internal.GetDeployedModules(checkPortsCommand, client, filters))
 }
 
 func runNetcat(modules []types.Container) {

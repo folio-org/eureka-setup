@@ -6,13 +6,14 @@ application:
   platform: base
   fetch-descriptors: false
   port-start: 30000
-  port-end: 32000
+  port-end: 30999
 registry:
-  registry-url: https://folio-registry.dev.folio.org
-  folio-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
-  eureka-install-json-url: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
-  namespaces:
-    platform-complete-ui: bkadirkhodjaev
+  url: https://folio-registry.dev.folio.org
+install:
+  folio: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
+  eureka: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
+namespaces:
+  platform-complete-ui: bkadirkhodjaev
 environment:
   # PostgreSQL
   DB_HOST: postgres.eureka
@@ -22,32 +23,28 @@ environment:
   DB_PASSWORD: supersecret
   DB_CHARSET: UTF-8
   DB_QUERYTIMEOUT: 60000
+  DB_MAXPOOLSIZE: 4
   # Kafka
   ENV: folio
   KAFKA_HOST: kafka.eureka
   KAFKA_PORT: 9092
-  # Elasticsearch
-  ELASTICSEARCH_URL: http://host.docker.internal:9200
-  # Consortia
-  SYSTEM_USER_PASSWORD: system_user_password
-  # Management
-  MT_URL: http://mgr-tenants.eureka:8081
-  AM_CLIENT_URL: http://mgr-applications.eureka:8081
+  # Kong
   KONG_ADMIN_URL: http://kong.eureka:8001
+  KONG_INTEGRATION_ENABLED: 'true'
   # Keycloak
   KC_URL: http://keycloak.eureka:8080
   KC_CONFIG_TTL: 3600s
   KC_ADMIN_CLIENT_ID: supersecret
   KC_ADMIN_USERNAME: admin
   KC_ADMIN_PASSWORD: admin
-  SECURITY_ENABLED: false
-  KC_IMPORT_ENABLED: true
-  KC_INTEGRATION_ENABLED: true
+  KC_IMPORT_ENABLED: 'true'
+  KC_INTEGRATION_ENABLED: 'true'
   KC_LOGIN_CLIENT_SUFFIX: -application
   KC_SERVICE_CLIENT_ID: sidecar-module-access-client
-  KONG_INTEGRATION_ENABLED: true
-  OKAPI_INTEGRATION_ENABLED: false
-  WEB_CLIENT_TLS_VERIFY_HOSTNAME: false
+  KC_URI_VALIDATION_ENABLED: 'false' 
+  SECURITY_ENABLED: 'false'
+  OKAPI_INTEGRATION_ENABLED: 'false'
+  WEB_CLIENT_TLS_VERIFY_HOSTNAME: 'false'
   # Java
   JAVA_OPTIONS: >-
     -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
@@ -79,27 +76,40 @@ users:
 sidecar-module:
   image: folio-module-sidecar
   environment:
-    SIDECAR: true
+    # Kafka
+    ENV: folio
+    KAFKA_HOST: kafka.eureka
+    KAFKA_PORT: 9092
+    # Keycloak
+    MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
+    MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
+    # Management
+    TM_CLIENT_URL: http://mgr-tenants.eureka:8081
+    AM_CLIENT_URL: http://mgr-applications.eureka:8081
+    TE_CLIENT_URL: http://mgr-tenant-entitlements.eureka:8081
+    # Sidecar
+    SIDECAR: 'true'
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS: 'true'
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong.eureka:8000
+    QUARKUS_HTTP_PORT: 8081
+    QUARKUS_REST_CLIENT_READ_TIMEOUT: 180000
+    QUARKUS_REST_CLIENT_CONNECT_TIMEOUT: 180000
+    QUARKUS_REST_CLIENT_SEND_TIMEOUT: 180000
+    QUARKUS_HTTP_LIMITS_MAX_INITIAL_LINE_LENGTH: 8192
     SC_LOG_LEVEL: INFO
     ROOT_LOG_LEVEL: INFO
     REQUEST_TIMEOUT: 604800000
-    KC_URI_VALIDATION_ENABLED: false
-    ALLOW_CROSS_TENANT_REQUESTS: true
-    SIDECAR_FORWARD_UNKNOWN_REQUESTS: true
-    QUARKUS_HTTP_LIMITS_MAX_INITIAL_LINE_LENGTH: 8192
+    ALLOW_CROSS_TENANT_REQUESTS: 'true'
+    # Java
     JAVA_OPTIONS: >-
       -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
       -XX:+UseZGC -XX:MaxRAMPercentage=80.0 -Xms64m -Xmx64m
       -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=INFO -Dquarkus.log.category.'org.apache.kafka'.level=INFO 
       -Djava.util.logging.manager=org.jboss.logmanager.LogManager
-    # Rancher secret: eureka-common
-    KC_URL: http://keycloak.eureka:8080
-    MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
-    MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
-    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong.eureka:8000
 backend-modules:
   mgr-applications:
     port: 9901
+    use-vault: true
     environment:
       MODULE_URL: http://mgr-applications.eureka:8081
       TE_URL: http://mgr-tenant-entitlements.eureka:8081
@@ -109,15 +119,17 @@ backend-modules:
       cpus: 2
   mgr-tenants:
     port: 9902
+    use-vault: true
     environment:
       MODULE_URL: http://mgr-tenants.eureka:8081
     resources:
       cpus: 2
   mgr-tenant-entitlements:
     port: 9903
+    use-vault: true
     environment:
       MODULE_URL: http://mgr-tenant-entitlements.eureka:8081
-      TENANT_URL: http://mgr-tenants.eureka:8081
+      MT_CLIENT_URL: http://mgr-tenants.eureka:8081
       AM_CLIENT_URL: http://mgr-applications.eureka:8081
       VALIDATION_INTERFACE_INTEGRITY_ENABLED: 'false'
       FOLIO_CLIENT_CONNECT_TIMEOUT: 60s
@@ -127,63 +139,40 @@ backend-modules:
     resources:
       cpus: 2
   mod-users-keycloak:
-    deploy-sidecar: true
+    use-vault: true
+    use-okapi-url: true
+    disable-system-user: true
     port: 9904
     environment:
-      OKAPI_URL: http://mod-users-keycloak-sc.eureka:8081
+      SINGLE_TENANT_UX: 'true'
       INCLUDE_ONLY_VISIBLE_PERMISSIONS: 'false'
-      # Rancher secret: mod-users-keycloak-systemuser
-      FOLIO_SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_CREATE: 'false'
-      SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_NAME: mod-users-keycloak
-      SYSTEM_USER_USERNAME: mod-users-keycloak
     resources:
       cpus: 4
       memory: 900
   mod-login-keycloak:
-    deploy-sidecar: true
+    use-vault: true
     port: 9905
     environment:
       X_OKAPI_TOKEN_HEADER_ENABLED: 'true'
       KC_ADMIN_TOKEN_TTL: 59s
   mod-roles-keycloak:
-    deploy-sidecar: true
+    use-vault: true
+    disable-system-user: true
     port: 9906
     resources:
       cpus: 4
   mod-scheduler:
-    deploy-sidecar: true
+    use-vault: true
+    disable-system-user: true
     port: 9907
-    environment:
-      # Rancher secret: mod-scheduler-systemuser
-      FOLIO_SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_CREATE: 'false'
-      SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_NAME: mod-scheduler
-      SYSTEM_USER_USERNAME: mod-scheduler
     resources:
       cpus: 4
   mod-consortia-keycloak:
     deploy-module: false
-    deploy-sidecar: true
+    use-vault: true
+    use-okapi-url: true
+    disable-system-user: true
     port: 9908
-    environment:
-      # Rancher secret: mod-consortia-keycloak-systemuser
-      FOLIO_SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_CREATE: 'false'
-      SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_NAME: mod-consortia-keycloak
-      SYSTEM_USER_USERNAME: mod-consortia-keycloak
-      # Rancher secret: eureka-common
-      MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
-      MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
-      # Rancher secret: okapi-credentials
-      OKAPI_HOST: mod-consortia-keycloak.eureka
-      OKAPI_PORT: 8082
-      OKAPI_SERVICE_HOST: mod-consortia-keycloak.eureka
-      OKAPI_SERVICE_URL: http://mod-consortia-keycloak.eureka:8082
-      OKAPI_URL: http://mod-consortia-keycloak.eureka:8082
   mod-permissions:
   mod-configuration:
   mod-users:
@@ -204,29 +193,16 @@ backend-modules:
   mod-orders:
   mod-finance:
   mod-finance-storage:
-  mod-mosaic:
   mod-audit:
   mod-pubsub:
-    environment:
-      # Rancher secret: mod-pubsub-systemuser
-      FOLIO_SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_CREATE: 'false'
-      SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_NAME: mod-pubsub
-      SYSTEM_USER_USERNAME: mod-pubsub
+    disable-system-user: true
   mod-circulation-storage:
   mod-circulation:
     port-server: 9801
-  # Requires Elasticsearch to be uncommented in misc/docker-compose.yaml
-  mod-search:
+  mod-template-engine:
     deploy-module: false
-    environment:
-      # Rancher secret: mod-search-systemuser
-      FOLIO_SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_CREATE: 'false'
-      SYSTEM_USER_ENABLED: 'false'
-      SYSTEM_USER_NAME: mod-search
-      SYSTEM_USER_USERNAME: mod-search
+  mod-feesfines:
+    deploy-module: false
 frontend-modules:
   folio_stripes-core:
   folio_developer:
@@ -245,7 +221,6 @@ frontend-modules:
   folio_servicepoints:
   folio_acquisition-units:
   folio_requests:
-  folio_mosaic-settings:
   folio_plugin-find-instance:
   folio_plugin-find-organization:
   folio_plugin-find-po-line:
@@ -253,8 +228,8 @@ frontend-modules:
   folio_plugin-find-authority:
 custom-frontend-modules:
   folio_authorization-roles:
-    version: 2.1.109900000000179
+    version: 2.1.109900000000194
   folio_authorization-policies:
-    version: 2.0.10990000000080
+    version: 2.0.10990000000085
   folio_plugin-select-application:
-    version: 2.0.10990000000058
+    version: 2.0.10990000000063

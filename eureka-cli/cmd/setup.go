@@ -46,10 +46,10 @@ func Setup() {
 }
 
 func getCurrentLocalConfig() string {
-	if configFile == "" {
+	if withConfigFile == "" {
 		return fmt.Sprintf("%s.%s", internal.ConfigCombined, internal.ConfigType)
 	}
-	return configFile
+	return withConfigFile
 }
 
 func createHomeConfigDirIfNeeded() string {

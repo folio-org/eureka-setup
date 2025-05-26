@@ -31,9 +31,11 @@ import (
 
 const (
 	attachCapabilitySetsCommand string = "Attach Capability Sets"
-	NewLinePattern              string = `\r?\n`
-	KafkaUrl                    string = "kafka.eureka:9092"
-	ConsumerGroupSuffix         string = "mod-roles-keycloak-capability-group"
+
+	NewLinePattern      string = `\r?\n`
+	KafkaUrl            string = "kafka.eureka:9092"
+	ConsumerGroupSuffix string = "mod-roles-keycloak-capability-group"
+	IgnoreErrorMessage  string = "Consumer group 'folio-mod-roles-keycloak-capability-group' has no active members."
 )
 
 // attachCapabilitySetsCmd represents the attachCapabilitySets command
@@ -49,7 +51,7 @@ var attachCapabilitySetsCmd = &cobra.Command{
 func AttachCapabilitySets() {
 	vaultRootToken := GetVaultRootToken()
 
-	for _, tenantValue := range internal.GetTenants(attachCapabilitySetsCommand, enableDebug, false) {
+	for _, tenantValue := range internal.GetTenants(attachCapabilitySetsCommand, withEnableDebug, false) {
 		tenantMapEntry := tenantValue.(map[string]any)
 
 		existingTenant := tenantMapEntry["name"].(string)
@@ -61,16 +63,17 @@ func AttachCapabilitySets() {
 		pollCapabilitySetsCreation(existingTenant)
 
 		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("### ATTACHING CAPABILITY SETS TO ROLES FOR %s TENANT ###", existingTenant))
-		keycloakAccessToken := internal.GetKeycloakAccessToken(attachCapabilitySetsCommand, enableDebug, vaultRootToken, existingTenant)
-		internal.AttachCapabilitySetsToRoles(attachCapabilitySetsCommand, enableDebug, existingTenant, keycloakAccessToken)
+		keycloakAccessToken := internal.GetKeycloakAccessToken(attachCapabilitySetsCommand, withEnableDebug, vaultRootToken, existingTenant)
+		internal.AttachCapabilitySetsToRoles(attachCapabilitySetsCommand, withEnableDebug, existingTenant, keycloakAccessToken)
 	}
 }
 
 func pollCapabilitySetsCreation(tenant string) {
 	consumerGroup := fmt.Sprintf("%s-%s", viper.GetString(internal.EnvironmentFolioKey), ConsumerGroupSuffix)
 
+	var lag int
 	for {
-		lag := getConsumerGroupLag(tenant, consumerGroup)
+		lag := getConsumerGroupLag(tenant, consumerGroup, lag)
 		if lag == 0 {
 			break
 		}
@@ -82,10 +85,15 @@ func pollCapabilitySetsCreation(tenant string) {
 	slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Consumer group %s has no new message to process", consumerGroup))
 }
 
-func getConsumerGroupLag(tenant string, consumerGroup string) int {
+func getConsumerGroupLag(tenant string, consumerGroup string, initialLag int) (lag int) {
 	stdout, stderr := internal.RunCommandReturnOutput(listSystemCommand, exec.Command("docker", "exec", "-i", "kafka", "bash", "-c",
 		fmt.Sprintf("kafka-consumer-groups.sh --bootstrap-server %s --describe --group %s | grep %s | awk '{print $6}'", KafkaUrl, consumerGroup, tenant)))
 	if stderr.Len() > 0 {
+		if strings.Contains(stderr.String(), IgnoreErrorMessage) {
+			internal.LogWarn(attachCapabilitySetsCommand, withEnableDebug, fmt.Sprintf("internal.RunCommandReturnOutput warning - %s", stderr.String()))
+			return initialLag
+		}
+
 		internal.LogErrorPrintStderrPanic(attachCapabilitySetsCommand, "internal.RunCommandReturnOutput error", stderr.String())
 		return 0
 	}

@@ -38,7 +38,7 @@ var createRolesCmd = &cobra.Command{
 func CreateRoles() {
 	vaultRootToken := GetVaultRootToken()
 
-	for _, value := range internal.GetTenants(createRolesCommand, enableDebug, false) {
+	for _, value := range internal.GetTenants(createRolesCommand, withEnableDebug, false) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
@@ -47,8 +47,8 @@ func CreateRoles() {
 		}
 
 		slog.Info(createRolesCommand, internal.GetFuncName(), fmt.Sprintf("### CREATING ROLES FOR %s TENANT ###", existingTenant))
-		keycloakAccessToken := internal.GetKeycloakAccessToken(createRolesCommand, enableDebug, vaultRootToken, existingTenant)
-		internal.CreateRoles(createRolesCommand, enableDebug, false, existingTenant, keycloakAccessToken)
+		keycloakAccessToken := internal.GetKeycloakAccessToken(createRolesCommand, withEnableDebug, vaultRootToken, existingTenant)
+		internal.CreateRoles(createRolesCommand, withEnableDebug, false, existingTenant, keycloakAccessToken)
 	}
 }
 

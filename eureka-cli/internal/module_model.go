@@ -43,18 +43,25 @@ type DeployModulesDto struct {
 }
 
 type BackendModuleDto struct {
-	deployModule  bool
-	deploySidecar *bool
-	name          string
-	version       *string
-	port          *int
-	portServer    *int
-	environment   map[string]any
-	resources     map[string]any
+	deployModule      bool
+	deploySidecar     *bool
+	useVault          bool
+	useOkapiUrl       bool
+	disableSystemUser bool
+	name              string
+	version           *string
+	port              *int
+	portServer        *int
+	environment       map[string]any
+	resources         map[string]any
+	volumes           []string
 }
 
 type BackendModule struct {
 	DeployModule            bool
+	UseVault                bool
+	UseOkapiUrl             bool
+	DisableSystemUser       bool
 	ModuleName              string
 	ModuleVersion           *string
 	ModuleExposedServerPort int
@@ -62,6 +69,7 @@ type BackendModule struct {
 	ModulePortBindings      *nat.PortMap
 	ModuleEnvironment       map[string]any
 	ModuleResources         container.Resources
+	ModuleVolumes           []string
 	DeploySidecar           bool
 	SidecarExposedPorts     *nat.PortSet
 	SidecarPortBindings     *nat.PortMap
@@ -89,6 +97,9 @@ func NewBackendModuleWithSidecar(dto BackendModuleDto) *BackendModule {
 
 	return &BackendModule{
 		DeployModule:            dto.deployModule,
+		UseVault:                dto.useVault,
+		UseOkapiUrl:             dto.useOkapiUrl,
+		DisableSystemUser:       dto.disableSystemUser,
 		ModuleName:              dto.name,
 		ModuleVersion:           dto.version,
 		ModuleExposedServerPort: *dto.port,
@@ -97,6 +108,7 @@ func NewBackendModuleWithSidecar(dto BackendModuleDto) *BackendModule {
 		ModulePortBindings:      CreatePortBindings(*dto.port, *dto.port+100, *dto.portServer),
 		ModuleEnvironment:       dto.environment,
 		ModuleResources:         *CreateResources(true, dto.resources),
+		ModuleVolumes:           dto.volumes,
 		DeploySidecar:           *dto.deploySidecar,
 		SidecarExposedPorts:     exposedPorts,
 		SidecarPortBindings:     CreatePortBindings(*dto.port+200, *dto.port+300, *dto.portServer),
@@ -106,6 +118,9 @@ func NewBackendModuleWithSidecar(dto BackendModuleDto) *BackendModule {
 func NewBackendModule(dto BackendModuleDto) *BackendModule {
 	return &BackendModule{
 		DeployModule:            dto.deployModule,
+		UseVault:                dto.useVault,
+		UseOkapiUrl:             dto.useOkapiUrl,
+		DisableSystemUser:       dto.disableSystemUser,
 		ModuleName:              dto.name,
 		ModuleVersion:           dto.version,
 		ModuleExposedServerPort: *dto.port,
@@ -114,6 +129,7 @@ func NewBackendModule(dto BackendModuleDto) *BackendModule {
 		ModulePortBindings:      CreatePortBindings(*dto.port, *dto.port+1000, *dto.portServer),
 		ModuleEnvironment:       dto.environment,
 		ModuleResources:         *CreateResources(true, dto.resources),
+		ModuleVolumes:           dto.volumes,
 		DeploySidecar:           false,
 		SidecarExposedPorts:     nil,
 		SidecarPortBindings:     nil,
@@ -125,13 +141,13 @@ func CreateResources(isModule bool, resources map[string]any) *container.Resourc
 		return createDefaultResources(isModule)
 	}
 
-	oomKillDisable := getBoolValueOrDefault("oom-kill-disable", resources, false)
+	oomKillDisable := getBoolValueOrDefault(ModuleResourceOomKillDisableEntryKey, resources, false)
 
 	return &container.Resources{
-		CPUCount:          getIntValueOrDefault("cpu-count", resources, DefaultModuleCpus),
-		MemoryReservation: convertMiBToBytes(getIntValueOrDefault("memory-reservation", resources, DefaultModuleMemoryReservation)),
-		Memory:            convertMiBToBytes(getIntValueOrDefault("memory", resources, DefaultModuleMemory)),
-		MemorySwap:        convertMiBToBytes(getIntValueOrDefault("memory-swap", resources, DefaultModuleSwap)),
+		CPUCount:          getIntValueOrDefault(ModuleResourceCpuCountEntryKey, resources, DefaultModuleCpus),
+		MemoryReservation: convertMiBToBytes(getIntValueOrDefault(ModuleResourceMemoryReservationEntryKey, resources, DefaultModuleMemoryReservation)),
+		Memory:            convertMiBToBytes(getIntValueOrDefault(ModuleResourceMemoryEntryKey, resources, DefaultModuleMemory)),
+		MemorySwap:        convertMiBToBytes(getIntValueOrDefault(ModuleResourceMemorySwapEntryKey, resources, DefaultModuleSwap)),
 		OomKillDisable:    &oomKillDisable,
 	}
 }
@@ -217,13 +233,19 @@ func NewDeployModulesDto(vaultRootToken string, registryHostnames map[string]str
 func NewDeployModuleDto(name string, image string, env []string, backendModule BackendModule,
 	networkConfig *network.NetworkingConfig) *DeployModuleDto {
 	return &DeployModuleDto{
-		Name:   name,
-		Image:  image,
-		Config: &container.Config{Image: image, Hostname: name, Env: env, ExposedPorts: *backendModule.ModuleExposedPorts},
+		Name:  name,
+		Image: image,
+		Config: &container.Config{
+			Image:        image,
+			Hostname:     name,
+			Env:          env,
+			ExposedPorts: *backendModule.ModuleExposedPorts,
+		},
 		HostConfig: &container.HostConfig{
 			PortBindings:  *backendModule.ModulePortBindings,
 			RestartPolicy: container.RestartPolicy{Name: container.RestartPolicyAlways},
 			Resources:     backendModule.ModuleResources,
+			Binds:         backendModule.ModuleVolumes,
 		},
 		NetworkConfig: networkConfig,
 		Platform:      &v1.Platform{},

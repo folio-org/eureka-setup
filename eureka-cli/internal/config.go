@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"regexp"
 	"runtime"
 	"slices"
 	"strconv"
@@ -39,16 +40,29 @@ const (
 
 const (
 	ManagementModulePattern string = "mgr-"
+	EdgeModulePattern       string = "edge-"
 
 	SingleModuleContainerPattern    string = "^(eureka-%s-)(%[2]s|%[2]s-sc)$"
-	MultipleModulesContainerPattern string = "eureka-%s-mod-"
+	MultipleModulesContainerPattern string = "eureka-%s-*-"
 )
 
-var PortStartIndex int = 30000
-var PortEndIndex int = 32000
+const (
+	ModSearchModuleName           string = "mod-search"
+	ModDataExportWorkerModuleName string = "mod-data-export-worker"
+
+	ElasticsearchContainerName string = "elasticsearch"
+	MinioContainerName         string = "minio"
+	CreateBucketsContainerName string = "createbuckets"
+	FtpServerContainerName     string = "ftp-server"
+)
+
+var (
+	PortStartIndex int = 30000
+	PortEndIndex   int = 30999
+)
 
 func GetGatewayUrlTemplate(commandName string) string {
-	schemaAndUrl := getGatewaySchemaAndUrl(commandName)
+	schemaAndUrl := GetGatewaySchemaAndUrl(commandName)
 	if schemaAndUrl == "" {
 		LogErrorPanic(commandName, fmt.Sprintf("internal.GetGatewayUrlTemplate error - cannot construct geteway url template for %s platform", runtime.GOOS))
 		return ""
@@ -57,11 +71,11 @@ func GetGatewayUrlTemplate(commandName string) string {
 	return schemaAndUrl + ":%d%s"
 }
 
-func getGatewaySchemaAndUrl(commandName string) string {
+func GetGatewaySchemaAndUrl(commandName string) string {
 	var schemaAndUrl string
 	if viper.IsSet(ApplicationGatewayHostnameKey) {
 		schemaAndUrl = viper.GetString(ApplicationGatewayHostnameKey)
-	} else if IsHostnameExists(commandName, DefaultDockerHostname) {
+	} else if HostnameExists(commandName, DefaultDockerHostname) {
 		schemaAndUrl = fmt.Sprintf("http://%s", DefaultDockerHostname)
 	} else if runtime.GOOS == "linux" {
 		schemaAndUrl = fmt.Sprintf("http://%s", DefaultDockerGatewayIp)
@@ -70,7 +84,15 @@ func getGatewaySchemaAndUrl(commandName string) string {
 	return schemaAndUrl
 }
 
-func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[string]any, managementOnly bool) map[string]BackendModule {
+func GetBackendModulesFromConfig(commandName string, managementOnly bool, printOutput bool, backendModulesAnyMap map[string]any) map[string]BackendModule {
+	if len(backendModulesAnyMap) == 0 {
+		if printOutput {
+			slog.Info(commandName, GetFuncName(), "No backend modules were found in config")
+		}
+
+		return make(map[string]BackendModule)
+	}
+
 	backendModulesMap := make(map[string]BackendModule)
 
 	for name, value := range backendModulesAnyMap {
@@ -78,7 +100,7 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 		if value == nil {
 			dto = createDefaultBackendDto(commandName, name)
 		} else {
-			dto = createConfigurableBackendDto(value, name)
+			dto = createConfigurableBackendDto(commandName, value, name)
 		}
 
 		if dto.deploySidecar != nil && *dto.deploySidecar {
@@ -92,7 +114,9 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 			moduleInfo = fmt.Sprintf("%s with fixed version %s", name, *dto.version)
 		}
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found backend module in config: %s", moduleInfo))
+		if printOutput {
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found backend module in config: %s", moduleInfo))
+		}
 	}
 
 	return backendModulesMap
@@ -100,128 +124,150 @@ func GetBackendModulesFromConfig(commandName string, backendModulesAnyMap map[st
 
 func createDefaultBackendDto(commandName string, name string) (dto BackendModuleDto) {
 	dto.deployModule = true
-	if !strings.HasPrefix(name, ManagementModulePattern) {
+
+	if !strings.HasPrefix(name, ManagementModulePattern) && !strings.HasPrefix(name, EdgeModulePattern) {
 		dto.deploySidecar = getDefaultDeploySidecar()
 	}
-	dto.version = nil
 
 	if PortStartIndex+1 >= PortEndIndex {
 		LogErrorPanic(commandName, "internal.createDefaultBackendDto error - incremented PortStartIndex is exceeding PortEndIndex limit")
 		return
 	}
 
-	PortStartIndex++
 	dto.port = &PortStartIndex
+	PortStartIndex++
+
 	dto.portServer = getDefaultPortServer()
 	dto.environment = make(map[string]any)
 	dto.resources = make(map[string]any)
+	dto.volumes = []string{}
 
 	return dto
 }
 
-func createConfigurableBackendDto(value any, name string) (dto BackendModuleDto) {
+func createConfigurableBackendDto(commandName string, value any, name string) (dto BackendModuleDto) {
 	mapEntry := value.(map[string]any)
 
-	dto.deployModule = getDeployModule(mapEntry)
-	dto.deploySidecar = getDeploySidecar(mapEntry, name)
+	dto.deployModule = getKeyOrDefault(mapEntry, ModuleDeployModuleEntryKey, true).(bool)
+
+	if !strings.HasPrefix(name, ManagementModulePattern) && !strings.HasPrefix(name, EdgeModulePattern) {
+		dto.deploySidecar = getDeploySidecar(mapEntry)
+	}
+
+	dto.useVault = getKeyOrDefault(mapEntry, ModuleUseVaultEntryKey, false).(bool)
+	dto.disableSystemUser = getKeyOrDefault(mapEntry, ModuleDisableSystemUserEntryKey, false).(bool)
+	dto.useOkapiUrl = getKeyOrDefault(mapEntry, ModuleUseOkapiUrlEntryKey, false).(bool)
 	dto.version = getVersion(mapEntry)
 	dto.port = getPort(mapEntry)
 	dto.portServer = getPortServer(mapEntry)
-	dto.environment = createEnvironment(mapEntry)
-	dto.resources = createResources(mapEntry)
+	dto.environment = getKeyOrDefault(mapEntry, ModuleEnvironmentEntryKey, make(map[string]any)).(map[string]any)
+	dto.resources = getKeyOrDefault(mapEntry, ModuleResourceEntryKey, make(map[string]any)).(map[string]any)
+	dto.volumes = getVolumes(commandName, mapEntry)
 
 	return dto
 }
 
-func getDeployModule(mapEntry map[string]any) bool {
-	if mapEntry["deploy-module"] != nil {
-		return mapEntry["deploy-module"].(bool)
+func getKeyOrDefault(mapEntry map[string]any, key string, defaultValue any) any {
+	if mapEntry[key] == nil {
+		return defaultValue
 	}
 
-	return true
+	return mapEntry[key]
 }
 
-func getDeploySidecar(mapEntry map[string]any, name string) *bool {
-	var sidecar *bool
-	if mapEntry["deploy-sidecar"] != nil {
-		sidecarValue := mapEntry["deploy-sidecar"].(bool)
-		sidecar = &sidecarValue
-	} else if !strings.HasPrefix(name, ManagementModulePattern) {
-		sidecar = getDefaultDeploySidecar()
+func getDeploySidecar(mapEntry map[string]any) *bool {
+	if mapEntry[ModuleDeploySidecarEntryKey] == nil {
+		return getDefaultDeploySidecar()
 	}
+	sidecarValue := mapEntry[ModuleDeploySidecarEntryKey].(bool)
 
-	return sidecar
+	return &sidecarValue
 }
 
 func getDefaultDeploySidecar() *bool {
 	deploySidecarDefaultValue := true
+
 	return &deploySidecarDefaultValue
 }
 
 func getVersion(mapEntry map[string]any) *string {
-	var version *string
-	if mapEntry["version"] != nil {
-		var versionValue string
-		_, ok := mapEntry["version"].(float64)
-		if ok {
-			versionValue = strconv.FormatFloat(mapEntry["version"].(float64), 'f', -1, 64)
-		} else {
-			versionValue = mapEntry["version"].(string)
-		}
-		version = &versionValue
+	if mapEntry[ModuleVersionEntryKey] == nil {
+		return nil
 	}
 
-	return version
+	var versionValue string
+	_, ok := mapEntry[ModuleVersionEntryKey].(float64)
+	if ok {
+		versionValue = strconv.FormatFloat(mapEntry[ModuleVersionEntryKey].(float64), 'f', -1, 64)
+	} else {
+		versionValue = mapEntry[ModuleVersionEntryKey].(string)
+	}
+
+	return &versionValue
 }
 
 func getPort(mapEntry map[string]any) *int {
-	var port *int
-	if mapEntry["port"] != nil {
-		portValue := mapEntry["port"].(int)
-		port = &portValue
-	} else {
+	if mapEntry[ModulePortEntryKey] == nil {
 		PortStartIndex++
-		port = &PortStartIndex
-	}
 
-	return port
+		return &PortStartIndex
+	}
+	portValue := mapEntry[ModulePortEntryKey].(int)
+
+	return &portValue
 }
 
 func getPortServer(mapEntry map[string]any) *int {
-	var portServer *int
-	if mapEntry["port-server"] != nil {
-		portServerValue := mapEntry["port-server"].(int)
-		portServer = &portServerValue
-	} else {
-		portServer = getDefaultPortServer()
+	if mapEntry[ModulePortServerEntryKey] == nil {
+		return getDefaultPortServer()
 	}
+	portServerValue := mapEntry[ModulePortServerEntryKey].(int)
 
-	return portServer
+	return &portServerValue
 }
 
 func getDefaultPortServer() *int {
 	defaultServerPort, _ := strconv.Atoi(DefaultServerPort)
 	portServerValue := defaultServerPort
+
 	return &portServerValue
 }
 
-func createEnvironment(mapEntry map[string]any) map[string]any {
-	if mapEntry["environment"] != nil {
-		return mapEntry["environment"].(map[string]any)
+func getVolumes(commandName string, mapEntry map[string]any) []string {
+	if mapEntry[ModuleVolumesEntryKey] == nil {
+		return []string{}
 	}
 
-	return make(map[string]any)
-}
+	var volumes []string
+	for _, value := range mapEntry[ModuleVolumesEntryKey].([]any) {
+		var volume string = value.(string)
+		if runtime.GOOS == "windows" && strings.Contains(volume, "$CWD") {
+			cwd := GetCurrentWorkDirPath(commandName)
+			volume = strings.ReplaceAll(volume, "$CWD", cwd)
+		}
 
-func createResources(mapEntry map[string]any) map[string]any {
-	if mapEntry["resources"] != nil {
-		return mapEntry["resources"].(map[string]any)
+		if _, err := os.Stat(volume); os.IsNotExist(err) {
+			if err != nil {
+				slog.Error(commandName, GetFuncName(), "os.IsNotExist error")
+				panic(err)
+			}
+		}
+
+		volumes = append(volumes, volume)
 	}
 
-	return make(map[string]any)
+	return volumes
 }
 
-func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMaps ...map[string]any) map[string]FrontendModule {
+func GetFrontendModulesFromConfig(commandName string, printOutput bool, frontendModulesAnyMaps ...map[string]any) map[string]FrontendModule {
+	if len(frontendModulesAnyMaps) == 0 {
+		if printOutput {
+			slog.Info(commandName, GetFuncName(), "No frontend modules were found in config")
+		}
+
+		return make(map[string]FrontendModule)
+	}
+
 	frontendModulesMap := make(map[string]FrontendModule)
 
 	for _, frontendModulesAnyMap := range frontendModulesAnyMaps {
@@ -234,12 +280,12 @@ func GetFrontendModulesFromConfig(commandName string, frontendModulesAnyMaps ...
 			if value != nil {
 				mapEntry := value.(map[string]any)
 
-				if mapEntry["deploy-module"] != nil {
-					deployModule = mapEntry["deploy-module"].(bool)
+				if mapEntry[ModuleDeployModuleEntryKey] != nil {
+					deployModule = mapEntry[ModuleDeployModuleEntryKey].(bool)
 				}
 
-				if mapEntry["version"] != nil {
-					versionValue := mapEntry["version"].(string)
+				if mapEntry[ModuleVersionEntryKey] != nil {
+					versionValue := mapEntry[ModuleVersionEntryKey].(string)
 					version = &versionValue
 				}
 			}
@@ -352,16 +398,57 @@ func HasTenant(tenant string) bool {
 	return slices.Contains(ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey)), tenant)
 }
 
-func DeployUi(tenant string) bool {
+func CanDeployUi(tenant string) bool {
 	mapEntry, ok := viper.GetStringMap(TenantsKey)[tenant].(map[string]any)
 	if !ok {
 		return false
 	}
 
-	deployUi, ok := mapEntry["deploy-ui"]
+	deployUi, ok := mapEntry[TenantsDeployUiEntryKey]
 	if !ok || deployUi == nil || !deployUi.(bool) {
 		return false
 	}
 
 	return true
+}
+
+func GetRequiredContainers(commandName string, requiredContainers []string) []string {
+	if CanDeployModule(ModSearchModuleName) {
+		requiredContainers = append(requiredContainers, ElasticsearchContainerName)
+	}
+	if CanDeployModule(ModDataExportWorkerModuleName) {
+		requiredContainers = append(requiredContainers, []string{MinioContainerName, CreateBucketsContainerName, FtpServerContainerName}...)
+	}
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Retrieved required containers: %s", requiredContainers))
+
+	return requiredContainers
+}
+
+func CanDeployModule(module string) bool {
+	for name, value := range viper.GetStringMap(BackendModulesKey) {
+		if name == module {
+			if value == nil {
+				return true
+			}
+
+			deployModule, ok := value.(map[string]any)[ModuleDeployModuleEntryKey]
+			if !ok {
+				return true
+			}
+
+			return deployModule != nil && deployModule.(bool)
+		}
+	}
+
+	return false
+}
+
+func ExtractPortFromUrl(commandName string, url string) int {
+	sidecarServer, err := strconv.Atoi(strings.TrimSpace(regexp.MustCompile(ColonDelimitedPattern).ReplaceAllString(url, `$1`)))
+	if err != nil {
+		slog.Error(commandName, GetFuncName(), "strconv.Atoi error")
+		panic(err)
+	}
+
+	return sidecarServer
 }

@@ -119,8 +119,8 @@ func LogErrorPrintStderrPanic(commandName string, errorMessage string, stackTrac
 func LogWarn(commandName string, enableDebug bool, errorMessage string) {
 	if !enableDebug {
 		return
-
 	}
+
 	slog.Warn(commandName, GetFuncName(), errorMessage)
 }
 
@@ -226,6 +226,16 @@ func CopySingleFile(commandName string, srcPath string, dstPath string) {
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Copied a single file from %s to %s", filepath.FromSlash(srcPath), filepath.FromSlash(dstPath)))
 }
 
+func GetCurrentWorkDirPath(commandName string) string {
+	path, err := os.Getwd()
+	if err != nil {
+		slog.Error(commandName, GetFuncName(), "json.Marshal error")
+		panic(err)
+	}
+
+	return path
+}
+
 // ######## Runtime ########
 
 func GetFuncName() string {
@@ -257,7 +267,7 @@ func IsPortFree(commandName string, portStart, portEnd int, port int) bool {
 	return true
 }
 
-func IsHostnameExists(commandName string, hostname string) bool {
+func HostnameExists(commandName string, hostname string) bool {
 	_, err := net.LookupHost(hostname)
 	if err != nil {
 		slog.Debug(commandName, GetFuncName(), fmt.Sprintf("Host %s is unreacheable: %s", hostname, err.Error()))

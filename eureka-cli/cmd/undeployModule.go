@@ -41,11 +41,11 @@ func UndeployModule() {
 	client := internal.CreateDockerClient(undeployModuleCommand)
 	defer client.Close()
 
-	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(internal.SingleModuleContainerPattern, viper.GetString(internal.ProfileNameKey), moduleName), true)
+	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(internal.SingleModuleContainerPattern, viper.GetString(internal.ProfileNameKey), withModuleName), true)
 }
 
 func init() {
 	rootCmd.AddCommand(undeployModuleCmd)
-	undeployModuleCmd.PersistentFlags().StringVarP(&moduleName, "moduleName", "m", "", "Module name, e.g. mod-users (required)")
+	undeployModuleCmd.PersistentFlags().StringVarP(&withModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders (required)")
 	undeployModuleCmd.MarkPersistentFlagRequired("moduleName")
 }

@@ -28,12 +28,15 @@ import (
 
 const (
 	deploySystemCommand string = "Deploy System"
-	folioKeycloakDir    string = "folio-keycloak"
-	folioKongDir        string = "folio-kong"
+
+	folioKeycloakDir string = "folio-keycloak"
+	folioKongDir     string = "folio-kong"
 
 	defaultFolioKeycloakBranchName plumbing.ReferenceName = "master"
 	defaultFolioKongBranchName     plumbing.ReferenceName = "master"
 )
+
+var coreRequiredContainers = []string{"postgres", "zookeeper", "kafka", "vault", "keycloak", "keycloak-internal", "kong"}
 
 // deploySystemCmd represents the deploySystem command
 var deploySystemCmd = &cobra.Command{
@@ -46,42 +49,54 @@ var deploySystemCmd = &cobra.Command{
 }
 
 func DeploySystem() {
-	folioKeycloakOutputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, folioKeycloakDir)
-	folioKongOutputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, folioKongDir)
+	cloneUpdateSystemComponents()
 
-	slog.Info(deploySystemCommand, internal.GetFuncName(), "### CLONING & UPDATING SYSTEM COMPONENTS ###")
+	var preparedCommands []*exec.Cmd
+	if withBuildImages {
+		preparedCommands = []*exec.Cmd{exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache")}
+	}
 
-	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", folioKeycloakDir, defaultFolioKeycloakBranchName))
-	internal.GitCloneRepository(deploySystemCommand, enableDebug, internal.FolioKeycloakRepositoryUrl, defaultFolioKeycloakBranchName, folioKeycloakOutputDir, false)
-
-	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", folioKongDir, defaultFolioKongBranchName))
-	internal.GitCloneRepository(deploySystemCommand, enableDebug, internal.FolioKongRepositoryUrl, defaultFolioKongBranchName, folioKongOutputDir, false)
-
-	if updateCloned {
-		slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", folioKeycloakDir))
-		internal.GitResetHardPullFromOriginRepository(deploySystemCommand, enableDebug, internal.FolioKeycloakRepositoryUrl, defaultFolioKeycloakBranchName, folioKeycloakOutputDir)
-
-		slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", folioKongDir))
-		internal.GitResetHardPullFromOriginRepository(deploySystemCommand, enableDebug, internal.FolioKongRepositoryUrl, defaultFolioKongBranchName, folioKongOutputDir)
+	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}
+	if withRequired {
+		requiredContainers := internal.GetRequiredContainers(deploySystemCommand, coreRequiredContainers)
+		subCommand = append(subCommand, requiredContainers...)
 	}
 
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "### DEPLOYING SYSTEM CONTAINERS ###")
-	var preparedCommands []*exec.Cmd
-	if buildImages {
-		preparedCommands = []*exec.Cmd{exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache")}
-	}
-	preparedCommands = append(preparedCommands, exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"))
-
+	preparedCommands = append(preparedCommands, exec.Command("docker", subCommand...))
 	for _, preparedCommand := range preparedCommands {
-		internal.RunCommandFromDir(deployManagementCommand, preparedCommand, internal.DockerComposeWorkDir)
+		internal.RunCommandFromDir(deploySystemCommand, preparedCommand, internal.DockerComposeWorkDir)
 	}
+
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "### WAITING FOR SYSTEM TO INITIALIZE ###")
 	time.Sleep(15 * time.Second)
-	slog.Info(deploySystemCommand, internal.GetFuncName(), "All system components have initialized")
+	slog.Info(deploySystemCommand, internal.GetFuncName(), "All system containers have initialized")
+}
+
+func cloneUpdateSystemComponents() {
+	slog.Info(deploySystemCommand, internal.GetFuncName(), "### CLONING & UPDATING SYSTEM COMPONENTS ###")
+
+	folioKeycloakOutputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, folioKeycloakDir)
+	folioKongOutputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, folioKongDir)
+
+	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", folioKeycloakDir, defaultFolioKeycloakBranchName))
+	internal.GitCloneRepository(deploySystemCommand, withEnableDebug, internal.FolioKeycloakRepositoryUrl, defaultFolioKeycloakBranchName, folioKeycloakOutputDir, false)
+
+	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", folioKongDir, defaultFolioKongBranchName))
+	internal.GitCloneRepository(deploySystemCommand, withEnableDebug, internal.FolioKongRepositoryUrl, defaultFolioKongBranchName, folioKongOutputDir, false)
+
+	if withUpdateCloned {
+		slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", folioKeycloakDir))
+		internal.GitResetHardPullFromOriginRepository(deploySystemCommand, withEnableDebug, internal.FolioKeycloakRepositoryUrl, defaultFolioKeycloakBranchName, folioKeycloakOutputDir)
+
+		slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", folioKongDir))
+		internal.GitResetHardPullFromOriginRepository(deploySystemCommand, withEnableDebug, internal.FolioKongRepositoryUrl, defaultFolioKongBranchName, folioKongOutputDir)
+	}
 }
 
 func init() {
 	rootCmd.AddCommand(deploySystemCmd)
-	deploySystemCmd.PersistentFlags().BoolVarP(&buildImages, "buildImages", "b", false, "Build images")
-	deploySystemCmd.PersistentFlags().BoolVarP(&updateCloned, "updateCloned", "u", false, "Update cloned projects")
+	deploySystemCmd.PersistentFlags().BoolVarP(&withBuildImages, "buildImages", "b", false, "Build images")
+	deploySystemCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update cloned projects")
+	deploySystemCmd.PersistentFlags().BoolVarP(&withRequired, "required", "R", false, "Use only required system containers")
 }
