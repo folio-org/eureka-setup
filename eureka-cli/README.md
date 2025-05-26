@@ -219,7 +219,7 @@ eureka-cli getKeycloakAccessToken -t diku
 - Get an Edge API key for a user and tenant
 
 ```bash
-eureka-cli getEdgeApiKey -t diku -U diku_admin
+eureka-cli getEdgeApiKey -t diku -U diku_admin -c config.edge.yaml
 ```
 
 - Check if module internal ports are accessible
