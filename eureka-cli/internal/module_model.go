@@ -136,6 +136,35 @@ func NewBackendModule(dto BackendModuleDto) *BackendModule {
 	}
 }
 
+func createExposedPorts(serverPort int) *nat.PortSet {
+	moduleExposedPorts := make(map[nat.Port]struct{})
+
+	moduleExposedPorts[nat.Port(strconv.Itoa(serverPort))] = struct{}{}
+	moduleExposedPorts[nat.Port(DefaultDebugPort)] = struct{}{}
+
+	portSet := nat.PortSet(moduleExposedPorts)
+
+	return &portSet
+}
+
+func CreatePortBindings(hostServerPort int, hostServerDebugPort int, serverPort int) *nat.PortMap {
+	var (
+		serverPortBinding      []nat.PortBinding
+		serverDebugPortBinding []nat.PortBinding
+	)
+
+	serverPortBinding = append(serverPortBinding, nat.PortBinding{HostIP: DefaultHostIp, HostPort: strconv.Itoa(hostServerPort)})
+	serverDebugPortBinding = append(serverDebugPortBinding, nat.PortBinding{HostIP: DefaultHostIp, HostPort: strconv.Itoa(hostServerDebugPort)})
+
+	portBindings := make(map[nat.Port][]nat.PortBinding)
+	portBindings[nat.Port(strconv.Itoa(serverPort))] = serverPortBinding
+	portBindings[nat.Port(DefaultDebugPort)] = serverDebugPortBinding
+
+	portMap := nat.PortMap(portBindings)
+
+	return &portMap
+}
+
 func CreateResources(isModule bool, resources map[string]any) *container.Resources {
 	if len(resources) == 0 {
 		return createDefaultResources(isModule)
@@ -279,33 +308,4 @@ func NewModuleNetworkConfig() *network.NetworkingConfig {
 			},
 		},
 	}
-}
-
-func createExposedPorts(serverPort int) *nat.PortSet {
-	moduleExposedPorts := make(map[nat.Port]struct{})
-
-	moduleExposedPorts[nat.Port(strconv.Itoa(serverPort))] = struct{}{}
-	moduleExposedPorts[nat.Port(DefaultDebugPort)] = struct{}{}
-
-	portSet := nat.PortSet(moduleExposedPorts)
-
-	return &portSet
-}
-
-func CreatePortBindings(hostServerPort int, hostServerDebugPort int, serverPort int) *nat.PortMap {
-	var (
-		serverPortBinding      []nat.PortBinding
-		serverDebugPortBinding []nat.PortBinding
-	)
-
-	serverPortBinding = append(serverPortBinding, nat.PortBinding{HostIP: DefaultHostIp, HostPort: strconv.Itoa(hostServerPort)})
-	serverDebugPortBinding = append(serverDebugPortBinding, nat.PortBinding{HostIP: DefaultHostIp, HostPort: strconv.Itoa(hostServerDebugPort)})
-
-	portBindings := make(map[nat.Port][]nat.PortBinding)
-	portBindings[nat.Port(strconv.Itoa(serverPort))] = serverPortBinding
-	portBindings[nat.Port(DefaultDebugPort)] = serverDebugPortBinding
-
-	portMap := nat.PortMap(portBindings)
-
-	return &portMap
 }
