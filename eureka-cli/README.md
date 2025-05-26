@@ -75,7 +75,7 @@ eureka-cli -c ./config.combined.yaml deployApplication
 
 > Use the debug flag to troubleshoot your environment deployment to see how the CLI interacts with **Kong** via HTTP
 
-- If you are resource constrained the CLI supports deploying on the environment with only required system containers
+- If you are resource constrained the CLI supports deploying the environment with only required system containers
 
 ```shell
 eureka-cli -c ./config.combined.yaml deployApplication -R
@@ -83,7 +83,7 @@ eureka-cli -c ./config.combined.yaml deployApplication -R
 
 ![CLI Deploy Combined with Only Required System Containers](images/cli_deploy_combined_only_required.png)
 
-> Deploys the system without optional containers such as *netcat*, *kafka-ui*, *minio*, *createbuckets*, *kibana* and *ftp-server*
+> Deploys the system without optional containers depending on the profile, such as *netcat*, *kafka-ui*, *minio*, *createbuckets*, *elasticsearch*, *kibana* and *ftp-server*
 
 ### Undeploy the combined application
 
@@ -163,16 +163,27 @@ The CLI also contains other usual commands to aid with developer productivity. T
 eureka-cli listSystem
 ```
 
-- List deployed modules in a profile
+- List deployed modules
 
 ```bash
-eureka-cli listModules
+# Using the current profile
+eureka-cli -c config.combined.yaml listModules
+
+# For a particular module and its sidecar in a profile
+eureka-cli -c config.combined.yaml listModules -m mod-orders
+
+# Using all modules for all profiles including mgr-*
+eureka-cli -c config.combined.yaml listModules -a
 ```
 
 - List the available module versions in the registry or fetch a specific module descriptor by version
 
 ```bash
-eureka-cli listModuleVersions
+# List versions for a module
+eureka-cli listModuleVersions -m edge-orders
+
+# Get module descriptor for a particular version
+eureka-cli listModuleVersions -m edge-orders -i edge-orders-3.3.0-SNAPSHOT.88
 ```
 
 - Get current Vault Root Token used by the modules
@@ -184,20 +195,41 @@ eureka-cli getVaultRootToken
 - Get Keycloak Access Token for a tenant
 
 ```bash
-eureka-cli getKeycloakAccessToken
+eureka-cli getKeycloakAccessToken -t diku
 ```
 
 - Get an Edge API key for a user and tenant
 
 ```bash
-eureka-cli getEdgeApiKey
+eureka-cli getEdgeApiKey -t diku -U diku_admin
 ```
 
-- Intercept a module gateway in Kong to reroute traffic from the environment to an instance started in IntelliJ
+- Check if module internal ports are accessible
 
 ```bash
-eureka-cli interceptModule
+# Requires *netcat* container to be deployed if the environment is deployed with `-R` flag
+docker compose -f ./misc/docker-compose.yaml -p eureka up -d netcat
+
+eureka-cli checkPorts
 ```
+
+- Intercept a module gateway service in Kong to reroute traffic from the environment to an instance started in IntelliJ
+
+```bash
+# Using mod-orders and custom module and sidecar gateway URLs
+eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1029 -m http://host.docker.internal:36002 -s http://host.docker.internal:37002
+
+# Using mod-orders and default module and sidecar gateway URLs with only ports specified
+# will substitute 36002 for http://host.docker.internal:36002 and 37002 for http://host.docker.internal:37002 internally for Windows and MacOS
+# or http://172.17.0.1:36002 and http://172.17.0.1:37002 respectively for Linux
+# or use `application.gateway-hostname` specified in the config
+eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1029 -g -m 36002 -s 37002
+
+# To restore both the module and sidecar in the environment as before the gateway service interception
+eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1029 -r
+```
+
+![CLI Intercept Module Default](images/cli_intercept_module_default.png)
 
 > See docs/DEVELOPMENT.md for more information on `interceptModule` command or use `-h` or `--help` flag to see some examples
 

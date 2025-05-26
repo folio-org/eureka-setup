@@ -269,7 +269,6 @@ services:
       retries: 10
   
   ### Elasticsearch (required for mod-search), Kibana (optional) ###
-  # An optional service when deploying mod-search
   kibana:
     container_name: kibana
     image: bitnami/kibana:8.18.0
@@ -291,7 +290,6 @@ services:
       timeout: 10s
       retries: 120
  
-  # A required service when deploying mod-search
   elasticsearch:
     container_name: elasticsearch
     image: bitnami/elasticsearch:8.18.0
