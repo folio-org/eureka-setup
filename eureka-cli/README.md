@@ -68,6 +68,8 @@ source ~/.bash_profile
 - Use a specific config: `-c` or `--config`
 - Enable debug: `-d` or `--debug`
 - Use only required system containers: `-R` or `--onlyRequired`
+- Force-build system Docker images: `-b` or `--buildImages`
+- Update Git Cloned projects: `-u` or `--updateCloned`
 
 ```shell
 eureka-cli -c ./config.combined.yaml deployApplication
@@ -88,6 +90,14 @@ eureka-cli -c ./config.combined.yaml deployApplication -R
 ![CLI Deploy Combined with Only Required System Containers](images/cli_deploy_combined_only_required.png)
 
 > Deploys the system without optional containers depending on the profile, such as *netcat*, *kafka-ui*, *minio*, *createbuckets*, *elasticsearch*, *kibana* and *ftp-server*
+
+- In case you want to update your local repositories of *folio-kong*, *folio-keycloak* and *platform-complete* (UI), you can do so with the combined `-bu` flags
+
+```shell
+eureka-cli -c ./config.combined.yaml deployApplication -bu
+```
+
+> This will update the cloned projects and force-build Docker images locally before deploying the environment
 
 ### Undeploy the combined application
 
@@ -119,7 +129,7 @@ AWS_SDK_LOAD_CONFIG=true eureka-cli -c ./config.combined.yaml deployApplication
 
 ### Deploy child applications
 
-The CLI also supports deploying child applications on top of the existing one. The command used is `deployApplication` that behave differently when `application.dependencies` is being set in the config file.
+The CLI also supports deploying child applications on top of the existing one. The command used is `deployApplication` that behaves differently when `application.dependencies` is being set in the config file.
 
 #### Deploy the export application
 
@@ -230,8 +240,7 @@ eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT
 
 # Using mod-orders and default module and sidecar gateway URLs with only ports specified
 # will substitute 36002 for http://host.docker.internal:36002 and 37002 for http://host.docker.internal:37002 internally for Windows and MacOS
-# or http://172.17.0.1:36002 and http://172.17.0.1:37002 respectively for Linux
-# or use `application.gateway-hostname` specified in the config
+# or http://172.17.0.1:36002 and http://172.17.0.1:37002 respectively for Linux or specify `application.gateway-hostname` explicitly in the config
 eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1029 -g -m 36002 -s 37002
 
 # To restore both the module and sidecar in the environment as before the gateway service interception
@@ -241,6 +250,51 @@ eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT
 ![CLI Intercept Module Default](images/cli_intercept_module_default.png)
 
 > See docs/DEVELOPMENT.md for more information on `interceptModule` command or use `-h` or `--help` flag to see some examples
+
+## Using a custom folio-module-sidecar
+
+If your workflow relies on a custom implementation of *folio-module-sidecar*, the CLI also supports deploying an environment with sidecars using a custom Docker image.
+
+- Git clone **folio-module-sidecar** from GitHub
+
+```bash
+git clone https://github.com/folio-org/folio-module-sidecar.git
+```
+
+- Apply your changes locally & build a custom local image
+
+```bash
+cd folio-module-sidecar
+mvn clean package -DskipTests
+docker build --tag custom-folio-module-sidecar:1.0.0 .
+```
+
+> This example uses a non-native image build, see <https://github.com/folio-org/folio-module-sidecar/blob/master/README.md> for how to build a native Docker image
+
+- Use the newly built `custom-folio-module-sidecar:1.0.0` local image in your config by replacing `sidecar-module.image` with `sidecar-module.local-image` key
+
+```yaml
+sidecar-module:
+  local-image: custom-folio-module-sidecar
+  version: 1.0.0
+...
+```
+
+- Deploy the environment with this config, in our example we deploy an *edge* application with  `custom-folio-module-sidecar:1.0.0` sidecars
+
+```bash
+eureka-cli -c config.edge.yaml deployApplication
+```
+
+![CLI Use Custom Folio Module Sidecar (1/2)](images/cli_use_custom_folio_module_sidecar_1.png)
+
+- Check the sidecar image version after application deployment
+
+```bash
+eureka-cli -c config.edge.yaml listModules
+```
+
+![CLI Use Custom Folio Module Sidecar (2/2)](images/cli_use_custom_folio_module_sidecar_2.png)
 
 ## Using the environment
 

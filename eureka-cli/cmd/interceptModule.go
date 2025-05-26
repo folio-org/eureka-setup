@@ -173,10 +173,11 @@ func deployModule(dto *InterceptModuleDto, client *client.Client) {
 }
 
 func deploySidecar(printModuleEnvironment bool, dto *InterceptModuleDto, client *client.Client) {
-	sidecarImage := internal.GetSidecarImage(interceptModuleCommand, dto.deployModulesDto.RegistryModules[internal.EurekaRegistry])
+	sidecarImage, pullSidecarImage := internal.GetSidecarImage(interceptModuleCommand, dto.deployModulesDto.RegistryModules[internal.EurekaRegistry])
 	sidecarResources := internal.CreateResources(false, viper.GetStringMap(internal.SidecarModuleResourcesKey))
 	sidecarEnvironment := internal.GetSidecarEnvironment(dto.deployModulesDto, dto.registryModule, *dto.backendModule, dto.moduleUrl, dto.sidecarUrl)
 	sidecarDeployDto := internal.NewDeploySidecarDto(dto.registryModule.SidecarName, sidecarImage, sidecarEnvironment, *dto.backendModule, dto.networkConfig, sidecarResources)
+	sidecarDeployDto.PullImage = pullSidecarImage
 	internal.DeployModule(interceptModuleCommand, client, sidecarDeployDto)
 
 	if printModuleEnvironment {

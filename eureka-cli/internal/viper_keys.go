@@ -34,11 +34,12 @@ const (
 	UsersKey string = "users"
 	RolesKey string = "roles"
 
-	SidecarModuleKey             string = "sidecar-module"
-	SidecarModuleEnvironmentKey  string = "sidecar-module.environment"
-	SidecarModuleResourcesKey    string = "sidecar-module.resources"
-	SidecarModuleImageEntryKey   string = "image"
-	SidecarModuleVersionEntryKey string = "version"
+	SidecarModuleKey                string = "sidecar-module"
+	SidecarModuleEnvironmentKey     string = "sidecar-module.environment"
+	SidecarModuleResourcesKey       string = "sidecar-module.resources"
+	SidecarModuleImageEntryKey      string = "image"
+	SidecarModuleLocalImageEntryKey string = "local-image"
+	SidecarModuleVersionEntryKey    string = "version"
 
 	BackendModulesKey        string = "backend-modules"
 	FrontendModulesKey       string = "frontend-modules"

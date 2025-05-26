@@ -142,11 +142,16 @@ func GetModuleImageVersion(backendModule BackendModule, registryModule *Registry
 	return *registryModule.Version
 }
 
-func GetSidecarImage(commandName string, registryModules []*RegistryModule) string {
+func GetSidecarImage(commandName string, registryModules []*RegistryModule) (string, bool) {
 	sidecarModule := viper.GetStringMap(SidecarModuleKey)
 	sidecarImageVersion := getSidecarImageVersion(commandName, registryModules, sidecarModule[SidecarModuleVersionEntryKey])
 
-	return fmt.Sprintf("%s/%s", GetImageRegistryNamespace(commandName, sidecarImageVersion), fmt.Sprintf("%s:%s", sidecarModule[SidecarModuleImageEntryKey].(string), sidecarImageVersion))
+	localImage := sidecarModule[SidecarModuleLocalImageEntryKey]
+	if localImage != nil && localImage.(string) != "" {
+		return fmt.Sprintf("%s:%s", localImage.(string), sidecarImageVersion), false
+	}
+
+	return fmt.Sprintf("%s/%s", GetImageRegistryNamespace(commandName, sidecarImageVersion), fmt.Sprintf("%s:%s", sidecarModule[SidecarModuleImageEntryKey].(string), sidecarImageVersion)), false
 }
 
 func getSidecarImageVersion(commandName string, registryModules []*RegistryModule, sidecarConfigVersion any) string {
