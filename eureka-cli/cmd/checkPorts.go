@@ -29,7 +29,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const checkPortsCommand = "Undeploy Modules"
+const checkPortsCommand = "Check Ports"
 
 // checkPortsCmd represents the checkPorts command
 var checkPortsCmd = &cobra.Command{
@@ -51,7 +51,7 @@ func CheckPorts() {
 
 func deployNetcatContainer() {
 	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach", "netcat")
-	internal.RunCommandFromDir(deploySystemCommand, preparedCommand, internal.DockerComposeWorkDir)
+	internal.RunCommandFromDir(checkPortsCommand, preparedCommand, internal.DockerComposeWorkDir)
 }
 
 func getDeployedModules() []types.Container {
@@ -71,7 +71,7 @@ func runNetcat(modules []types.Container) {
 
 		for _, portPair := range module.Ports {
 			modulePrivatePort := strconv.Itoa(int(portPair.PrivatePort))
-			internal.RunCommandIgnoreError(listSystemCommand, exec.Command("docker", "exec", "-i", "netcat", "nc", "-zv", moduleName, modulePrivatePort))
+			internal.RunCommandIgnoreError(checkPortsCommand, exec.Command("docker", "exec", "-i", "netcat", "nc", "-zv", moduleName, modulePrivatePort))
 		}
 	}
 }
