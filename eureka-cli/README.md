@@ -240,7 +240,7 @@ eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT
 
 # Using mod-orders and default module and sidecar gateway URLs with only ports specified
 # will substitute 36002 for http://host.docker.internal:36002 and 37002 for http://host.docker.internal:37002 internally for Windows and MacOS
-# or http://172.17.0.1:36002 and http://172.17.0.1:37002 respectively for Linux or use `application.gateway-hostname` specified in the config
+# or http://172.17.0.1:36002 and http://172.17.0.1:37002 respectively for Linux or specify `application.gateway-hostname` explicitly in the config
 eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1029 -g -m 36002 -s 37002
 
 # To restore both the module and sidecar in the environment as before the gateway service interception
