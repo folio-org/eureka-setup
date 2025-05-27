@@ -104,8 +104,6 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 					DeployModule(commandName, client, sidecarDeployDto)
 				}()
 			}
-
-			time.Sleep(5 * time.Second)
 		}
 	}
 
