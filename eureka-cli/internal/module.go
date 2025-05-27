@@ -151,7 +151,7 @@ func GetSidecarImage(commandName string, registryModules []*RegistryModule) (str
 		return fmt.Sprintf("%s:%s", localImage.(string), sidecarImageVersion), false
 	}
 
-	return fmt.Sprintf("%s/%s", GetImageRegistryNamespace(commandName, sidecarImageVersion), fmt.Sprintf("%s:%s", sidecarModule[SidecarModuleImageEntryKey].(string), sidecarImageVersion)), false
+	return fmt.Sprintf("%s/%s", GetImageRegistryNamespace(commandName, sidecarImageVersion), fmt.Sprintf("%s:%s", sidecarModule[SidecarModuleImageEntryKey].(string), sidecarImageVersion)), true
 }
 
 func getSidecarImageVersion(commandName string, registryModules []*RegistryModule, sidecarConfigVersion any) string {
