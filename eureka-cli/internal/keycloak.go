@@ -66,13 +66,11 @@ func UpdateKeycloakPublicClientParams(commandName string, enableDebug bool, tena
 	getRequestUrl := fmt.Sprintf("%s/admin/realms/%s/clients?clientId=%s", KeycloakUrl, tenant, clientId)
 	foundClients := DoGetDecodeReturnAny(commandName, getRequestUrl, enableDebug, true, headers).([]any)
 	if len(foundClients) != 1 {
-		LogErrorPanic(commandName, fmt.Sprintf("internal.UpdateKeycloakPublicClientParams - Number of found cliends by %s client id is not 1", clientId))
+		LogErrorPanic(commandName, fmt.Sprintf("internal.UpdateKeycloakPublicClientParams - Number of found clients by %s client id is not 1", clientId))
 		return
 	}
 
 	clientUuid := foundClients[0].(map[string]any)["id"].(string)
-
-	putRequestUrl := fmt.Sprintf("%s/admin/realms/%s/clients/%s", KeycloakUrl, tenant, clientUuid)
 	clientParamsBytes, err := json.Marshal(map[string]any{
 		"rootUrl":                      platformCompleteUrl,
 		"baseUrl":                      platformCompleteUrl,
@@ -91,6 +89,7 @@ func UpdateKeycloakPublicClientParams(commandName string, enableDebug bool, tena
 		panic(err)
 	}
 
+	putRequestUrl := fmt.Sprintf("%s/admin/realms/%s/clients/%s", KeycloakUrl, tenant, clientUuid)
 	DoPutReturnNoContent(commandName, putRequestUrl, enableDebug, clientParamsBytes, headers)
 
 	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Updated keycloak public '%s' client in '%s' realm", clientId, tenant))

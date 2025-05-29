@@ -59,4 +59,5 @@ func UndeployChildApplication() {
 
 func init() {
 	rootCmd.AddCommand(undeployApplicationCmd)
+	undeployApplicationCmd.PersistentFlags().BoolVarP(&withPurgeSchemas, "purgeSchemas", "S", false, "Purge schemas in PostgreSQL on uninstallation")
 }
