@@ -64,7 +64,7 @@ func DeployChildApplication() {
 
 func init() {
 	rootCmd.AddCommand(deployApplicationCmd)
-	deployApplicationCmd.PersistentFlags().BoolVarP(&withBuildImages, "buildImages", "b", false, "Build images")
-	deployApplicationCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update cloned projects")
-	deployApplicationCmd.PersistentFlags().BoolVarP(&withRequired, "onlyRequired", "R", false, "Use only required system containers")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&withBuildImages, "buildImages", "b", false, "Build Docker images")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&withOnlyRequired, "onlyRequired", "R", false, "Use only required system containers")
 }

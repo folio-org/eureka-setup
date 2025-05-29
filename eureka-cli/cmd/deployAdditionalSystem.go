@@ -41,12 +41,12 @@ func DeployAdditionalSystem() {
 
 	additionalRequiredContainers := internal.GetRequiredContainers(deployAdditionalSystemCommand, []string{})
 	if len(additionalRequiredContainers) == 0 {
-		slog.Info(deployAdditionalSystemCommand, internal.GetFuncName(), "No addititional system containers deployed")
+		slog.Info(deployAdditionalSystemCommand, internal.GetFuncName(), "No additional system containers deployed")
 		return
 	}
 
 	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}, additionalRequiredContainers...)
-	internal.RunCommandFromDir(deployAdditionalSystemCommand, exec.Command("docker", subCommand...), internal.DockerComposeWorkDir)
+	internal.RunCommandFromDir(deployAdditionalSystemCommand, exec.Command("docker", subCommand...), internal.GetHomeMiscDir(deployAdditionalSystemCommand))
 
 	slog.Info(deployAdditionalSystemCommand, internal.GetFuncName(), "### WAITING FOR SYSTEM TO INITIALIZE ###")
 	time.Sleep(15 * time.Second)

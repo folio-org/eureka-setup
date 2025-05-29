@@ -4,11 +4,15 @@ networks:
     driver: bridge
 
 volumes:
-  postgres-data: 
+  postgres-data:
     name: eureka_postgres_data
-  vault-data: 
+  vault-data:
     name: eureka_vault_data
-  kafka-data: 
+  vault-file:
+    name: eureka_vault_file
+  vault-logs:
+    name: eureka_vault_logs
+  kafka-data:
     name: eureka_kafka_data
   minio-data:
     name: eureka_minio_data
@@ -23,12 +27,12 @@ services:
       context: .
       dockerfile_inline: |
         FROM nginx:1.27.4
-        RUN apt update; apt install netcat-traditional -y 
+        RUN apt update; apt install netcat-traditional -y
     image: netcat:latest
     restart: unless-stopped
-    cpus: '0.25'
+    cpus: "0.25"
     mem_limit: 35m
-    networks: 
+    networks:
       - eureka-net
     healthcheck:
       test: nc -zv localhost 80 || exit -1
@@ -52,12 +56,12 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks: 
+    networks:
       - eureka-net
     ports:
       - "5432:5432"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready" ]
+      test: ["CMD-SHELL", "pg_isready"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -67,7 +71,7 @@ services:
     container_name: kafka-ui
     image: provectuslabs/kafka-ui:v0.7.2
     restart: unless-stopped
-    cpus: '0.5'
+    cpus: "0.5"
     mem_limit: 350m
     depends_on:
       zookeeper:
@@ -78,7 +82,7 @@ services:
       KAFKA_CLUSTERS_0_NAME: kafka-local
       KAFKA_CLUSTERS_0_JMXPORT: 9997
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka.eureka:9091
-    networks: 
+    networks:
       - eureka-net
     ports:
       - "9080:8080"
@@ -100,7 +104,7 @@ services:
       ZOO_TICK_TIME: 2000
       ZOO_LOG_LEVEL: INFO
       ALLOW_ANONYMOUS_LOGIN: "yes"
-    networks: 
+    networks:
       - eureka-net
     ports:
       - "2181:2181"
@@ -132,12 +136,19 @@ services:
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
     volumes:
       - kafka-data:/kafka
-    networks: 
+    networks:
       - eureka-net
     ports:
       - "9092:9092"
     healthcheck:
-      test: [ "CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9091", "--list" ]
+      test:
+        [
+          "CMD",
+          "kafka-topics.sh",
+          "--bootstrap-server",
+          "localhost:9091",
+          "--list",
+        ]
       interval: 10s
       timeout: 5s
       retries: 15
@@ -156,13 +167,15 @@ services:
       VAULT_API_ADDR: http://0.0.0.0:8200
     volumes:
       - vault-data:/vault/data:rw
-    cap_add: [ IPC_LOCK ]
-    networks: 
+      - vault-file:/vault/file
+      - vault-logs:/vault/logs
+    cap_add: [IPC_LOCK]
+    networks:
       - eureka-net
     ports:
       - "8200:8200"
     healthcheck:
-      test: [ "CMD", "vault", "status" ]
+      test: ["CMD", "vault", "status"]
       interval: 5s
       timeout: 10s
       retries: 30
@@ -178,12 +191,12 @@ services:
       - keycloak-internal
     volumes:
       - ./folio-keycloak-nginx/keycloak-nginx.conf:/etc/nginx/nginx.conf:ro
-    networks: 
+    networks:
       - eureka-net
     ports:
       - "8080:8080"
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080" ]
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
       interval: 15s
       timeout: 2s
       retries: 15
@@ -221,7 +234,7 @@ services:
       KC_HOSTNAME_STRICT_HTTPS: false
       KC_LOG_LEVEL: INFO
       JAVA_OPTS_APPEND: "-Xms768m -Xmx1024m"
-    networks: 
+    networks:
       - eureka-net
 
   ### Kong (required) ###
@@ -256,18 +269,18 @@ services:
       KONG_PLUGINS: bundled
       KONG_LOG_LEVEL: debug
       ENV: local
-    networks: 
+    networks:
       - eureka-net
     ports:
       - "8000:8000"
       - "8001:8001"
       - "8002:8002"
     healthcheck:
-      test: [ "CMD", "kong", "health" ]
+      test: ["CMD", "kong", "health"]
       interval: 10s
       timeout: 10s
       retries: 10
-  
+
   ### Elasticsearch (required for mod-search), Kibana (optional) ###
   kibana:
     container_name: kibana
@@ -280,16 +293,20 @@ services:
         condition: service_healthy
     environment:
       ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
-    networks: 
+    networks:
       - eureka-net
     ports:
-      - 15601:5601 
+      - 15601:5601
     healthcheck:
-      test: [ "CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'" ]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'",
+        ]
       interval: 10s
       timeout: 10s
       retries: 120
- 
+
   elasticsearch:
     container_name: elasticsearch
     image: bitnami/elasticsearch:8.18.0
@@ -297,9 +314,8 @@ services:
     cpus: 1
     mem_limit: 2g
     environment:
-      ELASTICSEARCH_PLUGINS:
-        "analysis-icu,analysis-kuromoji,analysis-smartcn,analysis-nori,analysis-phonetic"
-    networks: 
+      ELASTICSEARCH_PLUGINS: "analysis-icu,analysis-kuromoji,analysis-smartcn,analysis-nori,analysis-phonetic"
+    networks:
       - eureka-net
     ports:
       - 9200:9200
@@ -309,7 +325,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 30
-  
+
   ### Minio (required for mod-data-export-worker), Minio MC (required) ###
   minio:
     container_name: minio
@@ -319,20 +335,20 @@ services:
     mem_limit: 500m
     volumes:
       - minio-data:/data
-    networks: 
+    networks:
       - eureka-net
     ports:
       - 9000:9000
       - 9001:9001
     healthcheck:
       test: "curl -k -f http://127.0.0.1:9001/minio/health/live || exit 1"
- 
+
   createbuckets: # This container will terminate after running its commands to create a bucket in minio
     container_name: createbuckets
     image: minio/mc:RELEASE.2025-03-12T17-29-24Z
     restart: on-failure
     mem_limit: 300m
-    networks: 
+    networks:
       - eureka-net
     depends_on:
       - minio
@@ -352,7 +368,7 @@ services:
     mem_limit: 100m
     volumes:
       - ftp-data:/home/folio
-    networks: 
+    networks:
       - eureka-net
     environment:
       - PUBLIC_IP=0.0.0.0
@@ -360,4 +376,4 @@ services:
       - FTP_PASS=folio
     ports:
       - "20-21:20-21/tcp"
-      - "40000-40009:40000-40009/tcp" 
+      - "40000-40009:40000-40009/tcp"

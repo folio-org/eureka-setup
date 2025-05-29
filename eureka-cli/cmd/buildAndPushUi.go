@@ -43,7 +43,7 @@ func BuildAndPushUi() {
 	start := time.Now()
 
 	slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", platformCompleteDir, defaultStripesBranch))
-	outputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
+	outputDir := fmt.Sprintf("%s/%s", internal.GetHomeMiscDir(deployUiCommand), platformCompleteDir)
 	stripesBranch := internal.GetStripesBranch(deployUiCommand, defaultStripesBranch)
 	internal.GitCloneRepository(deployUiCommand, withEnableDebug, internal.PlatformCompleteRepositoryUrl, stripesBranch, outputDir, false)
 
@@ -87,7 +87,7 @@ func init() {
 	rootCmd.AddCommand(buildAndPushUiCmd)
 	buildAndPushUiCmd.PersistentFlags().StringVarP(&withTenant, "tenant", "t", "", "Tenant (required)")
 	buildAndPushUiCmd.PersistentFlags().StringVarP(&withNamespace, "namespace", "n", "", "DockerHub namespace (required)")
-	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update cloned projects")
+	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withEnableEcsRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
 	buildAndPushUiCmd.MarkPersistentFlagRequired("tenant")
 	buildAndPushUiCmd.MarkPersistentFlagRequired("namespace")
