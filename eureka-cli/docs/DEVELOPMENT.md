@@ -19,9 +19,9 @@
 
 ### Enable Debugger in VSCode to analyze Eureka CLI commands
 
-- Go to *Run And Debug* in the VSCode
-- Click on *create a launch.json file*
-- Select *GO* and then *GO: Launch Package*
+- Go to _Run And Debug_ in the VSCode
+- Click on _create a launch.json file_
+- Select _GO_ and then _GO: Launch Package_
 - Replace the generated `launch.json` with the one below and save
 
 ```json
@@ -36,11 +36,11 @@
       "program": "${cwd}/eureka-cli",
       "output": "${cwd}/bin/eureka-cli-debug.exe",
       "env": {
-        "GOOS": "windows", 
+        "GOOS": "windows",
         "GOARCH": "amd64"
       },
       "args": ["--config", "config.combined.yaml", "deployApplication", "-d"],
-      "showLog": true,
+      "showLog": true
     },
     {
       "name": "Eureka CLI interceptModule command",
@@ -50,21 +50,27 @@
       "program": "${cwd}/eureka-cli",
       "output": "${cwd}/bin/eureka-cli-debug.exe",
       "env": {
-        "GOOS": "windows", 
+        "GOOS": "windows",
         "GOARCH": "amd64"
       },
-      "args": ["--config", "config.combined.yaml", "interceptModule", 
-        "-i", "mod-orders:13.1.0-SNAPSHOT.1021",
-        "-m", "http://host.docker.internal:36001",
-        "-s", "http://host.docker.internal:37001"
+      "args": [
+        "--config",
+        "config.combined.yaml",
+        "interceptModule",
+        "-i",
+        "mod-orders:13.1.0-SNAPSHOT.1021",
+        "-m",
+        "http://host.docker.internal:36001",
+        "-s",
+        "http://host.docker.internal:37001"
       ],
-      "showLog": true,
+      "showLog": true
     }
   ]
 }
 ```
 
-- Add breakpoints and click on *RUN AND DEBUG Start Debugging*
+- Add breakpoints and click on _RUN AND DEBUG Start Debugging_
 
 > Must undeploy previously deployed application before starting
 
@@ -73,13 +79,13 @@
 ### Enable Module Interception in IntelliJ (an example for mod-orders and mod-finance)
 
 - `cd` into `eureka-setup/eureka-cli`
-- Deploy the Eureka environment using the *combined* profile: `eureka-cli -c config.combined.yaml deployApplication`
+- Deploy the Eureka environment using the _combined_ profile: `eureka-cli -c config.combined.yaml deployApplication`
 - Deploy the custom sidecars into the Eureka environment
 
 > Verify that `host.docker.internal` is set in `/etc/hosts` or use default Docker Gateway IP `172.17.0.1` in Linux in the URLs
 
 ```bash
-# Find the module id that you want to intercept with listModules command 
+# Find the module id that you want to intercept with listModules command
 eureka-cli -c config.combined.yaml listModules
 
 eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -m http://host.docker.internal:36001 -s http://host.docker.internal:37001
@@ -168,21 +174,21 @@ OKAPI_URL=http://localhost:37002
 </tbody>
 </table>
 
-- Perform module healthchecks: `curl -sw "\n" --connect-timeout 3 http://localhost:36001/admin/health http://localhost:36002/admin/health`
+- Perform module health checks: `curl -sw "\n" --connect-timeout 3 http://localhost:36001/admin/health http://localhost:36002/admin/health`
 
-> Expect: *"OK"*
+> Expect: _"OK"_
 
 - Perform sidecar healthchecks: `curl -sw "\n" --connect-timeout 3 http://localhost:37001/admin/health http://localhost:37002/admin/health`
 
-> Expect: *{ "status": "UP" }*
+> Expect: _{ "status": "UP" }_
 
-- Finally test *mod-finance* interception by creating a *Fund Budget* in the *Finance App*
+- Finally test _mod-finance_ interception by creating a _Fund Budget_ in the _Finance App_
 
-> Expect: Logs being created for *mod-finance* deployed in IntelliJ
+> Expect: Logs being created for _mod-finance_ deployed in IntelliJ
 
-- After that, create a *Purchase Order* with a *Purchase Order Line* and an attached *Fund Distribution*, using the *Fund* created in the *Finance App*, within the *Orders App*
+- After that, create a _Purchase Order_ with a _Purchase Order Line_ and an attached _Fund Distribution_, using the _Fund_ created in the _Finance App_, within the _Orders App_
 
-> Expect: Logs being created for *mod-orders* and *mod-finance* deployed in IntelliJ
+> Expect: Logs being created for _mod-orders_ and _mod-finance_ deployed in IntelliJ
 
 ### Disable Module Interception
 

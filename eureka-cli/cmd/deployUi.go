@@ -143,7 +143,7 @@ func cloneUpdateUi() (outputDir string) {
 	slog.Info(deployUiCommand, internal.GetFuncName(), "### CLONING & UPDATING UI ###")
 
 	slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", platformCompleteDir, defaultStripesBranch))
-	outputDir = fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, platformCompleteDir)
+	outputDir = fmt.Sprintf("%s/%s", internal.GetHomeMiscDir(deployUiCommand), platformCompleteDir)
 	stripesBranch := internal.GetStripesBranch(deployUiCommand, defaultStripesBranch)
 	internal.GitCloneRepository(deployUiCommand, withEnableDebug, internal.PlatformCompleteRepositoryUrl, stripesBranch, outputDir, false)
 
@@ -157,7 +157,7 @@ func cloneUpdateUi() (outputDir string) {
 
 func init() {
 	rootCmd.AddCommand(deployUiCmd)
-	deployUiCmd.PersistentFlags().BoolVarP(&withBuildImages, "buildImages", "b", false, "Build images")
-	deployUiCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update cloned projects")
+	deployUiCmd.PersistentFlags().BoolVarP(&withBuildImages, "buildImages", "b", false, "Build Docker images")
+	deployUiCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
 	deployUiCmd.PersistentFlags().BoolVarP(&withEnableEcsRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
 }

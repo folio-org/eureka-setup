@@ -49,7 +49,8 @@ var deploySystemCmd = &cobra.Command{
 }
 
 func DeploySystem() {
-	cloneUpdateSystemComponents()
+	homeMiscDir := internal.GetHomeMiscDir(deploySystemCommand)
+	cloneUpdateSystemComponents(homeMiscDir)
 
 	var preparedCommands []*exec.Cmd
 	if withBuildImages {
@@ -57,7 +58,7 @@ func DeploySystem() {
 	}
 
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}
-	if withRequired {
+	if withOnlyRequired {
 		requiredContainers := internal.GetRequiredContainers(deploySystemCommand, coreRequiredContainers)
 		subCommand = append(subCommand, requiredContainers...)
 	}
@@ -65,7 +66,7 @@ func DeploySystem() {
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "### DEPLOYING SYSTEM CONTAINERS ###")
 	preparedCommands = append(preparedCommands, exec.Command("docker", subCommand...))
 	for _, preparedCommand := range preparedCommands {
-		internal.RunCommandFromDir(deploySystemCommand, preparedCommand, internal.DockerComposeWorkDir)
+		internal.RunCommandFromDir(deploySystemCommand, preparedCommand, homeMiscDir)
 	}
 
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "### WAITING FOR SYSTEM TO INITIALIZE ###")
@@ -73,11 +74,11 @@ func DeploySystem() {
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "All system containers have initialized")
 }
 
-func cloneUpdateSystemComponents() {
+func cloneUpdateSystemComponents(homeMiscDir string) {
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "### CLONING & UPDATING SYSTEM COMPONENTS ###")
 
-	folioKeycloakOutputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, folioKeycloakDir)
-	folioKongOutputDir := fmt.Sprintf("%s/%s", internal.DockerComposeWorkDir, folioKongDir)
+	folioKeycloakOutputDir := fmt.Sprintf("%s/%s", homeMiscDir, folioKeycloakDir)
+	folioKongOutputDir := fmt.Sprintf("%s/%s", homeMiscDir, folioKongDir)
 
 	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", folioKeycloakDir, defaultFolioKeycloakBranchName))
 	internal.GitCloneRepository(deploySystemCommand, withEnableDebug, internal.FolioKeycloakRepositoryUrl, defaultFolioKeycloakBranchName, folioKeycloakOutputDir, false)
@@ -96,7 +97,7 @@ func cloneUpdateSystemComponents() {
 
 func init() {
 	rootCmd.AddCommand(deploySystemCmd)
-	deploySystemCmd.PersistentFlags().BoolVarP(&withBuildImages, "buildImages", "b", false, "Build images")
-	deploySystemCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update cloned projects")
-	deploySystemCmd.PersistentFlags().BoolVarP(&withRequired, "required", "R", false, "Use only required system containers")
+	deploySystemCmd.PersistentFlags().BoolVarP(&withBuildImages, "buildImages", "b", false, "Build Docker images")
+	deploySystemCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	deploySystemCmd.PersistentFlags().BoolVarP(&withOnlyRequired, "onlyRequired", "R", false, "Use only required system containers")
 }

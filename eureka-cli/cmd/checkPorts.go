@@ -51,14 +51,14 @@ func CheckPorts() {
 
 func deployNetcatContainer() {
 	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach", "netcat")
-	internal.RunCommandFromDir(checkPortsCommand, preparedCommand, internal.DockerComposeWorkDir)
+	internal.RunCommandFromDir(checkPortsCommand, preparedCommand, internal.GetHomeMiscDir(checkPortsCommand))
 }
 
 func getDeployedModules() []types.Container {
 	client := internal.CreateDockerClient(checkPortsCommand)
 	defer client.Close()
 
-	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.MultipleModulesContainerPattern, viper.GetString(internal.ProfileNameKey))})
+	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.ProfileContainerPattern, viper.GetString(internal.ProfileNameKey))})
 	containers := internal.GetDeployedModules(checkPortsCommand, client, filters)
 
 	return containers

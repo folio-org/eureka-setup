@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"slices"
@@ -16,9 +17,8 @@ import (
 )
 
 const (
-	ConfigDir      string = ".eureka"
-	ConfigCombined string = "config.combined"
-	ConfigType     string = "yaml"
+	ConfigDir  string = ".eureka"
+	ConfigType string = "yaml"
 
 	FolioRegistry  string = "folio"
 	EurekaRegistry string = "eureka"
@@ -42,8 +42,13 @@ const (
 	ManagementModulePattern string = "mgr-"
 	EdgeModulePattern       string = "edge-"
 
-	SingleModuleContainerPattern    string = "^(eureka-%s-)(%[2]s|%[2]s-sc)$"
-	MultipleModulesContainerPattern string = "eureka-%s-*-"
+	AllContainerPattern        string = "^eureka-"
+	ProfileContainerPattern    string = "^eureka-%s"
+	ManagementContainerPattern string = "^eureka-mgr-"
+	ModuleContainerPattern     string = "^eureka-%s-[a-z0-9]+-[a-z0-9]+$"
+	SidecarContainerPattern    string = "^eureka-%s-[a-z0-9]+-[a-z0-9]+-sc$"
+
+	SingleModuleOrSidecarContainerPattern string = "^(eureka-%s-)(%[2]s|%[2]s-sc)$"
 )
 
 const (
@@ -59,6 +64,8 @@ const (
 var (
 	PortStartIndex int = 30000
 	PortEndIndex   int = 30999
+
+	AvailableProfiles = []string{"combined", "export", "search", "edge"}
 )
 
 func GetGatewayUrlTemplate(commandName string) string {
@@ -82,6 +89,10 @@ func GetGatewaySchemaAndUrl(commandName string) string {
 	}
 
 	return schemaAndUrl
+}
+
+func GetHomeMiscDir(commandName string) string {
+	return filepath.Join(GetHomeDirPath(commandName), DockerComposeWorkDir)
 }
 
 func GetBackendModulesFromConfig(commandName string, managementOnly bool, printOutput bool, backendModulesAnyMap map[string]any) map[string]BackendModule {
@@ -241,9 +252,9 @@ func getVolumes(commandName string, mapEntry map[string]any) []string {
 	var volumes []string
 	for _, value := range mapEntry[ModuleVolumesEntryKey].([]any) {
 		var volume string = value.(string)
-		if runtime.GOOS == "windows" && strings.Contains(volume, "$CWD") {
-			cwd := GetCurrentWorkDirPath(commandName)
-			volume = strings.ReplaceAll(volume, "$CWD", cwd)
+		if runtime.GOOS == "windows" && strings.Contains(volume, "$EUREKA") {
+			homeConfigDir := GetHomeDirPath(commandName)
+			volume = strings.ReplaceAll(volume, "$EUREKA", homeConfigDir)
 		}
 
 		if _, err := os.Stat(volume); os.IsNotExist(err) {

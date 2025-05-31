@@ -41,7 +41,7 @@ func UndeployModule() {
 	client := internal.CreateDockerClient(undeployModuleCommand)
 	defer client.Close()
 
-	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(internal.SingleModuleContainerPattern, viper.GetString(internal.ProfileNameKey), withModuleName), true)
+	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(internal.SingleModuleOrSidecarContainerPattern, viper.GetString(internal.ProfileNameKey), withModuleName), true)
 }
 
 func init() {

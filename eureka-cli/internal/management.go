@@ -36,7 +36,7 @@ const (
 )
 
 var (
-	HealthcheckDefaultDuration time.Duration = 30 * time.Second
+	HealthcheckDefaultDuration time.Duration = 10 * time.Second
 
 	ModuleIdRegexp *regexp.Regexp = regexp.MustCompile(ModuleIdPattern)
 )

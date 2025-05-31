@@ -1,0 +1,11 @@
+builds:
+  - id: eureka-cli
+    dir: ./eureka-cli
+    binary: eureka-cli
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+    ldflags: "-s -w"
