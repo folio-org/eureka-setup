@@ -138,10 +138,10 @@ func prepareContainerNetwork(dto *InterceptModuleDto, moduleAndSidecar bool) {
 	dto.networkConfig = internal.NewModuleNetworkConfig()
 
 	if moduleAndSidecar {
-		moduleServerPort := internal.GetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, []int{})
-		moduleDebugPort := internal.GetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, []int{moduleServerPort})
-		sidecarServerPort := internal.GetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, []int{moduleServerPort, moduleDebugPort})
-		sidecarDebugPort := internal.GetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, []int{moduleServerPort, moduleDebugPort, sidecarServerPort})
+		moduleServerPort := internal.GetAndSetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, &internal.ReservedPorts)
+		moduleDebugPort := internal.GetAndSetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, &internal.ReservedPorts)
+		sidecarServerPort := internal.GetAndSetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, &internal.ReservedPorts)
+		sidecarDebugPort := internal.GetAndSetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, &internal.ReservedPorts)
 
 		dto.backendModule, dto.registryModule = internal.GetBackendModule(interceptModuleCommand, dto.deployModulesDto, dto.moduleName)
 		dto.backendModule.ModulePortBindings = internal.CreatePortBindings(moduleServerPort, moduleDebugPort, dto.backendModule.ModuleServerPort)
@@ -151,7 +151,7 @@ func prepareContainerNetwork(dto *InterceptModuleDto, moduleAndSidecar bool) {
 	}
 
 	sidecarServerPort := internal.ExtractPortFromUrl(interceptModuleCommand, *dto.sidecarUrl)
-	sidecarDebugPort := internal.GetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, []int{sidecarServerPort})
+	sidecarDebugPort := internal.GetAndSetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, &internal.ReservedPorts)
 
 	dto.sidecarServerPort = sidecarServerPort
 
@@ -172,19 +172,25 @@ func deploySidecar(printModuleEnvironment bool, dto *InterceptModuleDto, client 
 	sidecarResources := internal.CreateResources(false, viper.GetStringMap(internal.SidecarModuleResourcesKey))
 	sidecarEnvironment := internal.GetSidecarEnvironment(dto.deployModulesDto, dto.registryModule, *dto.backendModule, dto.moduleUrl, dto.sidecarUrl)
 	sidecarDeployDto := internal.NewDeploySidecarDto(dto.registryModule.SidecarName, sidecarImage, sidecarEnvironment, *dto.backendModule, dto.networkConfig, sidecarResources)
+
 	sidecarDeployDto.PullImage = pullSidecarImage
+
 	internal.DeployModule(interceptModuleCommand, client, sidecarDeployDto)
 
 	if printModuleEnvironment {
-		moduleOkapiEnvironment := []string{"OKAPI_HOST=localhost",
-			fmt.Sprintf("OKAPI_PORT=%d", dto.sidecarServerPort),
-			"OKAPI_SERVICE_HOST=localhost",
-			fmt.Sprintf("OKAPI_SERVICE_PORT=%d", dto.sidecarServerPort),
-			fmt.Sprintf("OKAPI_SERVICE_URL=http://localhost:%d", dto.sidecarServerPort),
-			fmt.Sprintf("OKAPI_URL=http://localhost:%d", dto.sidecarServerPort),
-		}
 		moduleEnvironment := internal.GetModuleEnvironment(dto.deployModulesDto, dto.registryModule, *dto.backendModule)
-		moduleEnvironment = append(moduleEnvironment, moduleOkapiEnvironment...)
+
+		if dto.backendModule.UseOkapiUrl {
+			moduleOkapiEnvironment := []string{"OKAPI_HOST=localhost",
+				fmt.Sprintf("OKAPI_PORT=%d", dto.sidecarServerPort),
+				"OKAPI_SERVICE_HOST=localhost",
+				fmt.Sprintf("OKAPI_SERVICE_PORT=%d", dto.sidecarServerPort),
+				fmt.Sprintf("OKAPI_SERVICE_URL=http://localhost:%d", dto.sidecarServerPort),
+				fmt.Sprintf("OKAPI_URL=http://localhost:%d", dto.sidecarServerPort),
+			}
+
+			moduleEnvironment = append(moduleEnvironment, moduleOkapiEnvironment...)
+		}
 
 		fmt.Println()
 		fmt.Printf("### %s ###\n", "Can be embedded into IntelliJ Run/Debug Configuration")

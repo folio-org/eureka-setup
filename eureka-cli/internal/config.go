@@ -64,6 +64,7 @@ const (
 var (
 	PortStartIndex int = 30000
 	PortEndIndex   int = 30999
+	ReservedPorts  []int = []int{}
 
 	AvailableProfiles = []string{"combined", "export", "search", "edge"}
 )
@@ -107,47 +108,69 @@ func GetBackendModulesFromConfig(commandName string, managementOnly bool, printO
 	backendModulesMap := make(map[string]BackendModule)
 
 	for name, value := range backendModulesAnyMap {
-		var dto BackendModuleDto
-		if value == nil {
-			dto = createDefaultBackendDto(commandName, name)
-		} else {
-			dto = createConfigurableBackendDto(commandName, value, name)
+		if managementOnly && !IsManagementModule(name) || !managementOnly && IsManagementModule(name) {
+			continue
 		}
 
-		if dto.deploySidecar != nil && *dto.deploySidecar {
-			backendModulesMap[name] = *NewBackendModuleWithSidecar(dto)
-		} else {
-			backendModulesMap[name] = *NewBackendModule(dto)
-		}
+		backendDto := createBackendDto(commandName, name, value)
+		backendModulesMap[name] = *createBackendModule(commandName, backendDto)
 
-		moduleInfo := name
-		if dto.version != nil {
-			moduleInfo = fmt.Sprintf("%s with fixed version %s", name, *dto.version)
-		}
-
-		if printOutput {
-			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found backend module in config: %s", moduleInfo))
-		}
+		printModuleInfo(commandName, name, backendDto, backendModulesMap, printOutput)
 	}
 
 	return backendModulesMap
 }
 
-func createDefaultBackendDto(commandName string, name string) (dto BackendModuleDto) {
-	dto.deployModule = true
-
-	if !strings.HasPrefix(name, ManagementModulePattern) && !strings.HasPrefix(name, EdgeModulePattern) {
-		dto.deploySidecar = getDefaultDeploySidecar()
+func createBackendDto(commandName string, name string, value any) BackendModuleDto {
+	if value == nil {
+		return createDefaultBackendDto(commandName, name)
 	}
 
-	if PortStartIndex+1 >= PortEndIndex {
-		LogErrorPanic(commandName, "internal.createDefaultBackendDto error - incremented PortStartIndex is exceeding PortEndIndex limit")
+	return createConfigurableBackendDto(commandName, value, name)
+}
+
+func createBackendModule(commandName string, dto BackendModuleDto) *BackendModule {
+	if dto.deploySidecar != nil && *dto.deploySidecar {
+		return NewBackendModuleWithSidecar(commandName, dto)
+	}
+
+	return NewBackendModule(commandName, dto)
+}
+
+func printModuleInfo(commandName string, name string, dto BackendModuleDto, backendModulesMap map[string]BackendModule, printOutput bool) {
+	if !printOutput {
 		return
 	}
 
-	dto.port = &PortStartIndex
-	PortStartIndex++
+	moduleInfo := name
+	if dto.version != nil {
+		moduleInfo = fmt.Sprintf("%s with fixed version %s", name, *dto.version)
+	}
 
+	moduleServerPort := backendModulesMap[name].ModuleExposedServerPort
+	moduleDebugPort := backendModulesMap[name].ModuleExposedDebugPort
+	sidecarServerPort := backendModulesMap[name].SidecarExposedServerPort
+	sidecarDebugPort := backendModulesMap[name].SidecarExposedDebugPort
+
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found backend module in config: %s, reserved ports: [%d|%d|%d|%d]", moduleInfo, moduleServerPort, moduleDebugPort, sidecarServerPort, sidecarDebugPort))
+}
+
+func IsManagementModule(name string) bool {
+	return strings.HasPrefix(name, ManagementModulePattern)
+}
+
+func IsEdgeModule(name string) bool {
+	return strings.HasPrefix(name, EdgeModulePattern)
+}
+
+func createDefaultBackendDto(commandName string, name string) (dto BackendModuleDto) {
+	dto.deployModule = true
+
+	if !IsManagementModule(name) && !IsEdgeModule(name) {
+		dto.deploySidecar = getDefaultDeploySidecar()
+	}
+
+	dto.port = getDefaultPort(commandName)
 	dto.portServer = getDefaultPortServer()
 	dto.environment = make(map[string]any)
 	dto.resources = make(map[string]any)
@@ -169,7 +192,7 @@ func createConfigurableBackendDto(commandName string, value any, name string) (d
 	dto.disableSystemUser = getKeyOrDefault(mapEntry, ModuleDisableSystemUserEntryKey, false).(bool)
 	dto.useOkapiUrl = getKeyOrDefault(mapEntry, ModuleUseOkapiUrlEntryKey, false).(bool)
 	dto.version = getVersion(mapEntry)
-	dto.port = getPort(mapEntry)
+	dto.port = getPort(commandName, mapEntry)
 	dto.portServer = getPortServer(mapEntry)
 	dto.environment = getKeyOrDefault(mapEntry, ModuleEnvironmentEntryKey, make(map[string]any)).(map[string]any)
 	dto.resources = getKeyOrDefault(mapEntry, ModuleResourceEntryKey, make(map[string]any)).(map[string]any)
@@ -217,15 +240,19 @@ func getVersion(mapEntry map[string]any) *string {
 	return &versionValue
 }
 
-func getPort(mapEntry map[string]any) *int {
+func getPort(commandName string, mapEntry map[string]any) *int {
 	if mapEntry[ModulePortEntryKey] == nil {
-		PortStartIndex++
-
-		return &PortStartIndex
+		return getDefaultPort(commandName)
 	}
 	portValue := mapEntry[ModulePortEntryKey].(int)
 
 	return &portValue
+}
+
+func getDefaultPort(commandName string) *int {
+	freePort := GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
+
+	return &freePort
 }
 
 func getPortServer(mapEntry map[string]any) *int {

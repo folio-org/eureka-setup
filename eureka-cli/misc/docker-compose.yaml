@@ -119,7 +119,7 @@ services:
     container_name: kafka
     image: bitnami/kafka:3.9.0
     restart: unless-stopped
-    cpus: 2
+    cpus: 4
     mem_limit: 2g
     depends_on:
       zookeeper:
