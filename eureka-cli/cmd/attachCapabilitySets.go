@@ -93,8 +93,8 @@ func getConsumerGroupLag(tenant string, consumerGroup string, initialLag int) (l
 			internal.LogWarn(attachCapabilitySetsCommand, withEnableDebug, fmt.Sprintf("internal.RunCommandReturnOutput warning - %s", stderr.String()))
 			return initialLag
 		}
-
 		internal.LogErrorPrintStderrPanic(attachCapabilitySetsCommand, "internal.RunCommandReturnOutput error", stderr.String())
+
 		return 0
 	}
 

@@ -42,6 +42,7 @@ func DeployModules() {
 	registryUrl := viper.GetString(internal.RegistryUrlKey)
 	internal.PortStartIndex = viper.GetInt(internal.ApplicationPortStartKey)
 	internal.PortEndIndex = viper.GetInt(internal.ApplicationPortEndKey)
+	internal.ReservedPorts = []int{}
 	environment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.EnvironmentKey)
 	sidecarEnvironment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.SidecarModuleEnvironmentKey)
 

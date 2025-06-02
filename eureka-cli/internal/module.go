@@ -100,6 +100,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 				go func() {
 					sidecarEnvironment := GetSidecarEnvironment(dto, registryModule, backendModule, nil, nil)
 					sidecarDeployDto := NewDeploySidecarDto(registryModule.SidecarName, sidecarImage, sidecarEnvironment, backendModule, networkConfig, sidecarResources)
+
 					DeployModule(commandName, client, sidecarDeployDto)
 				}()
 			}
@@ -148,7 +149,9 @@ func GetSidecarImage(commandName string, registryModules []*RegistryModule) (str
 		return fmt.Sprintf("%s:%s", localImage.(string), sidecarImageVersion), false
 	}
 
-	return fmt.Sprintf("%s/%s", GetImageRegistryNamespace(commandName, sidecarImageVersion), fmt.Sprintf("%s:%s", sidecarModule[SidecarModuleImageEntryKey].(string), sidecarImageVersion)), true
+	namespace := GetImageRegistryNamespace(commandName, sidecarImageVersion)
+	image := sidecarModule[SidecarModuleImageEntryKey]
+	return fmt.Sprintf("%s/%s", namespace, fmt.Sprintf("%s:%s", image.(string), sidecarImageVersion)), true
 }
 
 func getSidecarImageVersion(commandName string, registryModules []*RegistryModule, sidecarConfigVersion any) string {
@@ -311,6 +314,6 @@ func undeployModule(commandName string, client *client.Client, deployedModule ty
 		removeContainerFunc()
 	}
 
-	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Undeployed module container %s %s %s", deployedModule.ID,
-		strings.ReplaceAll(deployedModule.Names[0], "/", ""), deployedModule.Status))
+	containerName := strings.ReplaceAll(deployedModule.Names[0], "/", "")
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Undeployed module container %s %s %s", deployedModule.ID, containerName, deployedModule.Status))
 }
