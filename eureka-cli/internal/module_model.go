@@ -58,22 +58,25 @@ type BackendModuleDto struct {
 }
 
 type BackendModule struct {
-	DeployModule            bool
-	UseVault                bool
-	UseOkapiUrl             bool
-	DisableSystemUser       bool
-	ModuleName              string
-	ModuleVersion           *string
-	ModuleExposedServerPort int
-	ModuleExposedPorts      *nat.PortSet
-	ModulePortBindings      *nat.PortMap
-	ModuleEnvironment       map[string]any
-	ModuleResources         container.Resources
-	ModuleVolumes           []string
-	DeploySidecar           bool
-	SidecarExposedPorts     *nat.PortSet
-	SidecarPortBindings     *nat.PortMap
-	ModuleServerPort        int
+	DeployModule             bool
+	UseVault                 bool
+	UseOkapiUrl              bool
+	DisableSystemUser        bool
+	ModuleName               string
+	ModuleVersion            *string
+	ModuleExposedServerPort  int
+	ModuleExposedDebugPort   int
+	ModuleExposedPorts       *nat.PortSet
+	ModulePortBindings       *nat.PortMap
+	ModuleEnvironment        map[string]any
+	ModuleResources          container.Resources
+	ModuleVolumes            []string
+	DeploySidecar            bool
+	SidecarExposedServerPort int
+	SidecarExposedDebugPort  int
+	SidecarExposedPorts      *nat.PortSet
+	SidecarPortBindings      *nat.PortMap
+	ModuleServerPort         int
 }
 
 type FrontendModule struct {
@@ -92,30 +95,41 @@ type Event struct {
 	} `json:"progressDetail"`
 }
 
-func NewBackendModuleWithSidecar(dto BackendModuleDto) *BackendModule {
+func NewBackendModuleWithSidecar(commandName string, dto BackendModuleDto) *BackendModule {
 	exposedPorts := createExposedPorts(*dto.portServer)
 
+	moduleServerPort := *dto.port
+	moduleDebugPort := GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
+	sidecarServerPort := GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
+	sidecarDebugPort := GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
+
 	return &BackendModule{
-		DeployModule:            dto.deployModule,
-		UseVault:                dto.useVault,
-		UseOkapiUrl:             dto.useOkapiUrl,
-		DisableSystemUser:       dto.disableSystemUser,
-		ModuleName:              dto.name,
-		ModuleVersion:           dto.version,
-		ModuleExposedServerPort: *dto.port,
-		ModuleServerPort:        *dto.portServer,
-		ModuleExposedPorts:      exposedPorts,
-		ModulePortBindings:      CreatePortBindings(*dto.port, *dto.port+100, *dto.portServer),
-		ModuleEnvironment:       dto.environment,
-		ModuleResources:         *CreateResources(true, dto.resources),
-		ModuleVolumes:           dto.volumes,
-		DeploySidecar:           *dto.deploySidecar,
-		SidecarExposedPorts:     exposedPorts,
-		SidecarPortBindings:     CreatePortBindings(*dto.port+200, *dto.port+300, *dto.portServer),
+		DeployModule:             dto.deployModule,
+		UseVault:                 dto.useVault,
+		UseOkapiUrl:              dto.useOkapiUrl,
+		DisableSystemUser:        dto.disableSystemUser,
+		ModuleName:               dto.name,
+		ModuleVersion:            dto.version,
+		ModuleExposedServerPort:  moduleServerPort,
+		ModuleExposedDebugPort:   moduleDebugPort,
+		ModuleServerPort:         *dto.portServer,
+		ModuleExposedPorts:       exposedPorts,
+		ModulePortBindings:       CreatePortBindings(moduleServerPort, moduleDebugPort, *dto.portServer),
+		ModuleEnvironment:        dto.environment,
+		ModuleResources:          *CreateResources(true, dto.resources),
+		ModuleVolumes:            dto.volumes,
+		DeploySidecar:            *dto.deploySidecar,
+		SidecarExposedServerPort: sidecarServerPort,
+		SidecarExposedDebugPort:  sidecarDebugPort,
+		SidecarExposedPorts:      exposedPorts,
+		SidecarPortBindings:      CreatePortBindings(sidecarServerPort, sidecarDebugPort, *dto.portServer),
 	}
 }
 
-func NewBackendModule(dto BackendModuleDto) *BackendModule {
+func NewBackendModule(commandName string, dto BackendModuleDto) *BackendModule {
+	moduleServerPort := *dto.port
+	moduleDebugPort := GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
+
 	return &BackendModule{
 		DeployModule:            dto.deployModule,
 		UseVault:                dto.useVault,
@@ -123,10 +137,11 @@ func NewBackendModule(dto BackendModuleDto) *BackendModule {
 		DisableSystemUser:       dto.disableSystemUser,
 		ModuleName:              dto.name,
 		ModuleVersion:           dto.version,
-		ModuleExposedServerPort: *dto.port,
+		ModuleExposedServerPort: moduleServerPort,
+		ModuleExposedDebugPort:  moduleDebugPort,
 		ModuleServerPort:        *dto.portServer,
 		ModuleExposedPorts:      createExposedPorts(*dto.portServer),
-		ModulePortBindings:      CreatePortBindings(*dto.port, *dto.port+1000, *dto.portServer),
+		ModulePortBindings:      CreatePortBindings(moduleServerPort, moduleDebugPort, *dto.portServer),
 		ModuleEnvironment:       dto.environment,
 		ModuleResources:         *CreateResources(true, dto.resources),
 		ModuleVolumes:           dto.volumes,

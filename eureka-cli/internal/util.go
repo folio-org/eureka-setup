@@ -246,13 +246,16 @@ func GetFuncName() string {
 
 // ######## Net ########
 
-func GetFreePortFromRange(commandName string, portStart, portEnd int, excludeReservedPorts []int) int {
-	for port := portStart + 1; port <= portEnd; port++ {
-		if !slices.Contains(excludeReservedPorts, port) && IsPortFree(commandName, portStart, portEnd, port) {
+func GetAndSetFreePortFromRange(commandName string, portStart, portEnd int, excludeReservedPorts *[]int) int {
+	for port := portStart; port <= portEnd; port++ {
+		if !slices.Contains(*excludeReservedPorts, port) && IsPortFree(commandName, portStart, portEnd, port) {
+			*excludeReservedPorts = append(*excludeReservedPorts, port)
+
 			return port
 		}
 	}
 	LogErrorPanic(commandName, fmt.Sprintf("getFreePortFromRange() error - Cannot find free TCP ports in range %d-%d", portStart, portEnd))
+
 	return 0
 }
 

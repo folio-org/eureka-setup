@@ -38,6 +38,9 @@ var deployManagementCmd = &cobra.Command{
 }
 
 func DeployManagement() {
+	internal.PortStartIndex = viper.GetInt(internal.ApplicationPortStartKey)
+	internal.PortEndIndex = viper.GetInt(internal.ApplicationPortEndKey)
+	internal.ReservedPorts = []int{}
 	environment := internal.GetEnvironmentFromConfig(deployManagementCommand, internal.EnvironmentKey)
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### READING BACKEND MODULES FROM CONFIG ###")
