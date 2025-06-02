@@ -7,37 +7,29 @@
 ## Prerequisites
 
 - Install dependencies:
-  - [Go](<https://go.dev/doc/install>) compiler: last development-tested version is `go1.24.1 windows/amd64`
-  - [Rancher Desktop](<https://rancherdesktop.io/>) container daemon: last development-tested version is `v1.16.0` (make sure to enable **dockerd (Moby)** container engine)
+  - [Go](https://go.dev/doc/install) compiler: last development-tested version is `go1.24.1 windows/amd64`
+  - [Rancher Desktop](https://rancherdesktop.io/) container daemon: last development-tested version is `v1.16.0` (make sure to enable **dockerd (Moby)** container engine)
 - Configure hosts:
   - Add `127.0.0.1 keycloak.eureka` entry to `/etc/hosts`
   - Add `127.0.0.1 kafka.eureka` entry to `/etc/hosts`
 - Monitor using system components:
-  - [Keycloak](<http://keycloak.eureka:8080>) Admin Console: admin/admin
-  - [Vault](<http://localhost:8200>) UI: Find a Vault root token in the container logs using `docker logs vault` or use `getVaultRootToken` command
-  - [Kafka](<http://localhost:9080>) UI: No auth
-  - [Kong](<http://localhost:8002>) Admin GUI: No auth
-  - [MinIO](<http://localhost:9001>) Console: minioadmin/minioadmin
-  - [Kibana](<http://localhost:15601>) UI: No auth
+  - [Keycloak](http://keycloak.eureka:8080) Admin Console: admin/admin
+  - [Vault](http://localhost:8200) UI: Find a Vault root token in the container logs using `docker logs vault` or use `getVaultRootToken` command
+  - [Kafka](http://localhost:9080) UI: No auth
+  - [Kong](http://localhost:8002) Admin GUI: No auth
+  - [MinIO](http://localhost:9001) Console: minioadmin/minioadmin
+  - [Kibana](http://localhost:15601) UI: No auth
 
 ## Commands
 
 ### Build a binary
-  
+
 ```shell
 mkdir -p ./bin
 env GOOS=windows GOARCH=amd64 go build -o ./bin/ .
 ```
 
 > See docs/BUILD.md to build a platform-specific binary
-
-### (Optional) Setup a default config in the home folder
-
-- This config will be used by default if `-c` or `--config` flag is not specified
-
-```shell
-./bin/eureka-cli setup
-```
 
 ### (Optional) Install binary
 
@@ -65,11 +57,13 @@ source ~/.bash_profile
 ### Deploy the combined application
 
 - By default will use public images available in DockerHub (folioci & folioorg namespaces)
-- Use a specific config: `-c` or `--config`
-- Enable debug: `-d` or `--debug`
+- Use a specific profile, options: [combined, export, search, edge]: `-p` or `--profile`
+- Use a specific config file: `-c` or `--configFile`
+- Overwrite files in .eureka home directory: `-o` or `--overwriteFiles`
+- Enable debug: `-d` or `--enableDebug`
 - Use only required system containers: `-R` or `--onlyRequired`
-- Force-build system Docker images: `-b` or `--buildImages`
-- Update Git Cloned projects: `-u` or `--updateCloned`
+- Build Docker images: `-b` or `--buildImages`
+- Update Git cloned projects: `-u` or `--updateCloned`
 
 ```shell
 eureka-cli -c ./config.combined.yaml deployApplication
@@ -87,11 +81,25 @@ eureka-cli -c ./config.combined.yaml deployApplication -d
 eureka-cli -c ./config.combined.yaml deployApplication -R
 ```
 
+- The profile `-p` flag eliminates to the need to define a config file path by relying on the default configs that are automatically created in `.eureka` home directory
+
+```bash
+eureka-cli -p combined deployApplication
+```
+
+> Available configs are: _combined_, _export_, _search_ and _edge_
+
+- It can be combined with the `-o` flag to overwrite all existing files in `.eureka` home directory to receive changes from the upstream
+
+```bash
+eureka-cli -p combined -o deployApplication
+```
+
 ![CLI Deploy Combined with Only Required System Containers](images/cli_deploy_combined_only_required.png)
 
-> Deploys the system without optional containers depending on the profile, such as *netcat*, *kafka-ui*, *minio*, *createbuckets*, *elasticsearch*, *kibana* and *ftp-server*
+> Deploys the system without optional containers depending on the profile, such as _netcat_, _kafka-ui_, _minio_, _createbuckets_, _elasticsearch_, _kibana_ and _ftp-server_
 
-- In case you want to update your local repositories of *folio-kong*, *folio-keycloak* and *platform-complete* (UI), you can do so with the combined `-bu` flags
+- In case you want to update your local repositories of _folio-kong_, _folio-keycloak_ and _platform-complete_ (UI), you can do so with the combined `-bu` flags
 
 ```shell
 eureka-cli -c ./config.combined.yaml deployApplication -bu
@@ -114,7 +122,7 @@ To use AWS ECR as your container registry rather than the public Folio DockerHub
 ```shell
 export AWS_ACCESS_KEY_ID=<access_key>
 export AWS_SECRET_ACCESS_KEY=<secret_key>
-export AWS_ECR_FOLIO_REPO=<repository_url> 
+export AWS_ECR_FOLIO_REPO=<repository_url>
 eureka-cli -c ./config.combined.yaml deployApplication
 ```
 
@@ -169,7 +177,7 @@ eureka-cli -c ./config.edge.yaml deployApplication
 eureka-cli -c ./config.{{app}}.yaml undeployApplication
 ```
 
-> Replace `{{app}}` with either of the supported profiles: *export*, *search* or *edge*
+> Replace `{{app}}` with either of the supported profiles: _export_, _search_ or _edge_
 
 ### Other commands
 
@@ -189,6 +197,15 @@ eureka-cli -c config.combined.yaml listModules
 
 # For a particular module and its sidecar in a profile
 eureka-cli -c config.combined.yaml listModules -m mod-orders
+
+# For only modules in a profile
+eureka-cli -c config.combined.yaml listModules -M module
+
+# For only sidecars in a profile
+eureka-cli -c config.combined.yaml listModules -M sidecar
+
+# For only management modules
+eureka-cli -c config.combined.yaml listModules -M management
 
 # Using all modules for all profiles including mgr-*
 eureka-cli -c config.combined.yaml listModules -a
@@ -253,7 +270,7 @@ eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT
 
 ## Using a custom folio-module-sidecar
 
-If your workflow relies on a custom implementation of *folio-module-sidecar*, the CLI also supports deploying an environment with sidecars using a custom Docker image.
+If your workflow relies on a custom implementation of _folio-module-sidecar_, the CLI also supports deploying an environment with sidecars using a custom Docker image.
 
 - Git clone **folio-module-sidecar** from GitHub
 
@@ -277,10 +294,9 @@ docker build --tag custom-folio-module-sidecar:1.0.0 .
 sidecar-module:
   local-image: custom-folio-module-sidecar
   version: 1.0.0
-...
 ```
 
-- Deploy the environment with this config, in our example we deploy an *edge* application with  `custom-folio-module-sidecar:1.0.0` sidecars
+- Deploy the environment with this config, in our example we deploy an _edge_ application with `custom-folio-module-sidecar:1.0.0` sidecars
 
 ```bash
 eureka-cli -c config.edge.yaml deployApplication

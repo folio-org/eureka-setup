@@ -178,16 +178,6 @@ func WriteJsonToFile(commandName string, filePath string, packageJson any) {
 	writer.Flush()
 }
 
-func CreateFile(commandName string, fileName string) *os.File {
-	filePointer, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		slog.Error(commandName, GetFuncName(), "os.OpenFile error")
-		panic(err)
-	}
-
-	return filePointer
-}
-
 func CheckIsRegularFile(commandName string, fileName string) {
 	fileStat, err := os.Stat(fileName)
 	if err != nil {
@@ -227,13 +217,30 @@ func CopySingleFile(commandName string, srcPath string, dstPath string) {
 }
 
 func GetCurrentWorkDirPath(commandName string) string {
-	path, err := os.Getwd()
+	cwd, err := os.Getwd()
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "json.Marshal error")
 		panic(err)
 	}
 
-	return path
+	return cwd
+}
+
+func GetHomeDirPath(commandName string) string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		slog.Error(commandName, GetFuncName(), "os.UserHomeDir error")
+		panic(err)
+	}
+
+	homeDir := filepath.Join(home, ConfigDir)
+
+	if err = os.MkdirAll(homeDir, 0644); err != nil {
+		slog.Error(commandName, GetFuncName(), "os.MkdirAll error")
+		panic(err)
+	}
+
+	return homeDir
 }
 
 // ######## Runtime ########

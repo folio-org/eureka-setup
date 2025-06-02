@@ -24,12 +24,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	listModulesCommand string = "List Modules"
+const listModulesCommand string = "List Modules"
 
-	allProfilesModulesPattern    string = "eureka-"
-	currentProfileModulesPattern string = "eureka-%s-"
-)
+var availableModuleTypes []string = []string{"module", "sidecar", "management"}
 
 // listModulesCmd represents the listModules command
 var listModulesCmd = &cobra.Command{
@@ -42,22 +39,38 @@ var listModulesCmd = &cobra.Command{
 }
 
 func ListModules() {
-	internal.RunCommand(listModulesCommand, exec.Command("docker", "container", "ls", "--all", "--filter", fmt.Sprintf("name=%s", createFilter(withModuleName, withShowAll))))
+	filter := fmt.Sprintf("name=%s", createFilter(withModuleName, withModuleType, withAll))
+	internal.RunCommand(listModulesCommand, exec.Command("docker", "container", "ls", "--all", "--filter", filter))
 }
 
-func createFilter(moduleName string, showAll bool) string {
-	if !showAll && moduleName == "" {
-		return fmt.Sprintf(currentProfileModulesPattern, viper.GetString(internal.ProfileNameKey))
-	}
-	if moduleName != "" {
-		return fmt.Sprintf(internal.SingleModuleContainerPattern, viper.GetString(internal.ProfileNameKey), moduleName)
+func createFilter(moduleName string, moduleType string, all bool) string {
+	if all {
+		return internal.AllContainerPattern
 	}
 
-	return allProfilesModulesPattern
+	currentProfile := viper.GetString(internal.ProfileNameKey)
+	if moduleName != "" {
+		return fmt.Sprintf(internal.SingleModuleOrSidecarContainerPattern, currentProfile, moduleName)
+	}
+
+	switch moduleType {
+	case "management":
+		return fmt.Sprintf(internal.ManagementContainerPattern)
+	case "module":
+		return fmt.Sprintf(internal.ModuleContainerPattern, currentProfile)
+	case "sidecar":
+		return fmt.Sprintf(internal.SidecarContainerPattern, currentProfile)
+	default:
+		return fmt.Sprintf(internal.ProfileContainerPattern, currentProfile)
+	}
 }
 
 func init() {
 	rootCmd.AddCommand(listModulesCmd)
-	listModulesCmd.Flags().StringVarP(&withModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders")
-	listModulesCmd.Flags().BoolVarP(&withShowAll, "all", "a", false, "Show all modules for all profiles")
+	listModulesCmd.Flags().BoolVarP(&withAll, "all", "a", false, "All modules for all profiles")
+	listModulesCmd.Flags().StringVarP(&withModuleName, "moduleName", "m", "", "By module name, e.g. mod-orders")
+	listModulesCmd.Flags().StringVarP(&withModuleType, "moduleType", "M", "", fmt.Sprintf("By module type, options: %s", availableModuleTypes))
+	listModulesCmd.RegisterFlagCompletionFunc("moduleType", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return availableModuleTypes, cobra.ShellCompDirectiveNoFileComp
+	})
 }

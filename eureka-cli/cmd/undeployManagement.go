@@ -22,11 +22,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	undeployManagementCommand = "Undeploy Management"
-
-	managementModuleContainerPattern string = "eureka-mgr-"
-)
+const undeployManagementCommand = "Undeploy Management"
 
 // undeployManagementCmd represents the undeployManagement command
 var undeployManagementCmd = &cobra.Command{
@@ -44,7 +40,7 @@ func UndeployManagement() {
 	client := internal.CreateDockerClient(undeployManagementCommand)
 	defer client.Close()
 
-	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, managementModuleContainerPattern, true)
+	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, internal.ManagementContainerPattern, true)
 }
 
 func init() {

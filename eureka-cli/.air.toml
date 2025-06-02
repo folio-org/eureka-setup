@@ -20,7 +20,7 @@ bin = "bin/eureka-cli.exe"
 # Disabled for now
 # full_bin = "APP_ENV=dev APP_USER=air ./bin/main"
 # Add additional arguments when running binary (bin/full_bin). Will run './tmp/main hello world'.
-args_bin = ["help"]
+args_bin = ["help -d"]
 # Watch these filename extensions.
 include_ext = ["go", "tpl", "tmpl", "html"]
 # Ignore these filename extensions or directories.

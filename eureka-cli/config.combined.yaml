@@ -30,21 +30,21 @@ environment:
   KAFKA_PORT: 9092
   # Kong
   KONG_ADMIN_URL: http://kong.eureka:8001
-  KONG_INTEGRATION_ENABLED: 'true'
+  KONG_INTEGRATION_ENABLED: "true"
   # Keycloak
   KC_URL: http://keycloak.eureka:8080
   KC_CONFIG_TTL: 3600s
   KC_ADMIN_CLIENT_ID: supersecret
   KC_ADMIN_USERNAME: admin
   KC_ADMIN_PASSWORD: admin
-  KC_IMPORT_ENABLED: 'true'
-  KC_INTEGRATION_ENABLED: 'true'
+  KC_IMPORT_ENABLED: "true"
+  KC_INTEGRATION_ENABLED: "true"
   KC_LOGIN_CLIENT_SUFFIX: -application
   KC_SERVICE_CLIENT_ID: sidecar-module-access-client
-  KC_URI_VALIDATION_ENABLED: 'false' 
-  SECURITY_ENABLED: 'false'
-  OKAPI_INTEGRATION_ENABLED: 'false'
-  WEB_CLIENT_TLS_VERIFY_HOSTNAME: 'false'
+  KC_URI_VALIDATION_ENABLED: "false"
+  SECURITY_ENABLED: "false"
+  OKAPI_INTEGRATION_ENABLED: "false"
+  WEB_CLIENT_TLS_VERIFY_HOSTNAME: "false"
   # Java
   JAVA_OPTIONS: >-
     -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
@@ -56,7 +56,7 @@ tenants:
 roles:
   Admin:
     tenant: diku
-    capability-sets: [ "all" ]
+    capability-sets: ["all"]
   User:
     tenant: diku
     capability-sets: []
@@ -66,13 +66,13 @@ users:
     password: admin
     last-name: John
     first-name: Doe
-    roles: [ "Admin", "User" ] 
+    roles: ["Admin", "User"]
   diku_user:
     tenant: diku
     password: user
     last-name: Jane
     first-name: Doe
-    roles: [ "User" ]
+    roles: ["User"]
 sidecar-module:
   image: folio-module-sidecar
   environment:
@@ -88,8 +88,8 @@ sidecar-module:
     AM_CLIENT_URL: http://mgr-applications.eureka:8081
     TE_CLIENT_URL: http://mgr-tenant-entitlements.eureka:8081
     # Sidecar
-    SIDECAR: 'true'
-    SIDECAR_FORWARD_UNKNOWN_REQUESTS: 'true'
+    SIDECAR: "true"
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS: "true"
     SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong.eureka:8000
     QUARKUS_HTTP_PORT: 8081
     QUARKUS_REST_CLIENT_READ_TIMEOUT: 180000
@@ -99,7 +99,7 @@ sidecar-module:
     SC_LOG_LEVEL: INFO
     ROOT_LOG_LEVEL: INFO
     REQUEST_TIMEOUT: 604800000
-    ALLOW_CROSS_TENANT_REQUESTS: 'true'
+    ALLOW_CROSS_TENANT_REQUESTS: "true"
     # Java
     JAVA_OPTIONS: >-
       -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
@@ -114,7 +114,7 @@ backend-modules:
       MODULE_URL: http://mgr-applications.eureka:8081
       TE_URL: http://mgr-tenant-entitlements.eureka:8081
       VALIDATION_MODE: none
-      ROUTEMANAGEMENT_ENABLE: 'true'
+      ROUTEMANAGEMENT_ENABLE: "true"
     resources:
       cpus: 2
   mgr-tenants:
@@ -131,11 +131,11 @@ backend-modules:
       MODULE_URL: http://mgr-tenant-entitlements.eureka:8081
       MT_CLIENT_URL: http://mgr-tenants.eureka:8081
       AM_CLIENT_URL: http://mgr-applications.eureka:8081
-      VALIDATION_INTERFACE_INTEGRITY_ENABLED: 'false'
+      VALIDATION_INTERFACE_INTEGRITY_ENABLED: "false"
       FOLIO_CLIENT_CONNECT_TIMEOUT: 60s
       FOLIO_CLIENT_READ_TIMEOUT: 180s
-      FLOW_ENGINE_THREADS_NUM: '1'
-      RETRIES_MODULE_MAX: '10'
+      FLOW_ENGINE_THREADS_NUM: "1"
+      RETRIES_MODULE_MAX: "10"
     resources:
       cpus: 2
   mod-users-keycloak:
@@ -144,8 +144,8 @@ backend-modules:
     disable-system-user: true
     port: 9904
     environment:
-      SINGLE_TENANT_UX: 'true'
-      INCLUDE_ONLY_VISIBLE_PERMISSIONS: 'false'
+      SINGLE_TENANT_UX: "true"
+      INCLUDE_ONLY_VISIBLE_PERMISSIONS: "false"
     resources:
       cpus: 4
       memory: 900
@@ -153,7 +153,7 @@ backend-modules:
     use-vault: true
     port: 9905
     environment:
-      X_OKAPI_TOKEN_HEADER_ENABLED: 'true'
+      X_OKAPI_TOKEN_HEADER_ENABLED: "true"
       KC_ADMIN_TOKEN_TTL: 59s
   mod-roles-keycloak:
     use-vault: true
