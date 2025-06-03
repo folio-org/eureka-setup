@@ -78,7 +78,6 @@ func CheckStatusCodes(commandName string, panicOnError bool, resp *http.Response
 		return
 	}
 
-	DumpHttpResponse(commandName, resp, true)
 	LogErrorPanic(commandName, fmt.Sprintf("internal.CheckStatusCodes error - Unacceptable request status %d for URL: %s", resp.StatusCode, resp.Request.URL.String()))
 	DumpHttpResponse(commandName, resp, true)
 }
