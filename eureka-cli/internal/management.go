@@ -181,6 +181,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 			moduleDescriptorUrl := fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls[FolioRegistry], module.Id)
 
 			if applicationFetchDescriptors {
+				slog.Info(commandName, GetFuncName(), fmt.Sprintf("Fetching module descriptor for %s from %s", module.Id, moduleDescriptorUrl))
 				dto.ModuleDescriptorsMap[module.Id] = DoGetDecodeReturnAny(commandName, moduleDescriptorUrl, enableDebug, true, map[string]string{})
 			}
 

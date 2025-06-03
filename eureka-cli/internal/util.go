@@ -78,7 +78,8 @@ func CheckStatusCodes(commandName string, panicOnError bool, resp *http.Response
 		return
 	}
 
-	LogErrorPanic(commandName, fmt.Sprintf("internal.CheckStatusCodes error - Unacceptable request status %d", resp.StatusCode))
+	LogErrorPanic(commandName, fmt.Sprintf("internal.CheckStatusCodes error - Unacceptable request status %d for URL: %s", resp.StatusCode, resp.Request.URL.String()))
+	DumpHttpResponse(commandName, resp, true)
 }
 
 func AddRequestHeaders(req *http.Request, headers map[string]string) {
