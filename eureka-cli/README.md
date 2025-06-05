@@ -33,7 +33,7 @@ env GOOS=windows GOARCH=amd64 go build -o ./bin/ .
 
 ### (Optional) Install binary
 
-- After building and installing the binary can be used from any directory
+- After building and installing, the binary can be used from any directory
 
 ```shell
 go install
@@ -56,7 +56,7 @@ source ~/.bash_profile
 
 ### Deploy the combined application
 
-- By default will use public images available in DockerHub (folioci & folioorg namespaces)
+- By default, it will use public images available in DockerHub (folioci & folioorg namespaces)
 - Use a specific profile, options: [combined, export, search, edge]: `-p` or `--profile`
 - Use a specific config file: `-c` or `--configFile`
 - Overwrite files in .eureka home directory: `-o` or `--overwriteFiles`
@@ -75,13 +75,13 @@ eureka-cli -c ./config.combined.yaml deployApplication
 eureka-cli -c ./config.combined.yaml deployApplication -d
 ```
 
-- If you are resource constrained the CLI also supports deploying the environment with only required system containers with `-R`
+- If you are resource constrained, the CLI also supports deploying the environment with only required system containers with `-R`
 
 ```shell
 eureka-cli -c ./config.combined.yaml deployApplication -R
 ```
 
-- The profile `-p` flag eliminates to the need to define a config file path by relying on the default configs that are automatically created in `.eureka` home directory
+- The profile `-p` flag eliminates the need to define a config file path by relying on the default configs that are automatically created in `.eureka` home directory
 
 ```bash
 eureka-cli -p combined deployApplication
@@ -151,7 +151,7 @@ eureka-cli -c ./config.export.yaml deployApplication
 
 #### Deploy the search application
 
-- The search application provides Elastic search capability as required by the Inventory App and the ECS setup to work
+- The search application provides Elastic search capability as required by the Inventory App and for the ECS setup to work
 
 ```shell
 eureka-cli -c ./config.search.yaml deployApplication
@@ -161,7 +161,7 @@ eureka-cli -c ./config.search.yaml deployApplication
 
 #### Deploy the edge application
 
-- Edge application provides modules with an included mod-okapi-facade to work with the Edge API, Karate tests or with Mosaic integration
+- Edge application provides modules with an included mod-okapi-facade to work with the Edge API, Karate tests, or with Mosaic integration
 
 ```shell
 eureka-cli -c ./config.edge.yaml deployApplication
@@ -181,7 +181,7 @@ eureka-cli -c ./config.{{app}}.yaml undeployApplication
 
 ### Other commands
 
-The CLI also contains other usual commands to aid with developer productivity. The most important ones that can be used independently are outlined below:
+The CLI also contains other useful commands to aid with developer productivity. The most important ones that can be used independently are outlined below:
 
 - Lists deployed system containers
 
@@ -314,7 +314,7 @@ eureka-cli -c config.edge.yaml listModules
 
 ## Using the UI
 
-The environment depends on [platform-complete](<https://github.com/folio-org/platform-complete>) project to correlate and assemble frontend and backend modules into a single UI package. The CLI by default will use a pre-build Docker image of _platform-complete_ stored in the DockerHub to deploy the UI container.
+The environment depends on [platform-complete](<https://github.com/folio-org/platform-complete>) project to correlate and assemble frontend and backend modules into a single UI package. The CLI by default will use a pre-built Docker image of _platform-complete_ stored in the DockerHub to deploy the UI container.
 
 - If there is a need to use a different namespace, override the `namespaces.platform-complete-ui` key in the config, for example in `config.combined.yaml`
 
@@ -343,7 +343,7 @@ eureka-cli deployUi
 The CLI also supports building and deploying the UI image in-place, during either `deployApplication` execution or with `deployUi` command.
 
 ```bash
-# Will build and deploy all images including folio-kong, folio-keycloak and platform-complete itself
+# Will build and deploy every image including folio-kong, folio-keycloak and platform-complete itself
 eureka-cli deployApplication -b -u
 
 # Will only build and deploy the platform-complete image 
@@ -384,12 +384,12 @@ curl --request POST \
 
 ### General
 
-- If using Rancher Desktop on a system that also uses Docker Desktop make sure to set `DOCKER_HOST` to point to the correct container daemon, by default `/var/run/docker.sock` will be used
+- If using Rancher Desktop on a system that also uses Docker Desktop, make sure to set `DOCKER_HOST` to point to the correct container daemon, by default `/var/run/docker.sock` will be used
 
 ### Command-based
 
-- If during `Deploy System` or `Deploy Ui` shell commands are failing to execute verify that all shell scripts located under `./misc` folder are saved using the **LF** (Line Feed) line break
-- If during `Deploy Management` or `Deploy Modules` the healthchecks are failing make sure to either define **host.docker.internal** in `/etc/hosts` or set `application.gateway-hostname=172.17.0.1` in the `config.*.yaml`
+- If during `Deploy System` or `Deploy Ui` shell commands are failing to execute, verify that all shell scripts located under `./misc` folder are saved using the **LF** (Line Feed) line break
+- If during `Deploy Management` or `Deploy Modules` the healthchecks are failing, make sure to either define **host.docker.internal** in `/etc/hosts` or set `application.gateway-hostname=172.17.0.1` in the `config.*.yaml`
 - If during `Deploy Modules` an exception contains **"Bind for 0.0.0.0:XXXXX failed: port is already allocated."** make sure to set `application.port-start=20000` in the `config.*.yaml`
-- If during `Deploy Modules` an exception contains **"Failed to load module descriptor by url: <https://folio-registry.dev.folio.org/_/proxy/modules/mod-XXX>"** make sure that the module descriptor for this version exists or use an older module version by setting `mod-XXX.version` in the `config.*.yaml`
-- If during `Create Tenant Entitlement` an exception contains **"The module is not entitled on tenant ..."** rerun `undeployApplication` and `deployApplication` once again with more available RAM
+- If during `Deploy Modules` an exception contains **"Failed to load module descriptor by url: <https://folio-registry.dev.folio.org/_/proxy/modules/mod-XXX>"**, make sure that the module descriptor for this version exists or use an older module version by setting `mod-XXX.version` in the `config.*.yaml`
+- If during `Create Tenant Entitlement` an exception contains **"The module is not entitled on tenant ..."**, rerun `undeployApplication` and `deployApplication` once again with more available RAM
