@@ -312,6 +312,44 @@ eureka-cli -c config.edge.yaml listModules
 
 ![CLI Use Custom Folio Module Sidecar (2/2)](images/cli_use_custom_folio_module_sidecar_2.png)
 
+## Using the UI
+
+The environment depends on [platform-complete](<https://github.com/folio-org/platform-complete>) project to correlate and assemble frontend and backend modules into a single UI package. The CLI by default will use a pre-build Docker image of _platform-complete_ stored in the DockerHub to deploy the UI container.
+
+- If there is a need to use a different namespace, override the `namespaces.platform-complete-ui` key in the config, for example in `config.combined.yaml`
+
+```yaml
+namespaces:
+  platform-complete-ui: bkadirkhodjaev # Change to pull from a different namespace
+```
+
+- If you haven't built the image yet, the CLI has a dedicated command to build the UI image separately from the deployment lifecycle
+
+```bash
+eureka-cli buildAndPushUi -n {{namespace}} -t diku -u
+```
+
+> Replace {{namespace}} with your DockerHub namespace of choice, and use `-u` flag only if you want to update your local repository with upstream changes
+
+- To use the newly built image, remove the old container and create a new one
+
+```bash
+eureka-cli undeployUi
+eureka-cli deployUi
+```
+
+> This will pull the latest Docker image from the registry and create a UI container out of it
+
+The CLI also supports building and deploying the UI image in-place, during either `deployApplication` execution or with `deployUi` command.
+
+```bash
+# Will build and deploy all images including folio-kong, folio-keycloak and platform-complete itself
+eureka-cli deployApplication -b -u
+
+# Will only build and deploy the platform-complete image 
+eureka-cli deployUi -b -u
+```
+
 ## Using the environment
 
 - Access the UI from `http://localhost:3000` using `diku_admin` username and `admin` password:
