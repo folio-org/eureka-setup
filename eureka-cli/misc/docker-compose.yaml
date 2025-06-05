@@ -32,7 +32,6 @@ services:
     restart: unless-stopped
     cpus: "0.25"
     mem_limit: 35m
-    memswap_limit: -1
     networks:
       - eureka-net
     healthcheck:
@@ -50,7 +49,6 @@ services:
     command: -c max_connections=500 -c shared_buffers=1024MB -c log_duration=on -c log_min_duration_statement=0ms -c shared_preload_libraries=pg_stat_statements -c max_locks_per_transaction=1024 -c jit=off
     cpus: 2
     mem_limit: 1.2g
-    memswap_limit: -1
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
@@ -75,7 +73,6 @@ services:
     restart: unless-stopped
     cpus: "0.5"
     mem_limit: 350m
-    memswap_limit: -1
     depends_on:
       zookeeper:
         condition: service_healthy
@@ -101,7 +98,6 @@ services:
     restart: unless-stopped
     cpus: 1
     mem_limit: 200m
-    memswap_limit: -1
     environment:
       ZOO_SERVER_ID: 1
       ZOO_PORT_NUMBER: 2181
@@ -125,7 +121,6 @@ services:
     restart: unless-stopped
     cpus: 4
     mem_limit: 2g
-    memswap_limit: -1
     depends_on:
       zookeeper:
         condition: service_healthy
@@ -167,9 +162,6 @@ services:
     build:
       context: ./folio-vault
       dockerfile: Dockerfile
-    cpus: 4
-    mem_limit: 500m
-    memswap_limit: -1
     environment:
       VAULT_ADDR: http://0.0.0.0:8200
       VAULT_API_ADDR: http://0.0.0.0:8200
@@ -195,7 +187,6 @@ services:
     restart: unless-stopped
     cpus: 1
     mem_limit: 35m
-    memswap_limit: -1
     depends_on:
       - keycloak-internal
     volumes:
@@ -220,7 +211,6 @@ services:
       dockerfile: Dockerfile
     cpus: 4
     mem_limit: 2g
-    memswap_limit: -1
     depends_on:
       postgres:
         condition: service_healthy
@@ -258,7 +248,6 @@ services:
       dockerfile: Dockerfile
     cpus: 4
     mem_limit: 2g
-    memswap_limit: -1
     depends_on:
       postgres:
         condition: service_healthy
@@ -299,7 +288,6 @@ services:
     restart: unless-stopped
     cpus: 1
     mem_limit: 1g
-    memswap_limit: -1
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -325,7 +313,6 @@ services:
     restart: unless-stopped
     cpus: 1
     mem_limit: 2g
-    memswap_limit: -1
     environment:
       ELASTICSEARCH_PLUGINS: "analysis-icu,analysis-kuromoji,analysis-smartcn,analysis-nori,analysis-phonetic"
     networks:
@@ -345,9 +332,7 @@ services:
     image: minio/minio:RELEASE.2025-03-12T18-04-18Z
     restart: unless-stopped
     command: server /data --console-address ":9001"
-    cpus: 1
     mem_limit: 500m
-    memswap_limit: -1
     volumes:
       - minio-data:/data
     networks:
@@ -362,9 +347,7 @@ services:
     container_name: createbuckets
     image: minio/mc:RELEASE.2025-03-12T17-29-24Z
     restart: on-failure
-    cpus: 1
     mem_limit: 300m
-    memswap_limit: -1
     networks:
       - eureka-net
     depends_on:
@@ -382,9 +365,7 @@ services:
     container_name: ftp-server
     image: garethflowers/ftp-server
     restart: on-failure
-    cpus: "0.5"
     mem_limit: 100m
-    memswap_limit: -1
     volumes:
       - ftp-data:/home/folio
     networks:

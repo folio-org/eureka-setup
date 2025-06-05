@@ -13,12 +13,12 @@ const (
 	DefaultModuleCpus              int64 = 1
 	DefaultModuleMemoryReservation int64 = 128
 	DefaultModuleMemory            int64 = 750
-	DefaultModuleSwap              int64 = -1
+	DefaultModuleSwap              int64 = 0
 
 	DefaultSidecarCpus              int64 = 1
 	DefaultSidecarMemoryReservation int64 = 64
 	DefaultSidecarMemory            int64 = 450
-	DefaultSidecarSwap              int64 = -1
+	DefaultSidecarSwap              int64 = 0
 )
 
 type DeployModuleDto struct {
@@ -219,10 +219,6 @@ func createDefaultResources(isModule bool) *container.Resources {
 }
 
 func convertMiBToBytes(mib int64) int64 {
-	if mib < 0 {
-		return mib
-	}
-
 	return mib * 1024 * 1024
 }
 
