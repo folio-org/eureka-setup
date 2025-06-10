@@ -45,8 +45,8 @@ const (
 	AllContainerPattern        string = "^eureka-"
 	ProfileContainerPattern    string = "^eureka-%s"
 	ManagementContainerPattern string = "^eureka-mgr-"
-	ModuleContainerPattern     string = "^eureka-%s-[a-z0-9]+-[a-z0-9]+$"
-	SidecarContainerPattern    string = "^eureka-%s-[a-z0-9]+-[a-z0-9]+-sc$"
+	ModuleContainerPattern     string = "^eureka-%s-[a-z]+-[a-z]+(-[a-z]{3,})?$"
+	SidecarContainerPattern    string = "^eureka-%s-[a-z]+-[a-z]+(-[a-z]{3,})?-sc$"
 
 	SingleModuleOrSidecarContainerPattern string = "^(eureka-%s-)(%[2]s|%[2]s-sc)$"
 )
@@ -62,8 +62,8 @@ const (
 )
 
 var (
-	PortStartIndex int = 30000
-	PortEndIndex   int = 30999
+	PortStartIndex int   = 30000
+	PortEndIndex   int   = 30999
 	ReservedPorts  []int = []int{}
 
 	AvailableProfiles = []string{"combined", "export", "search", "edge"}
