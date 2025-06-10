@@ -45,8 +45,8 @@ const (
 	AllContainerPattern        string = "^eureka-"
 	ProfileContainerPattern    string = "^eureka-%s"
 	ManagementContainerPattern string = "^eureka-mgr-"
-	ModuleContainerPattern     string = "^eureka-%s-[a-z]+-([a-z]+|([a-z]+-[a-z]{3,}))$"
-	SidecarContainerPattern    string = "^eureka-%s-[a-z]+-([a-z]+|([a-z]+-[a-z]{3,}))-sc$"
+	ModuleContainerPattern     string = "^eureka-%s-[a-z]+-[a-z]+(-[a-z]{3,})?$"
+	SidecarContainerPattern    string = "^eureka-%s-[a-z]+-[a-z]+(-[a-z]{3,})?-sc$"
 
 	SingleModuleOrSidecarContainerPattern string = "^(eureka-%s-)(%[2]s|%[2]s-sc)$"
 )
