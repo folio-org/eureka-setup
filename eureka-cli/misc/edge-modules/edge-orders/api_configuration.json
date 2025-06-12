@@ -75,6 +75,12 @@
     {
       "type": "COMMON",
       "method": "GET",
+      "pathPattern": "/finance/fund-codes-expense-classes",
+      "proxyPath": "/finance/fund-codes-expense-classes?fiscalYearCode=:fiscalYearCode"
+    },
+    {
+      "type": "COMMON",
+      "method": "GET",
       "pathPattern": "/acquisitions-units",
       "proxyPath": "/acquisitions-units/units?offset=:offset&limit=:limit&query=:query"
     },
@@ -108,6 +114,18 @@
       "method": "GET",
       "pathPattern": "/material-types-for-order",
       "proxyPath": "/material-types?offset=:offset&limit=:limit&query=:query"
+    },
+    {
+      "type": "COMMON",
+      "method": "GET",
+      "pathPattern": "/identifier-types-for-order",
+      "proxyPath": "/identifier-types?offset=:offset&limit=:limit&query=:query"
+    },
+    {
+      "type": "COMMON",
+      "method": "GET",
+      "pathPattern": "/contributor-name-types-for-order",
+      "proxyPath": "/contributor-name-types?offset=:offset&limit=:limit&query=:query"
     },
     {
       "type": "COMMON",

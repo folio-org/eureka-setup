@@ -80,7 +80,7 @@ func DeployUi() {
 			"--restart", "unless-stopped",
 			"--cpus", "1",
 			"--memory", "35m",
-			"--memory-swap", "0",
+			"--memory-swap", "-1",
 			"--detach",
 			finalImageName,
 		))

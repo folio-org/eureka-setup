@@ -192,7 +192,7 @@ func createConfigurableBackendDto(commandName string, value any, name string) (d
 	dto.disableSystemUser = getKeyOrDefault(mapEntry, ModuleDisableSystemUserEntryKey, false).(bool)
 	dto.useOkapiUrl = getKeyOrDefault(mapEntry, ModuleUseOkapiUrlEntryKey, false).(bool)
 	dto.version = getVersion(mapEntry)
-	dto.port = getPort(commandName, mapEntry)
+	dto.port = getPort(commandName, dto.deployModule, mapEntry)
 	dto.portServer = getPortServer(mapEntry)
 	dto.environment = getKeyOrDefault(mapEntry, ModuleEnvironmentEntryKey, make(map[string]any)).(map[string]any)
 	dto.resources = getKeyOrDefault(mapEntry, ModuleResourceEntryKey, make(map[string]any)).(map[string]any)
@@ -240,7 +240,11 @@ func getVersion(mapEntry map[string]any) *string {
 	return &versionValue
 }
 
-func getPort(commandName string, mapEntry map[string]any) *int {
+func getPort(commandName string, deployModule bool, mapEntry map[string]any) *int {
+	if !deployModule {
+		noPort := 0
+		return &noPort
+	}
 	if mapEntry[ModulePortEntryKey] == nil {
 		return getDefaultPort(commandName)
 	}

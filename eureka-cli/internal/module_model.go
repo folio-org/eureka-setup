@@ -99,9 +99,13 @@ func NewBackendModuleWithSidecar(commandName string, dto BackendModuleDto) *Back
 	exposedPorts := createExposedPorts(*dto.portServer)
 
 	moduleServerPort := *dto.port
-	moduleDebugPort := GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
-	sidecarServerPort := GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
-	sidecarDebugPort := GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
+
+	var moduleDebugPort, sidecarServerPort, sidecarDebugPort int = 0, 0, 0
+	if dto.deployModule {
+		moduleDebugPort = GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
+		sidecarServerPort = GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
+		sidecarDebugPort = GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
+	}
 
 	return &BackendModule{
 		DeployModule:             dto.deployModule,
