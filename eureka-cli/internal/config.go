@@ -32,10 +32,6 @@ const (
 	DefaultHostIp     string = "0.0.0.0"
 	DefaultServerPort string = "8081"
 	DefaultDebugPort  string = "5005"
-
-	FolioKeycloakRepositoryUrl    string = "https://github.com/folio-org/folio-keycloak"
-	FolioKongRepositoryUrl        string = "https://github.com/folio-org/folio-kong"
-	PlatformCompleteRepositoryUrl string = "https://github.com/folio-org/platform-complete.git"
 )
 
 const (
@@ -422,18 +418,18 @@ func PreparePackageJson(commandName string, configPath string, tenant string) {
 	}
 }
 
-func GetStripesBranch(commandName string, defaultBranch plumbing.ReferenceName) plumbing.ReferenceName {
-	if viper.IsSet(ApplicationStripesBranchKey) {
-		branchStr := viper.GetString(ApplicationStripesBranchKey)
+func GetPlatformCompleteStripesBranch(commandName string) plumbing.ReferenceName {
+	if viper.IsSet(ApplicationPlatformCompleteStripesBranchKey) {
+		branchStr := viper.GetString(ApplicationPlatformCompleteStripesBranchKey)
 		stripesBranch := plumbing.ReferenceName(branchStr)
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Got stripes branch from config: %s", stripesBranch))
+
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found stripes branch in config: %s", stripesBranch))
 
 		return stripesBranch
 	}
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("No stripes branch is defined in config, using default branch: %s", DefaultPlatformCompleteStripesBranch))
 
-	slog.Info(commandName, GetFuncName(), fmt.Sprintf("No stripes branch in config. Using default branch: %s", defaultBranch))
-
-	return defaultBranch
+	return DefaultPlatformCompleteStripesBranch
 }
 
 func HasTenant(tenant string) bool {

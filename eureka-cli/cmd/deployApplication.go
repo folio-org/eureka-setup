@@ -52,6 +52,7 @@ func DeployApplication() {
 	CreateUsers()
 	AttachCapabilitySets()
 	DeployUi()
+	UpdateKeycloakPublicClients()
 }
 
 func DeployChildApplication() {
