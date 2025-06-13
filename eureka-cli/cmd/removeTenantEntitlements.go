@@ -30,6 +30,8 @@ var removeTenantEntitlementsCmd = &cobra.Command{
 	Short: "Remove tenant entitlements",
 	Long:  `Remove all tenant entitlements.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		RemoveUsers()
+		RemoveRoles()
 		RemoveTenantEntitlements()
 	},
 }
