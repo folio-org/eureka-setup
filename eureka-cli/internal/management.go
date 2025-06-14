@@ -537,17 +537,19 @@ func GetRoleByName(commandName string, enableDebug bool, roleName string, header
 
 func RemoveRoles(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) {
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
+	caser := cases.Lower(language.English)
+	rolesMap := viper.GetStringMap(RolesKey)
 
 	for _, value := range GetRoles(commandName, enableDebug, panicOnError, headers) {
 		mapEntry := value.(map[string]any)
-		roleName := mapEntry["name"].(string)
+		id := mapEntry["id"].(string)
+		roleName := caser.String(mapEntry["name"].(string))
 
-		rolesMap := viper.GetStringMap(RolesKey)
 		if rolesMap[roleName] == nil {
 			continue
 		}
 
-		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/roles-keycloak/roles/%s", mapEntry["id"].(string)))
+		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/roles/%s", id))
 
 		DoDelete(commandName, requestUrl, enableDebug, false, headers)
 
@@ -558,7 +560,7 @@ func RemoveRoles(commandName string, enableDebug bool, panicOnError bool, tenant
 func CreateRoles(commandName string, enableDebug bool, panicOnError bool, existingTenant string, accessToken string) {
 	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/roles")
 	rolesMap := viper.GetStringMap(RolesKey)
-	caser := cases.Title(language.English)
+	caser := cases.Lower(language.English)
 
 	for role, value := range rolesMap {
 		mapEntry := value.(map[string]any)

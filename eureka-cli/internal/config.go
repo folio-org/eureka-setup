@@ -62,7 +62,7 @@ var (
 	PortEndIndex   int   = 30999
 	ReservedPorts  []int = []int{}
 
-	AvailableProfiles = []string{"combined", "export", "search", "edge"}
+	AvailableProfiles = []string{"combined", "export", "search", "edge", "consortium"}
 )
 
 func GetGatewayUrlTemplate(commandName string) string {
@@ -148,7 +148,7 @@ func printModuleInfo(commandName string, name string, dto BackendModuleDto, back
 	sidecarServerPort := backendModulesMap[name].SidecarExposedServerPort
 	sidecarDebugPort := backendModulesMap[name].SidecarExposedDebugPort
 
-	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found backend module in config: %s, reserved ports: [%d|%d|%d|%d]", moduleInfo, moduleServerPort, moduleDebugPort, sidecarServerPort, sidecarDebugPort))
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found backend module in config: %s, reserved ports: [ %d | %d | %d | %d ]", moduleInfo, moduleServerPort, moduleDebugPort, sidecarServerPort, sidecarDebugPort))
 }
 
 func IsManagementModule(name string) bool {
@@ -342,7 +342,7 @@ func GetFrontendModulesFromConfig(commandName string, printOutput bool, frontend
 	return frontendModulesMap
 }
 
-func PrepareStripesConfigJs(commandName string, configPath string, tenant string, kongUrl string, keycloakUrl string, platformCompleteUrl string, enableEcsRequests bool) {
+func PrepareStripesConfigJs(commandName string, configPath string, tenant string, kongUrl string, keycloakUrl string, platformCompleteUrl string, isSingleTenant bool, enableEcsRequests bool) {
 	stripesConfigJsFilePath := fmt.Sprintf("%s/stripes.config.js", configPath)
 	readFileBytes, err := os.ReadFile(stripesConfigJsFilePath)
 	if err != nil {
@@ -354,7 +354,7 @@ func PrepareStripesConfigJs(commandName string, configPath string, tenant string
 		"${tenantUrl}":         platformCompleteUrl,
 		"${keycloakUrl}":       keycloakUrl,
 		"${hasAllPerms}":       `false`,
-		"${isSingleTenant}":    `true`,
+		"${isSingleTenant}":    strconv.FormatBool(isSingleTenant),
 		"${tenantOptions}":     fmt.Sprintf(`{%[1]s: {name: "%[1]s", clientId: "%[1]s%s"}}`, tenant, GetEnvironmentFromMapByKey("KC_LOGIN_CLIENT_SUFFIX")),
 		"${enableEcsRequests}": strconv.FormatBool(enableEcsRequests),
 	}

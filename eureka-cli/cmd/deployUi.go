@@ -45,6 +45,8 @@ var deployUiCmd = &cobra.Command{
 
 func DeployUi() {
 	slog.Info(deployUiCommand, internal.GetFuncName(), "### DEPLOYING UI ###")
+	tenants := viper.GetStringMap(internal.TenantsKey)
+
 	for _, value := range internal.GetTenants(deployUiCommand, withEnableDebug, false) {
 		mapEntry := value.(map[string]any)
 
@@ -53,16 +55,21 @@ func DeployUi() {
 			continue
 		}
 
-		finalImageName := preparePlatformCompleteUiImage(existingTenant)
+		withSingleTenant = tenants[existingTenant].(map[string]any)[internal.TenantsSingleTenantKey].(bool)
+		withEnableEcsRequests = tenants[existingTenant].(map[string]any)[internal.TenantsEnableEcsRequestKey].(bool)
+
+		fmt.Println("existingTenant:", existingTenant, ", withSingleTenant:", withSingleTenant, ", withEnableEcsRequests:", withEnableEcsRequests)
+
+		finalImageName := preparePlatformCompleteUiImage(withEnableDebug, withBuildImages, withUpdateCloned, withSingleTenant, withEnableEcsRequests, existingTenant)
 		deployPlatformCompleteUiContainer(deployUiCommand, existingTenant, finalImageName)
 	}
 }
 
-func preparePlatformCompleteUiImage(existingTenant string) (finalImageName string) {
+func preparePlatformCompleteUiImage(enabledDebug, buildImages, updateCloned, singleTenant, enableEcsRequests bool, existingTenant string) (finalImageName string) {
 	imageName := fmt.Sprintf("platform-complete-ui-%s", existingTenant)
-	if withBuildImages {
-		outputDir := cloneUpdatePlatformCompleteUiRepository(deployUiCommand, withEnableDebug, withUpdateCloned)
-		return buildPlatformCompleteUiImageLocally(deployUiCommand, withEnableEcsRequests, outputDir, existingTenant)
+	if buildImages {
+		outputDir := cloneUpdatePlatformCompleteUiRepository(deployUiCommand, enabledDebug, updateCloned)
+		return buildPlatformCompleteUiImageLocally(deployUiCommand, singleTenant, enableEcsRequests, outputDir, existingTenant)
 	}
 
 	return forcePullPlatformCompleteUiImageFromRegistry(deployUiCommand, imageName)
@@ -109,5 +116,6 @@ func init() {
 	rootCmd.AddCommand(deployUiCmd)
 	deployUiCmd.PersistentFlags().BoolVarP(&withBuildImages, "buildImages", "b", false, "Build Docker images")
 	deployUiCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	deployUiCmd.PersistentFlags().BoolVarP(&withSingleTenant, "singleTenant", "T", true, "Use for Single Tenant workflow")
 	deployUiCmd.PersistentFlags().BoolVarP(&withEnableEcsRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
 }

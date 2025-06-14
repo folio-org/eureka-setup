@@ -1,7 +1,7 @@
 profile:
-  name: combined
+  name: consortium
 application:
-  name: app-combined
+  name: app-consortium
   version: 1.0.0
   platform: base
   fetch-descriptors: false
@@ -51,28 +51,41 @@ environment:
     -XX:MaxRAMPercentage=80.0 -Xms128m -Xmx400m 
     -Djdk.internal.httpclient.disableHostnameVerification=true
 tenants:
-  diku:
+  consortium:
     deploy-ui: true
+    single-tenant: false
+    enable-ecs-request: false
+  # university:
+  # college:
 roles:
-  Admin:
-    tenant: diku
+  consortium_admin:
+    tenant: consortium
     capability-sets: ["all"]
-  User:
-    tenant: diku
-    capability-sets: []
+  # university_admin:
+  #   tenant: university
+  #   capability-sets: ["all"]
+  # college_admin:
+  #   tenant: college
+  #   capability-sets: ["all"]
 users:
-  diku_admin:
-    tenant: diku
+  consortium_admin:
+    tenant: consortium
     password: admin
     last-name: John
     first-name: Doe
-    roles: ["Admin", "User"]
-  diku_user:
-    tenant: diku
-    password: user
-    last-name: Jane
-    first-name: Doe
-    roles: ["User"]
+    roles: ["consortium_admin"]
+  # university_admin:
+  #   tenant: university
+  #   password: admin
+  #   last-name: John
+  #   first-name: Doe
+  #   roles: ["university_admin"]
+  # college_admin:
+  #   tenant: college
+  #   password: admin
+  #   last-name: John
+  #   first-name: Doe
+  #   roles: ["college_admin"]
 sidecar-module:
   image: folio-module-sidecar
   environment:
@@ -115,6 +128,11 @@ backend-modules:
       TE_URL: http://mgr-tenant-entitlements.eureka:8081
       VALIDATION_MODE: none
       ROUTEMANAGEMENT_ENABLE: "true"
+      FOLIO_CLIENT_CONNECT_TIMEOUT: 600s
+      FOLIO_CLIENT_READ_TIMEOUT: 600s
+      KONG_CONNECT_TIMEOUT: "941241418"
+      KONG_READ_TIMEOUT: "941241418"
+      KONG_WRITE_TIMEOUT: "941241418"
     resources:
       cpus: 2
   mgr-tenants:
@@ -122,6 +140,11 @@ backend-modules:
     use-vault: true
     environment:
       MODULE_URL: http://mgr-tenants.eureka:8081
+      FOLIO_CLIENT_CONNECT_TIMEOUT: 600s
+      FOLIO_CLIENT_READ_TIMEOUT: 600s
+      KONG_CONNECT_TIMEOUT: "941241418"
+      KONG_READ_TIMEOUT: "941241418"
+      KONG_WRITE_TIMEOUT: "941241418"
     resources:
       cpus: 2
   mgr-tenant-entitlements:
@@ -132,12 +155,16 @@ backend-modules:
       MT_CLIENT_URL: http://mgr-tenants.eureka:8081
       AM_CLIENT_URL: http://mgr-applications.eureka:8081
       VALIDATION_INTERFACE_INTEGRITY_ENABLED: "false"
-      FOLIO_CLIENT_CONNECT_TIMEOUT: 60s
-      FOLIO_CLIENT_READ_TIMEOUT: 180s
+      ROUTEMANAGEMENT_ENABLE: "false"
+      FOLIO_CLIENT_CONNECT_TIMEOUT: 600s
+      FOLIO_CLIENT_READ_TIMEOUT: 600s
+      KONG_CONNECT_TIMEOUT: "941241418"
+      KONG_READ_TIMEOUT: "941241418"
+      KONG_WRITE_TIMEOUT: "941241418"
       FLOW_ENGINE_THREADS_NUM: "1"
       RETRIES_MODULE_MAX: "10"
     resources:
-      cpus: 2
+      cpus: 4
   mod-users-keycloak:
     use-vault: true
     use-okapi-url: true
@@ -146,6 +173,10 @@ backend-modules:
     environment:
       SINGLE_TENANT_UX: "true"
       INCLUDE_ONLY_VISIBLE_PERMISSIONS: "false"
+      KAFKA_SYS_USER_TOPIC_RETRY_DELAY: 1s
+      KAFKA_SYS_USER_TOPIC_RETRY_ATTEMPTS: "9223372036854775807"
+      KAFKA_SYS_USER_CAPABILITIES_RETRY_DELAY: 5s
+      KAFKA_SYS_USER_CAPABILITIES_RETRY_ATTEMPTS: "100"
     resources:
       cpus: 4
       memory: 900
@@ -154,11 +185,15 @@ backend-modules:
     port: 9905
     environment:
       X_OKAPI_TOKEN_HEADER_ENABLED: "true"
+      LOGIN_COOKIE_SAMESITE: "NONE"
       KC_ADMIN_TOKEN_TTL: 59s
   mod-roles-keycloak:
     use-vault: true
     disable-system-user: true
     port: 9906
+    environment:
+      CAPABILITY_TOPIC_RETRY_DELAY: 1s
+      CAPABILITY_TOPIC_RETRY_ATTEMPTS: "9223372036854775807"
     resources:
       cpus: 4
   mod-scheduler:
@@ -167,6 +202,21 @@ backend-modules:
     port: 9907
     resources:
       cpus: 4
+  mod-consortia-keycloak:
+    deploy-module: true
+    use-vault: true
+    use-okapi-url: true
+    disable-system-user: true
+    port: 9908
+  mod-okapi-facade:
+    environment:
+      TENANT_APPS_TTL: 600s
+      AM_TLS_ENABLED: "false"
+      TM_TLS_ENABLED: "false"
+      TE_TLS_ENABLED: "false"
+      AM_CLIENT_URL: http://mgr-applications.eureka:8081
+      MT_CLIENT_URL: http://mgr-tenants.eureka:8081
+      TE_URL: http://mgr-tenant-entitlements.eureka:8081
   mod-permissions:
   mod-configuration:
   mod-users:
@@ -227,3 +277,5 @@ custom-frontend-modules:
     version: 2.0.10990000000091
   folio_plugin-select-application:
     version: 2.0.10990000000068
+  folio_consortia-settings:
+    version: 3.0.109900000000101

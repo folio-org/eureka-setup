@@ -28,8 +28,10 @@ const (
 	EnvironmentKey      string = "environment"
 	EnvironmentFolioKey string = "environment.ENV"
 
-	TenantsKey              string = "tenants"
-	TenantsDeployUiEntryKey string = "deploy-ui"
+	TenantsKey                 string = "tenants"
+	TenantsDeployUiEntryKey    string = "deploy-ui"
+	TenantsSingleTenantKey     string = "single-tenant"
+	TenantsEnableEcsRequestKey string = "enable-ecs-request"
 
 	UsersKey string = "users"
 	RolesKey string = "roles"

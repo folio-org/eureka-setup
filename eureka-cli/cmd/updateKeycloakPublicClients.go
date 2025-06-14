@@ -26,7 +26,7 @@ const updateKeycloakPublicClientsCommand string = "Update Keycloak Public Client
 
 // updateKeycloakPublicClientsCmd represents the updateKeycloakPublicClients command
 var updateKeycloakPublicClientsCmd = &cobra.Command{
-	Use:   "updateKeycloakPublicClientParams",
+	Use:   "updateKeycloakPublicClients",
 	Short: "Update Keycloak public client params",
 	Long:  `Update Keycloak public client params for each UI container.`,
 	Run: func(cmd *cobra.Command, args []string) {

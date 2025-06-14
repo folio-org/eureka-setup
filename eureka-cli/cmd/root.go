@@ -37,6 +37,7 @@ var (
 	withEnableDebug       bool
 	withBuildImages       bool
 	withUpdateCloned      bool
+	withSingleTenant      bool
 	withEnableEcsRequests bool
 	withTenant            string
 	withNamespace         string
