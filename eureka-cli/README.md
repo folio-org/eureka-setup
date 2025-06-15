@@ -236,7 +236,7 @@ eureka-cli getKeycloakAccessToken -t diku
 - Get an Edge API key for a user and tenant
 
 ```bash
-eureka-cli -c config.edge.yaml getEdgeApiKey -t diku -U diku_admin 
+eureka-cli -c config.edge.yaml getEdgeApiKey -t diku -U diku_admin
 ```
 
 - Check if module internal ports are accessible
@@ -314,7 +314,7 @@ eureka-cli -c config.edge.yaml listModules
 
 ## Using the UI
 
-The environment depends on [platform-complete](<https://github.com/folio-org/platform-complete>) project to correlate and assemble frontend and backend modules into a single UI package. The CLI by default will use a pre-built Docker image of _platform-complete_ stored in the DockerHub to deploy the UI container.
+The environment depends on [platform-complete](https://github.com/folio-org/platform-complete) project to correlate and assemble frontend and backend modules into a single UI package. The CLI by default will use a pre-built Docker image of _platform-complete_ stored in the DockerHub to deploy the UI container.
 
 - If there is a need to use a different namespace, override the `namespaces.platform-complete-ui` key in the config, for example in `config.combined.yaml`
 
@@ -346,7 +346,7 @@ The CLI also supports building and deploying the UI image in-place, during eithe
 # Will build and deploy every image including folio-kong, folio-keycloak and platform-complete itself
 eureka-cli deployApplication -b -u
 
-# Will only build and deploy the platform-complete image 
+# Will only build and deploy the platform-complete image
 eureka-cli deployUi -b -u
 ```
 
