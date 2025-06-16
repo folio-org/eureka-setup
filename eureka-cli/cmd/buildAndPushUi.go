@@ -24,6 +24,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const buildAndPushUiCmdCommand string = "Build and push UI"
@@ -42,11 +43,30 @@ func BuildAndPushUi() {
 	start := time.Now()
 
 	slog.Info(buildAndPushUiCmdCommand, internal.GetFuncName(), "### BUILDING AND PUSHING PLATFORM COMPLETE UI IMAGE TO DOCKER HUB ###")
+	setCommandFlagsFromConfigFile(buildAndPushUiCmdCommand, withTenant)
+
 	outputDir := cloneUpdatePlatformCompleteUiRepository(buildAndPushUiCmdCommand, withEnableDebug, withUpdateCloned)
 	imageName := buildPlatformCompleteUiImageLocally(buildAndPushUiCmdCommand, withSingleTenant, withEnableEcsRequests, outputDir, withTenant)
 	pushPlatformCompleteUiImageToRegistry(buildAndPushUiCmdCommand, withNamespace, imageName)
 
 	slog.Info(buildAndPushUiCmdCommand, "Elapsed, duration", time.Since(start))
+}
+
+func setCommandFlagsFromConfigFile(commandName string, existingTenant string) {
+	tenants := viper.GetStringMap(internal.TenantsKey)
+	if tenants == nil {
+		return
+	}
+
+	var tenant = tenants[existingTenant].(map[string]any)
+	if tenant[internal.TenantsSingleTenantKey] != nil {
+		withSingleTenant = tenant[internal.TenantsSingleTenantKey].(bool)
+	}
+	if tenant[internal.TenantsEnableEcsRequestKey] != nil {
+		withEnableEcsRequests = tenant[internal.TenantsEnableEcsRequestKey].(bool)
+	}
+
+	slog.Info(commandName, internal.GetFuncName(), fmt.Sprintf("Setting command flags from a config file, tenant: %s, singleTenant: %t, enableEcsRequests: %t", existingTenant, withSingleTenant, withEnableEcsRequests))
 }
 
 func buildPlatformCompleteUiImageLocally(commandName string, singleTenant bool, enableEcsRequests bool, outputDir string, existingTenant string) (finalImageName string) {

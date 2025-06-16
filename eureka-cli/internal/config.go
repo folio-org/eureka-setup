@@ -62,7 +62,7 @@ var (
 	PortEndIndex   int   = 30999
 	ReservedPorts  []int = []int{}
 
-	AvailableProfiles = []string{"combined", "export", "search", "edge", "consortium"}
+	AvailableProfiles = []string{"combined", "export", "search", "edge", "ecs"}
 )
 
 func GetGatewayUrlTemplate(commandName string) string {
@@ -368,6 +368,8 @@ func PrepareStripesConfigJs(commandName string, configPath string, tenant string
 
 		newReadFileStr = strings.Replace(newReadFileStr, key, value, -1)
 	}
+
+	newReadFileStr = strings.Replace(newReadFileStr, "'@folio/users' : {}", "'@folio/users' : {},\n    '@folio/consortia-settings' : {}", -1)
 
 	fmt.Println()
 	fmt.Println("###### Dumping stripes.config.js ######")

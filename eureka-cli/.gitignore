@@ -1,5 +1,7 @@
 bin
 log
+tmp
+temp
 misc/folio-keycloak
 misc/folio-kong
 misc/platform-complete

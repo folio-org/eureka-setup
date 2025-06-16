@@ -45,20 +45,14 @@ var deployUiCmd = &cobra.Command{
 
 func DeployUi() {
 	slog.Info(deployUiCommand, internal.GetFuncName(), "### DEPLOYING UI ###")
-	tenants := viper.GetStringMap(internal.TenantsKey)
 
 	for _, value := range internal.GetTenants(deployUiCommand, withEnableDebug, false) {
-		mapEntry := value.(map[string]any)
-
-		existingTenant := mapEntry["name"].(string)
+		existingTenant := value.(map[string]any)["name"].(string)
 		if !internal.HasTenant(existingTenant) || !internal.CanDeployUi(existingTenant) {
 			continue
 		}
 
-		withSingleTenant = tenants[existingTenant].(map[string]any)[internal.TenantsSingleTenantKey].(bool)
-		withEnableEcsRequests = tenants[existingTenant].(map[string]any)[internal.TenantsEnableEcsRequestKey].(bool)
-
-		fmt.Println("existingTenant:", existingTenant, ", withSingleTenant:", withSingleTenant, ", withEnableEcsRequests:", withEnableEcsRequests)
+		setCommandFlagsFromConfigFile(deployUiCommand, existingTenant)
 
 		finalImageName := preparePlatformCompleteUiImage(withEnableDebug, withBuildImages, withUpdateCloned, withSingleTenant, withEnableEcsRequests, existingTenant)
 		deployPlatformCompleteUiContainer(deployUiCommand, existingTenant, finalImageName)

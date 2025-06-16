@@ -1,7 +1,7 @@
 profile:
-  name: consortium
+  name: ecs
 application:
-  name: app-consortium
+  name: app-ecs
   version: 1.0.0
   platform: base
   fetch-descriptors: false
@@ -51,41 +51,41 @@ environment:
     -XX:MaxRAMPercentage=80.0 -Xms128m -Xmx400m 
     -Djdk.internal.httpclient.disableHostnameVerification=true
 tenants:
-  consortium:
+  ecs:
     deploy-ui: true
     single-tenant: false
     enable-ecs-request: false
-  # university:
-  # college:
+  university:
+  college:
 roles:
-  consortium_admin:
-    tenant: consortium
+  ecs_admin:
+    tenant: ecs
     capability-sets: ["all"]
-  # university_admin:
-  #   tenant: university
-  #   capability-sets: ["all"]
-  # college_admin:
-  #   tenant: college
-  #   capability-sets: ["all"]
+  university_admin:
+    tenant: university
+    capability-sets: ["all"]
+  college_admin:
+    tenant: college
+    capability-sets: ["all"]
 users:
-  consortium_admin:
-    tenant: consortium
+  ecs_admin:
+    tenant: ecs
     password: admin
     last-name: John
     first-name: Doe
-    roles: ["consortium_admin"]
-  # university_admin:
-  #   tenant: university
-  #   password: admin
-  #   last-name: John
-  #   first-name: Doe
-  #   roles: ["university_admin"]
-  # college_admin:
-  #   tenant: college
-  #   password: admin
-  #   last-name: John
-  #   first-name: Doe
-  #   roles: ["college_admin"]
+    roles: ["ecs_admin"]
+  university_admin:
+    tenant: university
+    password: admin
+    last-name: John
+    first-name: Doe
+    roles: ["university_admin"]
+  college_admin:
+    tenant: college
+    password: admin
+    last-name: John
+    first-name: Doe
+    roles: ["college_admin"]
 sidecar-module:
   image: folio-module-sidecar
   environment:
@@ -171,7 +171,7 @@ backend-modules:
     disable-system-user: true
     port: 9904
     environment:
-      SINGLE_TENANT_UX: "true"
+      SINGLE_TENANT_UX: "false"
       INCLUDE_ONLY_VISIBLE_PERMISSIONS: "false"
       KAFKA_SYS_USER_TOPIC_RETRY_DELAY: 1s
       KAFKA_SYS_USER_TOPIC_RETRY_ATTEMPTS: "9223372036854775807"
