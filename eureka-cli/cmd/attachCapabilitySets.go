@@ -81,7 +81,7 @@ func pollCapabilitySetsCreation(enableDebug bool, tenant string) {
 		}
 
 		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %s consumer group to process all messages, lag: %d", consumerGroup, lag))
-		time.Sleep(5 * time.Second)
+		time.Sleep(30 * time.Second)
 	}
 
 	slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Consumer group %s has no new message to process", consumerGroup))
@@ -102,8 +102,8 @@ func getConsumerGroupLag(enableDebug bool, tenant string, consumerGroup string, 
 
 	lag, err := strconv.Atoi(strings.TrimSpace(regexp.MustCompile(NewLinePattern).ReplaceAllString(stdout.String(), "")))
 	if err != nil {
-		slog.Error(attachCapabilitySetsCommand, internal.GetFuncName(), "strconv.Atoi error")
-		panic(err)
+		slog.Error(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("strconv.Atoi warning - %s", stderr.String()))
+		return initialLag
 	}
 
 	return lag

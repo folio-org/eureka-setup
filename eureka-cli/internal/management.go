@@ -826,7 +826,7 @@ func EnableCentralOrdering(commandName string, enableDebug bool, centralTenant s
 	centralOrderingLookupKey := "ALLOW_ORDERING_WITH_AFFILIATED_LOCATIONS"
 
 	enableCentralOrdering := GetEnableCentralOrderingByKey(commandName, enableDebug, true, centralTenant, accessToken, centralOrderingLookupKey)
-	if enableCentralOrdering.(map[string]any)["value"].(string) == "true" {
+	if enableCentralOrdering != nil && enableCentralOrdering.(map[string]any)["value"].(string) == "true" {
 		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Central ordering for %s tenant is already enabled", centralTenant))
 		return
 	}
