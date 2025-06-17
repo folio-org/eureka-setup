@@ -13,12 +13,12 @@ const (
 	DefaultModuleCpus              int64 = 1
 	DefaultModuleMemoryReservation int64 = 128
 	DefaultModuleMemory            int64 = 750
-	DefaultModuleSwap              int64 = 0
+	DefaultModuleSwap              int64 = -1
 
 	DefaultSidecarCpus              int64 = 1
 	DefaultSidecarMemoryReservation int64 = 64
 	DefaultSidecarMemory            int64 = 450
-	DefaultSidecarSwap              int64 = 0
+	DefaultSidecarSwap              int64 = -1
 )
 
 type DeployModuleDto struct {
@@ -99,9 +99,13 @@ func NewBackendModuleWithSidecar(commandName string, dto BackendModuleDto) *Back
 	exposedPorts := createExposedPorts(*dto.portServer)
 
 	moduleServerPort := *dto.port
-	moduleDebugPort := GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
-	sidecarServerPort := GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
-	sidecarDebugPort := GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
+
+	var moduleDebugPort, sidecarServerPort, sidecarDebugPort int = 0, 0, 0
+	if dto.deployModule {
+		moduleDebugPort = GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
+		sidecarServerPort = GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
+		sidecarDebugPort = GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
+	}
 
 	return &BackendModule{
 		DeployModule:             dto.deployModule,
@@ -219,6 +223,10 @@ func createDefaultResources(isModule bool) *container.Resources {
 }
 
 func convertMiBToBytes(mib int64) int64 {
+	if mib < 0 {
+		return mib
+	}
+
 	return mib * 1024 * 1024
 }
 

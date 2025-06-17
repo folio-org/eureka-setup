@@ -92,6 +92,7 @@ sidecar-module:
       -Djava.util.logging.manager=org.jboss.logmanager.LogManager
 backend-modules:
   mod-data-export-spring:
+    use-okapi-url: true
     disable-system-user: true
   mod-data-export-worker:
     environment:

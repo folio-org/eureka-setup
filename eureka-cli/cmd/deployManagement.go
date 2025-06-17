@@ -56,7 +56,8 @@ func DeployManagement() {
 	defer client.Close()
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### DEPLOYING MANAGEMENT MODULES ###")
-	deployModulesDto := internal.NewDeployManagementModulesDto(vaultRootToken, map[string]string{internal.EurekaRegistry: ""}, registryModules, backendModulesMap, environment)
+	registryHostnames := map[string]string{internal.EurekaRegistry: ""}
+	deployModulesDto := internal.NewDeployManagementModulesDto(vaultRootToken, registryHostnames, registryModules, backendModulesMap, environment)
 	deployedModules := internal.DeployModules(deployManagementCommand, client, deployModulesDto, "", nil)
 	time.Sleep(5 * time.Second)
 
@@ -67,6 +68,7 @@ func DeployManagement() {
 		go internal.PerformModuleHealthcheck(deployManagementCommand, withEnableDebug, &waitMutex, deployedModule, deployedModules[deployedModule])
 	}
 	waitMutex.Wait()
+	time.Sleep(5 * time.Second)
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "All management modules have initialized")
 }
 

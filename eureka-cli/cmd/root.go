@@ -50,6 +50,7 @@ var (
 	withUser              string
 	withLength            int
 	withModuleType        string
+	withPurgeSchemas      bool
 )
 
 var embeddedFs embed.FS

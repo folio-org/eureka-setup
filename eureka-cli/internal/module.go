@@ -113,11 +113,6 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 func GetBackendModule(commandName string, dto *DeployModulesDto, moduleName string) (*BackendModule, *RegistryModule) {
 	for _, registryModules := range dto.RegistryModules {
 		for _, registryModule := range registryModules {
-			managementModule := strings.Contains(registryModule.Name, ManagementModulePattern)
-			if (dto.ManagementOnly && !managementModule) || (!dto.ManagementOnly && managementModule) {
-				continue
-			}
-
 			backendModule, ok := dto.BackendModulesMap[registryModule.Name]
 			if !ok || !backendModule.DeployModule {
 				continue
@@ -233,7 +228,7 @@ func DeployModule(commandName string, client *client.Client, dto *DeployModuleDt
 		panic(err)
 	}
 
-	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Deployed module container %s %s", cr.ID, containerName))
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Deployed module container, id: %s, name: %s", cr.ID, containerName))
 }
 
 func getContainerName(dto *DeployModuleDto) string {
@@ -315,5 +310,5 @@ func undeployModule(commandName string, client *client.Client, deployedModule ty
 	}
 
 	containerName := strings.ReplaceAll(deployedModule.Names[0], "/", "")
-	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Undeployed module container %s %s %s", deployedModule.ID, containerName, deployedModule.Status))
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Undeployed module container, id: %s, name: %s, status: %s", deployedModule.ID, containerName, deployedModule.Status))
 }

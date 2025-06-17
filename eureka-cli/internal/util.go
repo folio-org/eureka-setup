@@ -26,7 +26,7 @@ func DumpHttpBody(commandName string, enableDebug bool, bodyBytes []byte) {
 		return
 	}
 
-	fmt.Println("###### Dumping HTTP Request Body ######")
+	fmt.Printf("\n###### Dumping HTTP Request Body ######\n")
 	fmt.Println(string(bodyBytes))
 	fmt.Println()
 }
@@ -36,7 +36,7 @@ func DumpHttpFormData(commandName string, enableDebug bool, formData url.Values)
 		return
 	}
 
-	fmt.Println("###### Dumping HTTP Request Body ######")
+	fmt.Printf("\n###### Dumping HTTP Request Body ######\n")
 	fmt.Println(formData)
 	fmt.Println()
 }
@@ -52,7 +52,7 @@ func DumpHttpRequest(commandName string, req *http.Request, enableDebug bool) {
 		panic(err)
 	}
 
-	fmt.Println("###### Dumping HTTP Request ######")
+	fmt.Printf("\n###### Dumping HTTP Request ######\n")
 	fmt.Println(string(reqBytes))
 	fmt.Println()
 }
@@ -68,7 +68,7 @@ func DumpHttpResponse(commandName string, resp *http.Response, enableDebug bool)
 		panic(err)
 	}
 
-	fmt.Println("###### Dumping HTTP Response ######")
+	fmt.Printf("\n###### Dumping HTTP Response ######\n")
 	fmt.Println(string(respBytes))
 	fmt.Println()
 }
@@ -78,8 +78,9 @@ func CheckStatusCodes(commandName string, panicOnError bool, resp *http.Response
 		return
 	}
 
-	LogErrorPanic(commandName, fmt.Sprintf("internal.CheckStatusCodes error - Unacceptable request status %d for URL: %s", resp.StatusCode, resp.Request.URL.String()))
 	DumpHttpResponse(commandName, resp, true)
+
+	LogErrorPanic(commandName, fmt.Sprintf("internal.CheckStatusCodes error - Unacceptable request status %d for URL: %s", resp.StatusCode, resp.Request.URL.String()))
 }
 
 func AddRequestHeaders(req *http.Request, headers map[string]string) {
@@ -262,7 +263,7 @@ func GetAndSetFreePortFromRange(commandName string, portStart, portEnd int, excl
 			return port
 		}
 	}
-	LogErrorPanic(commandName, fmt.Sprintf("getFreePortFromRange() error - Cannot find free TCP ports in range %d-%d", portStart, portEnd))
+	LogErrorPanic(commandName, fmt.Sprintf("internal.GetAndSetFreePortFromRange error - Cannot find free TCP ports in range %d-%d", portStart, portEnd))
 
 	return 0
 }

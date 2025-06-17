@@ -45,8 +45,8 @@ const (
 	AllContainerPattern        string = "^eureka-"
 	ProfileContainerPattern    string = "^eureka-%s"
 	ManagementContainerPattern string = "^eureka-mgr-"
-	ModuleContainerPattern     string = "^eureka-%s-[a-z0-9]+-[a-z0-9]+$"
-	SidecarContainerPattern    string = "^eureka-%s-[a-z0-9]+-[a-z0-9]+-sc$"
+	ModuleContainerPattern     string = "^eureka-%s-[a-z]+-[a-z]+(-[a-z]{3,})?$"
+	SidecarContainerPattern    string = "^eureka-%s-[a-z]+-[a-z]+(-[a-z]{3,})?-sc$"
 
 	SingleModuleOrSidecarContainerPattern string = "^(eureka-%s-)(%[2]s|%[2]s-sc)$"
 )
@@ -62,8 +62,8 @@ const (
 )
 
 var (
-	PortStartIndex int = 30000
-	PortEndIndex   int = 30999
+	PortStartIndex int   = 30000
+	PortEndIndex   int   = 30999
 	ReservedPorts  []int = []int{}
 
 	AvailableProfiles = []string{"combined", "export", "search", "edge"}
@@ -192,7 +192,7 @@ func createConfigurableBackendDto(commandName string, value any, name string) (d
 	dto.disableSystemUser = getKeyOrDefault(mapEntry, ModuleDisableSystemUserEntryKey, false).(bool)
 	dto.useOkapiUrl = getKeyOrDefault(mapEntry, ModuleUseOkapiUrlEntryKey, false).(bool)
 	dto.version = getVersion(mapEntry)
-	dto.port = getPort(commandName, mapEntry)
+	dto.port = getPort(commandName, dto.deployModule, mapEntry)
 	dto.portServer = getPortServer(mapEntry)
 	dto.environment = getKeyOrDefault(mapEntry, ModuleEnvironmentEntryKey, make(map[string]any)).(map[string]any)
 	dto.resources = getKeyOrDefault(mapEntry, ModuleResourceEntryKey, make(map[string]any)).(map[string]any)
@@ -240,7 +240,11 @@ func getVersion(mapEntry map[string]any) *string {
 	return &versionValue
 }
 
-func getPort(commandName string, mapEntry map[string]any) *int {
+func getPort(commandName string, deployModule bool, mapEntry map[string]any) *int {
+	if !deployModule {
+		noPort := 0
+		return &noPort
+	}
 	if mapEntry[ModulePortEntryKey] == nil {
 		return getDefaultPort(commandName)
 	}
