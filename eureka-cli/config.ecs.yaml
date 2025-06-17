@@ -7,6 +7,9 @@ application:
   fetch-descriptors: false
   port-start: 30000
   port-end: 30999
+consortium:
+  name: ECS
+  central-ordering: true
 registry:
   url: https://folio-registry.dev.folio.org
 install:
@@ -55,6 +58,7 @@ tenants:
     deploy-ui: true
     single-tenant: false
     enable-ecs-request: false
+    central-tenant: true
   university:
   college:
 roles:

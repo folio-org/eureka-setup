@@ -15,6 +15,10 @@ const (
 	ApplicationGatewayHostnameKey               string = "application.gateway-hostname"
 	ApplicationGatewayDependenciesKey           string = "application.dependencies"
 
+	ConsortiumKey                string = "consortium"
+	ConsortiumNameKey            string = "consortium.name"
+	ConsortiumCentralOrderingKey string = "consortium.central-ordering"
+
 	RegistryKey    string = "registry"
 	RegistryUrlKey string = "registry.url"
 
@@ -32,8 +36,11 @@ const (
 	TenantsDeployUiEntryKey    string = "deploy-ui"
 	TenantsSingleTenantKey     string = "single-tenant"
 	TenantsEnableEcsRequestKey string = "enable-ecs-request"
+	TenantsCentralTenantKey    string = "central-tenant"
 
-	UsersKey string = "users"
+	UsersKey            string = "users"
+	UsersTenantEntryKey string = "tenant"
+
 	RolesKey string = "roles"
 
 	SidecarModuleKey                string = "sidecar-module"

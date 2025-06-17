@@ -1,5 +1,5 @@
 /*
-Copyright © 2024 EPAM_Systems/Thunderjet/Boburbek_Kadirkhodjaev
+Copyright © 2025 Open Library Foundation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -69,6 +69,20 @@ func setCommandFlagsFromConfigFile(commandName string, existingTenant string) {
 	slog.Info(commandName, internal.GetFuncName(), fmt.Sprintf("Setting command flags from a config file, tenant: %s, singleTenant: %t, enableEcsRequests: %t", existingTenant, withSingleTenant, withEnableEcsRequests))
 }
 
+func cloneUpdatePlatformCompleteUiRepository(commandName string, enableDebug bool, updateCloned bool) (outputDir string) {
+	slog.Info(commandName, internal.GetFuncName(), "### CLONING & UPDATING PLATFORM COMPLETE UI REPOSITORY ###")
+	branchName := internal.GetPlatformCompleteStripesBranch(commandName)
+
+	repository := internal.NewRepository(commandName, internal.PlatformCompleteRepositoryUrl, internal.DefaultPlatformCompleteOutputDir, branchName)
+
+	internal.GitCloneRepository(commandName, enableDebug, false, repository)
+	if updateCloned {
+		internal.GitResetHardPullFromOriginRepository(commandName, enableDebug, repository)
+	}
+
+	return repository.OutputDir
+}
+
 func buildPlatformCompleteUiImageLocally(commandName string, singleTenant bool, enableEcsRequests bool, outputDir string, existingTenant string) (finalImageName string) {
 	finalImageName = fmt.Sprintf("platform-complete-ui-%s", existingTenant)
 
@@ -91,20 +105,6 @@ func buildPlatformCompleteUiImageLocally(commandName string, singleTenant bool, 
 	), outputDir)
 
 	return finalImageName
-}
-
-func cloneUpdatePlatformCompleteUiRepository(commandName string, enableDebug bool, updateCloned bool) (outputDir string) {
-	slog.Info(commandName, internal.GetFuncName(), "### CLONING & UPDATING PLATFORM COMPLETE UI REPOSITORY ###")
-	branchName := internal.GetPlatformCompleteStripesBranch(commandName)
-
-	repository := internal.NewRepository(commandName, internal.PlatformCompleteRepositoryUrl, internal.DefaultPlatformCompleteOutputDir, branchName)
-
-	internal.GitCloneRepository(commandName, enableDebug, false, repository)
-	if updateCloned {
-		internal.GitResetHardPullFromOriginRepository(commandName, enableDebug, repository)
-	}
-
-	return repository.OutputDir
 }
 
 func pushPlatformCompleteUiImageToRegistry(commandName string, namespace string, imageName string) {

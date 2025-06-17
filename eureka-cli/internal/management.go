@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -395,16 +396,28 @@ func CreateTenantEntitlement(commandName string, enableDebug bool) {
 
 // ######## Users ########
 
+func GetUser(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string, username string) any {
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/users?query=username==%s", username))
+	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
+
+	foundUsersMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
+	if foundUsersMap["users"] == nil || len(foundUsersMap["users"].([]any)) == 0 {
+		return nil
+	}
+
+	return foundUsersMap["users"].([]any)[0]
+}
+
 func GetUsers(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) []any {
 	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/users?offset=0&limit=10000")
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 
-	foundTenantsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
-	if foundTenantsMap["users"] == nil || len(foundTenantsMap["users"].([]any)) == 0 {
+	foundUsersMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
+	if foundUsersMap["users"] == nil || len(foundUsersMap["users"].([]any)) == 0 {
 		return nil
 	}
 
-	return foundTenantsMap["users"].([]any)
+	return foundUsersMap["users"].([]any)
 }
 
 func RemoveUsers(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) {
@@ -714,4 +727,131 @@ func appendAllCapabilitySets(commandName string, enableDebug bool, headers map[s
 	}
 
 	return capabilitySetsMapList
+}
+
+// ######## Consortium ########
+
+func CreateConsortium(commandName string, enableDebug bool, centralTenant string, accessToken string, consortiumName string) string {
+	consortium := GetConsortiumByName(commandName, enableDebug, true, centralTenant, accessToken, consortiumName)
+	if consortium != nil {
+		consortiumId := consortium.(map[string]any)["id"].(string)
+
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Consortium %s is already created", consortiumName))
+
+		return consortiumId
+	}
+
+	consortiumId := uuid.New()
+
+	bytes, err := json.Marshal(map[string]any{"id": consortiumId, "name": consortiumName})
+	if err != nil {
+		slog.Error(commandName, GetFuncName(), "json.Marshal error")
+		panic(err)
+	}
+
+	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: centralTenant, TokenHeader: accessToken}
+
+	DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/consortia"), enableDebug, true, bytes, headers)
+
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Created %s consortium", consortiumName))
+
+	return consortiumId.String()
+}
+
+func GetConsortiumByName(commandName string, enableDebug bool, panicOnError bool, centralTenant string, accessToken string, consortiumName string) any {
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/consortia?query=name==%s", consortiumName))
+	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: centralTenant, TokenHeader: accessToken}
+
+	foundConsortiumsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
+	if foundConsortiumsMap["consortia"] == nil || len(foundConsortiumsMap["consortia"].([]any)) == 0 {
+		return nil
+	}
+
+	return foundConsortiumsMap["consortia"].([]any)[0]
+}
+
+func CreateConsortiumTenants(commandName string, enableDebug bool, centralTenant string, accessToken string, consortiumId string, consortiumTenants map[string]bool, adminUsername string) {
+	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: centralTenant, TokenHeader: accessToken}
+
+	for tenant, isCentral := range consortiumTenants {
+		bytes, err := json.Marshal(map[string]any{"id": tenant, "code": tenant[0:3], "name": tenant, "isCentral": isCentral})
+		if err != nil {
+			slog.Error(commandName, GetFuncName(), "json.Marshal error")
+			panic(err)
+		}
+
+		existingTenant := GetConsortiumTenantByIdAndName(commandName, enableDebug, true, centralTenant, accessToken, consortiumId, tenant)
+		if existingTenant != nil {
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Consortium tenant %s is already created", tenant))
+			continue
+		}
+
+		var requestUrl string = fmt.Sprintf("/consortia/%s/tenants", consortiumId)
+		if !isCentral {
+			user := GetUser(commandName, enableDebug, true, centralTenant, accessToken, adminUsername)
+
+			requestUrl = fmt.Sprintf("/consortia/%s/tenants?adminUserId=%s", consortiumId, user.(map[string]any)["id"].(string))
+		}
+
+		DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, requestUrl), enableDebug, true, bytes, headers)
+
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Created %s consortium tenant (%t) for %s consortium", tenant, isCentral, consortiumId))
+	}
+}
+
+func GetConsortiumTenantByIdAndName(commandName string, enableDebug bool, panicOnError bool, centralTenant string, accessToken string, consortiumId string, tenant string) any {
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/consortia/%s/tenants", consortiumId))
+	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: centralTenant, TokenHeader: accessToken}
+
+	foundConsortiumTenantsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
+	if foundConsortiumTenantsMap["tenants"] == nil || len(foundConsortiumTenantsMap["tenants"].([]any)) == 0 {
+		return nil
+	}
+
+	existingTenants := foundConsortiumTenantsMap["tenants"].([]any)
+
+	for _, value := range existingTenants {
+		mapEntry := value.(map[string]any)
+
+		existingTenant := mapEntry["name"]
+		if existingTenant != nil && existingTenant.(string) == tenant {
+			return existingTenant
+		}
+	}
+
+	return nil
+}
+
+func EnableCentralOrdering(commandName string, enableDebug bool, centralTenant string, accessToken string) {
+	centralOrderingLookupKey := "ALLOW_ORDERING_WITH_AFFILIATED_LOCATIONS"
+
+	enableCentralOrdering := GetEnableCentralOrderingByKey(commandName, enableDebug, true, centralTenant, accessToken, centralOrderingLookupKey)
+	if enableCentralOrdering.(map[string]any)["value"].(string) == "true" {
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Central ordering for %s tenant is already enabled", centralTenant))
+		return
+	}
+
+	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: centralTenant, TokenHeader: accessToken}
+
+	bytes, err := json.Marshal(map[string]any{"key": centralOrderingLookupKey, "value": "true"})
+	if err != nil {
+		slog.Error(commandName, GetFuncName(), "json.Marshal error")
+		panic(err)
+	}
+
+	DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/orders-storage/settings"), enableDebug, true, bytes, headers)
+
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Enabled central ordering for %s tenant", centralTenant))
+}
+
+func GetEnableCentralOrderingByKey(commandName string, enableDebug bool, panicOnError bool, centralTenant string, accessToken string, key string) any {
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/orders-storage/settings?query=key==%s", key))
+	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: centralTenant, TokenHeader: accessToken}
+
+	foundConsortiumsMap := DoGetDecodeReturnMapStringAny(commandName, requestUrl, enableDebug, panicOnError, headers)
+	if foundConsortiumsMap["settings"] == nil || len(foundConsortiumsMap["settings"].([]any)) == 0 {
+		return nil
+	}
+
+	return foundConsortiumsMap["settings"].([]any)[0]
 }
