@@ -50,8 +50,8 @@ func DeployApplication() {
 	CreateTenantEntitlements()
 	CreateRoles()
 	CreateUsers()
-	AttachCapabilitySets()
-	CreateConsortium()
+	AttachCapabilitySets(10 * time.Second)
+	CreateConsortium(10 * time.Second)
 	DeployUi()
 	UpdateKeycloakPublicClients()
 }
@@ -61,7 +61,7 @@ func DeployChildApplication() {
 	DeployModules()
 	CreateTenantEntitlements()
 	DetachCapabilitySets()
-	AttachCapabilitySets()
+	AttachCapabilitySets(3 * time.Second)
 }
 
 func init() {

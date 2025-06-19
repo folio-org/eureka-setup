@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
+	"time"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
@@ -33,11 +34,11 @@ var createConsortiumCmd = &cobra.Command{
 	Short: "Create a consortium",
 	Long:  `Create a consortium with multiple tenants.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		CreateConsortium()
+		CreateConsortium(time.Duration(5 * time.Second))
 	},
 }
 
-func CreateConsortium() {
+func CreateConsortium(initialWaitDuration time.Duration) {
 	if !viper.IsSet(internal.ConsortiumKey) || !viper.IsSet(internal.ConsortiumNameKey) {
 		return
 	}
@@ -52,6 +53,7 @@ func CreateConsortium() {
 
 	slog.Info(createConsortiumCommand, internal.GetFuncName(), fmt.Sprintf("### CREATING %s CONSORTIUM ###", consortiumName))
 	consortiumId := internal.CreateConsortium(createConsortiumCommand, withEnableDebug, centralTenant, keycloakAccessToken, consortiumName)
+	time.Sleep(initialWaitDuration)
 
 	slog.Info(createConsortiumCommand, internal.GetFuncName(), fmt.Sprintf("### ADDING %d TENANTS TO %s CONSORTIUM ###", len(tenants), consortiumName))
 	consortiumTenants := getSortedConsortiumTenants(tenants)

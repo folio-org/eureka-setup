@@ -54,7 +54,7 @@ func UndeployChildApplication() {
 	UndeployModules()
 	UndeployAdditionalSystem()
 	DetachCapabilitySets()
-	AttachCapabilitySets()
+	AttachCapabilitySets(3 * time.Second)
 }
 
 func init() {

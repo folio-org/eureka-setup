@@ -684,13 +684,22 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 			continue
 		}
 
-		capabilitySetsBytes, err := json.Marshal(map[string]any{"roleId": roleId, "capabilitySetIds": capabilitySetIds})
-		if err != nil {
-			slog.Error(commandName, GetFuncName(), "json.Marshal error")
-			panic(err)
-		}
+		batchSize := 50
+		for lowerBound := 0; lowerBound < len(capabilitySetIds); lowerBound += batchSize {
+			upperBound := min(lowerBound+batchSize, len(capabilitySetIds))
 
-		DoPostReturnNoContent(commandName, requestUrl, enableDebug, true, capabilitySetsBytes, headers)
+			batchCapabilitySetIds := capabilitySetIds[lowerBound:upperBound]
+
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Attaching %d-%d (total: %d) capability sets to %s role in %s tenant (realm)", lowerBound, upperBound, len(capabilitySetIds), roleName, tenant))
+
+			capabilitySetsBytes, err := json.Marshal(map[string]any{"roleId": roleId, "capabilitySetIds": batchCapabilitySetIds})
+			if err != nil {
+				slog.Error(commandName, GetFuncName(), "json.Marshal error")
+				panic(err)
+			}
+
+			DoRetryablePostReturnNoContent(commandName, requestUrl, enableDebug, true, capabilitySetsBytes, headers)
+		}
 
 		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Attached %d capability sets to %s role in %s tenant (realm)", len(capabilitySetIds), roleName, tenant))
 	}

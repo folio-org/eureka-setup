@@ -46,11 +46,11 @@ var attachCapabilitySetsCmd = &cobra.Command{
 	Short: "Attach capability sets",
 	Long:  `Attach capability sets to roles.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		AttachCapabilitySets()
+		AttachCapabilitySets(time.Duration(3 * time.Second))
 	},
 }
 
-func AttachCapabilitySets() {
+func AttachCapabilitySets(initialWaitDuration time.Duration) {
 	vaultRootToken := GetVaultRootToken()
 
 	for _, tenantValue := range internal.GetTenants(attachCapabilitySetsCommand, withEnableDebug, false) {
@@ -62,6 +62,7 @@ func AttachCapabilitySets() {
 		}
 
 		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), "### POLLING FOR CAPABILITY SETS CREATION ###")
+		time.Sleep(initialWaitDuration)
 		pollCapabilitySetsCreation(withEnableDebug, existingTenant)
 
 		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("### ATTACHING CAPABILITY SETS TO ROLES FOR %s TENANT ###", existingTenant))
