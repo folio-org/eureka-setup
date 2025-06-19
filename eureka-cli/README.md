@@ -2,7 +2,7 @@
 
 ## Purpose
 
-- A CLI to deploy local Eureka development environment
+- A CLI to deploy a local Eureka development environment
 
 ## Prerequisites
 
@@ -24,7 +24,7 @@
 
 ### Build a binary
 
-```shell
+```bash
 mkdir -p ./bin
 env GOOS=windows GOARCH=amd64 go build -o ./bin/ .
 ```
@@ -35,7 +35,7 @@ env GOOS=windows GOARCH=amd64 go build -o ./bin/ .
 
 - After building and installing, the binary can be used from any directory
 
-```shell
+```bash
 go install
 eureka-cli -c ./config.combined.yaml deployApplication
 ```
@@ -65,23 +65,23 @@ source ~/.bash_profile
 - Build Docker images: `-b` or `--buildImages`
 - Update Git cloned projects: `-u` or `--updateCloned`
 
-```shell
+```bash
 eureka-cli -c ./config.combined.yaml deployApplication
 ```
 
 - Use the debug `-d` flag to troubleshoot your environment deployment to see how the CLI interacts with **Kong** via HTTP
 
-```shell
+```bash
 eureka-cli -c ./config.combined.yaml deployApplication -d
 ```
 
 - If you are resource constrained, the CLI also supports deploying the environment with only required system containers with `-R`
 
-```shell
+```bash
 eureka-cli -c ./config.combined.yaml deployApplication -R
 ```
 
-- The profile `-p` flag eliminates the need to define a config file path by relying on the default configs that are automatically created in `.eureka` home directory
+- The profile `-p` flag eliminates the need to define a config file path by relying on the default configs that are automatically created in the `.eureka` home directory
 
 ```bash
 eureka-cli -p combined deployApplication
@@ -89,7 +89,7 @@ eureka-cli -p combined deployApplication
 
 > Available configs are: _combined_, _export_, _search_ and _edge_
 
-- It can be combined with the `-o` flag to overwrite all existing files in `.eureka` home directory to receive changes from the upstream
+- It can be combined with the `-o` flag to overwrite all existing files in the `.eureka` home directory to receive changes from upstream
 
 ```bash
 eureka-cli -p combined -o deployApplication
@@ -101,25 +101,35 @@ eureka-cli -p combined -o deployApplication
 
 - In case you want to update your local repositories of _folio-kong_, _folio-keycloak_ and _platform-complete_ (UI), you can do so with the combined `-bu` flags
 
-```shell
+```bash
 eureka-cli -c ./config.combined.yaml deployApplication -bu
 ```
 
 > This will update the cloned projects and force-build Docker images locally before deploying the environment
 
+- System containers can also be built or rebuilt separately from environment deployment. This is particularly useful if you want to verify the images without a full deployment
+
+```bash
+# Build from the local repositories
+eureka-cli buildSystem
+
+# Build from the Git updated local repositories
+eureka-cli buildSystem -u
+```
+
 ### Undeploy the combined application
 
-```shell
+```bash
 eureka-cli -c ./config.combined.yaml undeployApplication
 ```
 
 ### Deploy the combined application from AWS ECR
 
-To use AWS ECR as your container registry rather than the public Folio DockerHub, set `AWS_ECR_FOLIO_REPO` in your environment. When this env variable is defined it is assumed that this repository is private and you have also defined credentials in your environment. The value of this variable should be the URL of your repository.
+To use AWS ECR as your container registry instead of the public Folio DockerHub, set `AWS_ECR_FOLIO_REPO` in your environment. When this environment variable is defined, it is assumed that this repository is private and you have also defined credentials in your environment. The value of this variable should be the URL of your repository.
 
 - Set AWS credentials explicitly
 
-```shell
+```bash
 export AWS_ACCESS_KEY_ID=<access_key>
 export AWS_SECRET_ACCESS_KEY=<secret_key>
 export AWS_ECR_FOLIO_REPO=<repository_url>
@@ -128,7 +138,7 @@ eureka-cli -c ./config.combined.yaml deployApplication
 
 - Reuse stored AWS credentials found in `~/.aws/config`
 
-```shell
+```bash
 export AWS_ECR_FOLIO_REPO=<repository_url>
 AWS_SDK_LOAD_CONFIG=true eureka-cli -c ./config.combined.yaml deployApplication
 ```
@@ -143,7 +153,7 @@ The CLI also supports deploying child applications on top of the existing one. T
 
 - This application contains modules and system containers required for data export functionality that relies on MinIO and FTP
 
-```shell
+```bash
 eureka-cli -c ./config.export.yaml deployApplication
 ```
 
@@ -153,7 +163,7 @@ eureka-cli -c ./config.export.yaml deployApplication
 
 - The search application provides Elastic search capability as required by the Inventory App and for the ECS setup to work
 
-```shell
+```bash
 eureka-cli -c ./config.search.yaml deployApplication
 ```
 
@@ -163,7 +173,7 @@ eureka-cli -c ./config.search.yaml deployApplication
 
 - Edge application provides modules with an included mod-okapi-facade to work with the Edge API, Karate tests, or with Mosaic integration
 
-```shell
+```bash
 eureka-cli -c ./config.edge.yaml deployApplication
 ```
 
@@ -173,7 +183,7 @@ eureka-cli -c ./config.edge.yaml deployApplication
 
 - All child applications can be undeployed with the same `undeployApplication` command, which will remove both the modules and system containers used by the app
 
-```shell
+```bash
 eureka-cli -c ./config.{{app}}.yaml undeployApplication
 ```
 
@@ -362,7 +372,7 @@ eureka-cli deployUi -b -u
 
 - Kong gateway is available at `localhost:8000` and can be used to get an access token directly from the backend:
 
-```shell
+```bash
 # Using diku_admin (admin user)
 curl --request POST \
   --url localhost:8000/authn/login-with-expiry \

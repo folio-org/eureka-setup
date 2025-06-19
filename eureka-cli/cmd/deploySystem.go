@@ -16,25 +16,15 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 	"os/exec"
 	"time"
 
 	"github.com/folio-org/eureka-cli/internal"
-	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/spf13/cobra"
 )
 
-const (
-	deploySystemCommand string = "Deploy System"
-
-	folioKeycloakDir string = "folio-keycloak"
-	folioKongDir     string = "folio-kong"
-
-	defaultFolioKeycloakBranchName plumbing.ReferenceName = "master"
-	defaultFolioKongBranchName     plumbing.ReferenceName = "master"
-)
+const deploySystemCommand string = "Deploy System"
 
 var coreRequiredContainers = []string{"postgres", "zookeeper", "kafka", "vault", "keycloak", "keycloak-internal", "kong"}
 
@@ -49,12 +39,9 @@ var deploySystemCmd = &cobra.Command{
 }
 
 func DeploySystem() {
-	homeMiscDir := internal.GetHomeMiscDir(deploySystemCommand)
-	cloneUpdateSystemComponents(homeMiscDir)
-
-	var preparedCommands []*exec.Cmd
+	CloneUpdateRepositories()
 	if withBuildImages {
-		preparedCommands = []*exec.Cmd{exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache")}
+		BuildSystem()
 	}
 
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}
@@ -64,35 +51,11 @@ func DeploySystem() {
 	}
 
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "### DEPLOYING SYSTEM CONTAINERS ###")
-	preparedCommands = append(preparedCommands, exec.Command("docker", subCommand...))
-	for _, preparedCommand := range preparedCommands {
-		internal.RunCommandFromDir(deploySystemCommand, preparedCommand, homeMiscDir)
-	}
+	internal.RunCommandFromDir(deploySystemCommand, exec.Command("docker", subCommand...), internal.GetHomeMiscDir(deploySystemCommand))
 
-	slog.Info(deploySystemCommand, internal.GetFuncName(), "### WAITING FOR SYSTEM TO INITIALIZE ###")
+	slog.Info(deploySystemCommand, internal.GetFuncName(), "### WAITING FOR SYSTEM CONTAINERS TO INITIALIZE ###")
 	time.Sleep(15 * time.Second)
 	slog.Info(deploySystemCommand, internal.GetFuncName(), "All system containers have initialized")
-}
-
-func cloneUpdateSystemComponents(homeMiscDir string) {
-	slog.Info(deploySystemCommand, internal.GetFuncName(), "### CLONING & UPDATING SYSTEM COMPONENTS ###")
-
-	folioKeycloakOutputDir := fmt.Sprintf("%s/%s", homeMiscDir, folioKeycloakDir)
-	folioKongOutputDir := fmt.Sprintf("%s/%s", homeMiscDir, folioKongDir)
-
-	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", folioKeycloakDir, defaultFolioKeycloakBranchName))
-	internal.GitCloneRepository(deploySystemCommand, withEnableDebug, internal.FolioKeycloakRepositoryUrl, defaultFolioKeycloakBranchName, folioKeycloakOutputDir, false)
-
-	slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", folioKongDir, defaultFolioKongBranchName))
-	internal.GitCloneRepository(deploySystemCommand, withEnableDebug, internal.FolioKongRepositoryUrl, defaultFolioKongBranchName, folioKongOutputDir, false)
-
-	if withUpdateCloned {
-		slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", folioKeycloakDir))
-		internal.GitResetHardPullFromOriginRepository(deploySystemCommand, withEnableDebug, internal.FolioKeycloakRepositoryUrl, defaultFolioKeycloakBranchName, folioKeycloakOutputDir)
-
-		slog.Info(deploySystemCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", folioKongDir))
-		internal.GitResetHardPullFromOriginRepository(deploySystemCommand, withEnableDebug, internal.FolioKongRepositoryUrl, defaultFolioKongBranchName, folioKongOutputDir)
-	}
 }
 
 func init() {
