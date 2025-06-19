@@ -1,5 +1,5 @@
 /*
-Copyright © 2024 EPAM_Systems/Thunderjet/Boburbek_Kadirkhodjaev
+Copyright © 2025 Open Library Foundation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,10 +19,12 @@ import (
 	"fmt"
 	"log/slog"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const buildAndPushUiCmdCommand string = "Build and push UI"
@@ -38,49 +40,83 @@ var buildAndPushUiCmd = &cobra.Command{
 }
 
 func BuildAndPushUi() {
-	slog.Info(deployUiCommand, internal.GetFuncName(), "### CLONING & UPDATING UI ###")
-
 	start := time.Now()
 
-	slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Cloning %s from a %s branch", platformCompleteDir, defaultStripesBranch))
-	outputDir := fmt.Sprintf("%s/%s", internal.GetHomeMiscDir(deployUiCommand), platformCompleteDir)
-	stripesBranch := internal.GetStripesBranch(deployUiCommand, defaultStripesBranch)
-	internal.GitCloneRepository(deployUiCommand, withEnableDebug, internal.PlatformCompleteRepositoryUrl, stripesBranch, outputDir, false)
+	slog.Info(buildAndPushUiCmdCommand, internal.GetFuncName(), "### BUILDING AND PUSHING PLATFORM COMPLETE UI IMAGE TO DOCKER HUB ###")
+	setCommandFlagsFromConfigFile(buildAndPushUiCmdCommand, withTenant)
 
-	if withUpdateCloned {
-		slog.Info(deployUiCommand, internal.GetFuncName(), fmt.Sprintf("Pulling updates for %s from origin", platformCompleteDir))
-		internal.GitResetHardPullFromOriginRepository(deployUiCommand, withEnableDebug, internal.PlatformCompleteRepositoryUrl, defaultStripesBranch, outputDir)
+	outputDir := cloneUpdatePlatformCompleteUiRepository(buildAndPushUiCmdCommand, withEnableDebug, withUpdateCloned)
+	imageName := buildPlatformCompleteUiImageLocally(buildAndPushUiCmdCommand, withSingleTenant, withEnableEcsRequests, outputDir, withTenant)
+	pushPlatformCompleteUiImageToRegistry(buildAndPushUiCmdCommand, withNamespace, imageName)
+
+	slog.Info(buildAndPushUiCmdCommand, "Elapsed, duration", time.Since(start))
+}
+
+func setCommandFlagsFromConfigFile(commandName string, existingTenant string) {
+	tenants := viper.GetStringMap(internal.TenantsKey)
+	if tenants == nil {
+		return
 	}
 
-	slog.Info(deployUiCommand, internal.GetFuncName(), "### BUILDING AND PUSHING UI IMAGE TO DOCKER HUB ###")
+	var tenant = tenants[existingTenant].(map[string]any)
+	if tenant[internal.TenantsSingleTenantKey] != nil {
+		withSingleTenant = tenant[internal.TenantsSingleTenantKey].(bool)
+	}
+	if tenant[internal.TenantsEnableEcsRequestKey] != nil {
+		withEnableEcsRequests = tenant[internal.TenantsEnableEcsRequestKey].(bool)
+	}
 
-	slog.Info(buildAndPushUiCmdCommand, internal.GetFuncName(), "Copying platform complete UI configs")
+	slog.Info(commandName, internal.GetFuncName(), fmt.Sprintf("Setting command flags from a config file, tenant: %s, singleTenant: %t, enableEcsRequests: %t", existingTenant, withSingleTenant, withEnableEcsRequests))
+}
+
+func cloneUpdatePlatformCompleteUiRepository(commandName string, enableDebug bool, updateCloned bool) (outputDir string) {
+	slog.Info(commandName, internal.GetFuncName(), "### CLONING & UPDATING PLATFORM COMPLETE UI REPOSITORY ###")
+	branchName := internal.GetPlatformCompleteStripesBranch(commandName)
+
+	repository := internal.NewRepository(commandName, internal.PlatformCompleteRepositoryUrl, internal.DefaultPlatformCompleteOutputDir, branchName)
+
+	internal.GitCloneRepository(commandName, enableDebug, false, repository)
+	if updateCloned {
+		internal.GitResetHardPullFromOriginRepository(commandName, enableDebug, repository)
+	}
+
+	return repository.OutputDir
+}
+
+func buildPlatformCompleteUiImageLocally(commandName string, singleTenant bool, enableEcsRequests bool, outputDir string, existingTenant string) (finalImageName string) {
+	finalImageName = fmt.Sprintf("platform-complete-ui-%s", existingTenant)
+
+	slog.Info(commandName, internal.GetFuncName(), "Copying platform complete UI configs")
 	configName := "stripes.config.js"
-	internal.CopySingleFile(buildAndPushUiCmdCommand, fmt.Sprintf("%s/eureka-tpl/%s", outputDir, configName), fmt.Sprintf("%s/%s", outputDir, configName))
+	internal.CopySingleFile(commandName, filepath.Join(outputDir, "eureka-tpl", configName), filepath.Join(outputDir, configName))
 
-	slog.Info(buildAndPushUiCmdCommand, internal.GetFuncName(), "Preparing platform complete UI config")
-	internal.PrepareStripesConfigJs(buildAndPushUiCmdCommand, outputDir, withTenant, kongExternalUrl, keycloakExternalUrl, platformCompleteExternalUrl, withEnableEcsRequests)
-	internal.PreparePackageJson(buildAndPushUiCmdCommand, outputDir, withTenant)
+	slog.Info(commandName, internal.GetFuncName(), "Preparing platform complete UI configs")
+	internal.PrepareStripesConfigJs(commandName, outputDir, existingTenant, kongExternalUrl, keycloakExternalUrl, platformCompleteExternalUrl, singleTenant, enableEcsRequests)
+	internal.PreparePackageJson(commandName, outputDir, existingTenant)
 
-	imageName := fmt.Sprintf("platform-complete-ui-%s", withTenant)
-
-	slog.Info(buildAndPushUiCmdCommand, internal.GetFuncName(), "Building platform complete UI from a Dockerfile")
-	internal.RunCommandFromDir(buildAndPushUiCmdCommand, exec.Command("docker", "build", "--tag", imageName,
+	slog.Info(commandName, internal.GetFuncName(), "Building platform complete UI from a Dockerfile")
+	internal.RunCommandFromDir(commandName, exec.Command("docker", "build", "--tag", finalImageName,
 		"--build-arg", fmt.Sprintf("OKAPI_URL=%s", kongExternalUrl),
-		"--build-arg", fmt.Sprintf("TENANT_ID=%s", withTenant),
+		"--build-arg", fmt.Sprintf("TENANT_ID=%s", existingTenant),
 		"--file", "./docker/Dockerfile",
 		"--progress", "plain",
 		"--no-cache",
 		".",
 	), outputDir)
 
-	slog.Info(buildAndPushUiCmdCommand, internal.GetFuncName(), "Tagging platform complete image UI")
-	internal.RunCommand(buildAndPushUiCmdCommand, exec.Command("docker", "tag", imageName, fmt.Sprintf("%s/%s", withNamespace, imageName)))
+	return finalImageName
+}
 
-	slog.Info(buildAndPushUiCmdCommand, internal.GetFuncName(), "Pushing platform complete UI image to DockerHub")
-	internal.RunCommand(buildAndPushUiCmdCommand, exec.Command("docker", "push", fmt.Sprintf("%s/%s:latest", withNamespace, imageName)))
+func pushPlatformCompleteUiImageToRegistry(commandName string, namespace string, imageName string) {
+	slog.Info(commandName, internal.GetFuncName(), "### PUSHING PLATFORM COMPLETE UI IMAGE TO DOCKER HUB ###")
 
-	slog.Info(deployApplicationCommand, "Elapsed, duration", time.Since(start))
+	finalImageName := fmt.Sprintf("%s/%s", namespace, imageName)
+
+	slog.Info(commandName, internal.GetFuncName(), "Tagging platform complete UI image")
+	internal.RunCommand(commandName, exec.Command("docker", "tag", imageName, finalImageName))
+
+	slog.Info(commandName, internal.GetFuncName(), "Pushing new platform complete UI image to DockerHub")
+	internal.RunCommand(commandName, exec.Command("docker", "push", finalImageName))
 }
 
 func init() {
@@ -88,6 +124,7 @@ func init() {
 	buildAndPushUiCmd.PersistentFlags().StringVarP(&withTenant, "tenant", "t", "", "Tenant (required)")
 	buildAndPushUiCmd.PersistentFlags().StringVarP(&withNamespace, "namespace", "n", "", "DockerHub namespace (required)")
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withSingleTenant, "singleTenant", "T", true, "Use for Single Tenant workflow")
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withEnableEcsRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
 	buildAndPushUiCmd.MarkPersistentFlagRequired("tenant")
 	buildAndPushUiCmd.MarkPersistentFlagRequired("namespace")

@@ -10,8 +10,11 @@
   - [Go](https://go.dev/doc/install) compiler: last development-tested version is `go1.24.1 windows/amd64`
   - [Rancher Desktop](https://rancherdesktop.io/) container daemon: last development-tested version is `v1.16.0` (make sure to enable **dockerd (Moby)** container engine)
 - Configure hosts:
-  - Add `127.0.0.1 keycloak.eureka` entry to `/etc/hosts`
+  - Add `127.0.0.1 postgres.eureka` entry to `/etc/hosts`
   - Add `127.0.0.1 kafka.eureka` entry to `/etc/hosts`
+  - Add `127.0.0.1 vault.eureka` entry to `/etc/hosts`
+  - Add `127.0.0.1 keycloak.eureka` entry to `/etc/hosts`
+  - Add `127.0.0.1 kong.eureka` entry to `/etc/hosts`
 - Monitor using system components:
   - [Keycloak](http://keycloak.eureka:8080) Admin Console: admin/admin
   - [Vault](http://localhost:8200) UI: Find a Vault root token in the container logs using `docker logs vault` or use `getVaultRootToken` command

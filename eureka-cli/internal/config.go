@@ -32,10 +32,6 @@ const (
 	DefaultHostIp     string = "0.0.0.0"
 	DefaultServerPort string = "8081"
 	DefaultDebugPort  string = "5005"
-
-	FolioKeycloakRepositoryUrl    string = "https://github.com/folio-org/folio-keycloak"
-	FolioKongRepositoryUrl        string = "https://github.com/folio-org/folio-kong"
-	PlatformCompleteRepositoryUrl string = "https://github.com/folio-org/platform-complete.git"
 )
 
 const (
@@ -66,7 +62,7 @@ var (
 	PortEndIndex   int   = 30999
 	ReservedPorts  []int = []int{}
 
-	AvailableProfiles = []string{"combined", "export", "search", "edge"}
+	AvailableProfiles = []string{"combined", "export", "search", "edge", "ecs"}
 )
 
 func GetGatewayUrlTemplate(commandName string) string {
@@ -152,7 +148,7 @@ func printModuleInfo(commandName string, name string, dto BackendModuleDto, back
 	sidecarServerPort := backendModulesMap[name].SidecarExposedServerPort
 	sidecarDebugPort := backendModulesMap[name].SidecarExposedDebugPort
 
-	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found backend module in config: %s, reserved ports: [%d|%d|%d|%d]", moduleInfo, moduleServerPort, moduleDebugPort, sidecarServerPort, sidecarDebugPort))
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found backend module in config: %s, reserved ports: [ %d | %d | %d | %d ]", moduleInfo, moduleServerPort, moduleDebugPort, sidecarServerPort, sidecarDebugPort))
 }
 
 func IsManagementModule(name string) bool {
@@ -346,7 +342,7 @@ func GetFrontendModulesFromConfig(commandName string, printOutput bool, frontend
 	return frontendModulesMap
 }
 
-func PrepareStripesConfigJs(commandName string, configPath string, tenant string, kongUrl string, keycloakUrl string, platformCompleteUrl string, enableEcsRequests bool) {
+func PrepareStripesConfigJs(commandName string, configPath string, tenant string, kongUrl string, keycloakUrl string, platformCompleteUrl string, isSingleTenant bool, enableEcsRequests bool) {
 	stripesConfigJsFilePath := fmt.Sprintf("%s/stripes.config.js", configPath)
 	readFileBytes, err := os.ReadFile(stripesConfigJsFilePath)
 	if err != nil {
@@ -358,7 +354,7 @@ func PrepareStripesConfigJs(commandName string, configPath string, tenant string
 		"${tenantUrl}":         platformCompleteUrl,
 		"${keycloakUrl}":       keycloakUrl,
 		"${hasAllPerms}":       `false`,
-		"${isSingleTenant}":    `true`,
+		"${isSingleTenant}":    strconv.FormatBool(isSingleTenant),
 		"${tenantOptions}":     fmt.Sprintf(`{%[1]s: {name: "%[1]s", clientId: "%[1]s%s"}}`, tenant, GetEnvironmentFromMapByKey("KC_LOGIN_CLIENT_SUFFIX")),
 		"${enableEcsRequests}": strconv.FormatBool(enableEcsRequests),
 	}
@@ -372,6 +368,8 @@ func PrepareStripesConfigJs(commandName string, configPath string, tenant string
 
 		newReadFileStr = strings.Replace(newReadFileStr, key, value, -1)
 	}
+
+	newReadFileStr = strings.Replace(newReadFileStr, "'@folio/users' : {}", "'@folio/users' : {},\n    '@folio/consortia-settings' : {}", -1)
 
 	fmt.Println()
 	fmt.Println("###### Dumping stripes.config.js ######")
@@ -422,18 +420,18 @@ func PreparePackageJson(commandName string, configPath string, tenant string) {
 	}
 }
 
-func GetStripesBranch(commandName string, defaultBranch plumbing.ReferenceName) plumbing.ReferenceName {
-	if viper.IsSet(ApplicationStripesBranchKey) {
-		branchStr := viper.GetString(ApplicationStripesBranchKey)
+func GetPlatformCompleteStripesBranch(commandName string) plumbing.ReferenceName {
+	if viper.IsSet(ApplicationPlatformCompleteStripesBranchKey) {
+		branchStr := viper.GetString(ApplicationPlatformCompleteStripesBranchKey)
 		stripesBranch := plumbing.ReferenceName(branchStr)
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Got stripes branch from config: %s", stripesBranch))
+
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Found stripes branch in config: %s", stripesBranch))
 
 		return stripesBranch
 	}
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("No stripes branch is defined in config, using default branch: %s", DefaultPlatformCompleteStripesBranch))
 
-	slog.Info(commandName, GetFuncName(), fmt.Sprintf("No stripes branch in config. Using default branch: %s", defaultBranch))
-
-	return defaultBranch
+	return DefaultPlatformCompleteStripesBranch
 }
 
 func HasTenant(tenant string) bool {

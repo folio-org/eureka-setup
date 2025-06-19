@@ -1,5 +1,5 @@
 /*
-Copyright © 2024 EPAM_Systems/Thunderjet/Boburbek_Kadirkhodjaev
+Copyright © 2025 Open Library Foundation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ func UndeployUi() {
 	defer client.Close()
 
 	for _, value := range internal.GetTenants(undeployUiCommand, withEnableDebug, false) {
-		internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(singleUiContainerPattern, value.(map[string]any)["name"].(string)), true)
+		internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(singleUiContainerPattern, value.(map[string]any)["name"].(string)), false)
 	}
 }
 

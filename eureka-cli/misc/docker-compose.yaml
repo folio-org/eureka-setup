@@ -123,7 +123,7 @@ services:
     container_name: kafka
     image: bitnami/kafka:3.9.0
     restart: unless-stopped
-    cpus: 4
+    cpus: 6
     mem_limit: 2g
     memswap_limit: -1
     depends_on:

@@ -1,5 +1,5 @@
 /*
-Copyright © 2024 EPAM_Systems/Thunderjet/Boburbek_Kadirkhodjaev
+Copyright © 2025 Open Library Foundation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,6 +30,8 @@ var removeTenantEntitlementsCmd = &cobra.Command{
 	Short: "Remove tenant entitlements",
 	Long:  `Remove all tenant entitlements.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		RemoveUsers()
+		RemoveRoles()
 		RemoveTenantEntitlements()
 	},
 }
