@@ -53,8 +53,19 @@ func NewInterceptModuleDto(id string, defaultGateway bool, moduleUrl, sidecarUrl
 	var moduleUrlTemp, sidecarUrlTemp string
 	if defaultGateway {
 		schemaAndUrl := internal.GetGatewaySchemaAndUrl(interceptModuleCommand)
-		moduleUrlTemp = fmt.Sprintf("%s:%s", schemaAndUrl, moduleUrl)
-		sidecarUrlTemp = fmt.Sprintf("%s:%s", schemaAndUrl, sidecarUrl)
+		// If moduleUrl/sidecarUrl already contain http://, use them as-is
+		// Otherwise, assume they're port numbers and concatenate with gateway
+		if strings.HasPrefix(moduleUrl, "http://") || strings.HasPrefix(moduleUrl, "https://") {
+			moduleUrlTemp = moduleUrl
+		} else {
+			moduleUrlTemp = fmt.Sprintf("%s:%s", schemaAndUrl, moduleUrl)
+		}
+
+		if strings.HasPrefix(sidecarUrl, "http://") || strings.HasPrefix(sidecarUrl, "https://") {
+			sidecarUrlTemp = sidecarUrl
+		} else {
+			sidecarUrlTemp = fmt.Sprintf("%s:%s", schemaAndUrl, sidecarUrl)
+		}
 	} else {
 		moduleUrlTemp = moduleUrl
 		sidecarUrlTemp = sidecarUrl
