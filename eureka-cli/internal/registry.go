@@ -12,10 +12,23 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/spf13/viper"
 )
 
 const (
+	FolioKongRepositoryUrl        string = "https://github.com/folio-org/folio-kong"
+	FolioKeycloakRepositoryUrl    string = "https://github.com/folio-org/folio-keycloak"
+	PlatformCompleteRepositoryUrl string = "https://github.com/folio-org/platform-complete.git"
+
+	DefaultFolioKongOutputDir        string = "folio-kong"
+	DefaultFolioKeycloakOutputDir    string = "folio-keycloak"
+	DefaultPlatformCompleteOutputDir string = "platform-complete"
+
+	DefaultFolioKongBranchName           plumbing.ReferenceName = "master"
+	DefaultFolioKeycloakBranchName       plumbing.ReferenceName = "master"
+	DefaultPlatformCompleteStripesBranch plumbing.ReferenceName = "snapshot"
+
 	SnapshotRegistry string = "folioci"
 	ReleaseRegistry  string = "folioorg"
 
