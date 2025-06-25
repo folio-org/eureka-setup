@@ -30,28 +30,29 @@ import (
 const rootCommand string = "Root"
 
 var (
-	withConfigFile        string
-	withProfile           string
-	withOverwriteFiles    bool
-	withModuleName        string
-	withEnableDebug       bool
-	withBuildImages       bool
-	withUpdateCloned      bool
-	withSingleTenant      bool
-	withEnableEcsRequests bool
-	withTenant            string
-	withNamespace         string
-	withAll               bool
-	withId                string
-	withModuleUrl         string
-	withSidecarUrl        string
-	withRestore           bool
-	withDefaultGateway    bool
-	withOnlyRequired      bool
-	withUser              string
-	withLength            int
-	withModuleType        string
-	withPurgeSchemas      bool
+	withConfigFile          string
+	withProfile             string
+	withOverwriteFiles      bool
+	withModuleName          string
+	withEnableDebug         bool
+	withBuildImages         bool
+	withUpdateCloned        bool
+	withSingleTenant        bool
+	withEnableEcsRequests   bool
+	withTenant              string
+	withNamespace           string
+	withPlatformCompleteUrl string
+	withAll                 bool
+	withId                  string
+	withModuleUrl           string
+	withSidecarUrl          string
+	withRestore             bool
+	withDefaultGateway      bool
+	withOnlyRequired        bool
+	withUser                string
+	withLength              int
+	withModuleType          string
+	withPurgeSchemas        bool
 )
 
 var embeddedFs embed.FS

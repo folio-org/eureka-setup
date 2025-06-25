@@ -27,7 +27,12 @@ import (
 	"github.com/spf13/viper"
 )
 
-const buildAndPushUiCmdCommand string = "Build and push UI"
+const (
+	buildAndPushUiCmdCommand string = "Build and push UI"
+
+	kongExternalUrl     string = "http://localhost:8000"
+	keycloakExternalUrl string = "http://keycloak.eureka:8080"
+)
 
 // buildAndPushUiCmd represents the buildAndPushUi command
 var buildAndPushUiCmd = &cobra.Command{
@@ -42,11 +47,11 @@ var buildAndPushUiCmd = &cobra.Command{
 func BuildAndPushUi() {
 	start := time.Now()
 
-	slog.Info(buildAndPushUiCmdCommand, internal.GetFuncName(), "### BUILDING AND PUSHING PLATFORM COMPLETE UI IMAGE TO DOCKER HUB ###")
 	setCommandFlagsFromConfigFile(buildAndPushUiCmdCommand, withTenant)
 
+	slog.Info(buildAndPushUiCmdCommand, internal.GetFuncName(), "### BUILDING AND PUSHING PLATFORM COMPLETE UI IMAGE TO DOCKER HUB ###")
 	outputDir := cloneUpdatePlatformCompleteUiRepository(buildAndPushUiCmdCommand, withEnableDebug, withUpdateCloned)
-	imageName := buildPlatformCompleteUiImageLocally(buildAndPushUiCmdCommand, withSingleTenant, withEnableEcsRequests, outputDir, withTenant)
+	imageName := buildPlatformCompleteUiImageLocally(buildAndPushUiCmdCommand, withSingleTenant, withEnableEcsRequests, outputDir, withTenant, withPlatformCompleteUrl)
 	pushPlatformCompleteUiImageToRegistry(buildAndPushUiCmdCommand, withNamespace, imageName)
 
 	slog.Info(buildAndPushUiCmdCommand, "Elapsed, duration", time.Since(start))
@@ -59,14 +64,18 @@ func setCommandFlagsFromConfigFile(commandName string, existingTenant string) {
 	}
 
 	var tenant = tenants[existingTenant].(map[string]any)
-	if tenant[internal.TenantsSingleTenantKey] != nil {
-		withSingleTenant = tenant[internal.TenantsSingleTenantKey].(bool)
+	if tenant[internal.TenantsSingleTenantEntryKey] != nil {
+		withSingleTenant = tenant[internal.TenantsSingleTenantEntryKey].(bool)
 	}
-	if tenant[internal.TenantsEnableEcsRequestKey] != nil {
-		withEnableEcsRequests = tenant[internal.TenantsEnableEcsRequestKey].(bool)
+	if tenant[internal.TenantsEnableEcsRequestEntryKey] != nil {
+		withEnableEcsRequests = tenant[internal.TenantsEnableEcsRequestEntryKey].(bool)
+	}
+	if tenant[internal.TenantsPlatformCompleteUrlEntryKey] != nil {
+		withPlatformCompleteUrl = tenant[internal.TenantsPlatformCompleteUrlEntryKey].(string)
 	}
 
-	slog.Info(commandName, internal.GetFuncName(), fmt.Sprintf("Setting command flags from a config file, tenant: %s, singleTenant: %t, enableEcsRequests: %t", existingTenant, withSingleTenant, withEnableEcsRequests))
+	vars := []any{existingTenant, withSingleTenant, withEnableEcsRequests, withPlatformCompleteUrl}
+	slog.Info(commandName, internal.GetFuncName(), fmt.Sprintf("Setting command flags from a config file, tenant: %s, singleTenant: %t, enableEcsRequests: %t, platformCompleteUrl: %s", vars...))
 }
 
 func cloneUpdatePlatformCompleteUiRepository(commandName string, enableDebug bool, updateCloned bool) (outputDir string) {
@@ -83,7 +92,7 @@ func cloneUpdatePlatformCompleteUiRepository(commandName string, enableDebug boo
 	return repository.OutputDir
 }
 
-func buildPlatformCompleteUiImageLocally(commandName string, singleTenant bool, enableEcsRequests bool, outputDir string, existingTenant string) (finalImageName string) {
+func buildPlatformCompleteUiImageLocally(commandName string, singleTenant bool, enableEcsRequests bool, outputDir string, existingTenant string, platformCompleteUrl string) (finalImageName string) {
 	finalImageName = fmt.Sprintf("platform-complete-ui-%s", existingTenant)
 
 	slog.Info(commandName, internal.GetFuncName(), "Copying platform complete UI configs")
@@ -91,7 +100,7 @@ func buildPlatformCompleteUiImageLocally(commandName string, singleTenant bool, 
 	internal.CopySingleFile(commandName, filepath.Join(outputDir, "eureka-tpl", configName), filepath.Join(outputDir, configName))
 
 	slog.Info(commandName, internal.GetFuncName(), "Preparing platform complete UI configs")
-	internal.PrepareStripesConfigJs(commandName, outputDir, existingTenant, kongExternalUrl, keycloakExternalUrl, platformCompleteExternalUrl, singleTenant, enableEcsRequests)
+	internal.PrepareStripesConfigJs(commandName, outputDir, existingTenant, kongExternalUrl, keycloakExternalUrl, platformCompleteUrl, singleTenant, enableEcsRequests)
 	internal.PreparePackageJson(commandName, outputDir, existingTenant)
 
 	slog.Info(commandName, internal.GetFuncName(), "Building platform complete UI from a Dockerfile")
@@ -123,6 +132,7 @@ func init() {
 	rootCmd.AddCommand(buildAndPushUiCmd)
 	buildAndPushUiCmd.PersistentFlags().StringVarP(&withTenant, "tenant", "t", "", "Tenant (required)")
 	buildAndPushUiCmd.PersistentFlags().StringVarP(&withNamespace, "namespace", "n", "", "DockerHub namespace (required)")
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&withPlatformCompleteUrl, "platformCompleteUrl", "P", "http://localhost:3000", "Platform Complete UI url")
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withSingleTenant, "singleTenant", "T", true, "Use for Single Tenant workflow")
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withEnableEcsRequests, "enableEcsRequests", "e", false, "Enable ECS requests")

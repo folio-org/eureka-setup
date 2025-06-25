@@ -299,6 +299,7 @@ func GetTenants(commandName string, enableDebug bool, panicOnError bool) []any {
 func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 	for _, value := range GetTenants(commandName, enableDebug, panicOnError) {
 		mapEntry := value.(map[string]any)
+
 		tenant := mapEntry["name"].(string)
 
 		if !slices.Contains(ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey)), tenant) {
@@ -340,6 +341,7 @@ func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError
 
 	for _, value := range GetTenants(commandName, enableDebug, panicOnError) {
 		mapEntry := value.(map[string]any)
+
 		tenant := mapEntry["name"].(string)
 
 		if !slices.Contains(ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey)), tenant) {
@@ -371,18 +373,16 @@ func CreateTenantEntitlement(commandName string, enableDebug bool) {
 
 	for _, value := range GetTenants(commandName, enableDebug, false) {
 		mapEntry := value.(map[string]any)
+
 		tenant := mapEntry["name"].(string)
 
 		if !slices.Contains(ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey)), tenant) {
 			continue
 		}
 
-		tenantId := mapEntry["id"].(string)
+		applications := []string{fmt.Sprintf("%s-%s", applicationName, applicationVersion)}
 
-		var applications []string
-		applications = append(applications, fmt.Sprintf("%s-%s", applicationName, applicationVersion))
-
-		tenantEntitlementBytes, err := json.Marshal(map[string]any{"tenantId": tenantId, "applications": applications})
+		tenantEntitlementBytes, err := json.Marshal(map[string]any{"tenantId": mapEntry["id"].(string), "applications": applications})
 		if err != nil {
 			slog.Error(commandName, GetFuncName(), "json.Marshal error")
 			panic(err)
@@ -425,6 +425,7 @@ func RemoveUsers(commandName string, enableDebug bool, panicOnError bool, tenant
 
 	for _, value := range GetUsers(commandName, enableDebug, panicOnError, tenant, accessToken) {
 		mapEntry := value.(map[string]any)
+
 		username := mapEntry["username"].(string)
 		usersMap := viper.GetStringMap(UsersKey)
 		if usersMap[username] == nil {
@@ -447,6 +448,7 @@ func CreateUsers(commandName string, enableDebug bool, panicOnError bool, existi
 
 	for username, value := range usersMap {
 		mapEntry := value.(map[string]any)
+
 		tenant := mapEntry["tenant"].(string)
 		if existingTenant != tenant {
 			continue
@@ -551,18 +553,17 @@ func GetRoleByName(commandName string, enableDebug bool, roleName string, header
 func RemoveRoles(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) {
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
 	caser := cases.Lower(language.English)
-	rolesMap := viper.GetStringMap(RolesKey)
+	roles := viper.GetStringMap(RolesKey)
 
 	for _, value := range GetRoles(commandName, enableDebug, panicOnError, headers) {
 		mapEntry := value.(map[string]any)
-		id := mapEntry["id"].(string)
-		roleName := caser.String(mapEntry["name"].(string))
 
-		if rolesMap[roleName] == nil {
+		roleName := caser.String(mapEntry["name"].(string))
+		if roles[roleName] == nil {
 			continue
 		}
 
-		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/roles/%s", id))
+		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/roles/%s", mapEntry["id"].(string)))
 
 		DoDelete(commandName, requestUrl, enableDebug, false, headers)
 
@@ -572,11 +573,12 @@ func RemoveRoles(commandName string, enableDebug bool, panicOnError bool, tenant
 
 func CreateRoles(commandName string, enableDebug bool, panicOnError bool, existingTenant string, accessToken string) {
 	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/roles")
-	rolesMap := viper.GetStringMap(RolesKey)
 	caser := cases.Lower(language.English)
+	roles := viper.GetStringMap(RolesKey)
 
-	for role, value := range rolesMap {
+	for role, value := range roles {
 		mapEntry := value.(map[string]any)
+
 		tenant := mapEntry["tenant"].(string)
 		if existingTenant != tenant {
 			continue
@@ -632,13 +634,14 @@ func GetCapabilitySetsByName(commandName string, enableDebug bool, panicOnError 
 
 func DetachCapabilitySetsFromRoles(commandName string, enableDebug bool, panicOnError bool, tenant string, accessToken string) {
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
+	caser := cases.Lower(language.English)
+	rolesMap := viper.GetStringMap(RolesKey)
 
 	for _, value := range GetRoles(commandName, enableDebug, panicOnError, headers) {
 		mapEntry := value.(map[string]any)
-		roleName := mapEntry["name"].(string)
 
-		rolesMap := viper.GetStringMap(RolesKey)
-		if rolesMap[strings.ToLower(roleName)] == nil {
+		roleName := caser.String(mapEntry["name"].(string))
+		if rolesMap[roleName] == nil {
 			continue
 		}
 
@@ -652,47 +655,37 @@ func DetachCapabilitySetsFromRoles(commandName string, enableDebug bool, panicOn
 
 func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant string, accessToken string) {
 	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/roles/capability-sets")
-	rolesMapConfig := viper.GetStringMap(RolesKey)
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: tenant, TokenHeader: accessToken}
+	caser := cases.Lower(language.English)
+	rolesMap := viper.GetStringMap(RolesKey)
 
 	for _, roleValue := range GetRoles(commandName, enableDebug, true, headers) {
-		roleMapEntry := roleValue.(map[string]any)
-		roleId := roleMapEntry["id"].(string)
-		roleName := roleMapEntry["name"].(string)
-		rolesMapConfigByRole, ok := rolesMapConfig[strings.ToLower(roleName)]
-		if !ok {
+		mapEntry := roleValue.(map[string]any)
+
+		roleName := caser.String(mapEntry["name"].(string))
+		if rolesMap[roleName] == nil {
 			continue
 		}
 
-		roleConfigMapEntry := rolesMapConfigByRole.(map[string]any)
-		if tenant != roleConfigMapEntry["tenant"].(string) {
+		rolesMapConfig := rolesMap[roleName].(map[string]any)
+		if tenant != rolesMapConfig[RolesTenantEntryKey].(string) {
 			continue
 		}
 
-		capabilitySetsConfig := roleConfigMapEntry["capability-sets"].([]any)
-		capabilitySetsMapList := populateCapabilitySetMapList(capabilitySetsConfig, commandName, enableDebug, headers)
-
-		var capabilitySetIds []string
-		for _, mapEntry := range capabilitySetsMapList {
-			capabilitySetId := mapEntry["id"].(string)
-
-			capabilitySetIds = append(capabilitySetIds, capabilitySetId)
-		}
-
+		capabilitySetIds := populateCapabilitySets(commandName, enableDebug, headers, rolesMapConfig[RolesCapabilitySetsEntryKey].([]any))
 		if len(capabilitySetIds) == 0 {
 			slog.Info(commandName, GetFuncName(), fmt.Sprintf("No capability sets were attached to %s role in %s tenant (realm)", roleName, tenant))
 			continue
 		}
 
-		batchSize := 50
+		batchSize := 250
 		for lowerBound := 0; lowerBound < len(capabilitySetIds); lowerBound += batchSize {
 			upperBound := min(lowerBound+batchSize, len(capabilitySetIds))
-
 			batchCapabilitySetIds := capabilitySetIds[lowerBound:upperBound]
 
 			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Attaching %d-%d (total: %d) capability sets to %s role in %s tenant (realm)", lowerBound, upperBound, len(capabilitySetIds), roleName, tenant))
 
-			capabilitySetsBytes, err := json.Marshal(map[string]any{"roleId": roleId, "capabilitySetIds": batchCapabilitySetIds})
+			capabilitySetsBytes, err := json.Marshal(map[string]any{"roleId": mapEntry["id"].(string), "capabilitySetIds": batchCapabilitySetIds})
 			if err != nil {
 				slog.Error(commandName, GetFuncName(), "json.Marshal error")
 				panic(err)
@@ -705,37 +698,21 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 	}
 }
 
-func populateCapabilitySetMapList(capabilitySetsConfig []any, commandName string, enableDebug bool, headers map[string]string) []map[string]any {
-	var capabilitySetsMapList []map[string]any
-	if len(capabilitySetsConfig) == 1 && slices.Contains(capabilitySetsConfig, "all") {
-		return appendAllCapabilitySets(commandName, enableDebug, headers, capabilitySetsMapList)
-	}
-
-	return appendSelectedCapabilitySets(commandName, enableDebug, headers, capabilitySetsConfig, capabilitySetsMapList)
-}
-
-func appendSelectedCapabilitySets(commandName string, enableDebug bool, headers map[string]string, capabilitySetsConfig []any, capabilitySetsMapList []map[string]any) []map[string]any {
-	for _, capabilitySetConfig := range capabilitySetsConfig {
-		capabilitySetConfigName := capabilitySetConfig.(string)
-
-		for _, capabilityValue := range GetCapabilitySetsByName(commandName, enableDebug, true, headers, capabilitySetConfigName) {
-			capabilityMapEntry := capabilityValue.(map[string]any)
-
-			capabilitySetsMapList = append(capabilitySetsMapList, capabilityMapEntry)
+func populateCapabilitySets(commandName string, enableDebug bool, headers map[string]string, capabilitySetNames []any) []string {
+	var capabilitySets []string = []string{}
+	if len(capabilitySetNames) > 1 && !slices.Contains(capabilitySetNames, "all") {
+		for _, capabilitySetName := range capabilitySetNames {
+			for _, value := range GetCapabilitySetsByName(commandName, enableDebug, true, headers, capabilitySetName.(string)) {
+				capabilitySets = append(capabilitySets, value.(map[string]any)["id"].(string))
+			}
+		}
+	} else {
+		for _, value := range GetCapabilitySets(commandName, enableDebug, true, headers) {
+			capabilitySets = append(capabilitySets, value.(map[string]any)["id"].(string))
 		}
 	}
 
-	return capabilitySetsMapList
-}
-
-func appendAllCapabilitySets(commandName string, enableDebug bool, headers map[string]string, capabilitySetsMapList []map[string]any) []map[string]any {
-	for _, capabilityValue := range GetCapabilitySets(commandName, enableDebug, true, headers) {
-		capabilityMapEntry := capabilityValue.(map[string]any)
-
-		capabilitySetsMapList = append(capabilitySetsMapList, capabilityMapEntry)
-	}
-
-	return capabilitySetsMapList
+	return capabilitySets
 }
 
 // ######## Consortium ########

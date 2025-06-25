@@ -46,8 +46,10 @@ func UpdateKeycloakPublicClients() {
 			continue
 		}
 
+		setCommandFlagsFromConfigFile(updateKeycloakPublicClientsCommand, existingTenant)
+
 		slog.Info(updateKeycloakPublicClientsCommand, internal.GetFuncName(), "Updating keycloak public client")
-		internal.UpdateKeycloakPublicClientParams(updateKeycloakPublicClientsCommand, withEnableDebug, existingTenant, keycloakMasterAccessToken, platformCompleteExternalUrl)
+		internal.UpdateKeycloakPublicClientParams(updateKeycloakPublicClientsCommand, withEnableDebug, existingTenant, keycloakMasterAccessToken, withPlatformCompleteUrl)
 	}
 }
 

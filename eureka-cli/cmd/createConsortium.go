@@ -73,7 +73,7 @@ func getCentralTenant(tenants map[string]any) string {
 		}
 
 		mapEntry := properties.(map[string]any)
-		isCentral := mapEntry[internal.TenantsCentralTenantKey]
+		isCentral := mapEntry[internal.TenantsCentralTenantEntryKey]
 		if isCentral != nil && isCentral.(bool) {
 			return tenant
 		}
@@ -91,7 +91,7 @@ func getSortedConsortiumTenants(tenants map[string]any) map[string]bool {
 		}
 
 		mapEntry := properties.(map[string]any)
-		isCentral := mapEntry[internal.TenantsCentralTenantKey]
+		isCentral := mapEntry[internal.TenantsCentralTenantEntryKey]
 		consortiumTenants[tenant] = isCentral != nil && isCentral.(bool)
 	}
 

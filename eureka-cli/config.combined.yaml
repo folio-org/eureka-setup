@@ -209,6 +209,7 @@ backend-modules:
   mod-orders:
   mod-finance:
   mod-finance-storage:
+    use-vault: true
   mod-audit:
   mod-pubsub:
     disable-system-user: true

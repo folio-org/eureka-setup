@@ -61,7 +61,7 @@ func DeployChildApplication() {
 	DeployModules()
 	CreateTenantEntitlements()
 	DetachCapabilitySets()
-	AttachCapabilitySets(3 * time.Second)
+	AttachCapabilitySets(0 * time.Second)
 }
 
 func init() {

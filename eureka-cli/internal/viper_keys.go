@@ -32,16 +32,19 @@ const (
 	EnvironmentKey      string = "environment"
 	EnvironmentFolioKey string = "environment.ENV"
 
-	TenantsKey                 string = "tenants"
-	TenantsDeployUiEntryKey    string = "deploy-ui"
-	TenantsSingleTenantKey     string = "single-tenant"
-	TenantsEnableEcsRequestKey string = "enable-ecs-request"
-	TenantsCentralTenantKey    string = "central-tenant"
+	TenantsKey                         string = "tenants"
+	TenantsDeployUiEntryKey            string = "deploy-ui"
+	TenantsSingleTenantEntryKey        string = "single-tenant"
+	TenantsEnableEcsRequestEntryKey    string = "enable-ecs-request"
+	TenantsCentralTenantEntryKey       string = "central-tenant"
+	TenantsPlatformCompleteUrlEntryKey string = "platform-complete-url"
 
 	UsersKey            string = "users"
 	UsersTenantEntryKey string = "tenant"
 
-	RolesKey string = "roles"
+	RolesKey                    string = "roles"
+	RolesTenantEntryKey         string = "tenant"
+	RolesCapabilitySetsEntryKey string = "capability-sets"
 
 	SidecarModuleKey                string = "sidecar-module"
 	SidecarModuleEnvironmentKey     string = "sidecar-module.environment"

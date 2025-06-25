@@ -54,7 +54,7 @@ environment:
 tenants:
   diku:
 roles:
-  Admin:
+  diku_admin:
     tenant: diku
     capability-sets: ["all"]
 sidecar-module:
@@ -92,9 +92,7 @@ sidecar-module:
       -Djava.util.logging.manager=org.jboss.logmanager.LogManager
 backend-modules:
   mod-gobi:
-    deploy-module: false
   mod-ebsconet:
-    deploy-module: false
   mod-mosaic:
   mod-okapi-facade:
     environment:
@@ -106,6 +104,7 @@ backend-modules:
       MT_CLIENT_URL: http://mgr-tenants.eureka:8081
       TE_URL: http://mgr-tenant-entitlements.eureka:8081
   edge-orders:
+    port: 9000
     environment:
       JAVA_OPTIONS: >-
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 

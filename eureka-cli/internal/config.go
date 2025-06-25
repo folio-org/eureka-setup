@@ -366,10 +366,10 @@ func PrepareStripesConfigJs(commandName string, configPath string, tenant string
 			continue
 		}
 
-		newReadFileStr = strings.Replace(newReadFileStr, key, value, -1)
+		newReadFileStr = strings.ReplaceAll(newReadFileStr, key, value)
 	}
 
-	newReadFileStr = strings.Replace(newReadFileStr, "'@folio/users' : {}", "'@folio/users' : {},\n    '@folio/consortia-settings' : {}", -1)
+	newReadFileStr = strings.ReplaceAll(newReadFileStr, "'@folio/users' : {}", "'@folio/users' : {},\n    '@folio/consortia-settings' : {}")
 
 	fmt.Println()
 	fmt.Println("###### Dumping stripes.config.js ######")

@@ -25,13 +25,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	deployUiCommand string = "Deploy UI"
-
-	kongExternalUrl             string = "http://localhost:8000"
-	keycloakExternalUrl         string = "http://keycloak.eureka:8080"
-	platformCompleteExternalUrl string = "http://localhost:3000"
-)
+const deployUiCommand string = "Deploy UI"
 
 // deployUiCmd represents the deployUi command
 var deployUiCmd = &cobra.Command{
@@ -54,16 +48,17 @@ func DeployUi() {
 
 		setCommandFlagsFromConfigFile(deployUiCommand, existingTenant)
 
-		finalImageName := preparePlatformCompleteUiImage(withEnableDebug, withBuildImages, withUpdateCloned, withSingleTenant, withEnableEcsRequests, existingTenant)
-		deployPlatformCompleteUiContainer(deployUiCommand, existingTenant, finalImageName)
+		finalImageName := preparePlatformCompleteUiImage(withEnableDebug, withBuildImages, withUpdateCloned, withSingleTenant, withEnableEcsRequests, existingTenant, withPlatformCompleteUrl)
+		externalPort := internal.ExtractPortFromUrl(deployUiCommand, withPlatformCompleteUrl)
+		deployPlatformCompleteUiContainer(deployUiCommand, existingTenant, finalImageName, externalPort)
 	}
 }
 
-func preparePlatformCompleteUiImage(enabledDebug, buildImages, updateCloned, singleTenant, enableEcsRequests bool, existingTenant string) (finalImageName string) {
+func preparePlatformCompleteUiImage(enabledDebug, buildImages, updateCloned, singleTenant, enableEcsRequests bool, existingTenant string, platformCompleteUrl string) (finalImageName string) {
 	imageName := fmt.Sprintf("platform-complete-ui-%s", existingTenant)
 	if buildImages {
 		outputDir := cloneUpdatePlatformCompleteUiRepository(deployUiCommand, enabledDebug, updateCloned)
-		return buildPlatformCompleteUiImageLocally(deployUiCommand, singleTenant, enableEcsRequests, outputDir, existingTenant)
+		return buildPlatformCompleteUiImageLocally(deployUiCommand, singleTenant, enableEcsRequests, outputDir, existingTenant, platformCompleteUrl)
 	}
 
 	return forcePullPlatformCompleteUiImageFromRegistry(deployUiCommand, imageName)
@@ -87,13 +82,13 @@ func forcePullPlatformCompleteUiImageFromRegistry(commandName string, imageName 
 	return finalImageName
 }
 
-func deployPlatformCompleteUiContainer(commandName string, existingTenant string, finalImageName string) {
+func deployPlatformCompleteUiContainer(commandName string, existingTenant string, finalImageName string, externalPort int) {
 	slog.Info(commandName, internal.GetFuncName(), fmt.Sprintf("Deploying platform complete UI container for %s tenant", existingTenant))
 	containerName := fmt.Sprintf("eureka-platform-complete-ui-%s", existingTenant)
 
 	internal.RunCommand(commandName, exec.Command("docker", "run", "--name", containerName,
 		"--hostname", containerName,
-		"--publish", "3000:80",
+		"--publish", fmt.Sprintf("%d:80", externalPort),
 		"--restart", "unless-stopped",
 		"--cpus", "1",
 		"--memory", "35m",

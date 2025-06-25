@@ -54,7 +54,7 @@ environment:
 tenants:
   diku:
 roles:
-  Admin:
+  diku_admin:
     tenant: diku
     capability-sets: ["all"]
 sidecar-module:
@@ -92,7 +92,31 @@ sidecar-module:
       -Djava.util.logging.manager=org.jboss.logmanager.LogManager
 backend-modules:
   mod-search:
+    use-okapi-url: true
     disable-system-user: true
     environment:
+      ELASTICSEARCH_SERVER: 'true'
       ELASTICSEARCH_URL: http://elasticsearch.eureka:9200
+      ELASTICSEARCH_HOST: elasticsearch.eureka
+      ELASTICSEARCH_PORT: 9200
+      INSTANCE_SUBJECTS_INDEXING_RETRY_ATTEMPTS: '3'
+      INSTANCE_CONTRIBUTORS_INDEXING_RETRY_ATTEMPTS: '3'
+      INDEXING_DATA_FORMAT: 'json'
+      INITIAL_LANGUAGES: 'eng'
+      MAX_SUPPORTED_LANGUAGES: '5'
+      SEARCH_BY_ALL_FIELDS_ENABLED: 'true'
+      BROWSE_CN_INTERMEDIATE_VALUES_ENABLED: 'true'
+      BROWSE_CN_INTERMEDIATE_REMOVE_DUPLICATES: 'true'
+      SCROLL_QUERY_SIZE: '1000'
+      STREAM_ID_RETRY_INTERVAL_MS: '1000'
+      STREAM_ID_RETRY_ATTEMPTS: '3'
+      STREAM_ID_CORE_POOL_SIZE: '2'
+      STREAM_ID_MAX_POOL_SIZE: '2'
+      STREAM_ID_QUEUE_CAPACITY: '500'
+      CN_BROWSE_OPTIMIZATION_ENABLED: 'true'
+      SEARCH_QUERY_TIMEOUT: '25s'
+      MAX_BROWSE_REQUEST_OFFSET: '500'
+      KAFKA_CONTRIBUTORS_TOPIC_PARTITIONS: '2'
+      KAFKA_CONSORTIUM_INSTANCE_TOPIC_PARTITIONS: '2'
+      KAFKA_SUBJECTS_TOPIC_PARTITIONS: '2'
 frontend-modules: []
