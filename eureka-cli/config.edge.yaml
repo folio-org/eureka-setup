@@ -111,6 +111,10 @@ backend-modules:
         -Dokapi_url=http://kong.eureka:8000
         -Dsecure_store_props=/etc/edge/ephemeral.properties 
         -Dapi_config=/etc/edge/api_configuration.json
+        -Dtoken_cache_ttl_ms=0
+        -Dnull_token_cache_ttl_ms=0
+        -Dtoken_cache_capacity=0
+        -Dlog_level=DEBUG
     volumes:
       - $EUREKA/misc/edge-modules/edge-orders:/etc/edge
 frontend-modules:
