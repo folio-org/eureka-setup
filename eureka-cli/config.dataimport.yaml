@@ -1,0 +1,267 @@
+profile:
+  name: data-import
+application:
+  name: app-data-import
+  version: 1.0.0
+  platform: base
+  fetch-descriptors: false
+  port-start: 38000
+  port-end: 40000
+registry:
+  url: https://folio-registry.dev.folio.org
+install:
+  folio: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
+  eureka: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
+namespaces:
+  platform-complete-ui: bkadirkhodjaev
+environment:
+  # PostgreSQL
+  DB_HOST: postgres.eureka
+  DB_PORT: 5432
+  DB_DATABASE: folio
+  DB_USERNAME: folio_rw
+  DB_PASSWORD: supersecret
+  DB_CHARSET: UTF-8
+  DB_QUERYTIMEOUT: 60000
+  DB_MAXPOOLSIZE: 4
+  # Kafka
+  ENV: folio
+  KAFKA_HOST: kafka.eureka
+  KAFKA_PORT: 9092
+  # Elasticsearch
+  ELASTICSEARCH_URL: http://opensearch.eureka.:9200
+  # Kong
+  KONG_ADMIN_URL: http://kong.eureka:8001
+  KONG_INTEGRATION_ENABLED: "true"
+  # Keycloak
+  KC_URL: http://keycloak.eureka:8080
+  KC_CONFIG_TTL: 3600s
+  KC_ADMIN_CLIENT_ID: supersecret
+  KC_ADMIN_USERNAME: admin
+  KC_ADMIN_PASSWORD: admin
+  KC_IMPORT_ENABLED: "true"
+  KC_INTEGRATION_ENABLED: "true"
+  KC_LOGIN_CLIENT_SUFFIX: -application
+  KC_SERVICE_CLIENT_ID: sidecar-module-access-client
+  KC_URI_VALIDATION_ENABLED: "false"
+  SECURITY_ENABLED: "false"
+  OKAPI_INTEGRATION_ENABLED: "false"
+  WEB_CLIENT_TLS_VERIFY_HOSTNAME: "false"
+  # Java
+  JAVA_OPTIONS: >-
+    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+    -XX:MaxRAMPercentage=80.0 -Xms128m -Xmx400m
+    -Djdk.internal.httpclient.disableHostnameVerification=true
+  # AWS S3/MinIO
+  AWS_URL: http://minio.eureka:9000
+  AWS_REGION: us-east-1
+  AWS_BUCKET: example-bucket
+  AWS_ACCESS_KEY_ID: minioadmin
+  AWS_SECRET_ACCESS_KEY: minioadmin
+  S3_IS_AWS: false
+  S3_URL: http://minio.eureka:9000
+  S3_REGION: us-east-1
+  S3_ACCESS_KEY_ID: minioadmin
+  S3_SECRET_ACCESS_KEY: minioadmin
+  S3_BUCKET: example-bucket
+  SPLIT_FILES_ENABLED: true
+  KAFKA_PRODUCER_TENANT_COLLECTION: ALL
+tenants:
+  diku:
+    deploy-ui: true
+roles:
+  Admin:
+    tenant: diku
+    capability-sets: [ "all" ]
+  User:
+    tenant: diku
+    capability-sets: []
+users:
+  diku_admin:
+    tenant: diku
+    password: admin
+    last-name: John
+    first-name: Doe
+    roles: [ "Admin", "User" ]
+  diku_user:
+    tenant: diku
+    password: user
+    last-name: Jane
+    first-name: Doe
+    roles: [ "User" ]
+sidecar-module:
+  image: folio-module-sidecar
+  environment:
+    # Kafka
+    ENV: folio
+    KAFKA_HOST: kafka.eureka
+    KAFKA_PORT: 9092
+    MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
+    MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
+    # Management
+    TM_CLIENT_URL: http://mgr-tenants.eureka:8081
+    AM_CLIENT_URL: http://mgr-applications.eureka:8081
+    TE_CLIENT_URL: http://mgr-tenant-entitlements.eureka:8081
+    # Sidecar
+    SIDECAR: "true"
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS: "true"
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong.eureka:8000
+    QUARKUS_HTTP_PORT: 8081
+    QUARKUS_REST_CLIENT_READ_TIMEOUT: 180000
+    QUARKUS_REST_CLIENT_CONNECT_TIMEOUT: 180000
+    QUARKUS_REST_CLIENT_SEND_TIMEOUT: 180000
+    QUARKUS_HTTP_LIMITS_MAX_INITIAL_LINE_LENGTH: 8192
+    SC_LOG_LEVEL: INFO
+    ROOT_LOG_LEVEL: INFO
+    REQUEST_TIMEOUT: 604800000
+    ALLOW_CROSS_TENANT_REQUESTS: "true"
+    # Java
+    JAVA_OPTIONS: >-
+      -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+      -XX:+UseZGC -XX:MaxRAMPercentage=80.0 -Xms64m -Xmx64m
+      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=INFO -Dquarkus.log.category.'org.apache.kafka'.level=INFO
+      -Djava.util.logging.manager=org.jboss.logmanager.LogManager
+backend-modules:
+  mgr-applications:
+    port: 9901
+    use-vault: true
+    environment:
+      MODULE_URL: http://mgr-applications.eureka:8081
+      TE_URL: http://mgr-tenant-entitlements.eureka:8081
+      VALIDATION_MODE: none
+      ROUTEMANAGEMENT_ENABLE: "true"
+    resources:
+      cpus: 2
+  mgr-tenants:
+    port: 9902
+    use-vault: true
+    environment:
+      MODULE_URL: http://mgr-tenants.eureka:8081
+    resources:
+      cpus: 2
+  mgr-tenant-entitlements:
+    port: 9903
+    use-vault: true
+    environment:
+      MODULE_URL: http://mgr-tenant-entitlements.eureka:8081
+      MT_CLIENT_URL: http://mgr-tenants.eureka:8081
+      AM_CLIENT_URL: http://mgr-applications.eureka:8081
+      VALIDATION_INTERFACE_INTEGRITY_ENABLED: "false"
+      FOLIO_CLIENT_CONNECT_TIMEOUT: 60s
+      FOLIO_CLIENT_READ_TIMEOUT: 180s
+      FLOW_ENGINE_THREADS_NUM: "1"
+      RETRIES_MODULE_MAX: "10"
+    resources:
+      cpus: 2
+  mod-users-keycloak:
+    use-vault: true
+    use-okapi-url: true
+    disable-system-user: true
+    port: 9904
+    environment:
+      SINGLE_TENANT_UX: "true"
+      INCLUDE_ONLY_VISIBLE_PERMISSIONS: "false"
+    resources:
+      cpus: 4
+      memory: 900
+  mod-login-keycloak:
+    use-vault: true
+    port: 9905
+    environment:
+      X_OKAPI_TOKEN_HEADER_ENABLED: "true"
+      KC_ADMIN_TOKEN_TTL: 59s
+  mod-roles-keycloak:
+    use-vault: true
+    disable-system-user: true
+    port: 9906
+    resources:
+      cpus: 4
+  mod-scheduler:
+    use-vault: true
+    disable-system-user: true
+    port: 9907
+    resources:
+      cpus: 4
+  mod-consortia-keycloak:
+    deploy-module: false
+    use-vault: true
+    use-okapi-url: true
+    disable-system-user: true
+    port: 9908
+  mod-permissions:
+  mod-configuration:
+  mod-users:
+  mod-users-bl:
+  mod-roles:
+  mod-password-validator:
+  mod-settings:
+  mod-notes:
+  mod-tags:
+  ### Inventory Modules
+  mod-inventory-storage:
+  mod-inventory:
+    port-server: 9403
+  mod-quick-marc:
+  ###
+  ### Data Import Modules
+  mod-data-import:
+  mod-di-converter-storage:
+  mod-source-record-manager:
+  mod-source-record-storage:
+  mod-entities-links:
+    disable-system-user: true
+  mod-copycat:
+  ###
+  ### Data Export Modules
+  mod-data-export:
+  mod-data-export-spring:
+    disable-system-user: true
+  mod-data-export-worker:
+  ###
+  ### Acquisition Modules
+  mod-orders-storage:
+  mod-orders:
+  mod-invoice-storage:
+  mod-invoice:
+  mod-organizations-storage:
+  mod-organizations:
+  mod-finance:
+  mod-finance-storage:
+  # mod-audit:
+  ###
+  ### Circulation Modules
+  # mod-circulation-storage:
+  # mod-circulation:
+  #   port-server: 9801
+  # mod-pubsub:
+  #   disable-system-user: true
+  ###
+  # Requires Elasticsearch to be uncommented in misc/docker-compose.yaml
+  mod-search:
+    deploy-module: false
+    disable-system-user: true
+frontend-modules:
+  folio_data-import:
+  folio_users:
+  folio_tenant-settings:
+  folio_inventory:
+  folio_stripes-core:
+  folio_developer:
+  folio_notes:
+  folio_tags:
+  folio_organizations:
+  folio_invoice:
+  folio_orders:
+  folio_quick-marc:
+  folio_data-export:
+  folio_stripes-smart-components:
+  folio_plugin-find-instance:
+  folio_plugin-find-user:
+  folio_plugin-find-authority:
+custom-frontend-modules:
+  folio_authorization-roles:
+    version: 2.1.109900000000194
+  folio_authorization-policies:
+    version: 2.0.10990000000085
+  folio_plugin-select-application:
+    version: 2.0.10990000000063
