@@ -9,7 +9,25 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
+
+	"github.com/hashicorp/go-retryablehttp"
 )
+
+const (
+	DefaultRetryMax int = 10
+
+	DefaultRetryWaitMax time.Duration = 5 * time.Second
+)
+
+func createRetryableClient() *retryablehttp.Client {
+	client := retryablehttp.NewClient()
+	client.RetryMax = DefaultRetryMax
+	client.RetryWaitMax = DefaultRetryWaitMax
+	client.Logger = nil
+
+	return client
+}
 
 // ####### GET ########
 
@@ -181,6 +199,36 @@ func DoPostReturnNoContent(commandName string, url string, enableDebug bool, pan
 	DumpHttpRequest(commandName, req, enableDebug)
 
 	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		if panicOnError {
+			slog.Error(commandName, GetFuncName(), "http.DefaultClient.Do error")
+			panic(err)
+		}
+
+		LogWarn(commandName, enableDebug, fmt.Sprintf("http.DefaultClient.Do warn - Endpoint is unreachable: %s", url))
+		return
+	}
+	defer func() {
+		CheckStatusCodes(commandName, panicOnError, resp)
+		resp.Body.Close()
+	}()
+
+	DumpHttpResponse(commandName, resp, enableDebug)
+}
+
+func DoRetryablePostReturnNoContent(commandName string, url string, enableDebug bool, panicOnError bool, bodyBytes []byte, headers map[string]string) {
+	DumpHttpBody(commandName, enableDebug, bodyBytes)
+
+	req, err := retryablehttp.NewRequest(http.MethodPost, url, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		slog.Error(commandName, GetFuncName(), "http.NewRequest error")
+		panic(err)
+	}
+
+	AddRequestHeaders(req.Request, headers)
+	DumpHttpRequest(commandName, req.Request, enableDebug)
+
+	resp, err := createRetryableClient().Do(req)
 	if err != nil {
 		if panicOnError {
 			slog.Error(commandName, GetFuncName(), "http.DefaultClient.Do error")

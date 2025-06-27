@@ -54,7 +54,7 @@ environment:
 tenants:
   diku:
 roles:
-  Admin:
+  diku_admin:
     tenant: diku
     capability-sets: ["all"]
 sidecar-module:
@@ -92,7 +92,11 @@ sidecar-module:
       -Djava.util.logging.manager=org.jboss.logmanager.LogManager
 backend-modules:
   mod-search:
+    use-okapi-url: true
     disable-system-user: true
     environment:
+      ELASTICSEARCH_SERVER: 'true'
       ELASTICSEARCH_URL: http://elasticsearch.eureka:9200
+      ELASTICSEARCH_HOST: elasticsearch.eureka
+      ELASTICSEARCH_PORT: 9200
 frontend-modules: []

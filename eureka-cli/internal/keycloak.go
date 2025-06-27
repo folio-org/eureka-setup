@@ -92,5 +92,5 @@ func UpdateKeycloakPublicClientParams(commandName string, enableDebug bool, tena
 	putRequestUrl := fmt.Sprintf("%s/admin/realms/%s/clients/%s", KeycloakUrl, tenant, clientUuid)
 	DoPutReturnNoContent(commandName, putRequestUrl, enableDebug, clientParamsBytes, headers)
 
-	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Updated keycloak public '%s' client in '%s' realm", clientId, tenant))
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Updated keycloak public %s client in %s realm", clientId, tenant))
 }

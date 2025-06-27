@@ -54,7 +54,7 @@ environment:
 tenants:
   diku:
 roles:
-  Admin:
+  diku_admin:
     tenant: diku
     capability-sets: ["all"]
 sidecar-module:

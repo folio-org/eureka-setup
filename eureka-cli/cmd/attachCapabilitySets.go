@@ -1,5 +1,5 @@
 /*
-Copyright © 2024 EPAM_Systems/Thunderjet/Boburbek_Kadirkhodjaev
+Copyright © 2025 Open Library Foundation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,7 +35,9 @@ const (
 	NewLinePattern      string = `\r?\n`
 	KafkaUrl            string = "kafka.eureka:9092"
 	ConsumerGroupSuffix string = "mod-roles-keycloak-capability-group"
-	IgnoreErrorMessage  string = "Consumer group 'folio-mod-roles-keycloak-capability-group' has no active members."
+
+	NoActiveMembersErrorMessage string = "Consumer group 'folio-mod-roles-keycloak-capability-group' has no active members."
+	IsRebalancingErrorMessage   string = "Consumer group 'folio-mod-roles-keycloak-capability-group' is rebalancing."
 )
 
 // attachCapabilitySetsCmd represents the attachCapabilitySets command
@@ -44,11 +46,11 @@ var attachCapabilitySetsCmd = &cobra.Command{
 	Short: "Attach capability sets",
 	Long:  `Attach capability sets to roles.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		AttachCapabilitySets()
+		AttachCapabilitySets(time.Duration(3 * time.Second))
 	},
 }
 
-func AttachCapabilitySets() {
+func AttachCapabilitySets(initialWaitDuration time.Duration) {
 	vaultRootToken := GetVaultRootToken()
 
 	for _, tenantValue := range internal.GetTenants(attachCapabilitySetsCommand, withEnableDebug, false) {
@@ -60,7 +62,8 @@ func AttachCapabilitySets() {
 		}
 
 		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), "### POLLING FOR CAPABILITY SETS CREATION ###")
-		pollCapabilitySetsCreation(existingTenant)
+		time.Sleep(initialWaitDuration)
+		pollCapabilitySetsCreation(withEnableDebug, existingTenant)
 
 		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("### ATTACHING CAPABILITY SETS TO ROLES FOR %s TENANT ###", existingTenant))
 		keycloakAccessToken := internal.GetKeycloakAccessToken(attachCapabilitySetsCommand, withEnableDebug, vaultRootToken, existingTenant)
@@ -68,29 +71,29 @@ func AttachCapabilitySets() {
 	}
 }
 
-func pollCapabilitySetsCreation(tenant string) {
+func pollCapabilitySetsCreation(enableDebug bool, tenant string) {
 	consumerGroup := fmt.Sprintf("%s-%s", viper.GetString(internal.EnvironmentFolioKey), ConsumerGroupSuffix)
 
 	var lag int
 	for {
-		lag := getConsumerGroupLag(tenant, consumerGroup, lag)
+		lag := getConsumerGroupLag(enableDebug, tenant, consumerGroup, lag)
 		if lag == 0 {
 			break
 		}
 
 		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %s consumer group to process all messages, lag: %d", consumerGroup, lag))
-		time.Sleep(5 * time.Second)
+		time.Sleep(30 * time.Second)
 	}
 
 	slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Consumer group %s has no new message to process", consumerGroup))
 }
 
-func getConsumerGroupLag(tenant string, consumerGroup string, initialLag int) (lag int) {
+func getConsumerGroupLag(enableDebug bool, tenant string, consumerGroup string, initialLag int) (lag int) {
 	stdout, stderr := internal.RunCommandReturnOutput(listSystemCommand, exec.Command("docker", "exec", "-i", "kafka", "bash", "-c",
 		fmt.Sprintf("kafka-consumer-groups.sh --bootstrap-server %s --describe --group %s | grep %s | awk '{print $6}'", KafkaUrl, consumerGroup, tenant)))
 	if stderr.Len() > 0 {
-		if strings.Contains(stderr.String(), IgnoreErrorMessage) {
-			internal.LogWarn(attachCapabilitySetsCommand, withEnableDebug, fmt.Sprintf("internal.RunCommandReturnOutput warning - %s", stderr.String()))
+		if strings.Contains(stderr.String(), NoActiveMembersErrorMessage) || strings.Contains(stderr.String(), IsRebalancingErrorMessage) {
+			internal.LogWarn(attachCapabilitySetsCommand, enableDebug, fmt.Sprintf("internal.RunCommandReturnOutput warning - %s", stderr.String()))
 			return initialLag
 		}
 		internal.LogErrorPrintStderrPanic(attachCapabilitySetsCommand, "internal.RunCommandReturnOutput error", stderr.String())
@@ -100,8 +103,8 @@ func getConsumerGroupLag(tenant string, consumerGroup string, initialLag int) (l
 
 	lag, err := strconv.Atoi(strings.TrimSpace(regexp.MustCompile(NewLinePattern).ReplaceAllString(stdout.String(), "")))
 	if err != nil {
-		slog.Error(attachCapabilitySetsCommand, internal.GetFuncName(), "strconv.Atoi error")
-		panic(err)
+		slog.Error(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("strconv.Atoi warning - %s", stderr.String()))
+		return initialLag
 	}
 
 	return lag
