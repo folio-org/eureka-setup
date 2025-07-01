@@ -56,8 +56,7 @@ func ExtractModuleNameAndVersion(commandName string, enableDebug bool, registryM
 			}
 
 			module.Name = TrimModuleName(ModuleIdRegexp.ReplaceAllString(module.Id, `$1`))
-			moduleVersion := ModuleIdRegexp.ReplaceAllString(module.Id, `$2$3`)
-			module.Version = &moduleVersion
+			module.Version = Stringp(ModuleIdRegexp.ReplaceAllString(module.Id, `$2$3`))
 
 			if strings.HasPrefix(module.Name, "edge") {
 				module.SidecarName = module.Name

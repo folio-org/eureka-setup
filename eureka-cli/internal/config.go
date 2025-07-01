@@ -163,7 +163,7 @@ func createDefaultBackendDto(commandName string, name string) (dto BackendModule
 	dto.deployModule = true
 
 	if !IsManagementModule(name) && !IsEdgeModule(name) {
-		dto.deploySidecar = getDefaultDeploySidecar()
+		dto.deploySidecar = Boolp(true)
 	}
 
 	dto.port = getDefaultPort(commandName)
@@ -207,17 +207,10 @@ func getKeyOrDefault(mapEntry map[string]any, key string, defaultValue any) any 
 
 func getDeploySidecar(mapEntry map[string]any) *bool {
 	if mapEntry[ModuleDeploySidecarEntryKey] == nil {
-		return getDefaultDeploySidecar()
+		return Boolp(true)
 	}
-	sidecarValue := mapEntry[ModuleDeploySidecarEntryKey].(bool)
 
-	return &sidecarValue
-}
-
-func getDefaultDeploySidecar() *bool {
-	deploySidecarDefaultValue := true
-
-	return &deploySidecarDefaultValue
+	return Boolp(mapEntry[ModuleDeploySidecarEntryKey].(bool))
 }
 
 func getVersion(mapEntry map[string]any) *string {
@@ -225,50 +218,41 @@ func getVersion(mapEntry map[string]any) *string {
 		return nil
 	}
 
-	var versionValue string
 	_, ok := mapEntry[ModuleVersionEntryKey].(float64)
 	if ok {
-		versionValue = strconv.FormatFloat(mapEntry[ModuleVersionEntryKey].(float64), 'f', -1, 64)
-	} else {
-		versionValue = mapEntry[ModuleVersionEntryKey].(string)
+		return Stringp(strconv.FormatFloat(mapEntry[ModuleVersionEntryKey].(float64), 'f', -1, 64))
 	}
 
-	return &versionValue
+	return Stringp(mapEntry[ModuleVersionEntryKey].(string))
 }
 
 func getPort(commandName string, deployModule bool, mapEntry map[string]any) *int {
 	if !deployModule {
-		noPort := 0
-		return &noPort
+		return Intp(0)
 	}
 	if mapEntry[ModulePortEntryKey] == nil {
 		return getDefaultPort(commandName)
 	}
-	portValue := mapEntry[ModulePortEntryKey].(int)
 
-	return &portValue
+	return Intp(mapEntry[ModulePortEntryKey].(int))
 }
 
 func getDefaultPort(commandName string) *int {
-	freePort := GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts)
-
-	return &freePort
+	return Intp(GetAndSetFreePortFromRange(commandName, PortStartIndex, PortEndIndex, &ReservedPorts))
 }
 
 func getPortServer(mapEntry map[string]any) *int {
 	if mapEntry[ModulePortServerEntryKey] == nil {
 		return getDefaultPortServer()
 	}
-	portServerValue := mapEntry[ModulePortServerEntryKey].(int)
 
-	return &portServerValue
+	return Intp(mapEntry[ModulePortServerEntryKey].(int))
 }
 
 func getDefaultPortServer() *int {
 	defaultServerPort, _ := strconv.Atoi(DefaultServerPort)
-	portServerValue := defaultServerPort
 
-	return &portServerValue
+	return Intp(defaultServerPort)
 }
 
 func getVolumes(commandName string, mapEntry map[string]any) []string {
@@ -323,8 +307,7 @@ func GetFrontendModulesFromConfig(commandName string, printOutput bool, frontend
 				}
 
 				if mapEntry[ModuleVersionEntryKey] != nil {
-					versionValue := mapEntry[ModuleVersionEntryKey].(string)
-					version = &versionValue
+					version = Stringp(mapEntry[ModuleVersionEntryKey].(string))
 				}
 			}
 
