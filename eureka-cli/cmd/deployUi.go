@@ -1,5 +1,5 @@
 /*
-Copyright © 2024 EPAM_Systems/Thunderjet/Boburbek_Kadirkhodjaev
+Copyright © 2025 Open Library Foundation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,13 +25,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	deployUiCommand string = "Deploy UI"
-
-	kongExternalUrl             string = "http://localhost:8000"
-	keycloakExternalUrl         string = "http://keycloak.eureka:8080"
-	platformCompleteExternalUrl string = "http://localhost:3000"
-)
+const deployUiCommand string = "Deploy UI"
 
 // deployUiCmd represents the deployUi command
 var deployUiCmd = &cobra.Command{
@@ -45,24 +39,26 @@ var deployUiCmd = &cobra.Command{
 
 func DeployUi() {
 	slog.Info(deployUiCommand, internal.GetFuncName(), "### DEPLOYING UI ###")
-	for _, value := range internal.GetTenants(deployUiCommand, withEnableDebug, false) {
-		mapEntry := value.(map[string]any)
 
-		existingTenant := mapEntry["name"].(string)
+	for _, value := range internal.GetTenants(deployUiCommand, withEnableDebug, false) {
+		existingTenant := value.(map[string]any)["name"].(string)
 		if !internal.HasTenant(existingTenant) || !internal.CanDeployUi(existingTenant) {
 			continue
 		}
 
-		finalImageName := preparePlatformCompleteUiImage(existingTenant)
-		deployPlatformCompleteUiContainer(deployUiCommand, existingTenant, finalImageName)
+		setCommandFlagsFromConfigFile(deployUiCommand, existingTenant)
+
+		finalImageName := preparePlatformCompleteUiImage(withEnableDebug, withBuildImages, withUpdateCloned, withSingleTenant, withEnableEcsRequests, existingTenant, withPlatformCompleteUrl)
+		externalPort := internal.ExtractPortFromUrl(deployUiCommand, withPlatformCompleteUrl)
+		deployPlatformCompleteUiContainer(deployUiCommand, existingTenant, finalImageName, externalPort)
 	}
 }
 
-func preparePlatformCompleteUiImage(existingTenant string) (finalImageName string) {
+func preparePlatformCompleteUiImage(enabledDebug, buildImages, updateCloned, singleTenant, enableEcsRequests bool, existingTenant string, platformCompleteUrl string) (finalImageName string) {
 	imageName := fmt.Sprintf("platform-complete-ui-%s", existingTenant)
-	if withBuildImages {
-		outputDir := cloneUpdatePlatformCompleteUiRepository(deployUiCommand, withEnableDebug, withUpdateCloned)
-		return buildPlatformCompleteUiImageLocally(deployUiCommand, withEnableEcsRequests, outputDir, existingTenant)
+	if buildImages {
+		outputDir := cloneUpdatePlatformCompleteUiRepository(deployUiCommand, enabledDebug, updateCloned)
+		return buildPlatformCompleteUiImageLocally(deployUiCommand, singleTenant, enableEcsRequests, outputDir, existingTenant, platformCompleteUrl)
 	}
 
 	return forcePullPlatformCompleteUiImageFromRegistry(deployUiCommand, imageName)
@@ -86,13 +82,13 @@ func forcePullPlatformCompleteUiImageFromRegistry(commandName string, imageName 
 	return finalImageName
 }
 
-func deployPlatformCompleteUiContainer(commandName string, existingTenant string, finalImageName string) {
+func deployPlatformCompleteUiContainer(commandName string, existingTenant string, finalImageName string, externalPort int) {
 	slog.Info(commandName, internal.GetFuncName(), fmt.Sprintf("Deploying platform complete UI container for %s tenant", existingTenant))
 	containerName := fmt.Sprintf("eureka-platform-complete-ui-%s", existingTenant)
 
 	internal.RunCommand(commandName, exec.Command("docker", "run", "--name", containerName,
 		"--hostname", containerName,
-		"--publish", "3000:80",
+		"--publish", fmt.Sprintf("%d:80", externalPort),
 		"--restart", "unless-stopped",
 		"--cpus", "1",
 		"--memory", "35m",
@@ -109,5 +105,6 @@ func init() {
 	rootCmd.AddCommand(deployUiCmd)
 	deployUiCmd.PersistentFlags().BoolVarP(&withBuildImages, "buildImages", "b", false, "Build Docker images")
 	deployUiCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	deployUiCmd.PersistentFlags().BoolVarP(&withSingleTenant, "singleTenant", "T", true, "Use for Single Tenant workflow")
 	deployUiCmd.PersistentFlags().BoolVarP(&withEnableEcsRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
 }

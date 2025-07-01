@@ -1,12 +1,15 @@
 profile:
-  name: combined
+  name: ecs
 application:
-  name: app-combined
+  name: app-ecs
   version: 1.0.0
   platform: base
   fetch-descriptors: false
   port-start: 30000
   port-end: 30999
+consortium:
+  name: ECS
+  central-ordering: true
 registry:
   url: https://folio-registry.dev.folio.org
 install:
@@ -51,28 +54,42 @@ environment:
     -XX:MaxRAMPercentage=80.0 -Xms128m -Xmx400m 
     -Djdk.internal.httpclient.disableHostnameVerification=true
 tenants:
-  diku:
+  ecs:
     deploy-ui: true
+    single-tenant: false
+    enable-ecs-request: false
+    central-tenant: true
+  university:
+  college:
 roles:
-  diku_admin:
-    tenant: diku
+  ecs_admin:
+    tenant: ecs
     capability-sets: ["all"]
-  diku_user:
-    tenant: diku
-    capability-sets: []
+  university_admin:
+    tenant: university
+    capability-sets: ["all"]
+  college_admin:
+    tenant: college
+    capability-sets: ["all"]
 users:
-  diku_admin:
-    tenant: diku
+  ecs_admin:
+    tenant: ecs
     password: admin
     last-name: John
     first-name: Doe
-    roles: ["diku_admin", "diku_user"]
-  diku_user:
-    tenant: diku
-    password: user
-    last-name: Jane
+    roles: ["ecs_admin"]
+  university_admin:
+    tenant: university
+    password: admin
+    last-name: John
     first-name: Doe
-    roles: ["diku_user"]
+    roles: ["university_admin"]
+  college_admin:
+    tenant: college
+    password: admin
+    last-name: John
+    first-name: Doe
+    roles: ["college_admin"]
 sidecar-module:
   image: folio-module-sidecar
   environment:
@@ -189,6 +206,21 @@ backend-modules:
     port: 9907
     resources:
       cpus: 4
+  mod-consortia-keycloak:
+    deploy-module: true
+    use-vault: true
+    use-okapi-url: true
+    disable-system-user: true
+    port: 9908
+  mod-okapi-facade:
+    environment:
+      TENANT_APPS_TTL: 600s
+      AM_TLS_ENABLED: "false"
+      TM_TLS_ENABLED: "false"
+      TE_TLS_ENABLED: "false"
+      AM_CLIENT_URL: http://mgr-applications.eureka:8081
+      MT_CLIENT_URL: http://mgr-tenants.eureka:8081
+      TE_URL: http://mgr-tenant-entitlements.eureka:8081
   mod-permissions:
   mod-configuration:
   mod-users:
@@ -250,3 +282,5 @@ custom-frontend-modules:
     version: 2.0.10990000000091
   folio_plugin-select-application:
     version: 2.0.10990000000068
+  folio_consortia-settings:
+    version: 3.0.109900000000101

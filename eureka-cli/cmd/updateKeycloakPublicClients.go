@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 EPAM_Systems/Thunderjet/Boburbek_Kadirkhodjaev
+Copyright © 2025 Open Library Foundation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ const updateKeycloakPublicClientsCommand string = "Update Keycloak Public Client
 
 // updateKeycloakPublicClientsCmd represents the updateKeycloakPublicClients command
 var updateKeycloakPublicClientsCmd = &cobra.Command{
-	Use:   "updateKeycloakPublicClientParams",
+	Use:   "updateKeycloakPublicClients",
 	Short: "Update Keycloak public client params",
 	Long:  `Update Keycloak public client params for each UI container.`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -46,8 +46,10 @@ func UpdateKeycloakPublicClients() {
 			continue
 		}
 
+		setCommandFlagsFromConfigFile(updateKeycloakPublicClientsCommand, existingTenant)
+
 		slog.Info(updateKeycloakPublicClientsCommand, internal.GetFuncName(), "Updating keycloak public client")
-		internal.UpdateKeycloakPublicClientParams(updateKeycloakPublicClientsCommand, withEnableDebug, existingTenant, keycloakMasterAccessToken, platformCompleteExternalUrl)
+		internal.UpdateKeycloakPublicClientParams(updateKeycloakPublicClientsCommand, withEnableDebug, existingTenant, keycloakMasterAccessToken, withPlatformCompleteUrl)
 	}
 }
 

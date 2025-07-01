@@ -1,5 +1,5 @@
 /*
-Copyright © 2024 EPAM_Systems/Thunderjet/Boburbek_Kadirkhodjaev
+Copyright © 2025 Open Library Foundation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -50,7 +50,8 @@ func DeployApplication() {
 	CreateTenantEntitlements()
 	CreateRoles()
 	CreateUsers()
-	AttachCapabilitySets()
+	AttachCapabilitySets(10 * time.Second)
+	CreateConsortium(10 * time.Second)
 	DeployUi()
 	UpdateKeycloakPublicClients()
 }
@@ -60,7 +61,7 @@ func DeployChildApplication() {
 	DeployModules()
 	CreateTenantEntitlements()
 	DetachCapabilitySets()
-	AttachCapabilitySets()
+	AttachCapabilitySets(0 * time.Second)
 }
 
 func init() {
