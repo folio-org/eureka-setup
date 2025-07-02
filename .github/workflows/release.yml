@@ -24,7 +24,7 @@ jobs:
           cache-dependency-path: ./eureka-cli/go.sum
 
       - name: Set up GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           version: latest
           args: release --clean
