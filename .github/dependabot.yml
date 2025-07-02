@@ -1,0 +1,28 @@
+version: 2
+
+updates:
+  # Go modules for eureka-cli
+  - package-ecosystem: "gomod"
+    directory: "/eureka-cli"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+    ignore:
+      - dependency-name: "golang.org/x/*"
+        update-types: ["version-update:semver-patch"]
+
+  # GitHub Actions workflow dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: "chore(actions)"
+    labels:
+      - "github-actions"
+      - "dependencies"
