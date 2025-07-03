@@ -189,19 +189,16 @@ func CreateResources(isModule bool, resources map[string]any) *container.Resourc
 		return createDefaultResources(isModule)
 	}
 
-	oomKillDisable := getBoolValueOrDefault(ModuleResourceOomKillDisableEntryKey, resources, false)
-
 	return &container.Resources{
 		CPUCount:          getIntValueOrDefault(ModuleResourceCpuCountEntryKey, resources, DefaultModuleCpus),
 		MemoryReservation: convertMiBToBytes(getIntValueOrDefault(ModuleResourceMemoryReservationEntryKey, resources, DefaultModuleMemoryReservation)),
 		Memory:            convertMiBToBytes(getIntValueOrDefault(ModuleResourceMemoryEntryKey, resources, DefaultModuleMemory)),
 		MemorySwap:        convertMiBToBytes(getIntValueOrDefault(ModuleResourceMemorySwapEntryKey, resources, DefaultModuleSwap)),
-		OomKillDisable:    &oomKillDisable,
+		OomKillDisable:    Boolp(getBoolValueOrDefault(ModuleResourceOomKillDisableEntryKey, resources, false)),
 	}
 }
 
 func createDefaultResources(isModule bool) *container.Resources {
-	oomKillDisable := false
 
 	if isModule {
 		return &container.Resources{
@@ -209,7 +206,7 @@ func createDefaultResources(isModule bool) *container.Resources {
 			MemoryReservation: convertMiBToBytes(DefaultModuleMemoryReservation),
 			Memory:            convertMiBToBytes(DefaultModuleMemory),
 			MemorySwap:        convertMiBToBytes(DefaultModuleSwap),
-			OomKillDisable:    &oomKillDisable,
+			OomKillDisable:    Boolp(false),
 		}
 	}
 
@@ -218,7 +215,7 @@ func createDefaultResources(isModule bool) *container.Resources {
 		MemoryReservation: convertMiBToBytes(DefaultSidecarMemoryReservation),
 		Memory:            convertMiBToBytes(DefaultSidecarMemory),
 		MemorySwap:        convertMiBToBytes(DefaultSidecarSwap),
-		OomKillDisable:    &oomKillDisable,
+		OomKillDisable:    Boolp(false),
 	}
 }
 

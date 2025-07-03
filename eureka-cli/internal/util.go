@@ -287,3 +287,17 @@ func HostnameExists(commandName string, hostname string) bool {
 
 	return err == nil
 }
+
+// ######## Pointer helpers ########
+
+func Stringp(value string) *string {
+	return &value
+}
+
+func Boolp(value bool) *bool {
+	return &value
+}
+
+func Intp(value int) *int {
+	return &value
+}
