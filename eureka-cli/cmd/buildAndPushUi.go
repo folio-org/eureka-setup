@@ -130,12 +130,12 @@ func pushPlatformCompleteUiImageToRegistry(commandName string, namespace string,
 
 func init() {
 	rootCmd.AddCommand(buildAndPushUiCmd)
-	buildAndPushUiCmd.PersistentFlags().StringVarP(&withTenant, "tenant", "t", "", "Tenant (required)")
 	buildAndPushUiCmd.PersistentFlags().StringVarP(&withNamespace, "namespace", "n", "", "DockerHub namespace (required)")
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&withTenant, "tenant", "t", "", "Tenant (required)")
 	buildAndPushUiCmd.PersistentFlags().StringVarP(&withPlatformCompleteUrl, "platformCompleteUrl", "P", "http://localhost:3000", "Platform Complete UI url")
-	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withSingleTenant, "singleTenant", "T", true, "Use for Single Tenant workflow")
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withEnableEcsRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
-	buildAndPushUiCmd.MarkPersistentFlagRequired("tenant")
+	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
 	buildAndPushUiCmd.MarkPersistentFlagRequired("namespace")
+	buildAndPushUiCmd.MarkPersistentFlagRequired("tenant")
 }
