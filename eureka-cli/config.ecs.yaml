@@ -250,9 +250,9 @@ backend-modules:
   mod-circulation:
     port-server: 9801
   mod-template-engine:
-    deploy-module: false
+    deploy-module: true
   mod-feesfines:
-    deploy-module: false
+    deploy-module: true
 frontend-modules:
   folio_stripes-core:
   folio_developer:

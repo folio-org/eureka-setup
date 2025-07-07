@@ -305,7 +305,7 @@ func RemoveTenants(commandName string, enableDebug bool, panicOnError bool) {
 			continue
 		}
 
-		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/tenants/%s?purge=true", mapEntry["id"].(string)))
+		requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/tenants/%s?purgeKafkaTopics=true", mapEntry["id"].(string)))
 
 		DoDelete(commandName, requestUrl, enableDebug, false, map[string]string{})
 
@@ -755,32 +755,39 @@ func GetConsortiumByName(commandName string, enableDebug bool, panicOnError bool
 	return foundConsortiumsMap["consortia"].([]any)[0]
 }
 
-func CreateConsortiumTenants(commandName string, enableDebug bool, centralTenant string, accessToken string, consortiumId string, consortiumTenants map[string]bool, adminUsername string) {
+func CreateConsortiumTenants(commandName string, enableDebug bool, centralTenant string, accessToken string, consortiumId string, consortiumTenants ConsortiumTenants, adminUsername string) {
 	headers := map[string]string{ContentTypeHeader: JsonContentType, TenantHeader: centralTenant, TokenHeader: accessToken}
 
-	for tenant, isCentral := range consortiumTenants {
-		bytes, err := json.Marshal(map[string]any{"id": tenant, "code": tenant[0:3], "name": tenant, "isCentral": isCentral})
+	for _, consortiumTenant := range consortiumTenants {
+		bytes, err := json.Marshal(map[string]any{
+			"id":        consortiumTenant.Tenant,
+			"code":      consortiumTenant.Tenant[0:3],
+			"name":      consortiumTenant.Tenant,
+			"isCentral": consortiumTenant.IsCentral,
+		})
 		if err != nil {
 			slog.Error(commandName, GetFuncName(), "json.Marshal error")
 			panic(err)
 		}
 
-		existingTenant := GetConsortiumTenantByIdAndName(commandName, enableDebug, true, centralTenant, accessToken, consortiumId, tenant)
+		existingTenant := GetConsortiumTenantByIdAndName(commandName, enableDebug, true, centralTenant, accessToken, consortiumId, consortiumTenant.Tenant)
 		if existingTenant != nil {
-			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Consortium tenant %s is already created", tenant))
+			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Consortium tenant %s is already created", consortiumTenant.Tenant))
 			continue
 		}
 
 		var requestUrl string = fmt.Sprintf("/consortia/%s/tenants", consortiumId)
-		if !isCentral {
+		if consortiumTenant.IsCentral == 0 {
 			user := GetUser(commandName, enableDebug, true, centralTenant, accessToken, adminUsername)
 
 			requestUrl = fmt.Sprintf("/consortia/%s/tenants?adminUserId=%s", consortiumId, user.(map[string]any)["id"].(string))
 		}
 
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Trying to create %s consortium tenant for %s consortium", consortiumTenant.Tenant, consortiumId))
+
 		DoPostReturnNoContent(commandName, fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, requestUrl), enableDebug, true, bytes, headers)
 
-		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Created %s consortium tenant (%t) for %s consortium", tenant, isCentral, consortiumId))
+		CheckConsortiumTenantStatus(commandName, enableDebug, true, centralTenant, consortiumId, consortiumTenant.Tenant, headers)
 	}
 }
 
@@ -805,6 +812,39 @@ func GetConsortiumTenantByIdAndName(commandName string, enableDebug bool, panicO
 	}
 
 	return nil
+}
+
+func CheckConsortiumTenantStatus(commandName string, enableDebug bool, panicOnError bool, centralTenant string, consortiumId string, tenant string, headers map[string]string) {
+	requestUrl := fmt.Sprintf("/consortia/%s/tenants/%s", consortiumId, tenant)
+
+	foundConsortiumTenantMap := DoGetDecodeReturnMapStringAny(commandName, fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, requestUrl), enableDebug, true, headers)
+	if foundConsortiumTenantMap == nil {
+		return
+	}
+
+	const (
+		IN_PROGRESS           string = "IN_PROGRESS"
+		FAILED                string = "FAILED"
+		COMPLETED             string = "COMPLETED"
+		COMPLETED_WITH_ERRORS string = "COMPLETED_WITH_ERRORS"
+
+		WaitConsortiumTenant time.Duration = 10 * time.Second
+	)
+
+	switch foundConsortiumTenantMap["setupStatus"] {
+	case IN_PROGRESS:
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Waiting for %s consortium tenant creation", tenant))
+		time.Sleep(WaitConsortiumTenant)
+		CheckConsortiumTenantStatus(commandName, enableDebug, true, centralTenant, consortiumId, tenant, headers)
+		return
+	case FAILED:
+	case COMPLETED_WITH_ERRORS:
+		LogErrorPanic(commandName, fmt.Sprintf("CheckConsortiumTenantStatus() error - %s consortium tenant not is created", tenant))
+		return
+	case COMPLETED:
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Created %s consortium tenant (%t) for %s consortium", tenant, foundConsortiumTenantMap["isCentral"], consortiumId))
+		return
+	}
 }
 
 func EnableCentralOrdering(commandName string, enableDebug bool, centralTenant string, accessToken string) {
