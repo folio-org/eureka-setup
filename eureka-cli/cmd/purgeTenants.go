@@ -33,9 +33,9 @@ var (
 	withApplicationNames []string
 )
 
-// purgeTenantsCmd represents the purgeTenantsCmd command
+// purgeTenantsCmd represents the purgeTenants command
 var purgeTenantsCmd = &cobra.Command{
-	Use:   "purgeTenantsCmd",
+	Use:   "purgeTenants",
 	Short: "Purge tenants",
 	Long:  `Purge tenants and their entitlements.`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -57,7 +57,7 @@ var purgeTenantsCmd = &cobra.Command{
 					panic(err)
 				}
 
-				internal.DoDeleteWithBody(commandName, fmt.Sprintf("%s%s", requestUrl, "?purge=true"), withEnableDebug, entitlementBodyBytes, true, map[string]string{})
+				internal.DoDeleteWithBody(commandName, fmt.Sprintf("%s%s", requestUrl, "?purge=true"), withEnableDebug, entitlementBodyBytes, false, map[string]string{})
 
 				slog.Info(commandName, internal.GetFuncName(), fmt.Sprintf("Purged %s tenant entitlement with %s applications", key, value))
 			}
@@ -72,7 +72,7 @@ var purgeTenantsCmd = &cobra.Command{
 				panic(err)
 			}
 
-			internal.DoDelete(commandName, fmt.Sprintf("%s%s", requestUrl, "?purgeKafkaTopics=true"), withEnableDebug, false, map[string]string{})
+			internal.DoDelete(commandName, fmt.Sprintf("%s%s", requestUrl, "?purgeKafkaTopics=true"), withEnableDebug, true, map[string]string{})
 
 			slog.Info(commandName, internal.GetFuncName(), fmt.Sprintf("Purged %s tenant", tenantId))
 		}
