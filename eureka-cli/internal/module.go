@@ -30,6 +30,7 @@ func CreateDockerClient(commandName string) *client.Client {
 		slog.Error(commandName, GetFuncName(), "client.NewClientWithOpts error")
 		panic(err)
 	}
+	newClient.NegotiateAPIVersion(context.Background())
 
 	return newClient
 }
