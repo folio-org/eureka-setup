@@ -24,9 +24,15 @@ import (
 	"github.com/spf13/viper"
 )
 
-const listModulesCommand string = "List Modules"
+const (
+	listModulesCommand string = "List Modules"
 
-var availableModuleTypes []string = []string{"module", "sidecar", "management"}
+	module     string = "module"
+	sidecar    string = "sidecar"
+	management string = "management"
+)
+
+var availableModuleTypes []string = []string{module, sidecar, management}
 
 // listModulesCmd represents the listModules command
 var listModulesCmd = &cobra.Command{
@@ -54,11 +60,11 @@ func createFilter(moduleName string, moduleType string, all bool) string {
 	}
 
 	switch moduleType {
-	case "management":
+	case management:
 		return fmt.Sprintf(internal.ManagementContainerPattern)
-	case "module":
+	case module:
 		return fmt.Sprintf(internal.ModuleContainerPattern, currentProfile)
-	case "sidecar":
+	case sidecar:
 		return fmt.Sprintf(internal.SidecarContainerPattern, currentProfile)
 	default:
 		return fmt.Sprintf(internal.ProfileContainerPattern, currentProfile)

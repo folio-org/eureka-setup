@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
-	"time"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
@@ -34,11 +33,11 @@ var createConsortiumCmd = &cobra.Command{
 	Short: "Create a consortium",
 	Long:  `Create a consortium with multiple tenants.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		CreateConsortium(time.Duration(5 * time.Second))
+		CreateConsortium()
 	},
 }
 
-func CreateConsortium(initialWaitDuration time.Duration) {
+func CreateConsortium() {
 	if !viper.IsSet(internal.ConsortiumKey) || !viper.IsSet(internal.ConsortiumNameKey) {
 		return
 	}
@@ -53,7 +52,6 @@ func CreateConsortium(initialWaitDuration time.Duration) {
 
 	slog.Info(createConsortiumCommand, internal.GetFuncName(), fmt.Sprintf("### CREATING %s CONSORTIUM ###", consortiumName))
 	consortiumId := internal.CreateConsortium(createConsortiumCommand, withEnableDebug, centralTenant, keycloakAccessToken, consortiumName)
-	time.Sleep(initialWaitDuration)
 
 	slog.Info(createConsortiumCommand, internal.GetFuncName(), fmt.Sprintf("### ADDING %d TENANTS TO %s CONSORTIUM ###", len(tenants), consortiumName))
 	consortiumTenants := getSortedConsortiumTenants(tenants)
@@ -72,9 +70,7 @@ func getCentralTenant(tenants map[string]any) string {
 			continue
 		}
 
-		mapEntry := properties.(map[string]any)
-		isCentral := mapEntry[internal.TenantsCentralTenantEntryKey]
-		if isCentral != nil && isCentral.(bool) {
+		if getSortableIsCentral(properties) == 1 {
 			return tenant
 		}
 	}
@@ -82,43 +78,36 @@ func getCentralTenant(tenants map[string]any) string {
 	return ""
 }
 
-func getSortedConsortiumTenants(tenants map[string]any) map[string]bool {
-	consortiumTenants := make(map[string]bool)
+func getSortedConsortiumTenants(tenants map[string]any) internal.ConsortiumTenants {
+	var consortiumTenants internal.ConsortiumTenants
 	for tenant, properties := range tenants {
 		if properties == nil {
-			consortiumTenants[tenant] = false
+			consortiumTenants = append(consortiumTenants, &internal.ConsortiumTenant{Tenant: tenant, IsCentral: 0})
 			continue
 		}
 
-		mapEntry := properties.(map[string]any)
-		isCentral := mapEntry[internal.TenantsCentralTenantEntryKey]
-		consortiumTenants[tenant] = isCentral != nil && isCentral.(bool)
+		consortiumTenants = append(consortiumTenants, &internal.ConsortiumTenant{Tenant: tenant, IsCentral: getSortableIsCentral(properties)})
 	}
 
-	type KeyValue struct {
-		Key   string
-		Value bool
-	}
-
-	keyValues := make([]KeyValue, 0, len(consortiumTenants))
-	for key, value := range consortiumTenants {
-		keyValues = append(keyValues, KeyValue{key, value})
-	}
-
-	sort.Slice(keyValues, func(i, j int) bool {
-		if keyValues[i].Value == keyValues[j].Value {
-			return !keyValues[i].Value
-		}
-		return keyValues[i].Key < keyValues[j].Key
+	sort.Slice(consortiumTenants, func(i, j int) bool {
+		return consortiumTenants[i].IsCentral > consortiumTenants[j].IsCentral
 	})
 
 	return consortiumTenants
 }
 
+func getSortableIsCentral(properties any) int {
+	value := properties.(map[string]any)[internal.TenantsCentralTenantEntryKey]
+	if value != nil && value.(bool) {
+		return 1
+	}
+
+	return 0
+}
+
 func getAdminUsername(centralTenant string, users map[string]any) string {
 	for username, properties := range users {
-		mapEntry := properties.(map[string]any)
-		tenant := mapEntry[internal.UsersTenantEntryKey]
+		tenant := properties.(map[string]any)[internal.UsersTenantEntryKey]
 		if tenant != nil && tenant.(string) == centralTenant {
 			return username
 		}

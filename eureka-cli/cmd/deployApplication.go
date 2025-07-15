@@ -51,7 +51,7 @@ func DeployApplication() {
 	CreateRoles()
 	CreateUsers()
 	AttachCapabilitySets(10 * time.Second)
-	CreateConsortium(10 * time.Second)
+	CreateConsortium()
 	DeployUi()
 	UpdateKeycloakPublicClients()
 }

@@ -15,3 +15,10 @@ type Applications struct {
 	ApplicationDescriptors []map[string]any `json:"applicationDescriptors"`
 	TotalRecords           int              `json:"totalRecords"`
 }
+
+type ConsortiumTenant struct {
+	Tenant    string
+	IsCentral int
+}
+
+type ConsortiumTenants []*ConsortiumTenant
