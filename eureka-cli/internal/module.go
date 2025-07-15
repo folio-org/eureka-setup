@@ -13,6 +13,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 	"github.com/spf13/viper"
 )
@@ -29,6 +30,7 @@ func CreateDockerClient(commandName string) *client.Client {
 		slog.Error(commandName, GetFuncName(), "client.NewClientWithOpts error")
 		panic(err)
 	}
+	newClient.NegotiateAPIVersion(context.Background())
 
 	return newClient
 }
@@ -239,10 +241,10 @@ func getContainerName(dto *DeployModuleDto) string {
 	return fmt.Sprintf("eureka-%s-%s", viper.GetString(ProfileNameKey), dto.Name)
 }
 
-func PullModule(commandName string, client *client.Client, image string) {
+func PullModule(commandName string, client *client.Client, imageName string) {
 	registryAuthToken := GetRegistryAuthTokenIfPresent(commandName)
 
-	reader, err := client.ImagePull(context.Background(), image, types.ImagePullOptions{RegistryAuth: registryAuthToken})
+	reader, err := client.ImagePull(context.Background(), imageName, image.PullOptions{RegistryAuth: registryAuthToken})
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "client.ImagePull error")
 		panic(err)
