@@ -70,8 +70,8 @@ roles:
     tenant: university
     capability-sets: ["all"]
   college_admin:
-    tenant: college
-    capability-sets: ["all"]
+   tenant: college
+   capability-sets: ["all"]
 users:
   ecs_admin:
     tenant: ecs
@@ -167,6 +167,10 @@ backend-modules:
       KONG_WRITE_TIMEOUT: "941241418"
       FLOW_ENGINE_THREADS_NUM: "1"
       RETRIES_MODULE_MAX: "10"
+      KAFKA_ENTITLEMENT_TOPIC_PARTITIONS: "4"
+      KAFKA_SCHEDULED_JOB_TOPIC_PARTITIONS: "1"
+      KAFKA_CAPABILITY_TOPIC_PARTITIONS: "1"
+      KAFKA_SYS_USER_TOPIC_PARTITIONS: "1"
     resources:
       cpus: 4
   mod-users-keycloak:
@@ -202,6 +206,7 @@ backend-modules:
       cpus: 4
   mod-scheduler:
     use-vault: true
+    use-okapi-url: true
     disable-system-user: true
     port: 9907
     resources:

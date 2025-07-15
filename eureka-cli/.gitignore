@@ -2,10 +2,11 @@ bin
 log
 tmp
 temp
-misc/folio-keycloak
-misc/folio-kong
-misc/platform-complete
+
 INSTALL.md
 UPGRADE.md
 RELEASE.md
+
 temp*.go
+config.temp-*.yaml
+drop_sidecar_cache.sh
