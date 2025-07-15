@@ -1,7 +1,7 @@
 profile:
-  name: data-import
+  name: import
 application:
-  name: app-data-import
+  name: app-import
   version: 1.0.0
   platform: base
   fetch-descriptors: false
@@ -28,8 +28,7 @@ environment:
   ENV: folio
   KAFKA_HOST: kafka.eureka
   KAFKA_PORT: 9092
-  # Elasticsearch
-  ELASTICSEARCH_URL: http://opensearch.eureka.:9200
+  KAFKA_PRODUCER_TENANT_COLLECTION: ALL
   # Kong
   KONG_ADMIN_URL: http://kong.eureka:8001
   KONG_INTEGRATION_ENABLED: "true"
@@ -49,8 +48,8 @@ environment:
   WEB_CLIENT_TLS_VERIFY_HOSTNAME: "false"
   # Java
   JAVA_OPTIONS: >-
-    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
-    -XX:MaxRAMPercentage=80.0 -Xms128m -Xmx400m
+    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
+    -XX:MaxRAMPercentage=80.0 -Xms128m -Xmx400m 
     -Djdk.internal.httpclient.disableHostnameVerification=true
   # AWS S3/MinIO
   AWS_URL: http://minio.eureka:9000
@@ -70,10 +69,10 @@ tenants:
   diku:
     deploy-ui: true
 roles:
-  Admin:
+  diku_admin:
     tenant: diku
-    capability-sets: [ "all" ]
-  User:
+    capability-sets: ["all"]
+  diku_user:
     tenant: diku
     capability-sets: []
 users:
@@ -82,13 +81,13 @@ users:
     password: admin
     last-name: John
     first-name: Doe
-    roles: [ "Admin", "User" ]
+    roles: ["diku_admin", "diku_user"]
   diku_user:
     tenant: diku
     password: user
     last-name: Jane
     first-name: Doe
-    roles: [ "User" ]
+    roles: ["diku_user"]
 sidecar-module:
   image: folio-module-sidecar
   environment:
@@ -119,7 +118,7 @@ sidecar-module:
     JAVA_OPTIONS: >-
       -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
       -XX:+UseZGC -XX:MaxRAMPercentage=80.0 -Xms64m -Xmx64m
-      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=INFO -Dquarkus.log.category.'org.apache.kafka'.level=INFO
+      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=INFO -Dquarkus.log.category.'org.apache.kafka'.level=INFO 
       -Djava.util.logging.manager=org.jboss.logmanager.LogManager
 backend-modules:
   mgr-applications:
@@ -130,6 +129,11 @@ backend-modules:
       TE_URL: http://mgr-tenant-entitlements.eureka:8081
       VALIDATION_MODE: none
       ROUTEMANAGEMENT_ENABLE: "true"
+      FOLIO_CLIENT_CONNECT_TIMEOUT: 600s
+      FOLIO_CLIENT_READ_TIMEOUT: 600s
+      KONG_CONNECT_TIMEOUT: "941241418"
+      KONG_READ_TIMEOUT: "941241418"
+      KONG_WRITE_TIMEOUT: "941241418"
     resources:
       cpus: 2
   mgr-tenants:
@@ -137,6 +141,11 @@ backend-modules:
     use-vault: true
     environment:
       MODULE_URL: http://mgr-tenants.eureka:8081
+      FOLIO_CLIENT_CONNECT_TIMEOUT: 600s
+      FOLIO_CLIENT_READ_TIMEOUT: 600s
+      KONG_CONNECT_TIMEOUT: "941241418"
+      KONG_READ_TIMEOUT: "941241418"
+      KONG_WRITE_TIMEOUT: "941241418"
     resources:
       cpus: 2
   mgr-tenant-entitlements:
@@ -147,20 +156,28 @@ backend-modules:
       MT_CLIENT_URL: http://mgr-tenants.eureka:8081
       AM_CLIENT_URL: http://mgr-applications.eureka:8081
       VALIDATION_INTERFACE_INTEGRITY_ENABLED: "false"
-      FOLIO_CLIENT_CONNECT_TIMEOUT: 60s
-      FOLIO_CLIENT_READ_TIMEOUT: 180s
+      ROUTEMANAGEMENT_ENABLE: "false"
+      FOLIO_CLIENT_CONNECT_TIMEOUT: 600s
+      FOLIO_CLIENT_READ_TIMEOUT: 600s
+      KONG_CONNECT_TIMEOUT: "941241418"
+      KONG_READ_TIMEOUT: "941241418"
+      KONG_WRITE_TIMEOUT: "941241418"
       FLOW_ENGINE_THREADS_NUM: "1"
       RETRIES_MODULE_MAX: "10"
     resources:
-      cpus: 2
+      cpus: 4
   mod-users-keycloak:
     use-vault: true
     use-okapi-url: true
     disable-system-user: true
     port: 9904
     environment:
-      SINGLE_TENANT_UX: "true"
+      SINGLE_TENANT_UX: "false"
       INCLUDE_ONLY_VISIBLE_PERMISSIONS: "false"
+      KAFKA_SYS_USER_TOPIC_RETRY_DELAY: 1s
+      KAFKA_SYS_USER_TOPIC_RETRY_ATTEMPTS: "9223372036854775807"
+      KAFKA_SYS_USER_CAPABILITIES_RETRY_DELAY: 5s
+      KAFKA_SYS_USER_CAPABILITIES_RETRY_ATTEMPTS: "100"
     resources:
       cpus: 4
       memory: 900
@@ -169,11 +186,15 @@ backend-modules:
     port: 9905
     environment:
       X_OKAPI_TOKEN_HEADER_ENABLED: "true"
+      LOGIN_COOKIE_SAMESITE: "NONE"
       KC_ADMIN_TOKEN_TTL: 59s
   mod-roles-keycloak:
     use-vault: true
     disable-system-user: true
     port: 9906
+    environment:
+      CAPABILITY_TOPIC_RETRY_DELAY: 1s
+      CAPABILITY_TOPIC_RETRY_ATTEMPTS: "9223372036854775807"
     resources:
       cpus: 4
   mod-scheduler:
@@ -182,12 +203,6 @@ backend-modules:
     port: 9907
     resources:
       cpus: 4
-  mod-consortia-keycloak:
-    deploy-module: false
-    use-vault: true
-    use-okapi-url: true
-    disable-system-user: true
-    port: 9908
   mod-permissions:
   mod-configuration:
   mod-users:
@@ -202,7 +217,6 @@ backend-modules:
   mod-inventory:
     port-server: 9403
   mod-quick-marc:
-  ###
   ### Data Import Modules
   mod-data-import:
   mod-di-converter-storage:
@@ -227,19 +241,25 @@ backend-modules:
   mod-organizations:
   mod-finance:
   mod-finance-storage:
-  # mod-audit:
-  ###
+    use-vault: true
+  mod-audit:
+    deploy-module: false
   ### Circulation Modules
-  # mod-circulation-storage:
-  # mod-circulation:
-  #   port-server: 9801
-  # mod-pubsub:
-  #   disable-system-user: true
+  mod-circulation-storage:
+    deploy-module: false
+  mod-circulation:
+    port-server: 9801
+    deploy-module: false
+  mod-pubsub:
+    disable-system-user: true
+    deploy-module: false
   ###
   # Requires Elasticsearch to be uncommented in misc/docker-compose.yaml
   mod-search:
     deploy-module: false
     disable-system-user: true
+    environment:
+      ELASTICSEARCH_URL: http://opensearch.eureka.:9200
 frontend-modules:
   folio_data-import:
   folio_users:
@@ -260,8 +280,8 @@ frontend-modules:
   folio_plugin-find-authority:
 custom-frontend-modules:
   folio_authorization-roles:
-    version: 2.1.109900000000194
+    version: 2.1.109900000000203
   folio_authorization-policies:
-    version: 2.0.10990000000085
+    version: 2.0.10990000000091
   folio_plugin-select-application:
-    version: 2.0.10990000000063
+    version: 2.0.10990000000068
