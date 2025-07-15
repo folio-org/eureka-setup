@@ -95,7 +95,7 @@ backend-modules:
     use-okapi-url: true
     disable-system-user: true
     environment:
-      ELASTICSEARCH_SERVER: 'true'
+      ELASTICSEARCH_SERVER: "true"
       ELASTICSEARCH_URL: http://elasticsearch.eureka:9200
       ELASTICSEARCH_HOST: elasticsearch.eureka
       ELASTICSEARCH_PORT: 9200

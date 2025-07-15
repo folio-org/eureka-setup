@@ -70,8 +70,8 @@ roles:
     tenant: university
     capability-sets: ["all"]
   college_admin:
-   tenant: college
-   capability-sets: ["all"]
+    tenant: college
+    capability-sets: ["all"]
 users:
   ecs_admin:
     tenant: ecs
