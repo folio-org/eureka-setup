@@ -28,6 +28,7 @@ environment:
   ENV: folio
   KAFKA_HOST: kafka.eureka
   KAFKA_PORT: 9092
+  KAFKA_PRODUCER_TENANT_COLLECTION: ALL
   # Kong
   KONG_ADMIN_URL: http://kong.eureka:8001
   KONG_INTEGRATION_ENABLED: "true"
@@ -185,6 +186,7 @@ backend-modules:
       cpus: 4
   mod-scheduler:
     use-vault: true
+    use-okapi-url: true
     disable-system-user: true
     port: 9907
     resources:

@@ -204,6 +204,8 @@ services:
       - eureka-net
     ports:
       - "8080:8080"
+    sysctls:
+      net.ipv4.ip_local_port_range: "10240 65535"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080"]
       interval: 15s
