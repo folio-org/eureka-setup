@@ -64,7 +64,6 @@ environment:
   S3_SECRET_ACCESS_KEY: minioadmin
   S3_BUCKET: example-bucket
   SPLIT_FILES_ENABLED: true
-  KAFKA_PRODUCER_TENANT_COLLECTION: ALL
 tenants:
   diku:
     deploy-ui: true
