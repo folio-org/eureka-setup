@@ -8,7 +8,7 @@
 
 - Install dependencies:
   - [Go](https://go.dev/doc/install) compiler: last development-tested version is `go1.24.1 windows/amd64`
-  - [Rancher Desktop](https://rancherdesktop.io/) container daemon: last development-tested version is `v1.16.0` (make sure to enable **dockerd (Moby)** container engine)
+  - [Rancher Desktop](https://rancherdesktop.io/) container daemon: last development-tested version is `v1.19.3` (make sure to enable **dockerd (Moby)** container engine)
 - Configure hosts:
   - Add `127.0.0.1 postgres.eureka` entry to `/etc/hosts`
   - Add `127.0.0.1 kafka.eureka` entry to `/etc/hosts`
