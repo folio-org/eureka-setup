@@ -99,7 +99,6 @@ sidecar-module:
     KAFKA_HOST: kafka.eureka
     KAFKA_PORT: 9092
     # Keycloak
-    MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
     MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
     # Management
     TM_CLIENT_URL: http://mgr-tenants.eureka:8081
@@ -168,6 +167,10 @@ backend-modules:
       KONG_WRITE_TIMEOUT: "941241418"
       FLOW_ENGINE_THREADS_NUM: "1"
       RETRIES_MODULE_MAX: "10"
+      KAFKA_ENTITLEMENT_TOPIC_PARTITIONS: "4"
+      KAFKA_SCHEDULED_JOB_TOPIC_PARTITIONS: "1"
+      KAFKA_CAPABILITY_TOPIC_PARTITIONS: "1"
+      KAFKA_SYS_USER_TOPIC_PARTITIONS: "1"
     resources:
       cpus: 4
   mod-users-keycloak:
@@ -203,6 +206,7 @@ backend-modules:
       cpus: 4
   mod-scheduler:
     use-vault: true
+    use-okapi-url: true
     disable-system-user: true
     port: 9907
     resources:
@@ -225,7 +229,6 @@ backend-modules:
   mod-permissions:
   mod-configuration:
   mod-users:
-  mod-users-bl:
   mod-roles:
   mod-password-validator:
   mod-settings:
@@ -250,9 +253,9 @@ backend-modules:
   mod-circulation:
     port-server: 9801
   mod-template-engine:
-    deploy-module: false
+    deploy-module: true
   mod-feesfines:
-    deploy-module: false
+    deploy-module: true
 frontend-modules:
   folio_stripes-core:
   folio_developer:

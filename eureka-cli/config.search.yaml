@@ -66,7 +66,6 @@ sidecar-module:
     KAFKA_HOST: kafka.eureka
     KAFKA_PORT: 9092
     # Keycloak
-    MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
     MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
     # Management
     TM_CLIENT_URL: http://mgr-tenants.eureka:8081
@@ -96,7 +95,7 @@ backend-modules:
     use-okapi-url: true
     disable-system-user: true
     environment:
-      ELASTICSEARCH_SERVER: 'true'
+      ELASTICSEARCH_SERVER: "true"
       ELASTICSEARCH_URL: http://elasticsearch.eureka:9200
       ELASTICSEARCH_HOST: elasticsearch.eureka
       ELASTICSEARCH_PORT: 9200
