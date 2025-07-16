@@ -5,8 +5,8 @@ application:
   version: 1.0.0
   platform: base
   fetch-descriptors: false
-  port-start: 38000
-  port-end: 40000
+  port-start: 34000
+  port-end: 34999
 registry:
   url: https://folio-registry.dev.folio.org
 install:
@@ -228,13 +228,11 @@ backend-modules:
   mod-entities-links:
     disable-system-user: true
   mod-copycat:
-  ###
   ### Data Export Modules
   mod-data-export:
   mod-data-export-spring:
     disable-system-user: true
   mod-data-export-worker:
-  ###
   ### Acquisition Modules
   mod-orders-storage:
   mod-orders:
@@ -251,13 +249,12 @@ backend-modules:
   mod-circulation-storage:
     deploy-module: false
   mod-circulation:
+    deploy-module: false
     port-server: 9801
-    deploy-module: false
   mod-pubsub:
-    disable-system-user: true
     deploy-module: false
-  ###
-  # Requires Elasticsearch to be uncommented in misc/docker-compose.yaml
+    disable-system-user: true
+  # Search Module
   mod-search:
     deploy-module: false
     disable-system-user: true
