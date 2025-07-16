@@ -94,7 +94,7 @@ sidecar-module:
     ENV: folio
     KAFKA_HOST: kafka.eureka
     KAFKA_PORT: 9092
-    MOD_USERS_BL: http://mod-users-bl-sc.eureka:8081
+    # Keycloak
     MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
     # Management
     TM_CLIENT_URL: http://mgr-tenants.eureka:8081
@@ -163,6 +163,10 @@ backend-modules:
       KONG_WRITE_TIMEOUT: "941241418"
       FLOW_ENGINE_THREADS_NUM: "1"
       RETRIES_MODULE_MAX: "10"
+      KAFKA_ENTITLEMENT_TOPIC_PARTITIONS: "4"
+      KAFKA_SCHEDULED_JOB_TOPIC_PARTITIONS: "1"
+      KAFKA_CAPABILITY_TOPIC_PARTITIONS: "1"
+      KAFKA_SYS_USER_TOPIC_PARTITIONS: "1"
     resources:
       cpus: 4
   mod-users-keycloak:
@@ -198,6 +202,7 @@ backend-modules:
       cpus: 4
   mod-scheduler:
     use-vault: true
+    use-okapi-url: true
     disable-system-user: true
     port: 9907
     resources:
@@ -205,7 +210,6 @@ backend-modules:
   mod-permissions:
   mod-configuration:
   mod-users:
-  mod-users-bl:
   mod-roles:
   mod-password-validator:
   mod-settings:
@@ -258,7 +262,7 @@ backend-modules:
     deploy-module: false
     disable-system-user: true
     environment:
-      ELASTICSEARCH_URL: http://opensearch.eureka.:9200
+      ELASTICSEARCH_URL: http://opensearch.eureka:9200
 frontend-modules:
   folio_data-import:
   folio_users:
@@ -284,3 +288,4 @@ custom-frontend-modules:
     version: 2.0.10990000000091
   folio_plugin-select-application:
     version: 2.0.10990000000068
+
