@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"os/exec"
 
 	"github.com/folio-org/eureka-cli/internal"
@@ -76,7 +77,10 @@ func init() {
 	listModulesCmd.Flags().BoolVarP(&withAll, "all", "a", false, "All modules for all profiles")
 	listModulesCmd.Flags().StringVarP(&withModuleName, "moduleName", "m", "", "By module name, e.g. mod-orders")
 	listModulesCmd.Flags().StringVarP(&withModuleType, "moduleType", "M", "", fmt.Sprintf("By module type, options: %s", availableModuleTypes))
-	listModulesCmd.RegisterFlagCompletionFunc("moduleType", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if err := listModulesCmd.RegisterFlagCompletionFunc("moduleType", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return availableModuleTypes, cobra.ShellCompDirectiveNoFileComp
-	})
+	}); err != nil {
+		slog.Error(listModulesCommand, internal.GetFuncName(), "listModulesCmd.RegisterFlagCompletionFunc error")
+		panic(err)
+	}
 }

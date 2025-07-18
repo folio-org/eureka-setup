@@ -262,7 +262,7 @@ func getVolumes(commandName string, mapEntry map[string]any) []string {
 
 	var volumes []string
 	for _, value := range mapEntry[ModuleVolumesEntryKey].([]any) {
-		var volume string = value.(string)
+		var volume = value.(string)
 		if runtime.GOOS == "windows" && strings.Contains(volume, "$EUREKA") {
 			homeConfigDir := GetHomeDirPath(commandName)
 			volume = strings.ReplaceAll(volume, "$EUREKA", homeConfigDir)
@@ -295,7 +295,7 @@ func GetFrontendModulesFromConfig(commandName string, printOutput bool, frontend
 	for _, frontendModulesAnyMap := range frontendModulesAnyMaps {
 		for name, value := range frontendModulesAnyMap {
 			var (
-				deployModule bool = true
+				deployModule = true
 				version      *string
 			)
 
@@ -342,7 +342,7 @@ func PrepareStripesConfigJs(commandName string, configPath string, tenant string
 		"${enableEcsRequests}": strconv.FormatBool(enableEcsRequests),
 	}
 
-	var newReadFileStr string = string(readFileBytes)
+	var newReadFileStr = string(readFileBytes)
 	for key, value := range replaceMap {
 		if !strings.Contains(newReadFileStr, key) {
 			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Key not found in stripes.config.js: %s", key))

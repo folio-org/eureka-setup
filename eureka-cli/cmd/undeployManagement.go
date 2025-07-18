@@ -38,7 +38,9 @@ var undeployManagementCmd = &cobra.Command{
 func UndeployManagement() {
 	slog.Info(undeployManagementCommand, internal.GetFuncName(), "### UNDEPLOYING MANAGEMENT MODULES ###")
 	client := internal.CreateDockerClient(undeployManagementCommand)
-	defer client.Close()
+	defer func() {
+		_ = client.Close()
+	}()
 
 	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, internal.ManagementContainerPattern, true)
 }

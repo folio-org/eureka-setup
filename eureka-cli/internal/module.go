@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
@@ -41,7 +40,9 @@ func GetVaultRootToken(commandName string, client *client.Client) string {
 		slog.Error(commandName, GetFuncName(), "client.ContainerLogs error")
 		panic(err)
 	}
-	defer logStream.Close()
+	defer func() {
+		_ = logStream.Close()
+	}()
 
 	buffer := make([]byte, 8)
 	for {
@@ -249,7 +250,9 @@ func PullModule(commandName string, client *client.Client, imageName string) {
 		slog.Error(commandName, GetFuncName(), "client.ImagePull error")
 		panic(err)
 	}
-	defer reader.Close()
+	defer func() {
+		_ = reader.Close()
+	}()
 
 	decoder := json.NewDecoder(reader)
 
@@ -268,7 +271,7 @@ func PullModule(commandName string, client *client.Client, imageName string) {
 	}
 }
 
-func GetDeployedModules(commandName string, client *client.Client, filters filters.Args) []types.Container {
+func GetDeployedModules(commandName string, client *client.Client, filters filters.Args) []container.Summary {
 	deployedModules, err := client.ContainerList(context.Background(), container.ListOptions{All: true, Filters: filters})
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "client.ContainerList error")
@@ -285,7 +288,7 @@ func UndeployModuleByNamePattern(commandName string, client *client.Client, valu
 	}
 }
 
-func undeployModule(commandName string, client *client.Client, deployedModule types.Container, removeAsync bool) {
+func undeployModule(commandName string, client *client.Client, deployedModule container.Summary, removeAsync bool) {
 	err := client.NetworkDisconnect(context.Background(), DefaultNetworkId, deployedModule.ID, false)
 	if err != nil {
 		slog.Warn(commandName, GetFuncName(), fmt.Sprintf("client.NetworkDisconnect warning - %s", err.Error()))

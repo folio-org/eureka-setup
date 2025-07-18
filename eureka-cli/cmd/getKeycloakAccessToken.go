@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
@@ -43,5 +44,8 @@ func GetKeycloakAccessToken(vaultRootToken string) {
 func init() {
 	rootCmd.AddCommand(getKeycloakAccessTokenCmd)
 	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&withTenant, "tenant", "t", "", "Tenant (required)")
-	getKeycloakAccessTokenCmd.MarkPersistentFlagRequired("tenant")
+	if err := getKeycloakAccessTokenCmd.MarkPersistentFlagRequired("tenant"); err != nil {
+		slog.Error(getKeycloakAccessTokenCommand, internal.GetFuncName(), "getKeycloakAccessTokenCmd.MarkPersistentFlagRequired error")
+		panic(err)
+	}
 }

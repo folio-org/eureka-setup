@@ -53,7 +53,9 @@ func DeployManagement() {
 	internal.ExtractModuleNameAndVersion(deployManagementCommand, withEnableDebug, registryModules, true)
 
 	vaultRootToken, client := GetVaultRootTokenWithDockerClient()
-	defer client.Close()
+	defer func() {
+		_ = client.Close()
+	}()
 
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "### DEPLOYING MANAGEMENT MODULES ###")
 	registryHostnames := map[string]string{internal.EurekaRegistry: ""}
