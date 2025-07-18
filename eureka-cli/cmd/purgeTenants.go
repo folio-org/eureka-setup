@@ -66,7 +66,7 @@ var purgeTenantsCmd = &cobra.Command{
 
 		slog.Info(purgeTenantsCommand, internal.GetFuncName(), "Purging tenants")
 		for _, tenantId := range withTenantIds {
-			requestUrl, err := url.JoinPath(withKongGateway, "/tenants/", tenantId)
+			requestUrl, err := url.JoinPath(withKongGateway, "/tenants", tenantId)
 			if err != nil {
 				slog.Error(purgeTenantsCommand, internal.GetFuncName(), "json.Marshal error")
 				panic(err)

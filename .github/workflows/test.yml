@@ -10,17 +10,86 @@ on:
   workflow_call:
 
 jobs:
-  test:
-    name: Test CLI Help Command
+  docker-lint:
+    name: Docker Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Prepare .eureka config directory
+      - name: Run hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ./eureka-cli/misc/folio-vault/Dockerfile
+
+      - name: Validate docker-compose.yml
+        run: docker compose -f ./eureka-cli/misc/docker-compose.yaml config
+
+      # Check Docker configurations on pull requests
+      - name: Check Docker configurations
+        if: github.event_name == 'pull_request'
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: './eureka-cli/misc/folio-vault/Dockerfile'
+
+  go-lint:
+    name: Go Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.1"
+          cache-dependency-path: ./eureka-cli/go.sum
+
+      - name: Go Vet
+        working-directory: ./eureka-cli
+        run: go vet ./...
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: latest
+          working-directory: ./eureka-cli
+          args: --timeout=5m
+          skip-cache: true # Temporarily skip cache to avoid 400 errors
+          skip-pkg-cache: true
+          skip-build-cache: true
+
+  test:
+    name: Test CLI Help Command (${{ matrix.os }}-${{ matrix.goarch }})
+    needs: [go-lint, docker-lint]
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goarch: amd64
+          - os: windows-latest
+            goarch: amd64
+          - os: macos-latest
+            goarch: amd64
+          - os: macos-latest
+            goarch: arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .eureka directory permissions
+        shell: bash
         run: |
-          mkdir -p /home/runner/.eureka
-          chmod -R 0700 /home/runner/.eureka
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            mkdir -p "$USERPROFILE\.eureka"
+          else
+            mkdir -p "$HOME/.eureka"
+            chmod -R 0700 "$HOME/.eureka"
+          fi
+        env:
+          RUNNER_OS: ${{ runner.os }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -30,10 +99,15 @@ jobs:
 
       - name: Build CLI
         working-directory: ./eureka-cli
-        run: go build -o eureka-cli
+        env:
+          GOOS: ${{ runner.os == 'Windows' && 'windows' || runner.os == 'Linux' && 'linux' || 'darwin' }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build -o eureka-cli${{ runner.os == 'Windows' && '.exe' || '' }}
 
       - name: Run Help Command Test
         working-directory: ./eureka-cli
+        shell: bash
         run: |
-          ./eureka-cli help -d
+          ./eureka-cli${{ runner.os == 'Windows' && '.exe' || '' }} help -d
           echo "Help command ran successfully"

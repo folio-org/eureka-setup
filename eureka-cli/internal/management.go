@@ -100,7 +100,9 @@ func checkContainerStatusCode(commandName string, requestUrl string, enableDebug
 	if response == nil {
 		return false
 	}
-	defer response.Body.Close()
+	defer func() {
+		_ = response.Body.Close()
+	}()
 
 	return response.StatusCode == 200
 }
@@ -116,7 +118,9 @@ func GetApplications(commandName string, enableDebug bool, panicOnError bool) Ap
 	if response == nil {
 		return applications
 	}
-	defer response.Body.Close()
+	defer func() {
+		_ = response.Body.Close()
+	}()
 
 	err := json.NewDecoder(response.Body).Decode(&applications)
 	if err != nil {
@@ -698,7 +702,7 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 }
 
 func populateCapabilitySets(commandName string, enableDebug bool, headers map[string]string, capabilitySetNames []any) []string {
-	var capabilitySets []string = []string{}
+	var capabilitySets = []string{}
 	if len(capabilitySetNames) > 1 && !slices.Contains(capabilitySetNames, "all") {
 		for _, capabilitySetName := range capabilitySetNames {
 			for _, value := range GetCapabilitySetsByName(commandName, enableDebug, true, headers, capabilitySetName.(string)) {
@@ -776,7 +780,7 @@ func CreateConsortiumTenants(commandName string, enableDebug bool, centralTenant
 			continue
 		}
 
-		var requestUrl string = fmt.Sprintf("/consortia/%s/tenants", consortiumId)
+		var requestUrl = fmt.Sprintf("/consortia/%s/tenants", consortiumId)
 		if consortiumTenant.IsCentral == 0 {
 			user := GetUser(commandName, enableDebug, true, centralTenant, accessToken, adminUsername)
 
