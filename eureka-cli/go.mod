@@ -8,7 +8,7 @@ require (
 	github.com/docker/go-connections v0.5.0
 	github.com/go-git/go-git/v5 v5.16.2
 	github.com/google/uuid v1.6.0
-	github.com/hashicorp/go-retryablehttp v0.7.7
+	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/hashicorp/vault-client-go v0.4.3
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/spf13/cobra v1.9.1
