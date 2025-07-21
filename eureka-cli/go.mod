@@ -13,7 +13,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
-	golang.org/x/text v0.25.0
+	golang.org/x/text v0.27.0
 )
 
 require (
