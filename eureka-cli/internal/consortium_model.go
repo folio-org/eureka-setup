@@ -15,6 +15,7 @@ func (c ConsortiumTenant) String() string {
 	if c.IsCentral == 1 {
 		return fmt.Sprintf("%s (central)", c.Tenant)
 	}
+
 	return c.Tenant
 }
 
@@ -28,5 +29,6 @@ func (c ConsortiumTenants) String() string {
 			builder.WriteString(", ")
 		}
 	}
+
 	return builder.String()
 }

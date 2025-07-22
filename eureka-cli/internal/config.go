@@ -441,10 +441,10 @@ func CanDeployUi(tenant string) bool {
 }
 
 func GetRequiredContainers(commandName string, requiredContainers []string) []string {
-	if CanDeployModule(ModSearchModuleName) {
+	if HasModule(ModSearchModuleName) {
 		requiredContainers = append(requiredContainers, ElasticsearchContainerName)
 	}
-	if CanDeployModule(ModDataExportWorkerModuleName) {
+	if HasModule(ModDataExportWorkerModuleName) {
 		requiredContainers = append(requiredContainers, []string{MinioContainerName, CreateBucketsContainerName, FtpServerContainerName}...)
 	}
 	if len(requiredContainers) > 0 {
@@ -454,7 +454,7 @@ func GetRequiredContainers(commandName string, requiredContainers []string) []st
 	return requiredContainers
 }
 
-func CanDeployModule(module string) bool {
+func HasModule(module string) bool {
 	for name, value := range viper.GetStringMap(BackendModulesKey) {
 		if name == module {
 			if value == nil {

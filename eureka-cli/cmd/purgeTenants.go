@@ -61,7 +61,6 @@ var purgeTenantsCmd = &cobra.Command{
 
 				slog.Info(purgeTenantsCommand, internal.GetFuncName(), fmt.Sprintf("Purged %s tenant entitlement with %s applications", key, value))
 			}
-
 		}
 
 		slog.Info(purgeTenantsCommand, internal.GetFuncName(), "Purging tenants")

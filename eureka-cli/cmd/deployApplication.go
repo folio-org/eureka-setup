@@ -56,12 +56,19 @@ func DeployApplication() {
 		CreateUsers(consortium, tenantType)
 		AttachCapabilitySets(consortium, tenantType, waitDuration)
 
-		slog.Info(deployApplicationCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %d duration", waitDuration))
-		time.Sleep(waitDuration)
+		if consortium != internal.NoneConsortium {
+			slog.Info(deployApplicationCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %d duration", waitDuration))
+			time.Sleep(waitDuration)
+		}
 	})
 	CreateConsortium()
 	DeployUi()
 	UpdateKeycloakPublicClients()
+	if internal.HasModule(internal.ModSearchModuleName) {
+		RunByConsortiumAndTenantType(deployApplicationCommand, func(consortium string, tenantType internal.TenantType) {
+			ReindexElasticsearch(consortium, tenantType)
+		})
+	}
 }
 
 func DeployChildApplication() {
