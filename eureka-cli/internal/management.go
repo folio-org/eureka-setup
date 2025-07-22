@@ -364,7 +364,11 @@ func RemoveTenants(commandName string, enableDebug bool, panicOnError bool, cons
 // ######## Tenant Entitlements ########
 
 func CreateTenantEntitlement(commandName string, enableDebug bool, consortium string, tenantType TenantType) {
-	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, "/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=loadReference=true,loadSample=true")
+	tenants := viper.GetStringMap(TenantsKey)
+
+	tenantParameters := getTenantParameters(commandName, consortium, tenants)
+
+	requestUrl := fmt.Sprintf(GetGatewayUrlTemplate(commandName), GatewayPort, fmt.Sprintf("/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=%s", tenantParameters))
 	applicationMap := viper.GetStringMap(ApplicationKey)
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)
@@ -374,7 +378,7 @@ func CreateTenantEntitlement(commandName string, enableDebug bool, consortium st
 
 		tenant := mapEntry["name"].(string)
 
-		if !slices.Contains(ConvertMapKeysToSlice(viper.GetStringMap(TenantsKey)), tenant) {
+		if !slices.Contains(ConvertMapKeysToSlice(tenants), tenant) {
 			continue
 		}
 
@@ -390,6 +394,20 @@ func CreateTenantEntitlement(commandName string, enableDebug bool, consortium st
 
 		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Created tenant entitlement for %s tenant (realm)", tenant))
 	}
+}
+
+func getTenantParameters(commandName string, consortium string, tenants map[string]any) string {
+	if consortium == NoneConsortium {
+		return "loadReference=true,loadSample=true"
+	}
+
+	centralTenant := GetConsortiumCentralTenant(consortium, tenants)
+	if centralTenant == "" {
+		LogErrorPanic(commandName, fmt.Sprintf("internal.GetConsortiumCentralTenant error - %s consortium does not contain a central tenant", consortium))
+		return ""
+	}
+
+	return fmt.Sprintf("loadReference=true,loadSample=true,runReindex=false,centralTenantId=%s", centralTenant)
 }
 
 func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError bool, purgeSchemas bool, consortium string, tenantType TenantType) {

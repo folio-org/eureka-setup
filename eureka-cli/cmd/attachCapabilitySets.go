@@ -63,7 +63,7 @@ func AttachCapabilitySets(consortium string, tenantType internal.TenantType, ini
 			continue
 		}
 		if initialWaitDuration > 0 {
-			slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %d duration before polling", initialWaitDuration))
+			slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %f duration before polling", initialWaitDuration.Seconds()))
 			time.Sleep(initialWaitDuration)
 		}
 
@@ -87,7 +87,7 @@ func pollCapabilitySetsCreation(enableDebug bool, tenant string) {
 		}
 
 		pollWaitDuration := 30 * time.Second
-		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %d duration for %s consumer group to process all messages, lag: %d", pollWaitDuration, consumerGroup, lag))
+		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %f duration for %s consumer group to process all messages, lag: %d", pollWaitDuration.Seconds(), consumerGroup, lag))
 		time.Sleep(pollWaitDuration)
 	}
 
@@ -101,7 +101,7 @@ func getConsumerGroupLag(enableDebug bool, tenant string, consumerGroup string, 
 		if strings.Contains(stderr.String(), NoActiveMembersErrorMessage) || strings.Contains(stderr.String(), IsRebalancingErrorMessage) {
 			internal.LogWarn(attachCapabilitySetsCommand, enableDebug, fmt.Sprintf("internal.RunCommandReturnOutput warning - %s", stderr.String()))
 			rebalanceWaitDuration := 30 * time.Second
-			slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %d duration for consumers to reconnect or rebalance", rebalanceWaitDuration))
+			slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %f duration for consumers to reconnect or rebalance", rebalanceWaitDuration.Seconds()))
 			time.Sleep(rebalanceWaitDuration)
 			return initialLag
 		}
