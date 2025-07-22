@@ -172,6 +172,19 @@ func createHomeDir(enabledDebug bool, overwriteFiles bool, embeddedFs embed.FS) 
 	}
 }
 
+func RunByConsortiumAndTenantType(commandName string, fn func(string, internal.TenantType)) {
+	if viper.IsSet(internal.ConsortiumsKey) {
+		for consortium := range viper.GetStringMap(internal.ConsortiumsKey) {
+			for _, tenantType := range []internal.TenantType{internal.CentralTenantType, internal.MemberTenantType} {
+				slog.Info(commandName, internal.GetFuncName(), fmt.Sprintf("Running sequentially for %s consortium and %s tenant type", consortium, tenantType))
+				fn(consortium, tenantType)
+			}
+		}
+	} else {
+		fn(internal.NoneConsortium, internal.DefaultTenantType)
+	}
+}
+
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVarP(&withProfile, "profile", "p", "combined", fmt.Sprintf("Use a specific profile, options: %s", internal.AvailableProfiles))

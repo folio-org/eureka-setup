@@ -50,11 +50,15 @@ func UndeployApplication() {
 }
 
 func UndeployChildApplication() {
-	RemoveTenantEntitlements()
+	RunByConsortiumAndTenantType(undeployApplicationCommand, func(consortium string, tenantType internal.TenantType) {
+		RemoveTenantEntitlements(consortium, tenantType)
+	})
 	UndeployModules()
 	UndeployAdditionalSystem()
-	DetachCapabilitySets()
-	AttachCapabilitySets(0 * time.Second)
+	RunByConsortiumAndTenantType(undeployApplicationCommand, func(consortium string, tenantType internal.TenantType) {
+		DetachCapabilitySets(consortium, tenantType)
+		AttachCapabilitySets(consortium, tenantType, 0*time.Second)
+	})
 }
 
 func init() {

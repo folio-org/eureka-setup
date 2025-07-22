@@ -31,14 +31,16 @@ var detachCapabilitySetsCmd = &cobra.Command{
 	Short: "Detach capability sets",
 	Long:  `Detach all capability sets from roles.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		DetachCapabilitySets()
+		RunByConsortiumAndTenantType(detachCapabilitySetsCommand, func(consortium string, tenantType internal.TenantType) {
+			DetachCapabilitySets(consortium, tenantType)
+		})
 	},
 }
 
-func DetachCapabilitySets() {
+func DetachCapabilitySets(consortium string, tenantType internal.TenantType) {
 	vaultRootToken := GetVaultRootToken()
 
-	for _, value := range internal.GetTenants(detachCapabilitySetsCommand, withEnableDebug, false) {
+	for _, value := range internal.GetTenants(detachCapabilitySetsCommand, withEnableDebug, false, consortium, tenantType) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)

@@ -30,13 +30,15 @@ var createTenantEntitlementsCmd = &cobra.Command{
 	Short: "Create tenant entitlements",
 	Long:  `Create all tenant entitlements.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		CreateTenantEntitlements()
+		RunByConsortiumAndTenantType(createTenantEntitlementsCommand, func(consortium string, tenantType internal.TenantType) {
+			CreateTenantEntitlements(consortium, tenantType)
+		})
 	},
 }
 
-func CreateTenantEntitlements() {
+func CreateTenantEntitlements(consortium string, tenantType internal.TenantType) {
 	slog.Info(createTenantEntitlementsCommand, internal.GetFuncName(), "### CREATING TENANT ENTITLEMENTS ###")
-	internal.CreateTenantEntitlement(createTenantEntitlementsCommand, withEnableDebug)
+	internal.CreateTenantEntitlement(createTenantEntitlementsCommand, withEnableDebug, consortium, tenantType)
 }
 
 func init() {

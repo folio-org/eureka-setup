@@ -31,14 +31,16 @@ var createUsersCmd = &cobra.Command{
 	Short: "Create users",
 	Long:  `Create all users.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		CreateUsers()
+		RunByConsortiumAndTenantType(createUsersCommand, func(consortium string, tenantType internal.TenantType) {
+			CreateUsers(consortium, tenantType)
+		})
 	},
 }
 
-func CreateUsers() {
+func CreateUsers(consortium string, tenantType internal.TenantType) {
 	vaultRootToken := GetVaultRootToken()
 
-	for _, value := range internal.GetTenants(createUsersCommand, withEnableDebug, false) {
+	for _, value := range internal.GetTenants(createUsersCommand, withEnableDebug, false, consortium, tenantType) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)

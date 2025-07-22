@@ -40,7 +40,7 @@ var deployUiCmd = &cobra.Command{
 func DeployUi() {
 	slog.Info(deployUiCommand, internal.GetFuncName(), "### DEPLOYING UI ###")
 
-	for _, value := range internal.GetTenants(deployUiCommand, withEnableDebug, false) {
+	for _, value := range internal.GetTenants(deployUiCommand, withEnableDebug, false, internal.NoneConsortium, internal.AllTenantTypes) {
 		existingTenant := value.(map[string]any)["name"].(string)
 		if !internal.HasTenant(existingTenant) || !internal.CanDeployUi(existingTenant) {
 			continue

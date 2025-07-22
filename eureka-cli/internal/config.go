@@ -178,31 +178,36 @@ func createDefaultBackendDto(commandName string, name string) (dto BackendModule
 func createConfigurableBackendDto(commandName string, value any, name string) (dto BackendModuleDto) {
 	mapEntry := value.(map[string]any)
 
-	dto.deployModule = getKeyOrDefault(mapEntry, ModuleDeployModuleEntryKey, true).(bool)
+	dto.deployModule = GetAnyKeyOrDefault(mapEntry, ModuleDeployModuleEntryKey, true).(bool)
 
 	if !strings.HasPrefix(name, ManagementModulePattern) && !strings.HasPrefix(name, EdgeModulePattern) {
 		dto.deploySidecar = getDeploySidecar(mapEntry)
 	}
 
-	dto.useVault = getKeyOrDefault(mapEntry, ModuleUseVaultEntryKey, false).(bool)
-	dto.disableSystemUser = getKeyOrDefault(mapEntry, ModuleDisableSystemUserEntryKey, false).(bool)
-	dto.useOkapiUrl = getKeyOrDefault(mapEntry, ModuleUseOkapiUrlEntryKey, false).(bool)
+	dto.useVault = GetAnyKeyOrDefault(mapEntry, ModuleUseVaultEntryKey, false).(bool)
+	dto.disableSystemUser = GetAnyKeyOrDefault(mapEntry, ModuleDisableSystemUserEntryKey, false).(bool)
+	dto.useOkapiUrl = GetAnyKeyOrDefault(mapEntry, ModuleUseOkapiUrlEntryKey, false).(bool)
 	dto.version = getVersion(mapEntry)
 	dto.port = getPort(commandName, dto.deployModule, mapEntry)
 	dto.portServer = getPortServer(mapEntry)
-	dto.environment = getKeyOrDefault(mapEntry, ModuleEnvironmentEntryKey, make(map[string]any)).(map[string]any)
-	dto.resources = getKeyOrDefault(mapEntry, ModuleResourceEntryKey, make(map[string]any)).(map[string]any)
+	dto.environment = GetAnyKeyOrDefault(mapEntry, ModuleEnvironmentEntryKey, make(map[string]any)).(map[string]any)
+	dto.resources = GetAnyKeyOrDefault(mapEntry, ModuleResourceEntryKey, make(map[string]any)).(map[string]any)
 	dto.volumes = getVolumes(commandName, mapEntry)
 
 	return dto
 }
 
-func getKeyOrDefault(mapEntry map[string]any, key string, defaultValue any) any {
+func GetAnyKeyOrDefault(mapEntry map[string]any, key string, defaultValue any) any {
 	if mapEntry[key] == nil {
 		return defaultValue
 	}
 
 	return mapEntry[key]
+}
+
+func GetBoolKey(mapEntry map[string]any, key string) bool {
+	value := mapEntry[key]
+	return value != nil && value.(bool)
 }
 
 func getDeploySidecar(mapEntry map[string]any) *bool {

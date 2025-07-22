@@ -15,10 +15,6 @@ const (
 	ApplicationGatewayHostnameKey               string = "application.gateway-hostname"
 	ApplicationGatewayDependenciesKey           string = "application.dependencies"
 
-	ConsortiumKey                string = "consortium"
-	ConsortiumNameKey            string = "consortium.name"
-	ConsortiumCentralOrderingKey string = "consortium.central-ordering"
-
 	RegistryKey    string = "registry"
 	RegistryUrlKey string = "registry.url"
 
@@ -32,17 +28,28 @@ const (
 	EnvironmentKey      string = "environment"
 	EnvironmentFolioKey string = "environment.ENV"
 
+	ConsortiumsKey                          string = "consortiums"
+	ConsortiumCreateConsortiumEntryKey      string = "create-consortium"
+	ConsortiumEnableCentralOrderingEntryKey string = "enable-central-ordering"
+
 	TenantsKey                         string = "tenants"
 	TenantsDeployUiEntryKey            string = "deploy-ui"
 	TenantsSingleTenantEntryKey        string = "single-tenant"
 	TenantsEnableEcsRequestEntryKey    string = "enable-ecs-request"
+	TenantsConsortiumEntryKey          string = "consortium"
 	TenantsCentralTenantEntryKey       string = "central-tenant"
 	TenantsPlatformCompleteUrlEntryKey string = "platform-complete-url"
 
-	UsersKey            string = "users"
-	UsersTenantEntryKey string = "tenant"
+	UsersKey                string = "users"
+	UsersConsortiumEntryKey string = "consortium"
+	UsersTenantEntryKey     string = "tenant"
+	UsersPasswordEntryKey   string = "password"
+	UsersLastNameEntryKey   string = "last-name"
+	UsersFirstNameEntryKey  string = "first-name"
+	UsersRolesEntryKey      string = "roles"
 
 	RolesKey                    string = "roles"
+	RolesConsortiumEntryKey     string = "consortium"
 	RolesTenantEntryKey         string = "tenant"
 	RolesCapabilitySetsEntryKey string = "capability-sets"
 

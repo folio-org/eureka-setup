@@ -46,7 +46,7 @@ func UndeployUi() {
 		_ = client.Close()
 	}()
 
-	for _, value := range internal.GetTenants(undeployUiCommand, withEnableDebug, false) {
+	for _, value := range internal.GetTenants(undeployUiCommand, withEnableDebug, false, internal.NoneConsortium, internal.AllTenantTypes) {
 		internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(singleUiContainerPattern, value.(map[string]any)["name"].(string)), false)
 	}
 }

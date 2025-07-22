@@ -55,10 +55,10 @@ tenants:
   diku:
     deploy-ui: true
 roles:
-  diku_admin:
+  diku_admin_role:
     tenant: diku
     capability-sets: ["all"]
-  diku_user:
+  diku_user_role:
     tenant: diku
     capability-sets: []
 users:
@@ -67,13 +67,13 @@ users:
     password: admin
     last-name: John
     first-name: Doe
-    roles: ["diku_admin", "diku_user"]
+    roles: ["diku_admin_role", "diku_user_role"]
   diku_user:
     tenant: diku
     password: user
     last-name: Jane
     first-name: Doe
-    roles: ["diku_user"]
+    roles: ["diku_user_role"]
 sidecar-module:
   image: folio-module-sidecar
   environment:

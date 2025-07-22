@@ -7,9 +7,6 @@ application:
   fetch-descriptors: false
   port-start: 30000
   port-end: 30999
-consortium:
-  name: ECS
-  central-ordering: true
 registry:
   url: https://folio-registry.dev.folio.org
 install:
@@ -54,43 +51,94 @@ environment:
     -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
     -XX:MaxRAMPercentage=80.0 -Xms128m -Xmx400m 
     -Djdk.internal.httpclient.disableHostnameVerification=true
+consortiums:
+  ecs:
+    create-consortium: true
+    enable-central-ordering: true
+  ecs2:
+    create-consortium: true
+    enable-central-ordering: true
 tenants:
   ecs:
+    consortium: ecs
     deploy-ui: true
     single-tenant: false
     enable-ecs-request: false
     central-tenant: true
+    platform-complete-url: http://localhost:3000
   university:
+    consortium: ecs
   college:
+    consortium: ecs
+  # Secondary Cluster
+  ecs2:
+    consortium: ecs2
+    deploy-ui: true
+    single-tenant: false
+    enable-ecs-request: false
+    central-tenant: true
+    platform-complete-url: http://localhost:3001
+  university2:
+    consortium: ecs2
 roles:
-  ecs_admin:
+  ecs_admin_role:
+    consortium: ecs 
     tenant: ecs
     capability-sets: ["all"]
-  university_admin:
+  university_admin_role:
+    consortium: ecs
     tenant: university
     capability-sets: ["all"]
-  college_admin:
+  college_admin_role:
+    consortium: ecs
     tenant: college
+    capability-sets: ["all"]
+  # Secondary Cluster
+  ecs_admin_role2:
+    consortium: ecs2
+    tenant: ecs2
+    capability-sets: ["all"]
+  university_admin_role2:
+    consortium: ecs2
+    tenant: university2
     capability-sets: ["all"]
 users:
   ecs_admin:
+    consortium: ecs 
     tenant: ecs
     password: admin
     last-name: John
     first-name: Doe
-    roles: ["ecs_admin"]
+    roles: ["ecs_admin_role"]
   university_admin:
+    consortium: ecs
     tenant: university
     password: admin
     last-name: John
     first-name: Doe
-    roles: ["university_admin"]
+    roles: ["university_admin_role"]
   college_admin:
+    consortium: ecs
     tenant: college
     password: admin
     last-name: John
     first-name: Doe
-    roles: ["college_admin"]
+    roles: ["college_admin_role"]
+  # Secondary Cluster
+  ecs_admin2:
+    consortium: ecs2 
+    tenant: ecs2
+    password: admin
+    last-name: John
+    first-name: Doe
+    roles: ["ecs_admin_role2"]
+  university_admin2:
+    consortium: ecs2 
+    tenant: university2
+    password: admin
+    last-name: John
+    first-name: Doe
+    roles: ["university_admin_role2"]
 sidecar-module:
   image: folio-module-sidecar
   environment:
@@ -256,6 +304,14 @@ backend-modules:
     deploy-module: true
   mod-feesfines:
     deploy-module: true
+  mod-search:
+    use-okapi-url: true
+    disable-system-user: true
+    environment:
+      ELASTICSEARCH_SERVER: "true"
+      ELASTICSEARCH_URL: http://elasticsearch.eureka:9200
+      ELASTICSEARCH_HOST: elasticsearch.eureka
+      ELASTICSEARCH_PORT: 9200
 frontend-modules:
   folio_stripes-core:
   folio_developer:

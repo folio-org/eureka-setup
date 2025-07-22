@@ -38,7 +38,7 @@ func UpdateKeycloakPublicClients() {
 	slog.Info(updateKeycloakPublicClientsCommand, internal.GetFuncName(), "### UPDATING KEYCLOAK PUBLIC CLIENTS ###")
 	keycloakMasterAccessToken := internal.GetKeycloakMasterAccessToken(updateKeycloakPublicClientsCommand, withEnableDebug)
 
-	for _, value := range internal.GetTenants(updateKeycloakPublicClientsCommand, withEnableDebug, false) {
+	for _, value := range internal.GetTenants(updateKeycloakPublicClientsCommand, withEnableDebug, false, internal.NoneConsortium, internal.AllTenantTypes) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
