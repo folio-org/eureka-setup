@@ -9,8 +9,8 @@
 - Install dependencies:
   - [Go](https://go.dev/doc/install) compiler: last development-tested version is `go1.24.1 windows/amd64`
   - [Rancher Desktop](https://rancherdesktop.io/) container daemon: last development-tested version is `v1.19.3`
-    - Make sure to enable **dockerd (Moby)** container engine
-    - Make sure to disable **Check for updates automatically**
+    - Enable **dockerd (Moby)** container engine
+    - Disable **Check for updates automatically**
 - Configure hosts:
   - Add `127.0.0.1 postgres.eureka` entry to `/etc/hosts`
   - Add `127.0.0.1 kafka.eureka` entry to `/etc/hosts`
@@ -132,7 +132,7 @@ eureka-cli buildSystem -u
 ### Undeploy the combined application
 
 ```bash
-eureka-cli  undeployApplication
+eureka-cli undeployApplication
 ```
 
 ### Deploy the combined application from AWS ECR
