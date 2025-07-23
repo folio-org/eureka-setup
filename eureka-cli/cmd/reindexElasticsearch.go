@@ -21,6 +21,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const reindexElasticsearchCommand = "Reindex Elasticsearch"
@@ -45,6 +46,11 @@ func ReindexElasticsearch(consortium string, tenantType internal.TenantType) {
 
 		existingTenant := mapEntry["name"].(string)
 		if !internal.HasTenant(existingTenant) {
+			continue
+		}
+
+		tenantType := mapEntry["description"].(string)
+		if viper.IsSet(internal.ConsortiumsKey) && tenantType != fmt.Sprintf("%s-%s", consortium, internal.CentralTenantType) {
 			continue
 		}
 

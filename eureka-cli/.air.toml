@@ -22,7 +22,7 @@ bin = "bin/eureka-cli.exe"
 # Add additional arguments when running binary (bin/full_bin). Will run './tmp/main hello world'.
 args_bin = ["help -od"]
 # Watch these filename extensions.
-include_ext = ["go", "tpl", "tmpl", "html"]
+include_ext = ["go", "tpl", "tmpl", "html", "yaml"]
 # Ignore these filename extensions or directories.
 exclude_dir = ["assets", "tmp", "temp", "log", "vendor", "misc", "images"]
 # Watch these directories if you specified.

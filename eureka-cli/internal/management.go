@@ -407,7 +407,7 @@ func getTenantParameters(commandName string, consortium string, tenants map[stri
 		return ""
 	}
 
-	return fmt.Sprintf("loadReference=true,loadSample=true,runReindex=false,centralTenantId=%s", centralTenant)
+	return fmt.Sprintf("loadReference=true,loadSample=true,centralTenantId=%s", centralTenant)
 }
 
 func RemoveTenantEntitlements(commandName string, enableDebug bool, panicOnError bool, purgeSchemas bool, consortium string, tenantType TenantType) {

@@ -42,7 +42,7 @@ env GOOS=windows GOARCH=amd64 go build -o ./bin/ .
 
 ```bash
 go install
-eureka-cli -c ./config.combined.yaml deployApplication
+eureka-cli deployApplication
 ```
 
 > If you wish to avoid the binary installation please use the relative path of the CLI binary, e.g. `./bin/eureka-cli` with the correct path to the config
@@ -61,29 +61,36 @@ source ~/.bash_profile
 
 ### Deploy the combined application
 
-- By default, it will use public images available in DockerHub (folioci & folioorg namespaces)
-- Use a specific profile, options: [combined, export, search, edge]: `-p` or `--profile`
-- Use a specific config file: `-c` or `--configFile`
-- Overwrite files in .eureka home directory: `-o` or `--overwriteFiles`
-- Enable debug: `-d` or `--enableDebug`
-- Use only required system containers: `-R` or `--onlyRequired`
-- Build Docker images: `-b` or `--buildImages`
-- Update Git cloned projects: `-u` or `--updateCloned`
+By default, public images from DockerHub (folioci & folioorg namespaces) will be used.
+
+Available flags:
+
+| Short | Long                | Description                                                  |
+|-------|---------------------|--------------------------------------------------------------|
+| `-p`  | `--profile`         | Select profile (combined, export, search, edge, ecs, import) |
+| `-c`  | `--configFile`      | Specify config file path                                     |
+| `-o`  | `--overwriteFiles`  | Overwrite files in .eureka home directory                    |
+| `-d`  | `--enableDebug`     | Enable debug mode                                            |
+| `-R`  | `--onlyRequired`    | Use only required system containers                          |
+| `-b`  | `--buildImages`     | Build Docker images                                          |
+| `-u`  | `--updateCloned`    | Update Git cloned projects                                   |
 
 ```bash
 eureka-cli -c ./config.combined.yaml deployApplication
 ```
 
+> If no profile or config file is passed, the combined profile will be inferred and used
+
 - Use the debug `-d` flag to troubleshoot your environment deployment to see how the CLI interacts with **Kong** via HTTP
 
 ```bash
-eureka-cli -c ./config.combined.yaml deployApplication -d
+eureka-cli deployApplication -d
 ```
 
 - If you are resource constrained, the CLI also supports deploying the environment with only required system containers with `-R`
 
 ```bash
-eureka-cli -c ./config.combined.yaml deployApplication -R
+eureka-cli deployApplication -R
 ```
 
 - The profile `-p` flag eliminates the need to define a config file path by relying on the default configs that are automatically created in the `.eureka` home directory
@@ -107,7 +114,7 @@ eureka-cli -p combined -o deployApplication
 - In case you want to update your local repositories of _folio-kong_, _folio-keycloak_ and _platform-complete_ (UI), you can do so with the combined `-bu` flags
 
 ```bash
-eureka-cli -c ./config.combined.yaml deployApplication -bu
+eureka-cli deployApplication -bu
 ```
 
 > This will update the cloned projects and force-build Docker images locally before deploying the environment
@@ -125,7 +132,7 @@ eureka-cli buildSystem -u
 ### Undeploy the combined application
 
 ```bash
-eureka-cli -c ./config.combined.yaml undeployApplication
+eureka-cli  undeployApplication
 ```
 
 ### Deploy the combined application from AWS ECR
@@ -138,21 +145,49 @@ To use AWS ECR as your container registry instead of the public Folio DockerHub,
 export AWS_ACCESS_KEY_ID=<access_key>
 export AWS_SECRET_ACCESS_KEY=<secret_key>
 export AWS_ECR_FOLIO_REPO=<repository_url>
-eureka-cli -c ./config.combined.yaml deployApplication
+eureka-cli deployApplication
 ```
 
 - Reuse stored AWS credentials found in `~/.aws/config`
 
 ```bash
 export AWS_ECR_FOLIO_REPO=<repository_url>
-AWS_SDK_LOAD_CONFIG=true eureka-cli -c ./config.combined.yaml deployApplication
+AWS_SDK_LOAD_CONFIG=true eureka-cli deployApplication
 ```
 
 > See docs/AWS_CLI.md to prepare AWS CLI beforehand
 
+### Deploy the ecs application
+
+The ecs application is a standalone application that deploys a UI container for each consortium. By default, it creates 3 tenants for the first consortium (ecs) and 2 tenants for the second one (ecs2). This profile also deploys _mod-okapi-facade_ and _mod-search_ modules along with the _elasticsearch_ system container.
+
+```bash
+eureka-cli -p ecs deployApplication -oR
+```
+
+### Undeploy the ecs application
+
+```bash
+eureka-cli -p ecs undeployApplication
+```
+
+### Deploy the import application
+
+The import application is another standalone application that contains modules required by the team responsible for them and their development.
+
+```bash
+eureka-cli -p import deployApplication -oR
+```
+
+### Undeploy the import application
+
+```bash
+eureka-cli -p import undeployApplication
+```
+
 ### Deploy child applications
 
-The CLI also supports deploying child applications on top of the existing one. The command used is `deployApplication` that behaves differently when `application.dependencies` is being set in the config file.
+The CLI also supports deploying child applications on top of existing ones. The `deployApplication` command behaves differently when `application.dependencies` is set in the config file.
 
 #### Deploy the export application
 
@@ -160,6 +195,9 @@ The CLI also supports deploying child applications on top of the existing one. T
 
 ```bash
 eureka-cli -c ./config.export.yaml deployApplication
+
+# Or using a profile flag
+eureka-cli -p export deployApplication
 ```
 
 ![CLI Deploy Export Application](images/cli_deploy_export_application.png)
@@ -170,6 +208,9 @@ eureka-cli -c ./config.export.yaml deployApplication
 
 ```bash
 eureka-cli -c ./config.search.yaml deployApplication
+
+# Or using a profile flag
+eureka-cli -p search deployApplication
 ```
 
 ![CLI Deploy Search Application](images/cli_deploy_search_application.png)
@@ -180,6 +221,9 @@ eureka-cli -c ./config.search.yaml deployApplication
 
 ```bash
 eureka-cli -c ./config.edge.yaml deployApplication
+
+# Or using a profile flag
+eureka-cli -p edge deployApplication
 ```
 
 ![CLI Deploy Edge Application](images/cli_deploy_edge_application.png)
@@ -190,13 +234,16 @@ eureka-cli -c ./config.edge.yaml deployApplication
 
 ```bash
 eureka-cli -c ./config.{{app}}.yaml undeployApplication
+
+# Or using a profile flag
+eureka-cli -p {{profile}} undeployApplication
 ```
 
-> Replace `{{app}}` with either of the supported profiles: _export_, _search_ or _edge_
+> Replace `{{app}}` or `{{profile}}` with either of the supported child profiles: _export_, _search_ or _edge_
 
 ### Other commands
 
-The CLI also contains other useful commands to aid with developer productivity. The most important ones that can be used independently are outlined below:
+The CLI includes several useful commands to enhance developer productivity. Here are the most important ones that can be used independently:
 
 - Lists deployed system containers
 
@@ -208,22 +255,22 @@ eureka-cli listSystem
 
 ```bash
 # Using the current profile
-eureka-cli -c config.combined.yaml listModules
+eureka-cli listModules
 
 # For a particular module and its sidecar in a profile
-eureka-cli -c config.combined.yaml listModules -m mod-orders
+eureka-cli listModules -m mod-orders
 
 # For only modules in a profile
-eureka-cli -c config.combined.yaml listModules -M module
+eureka-cli listModules -M module
 
 # For only sidecars in a profile
-eureka-cli -c config.combined.yaml listModules -M sidecar
+eureka-cli listModules -M sidecar
 
 # For only management modules
-eureka-cli -c config.combined.yaml listModules -M management
+eureka-cli listModules -M management
 
 # Using all modules for all profiles including mgr-*
-eureka-cli -c config.combined.yaml listModules -a
+eureka-cli listModules -a
 ```
 
 - List the available module versions in the registry or fetch a specific module descriptor by version
@@ -251,8 +298,16 @@ eureka-cli getKeycloakAccessToken -t diku
 - Get an Edge API key for a user and tenant
 
 ```bash
-eureka-cli -c config.edge.yaml getEdgeApiKey -t diku -U diku_admin
+eureka-cli getEdgeApiKey -t diku -U diku_admin
 ```
+
+- Reindex inventory and instance record Elasticsearch indices
+
+```bash
+eureka-cli -p {{profile}} reindexElasticsearch
+```
+
+> This command assumes that _mod-search_ module and _elasticsearch_ system container are deployed or if `{{profile}}` is being replaced by either _search_ or _ecs_ profiles
 
 - Check if module internal ports are accessible
 
@@ -268,15 +323,15 @@ eureka-cli checkPorts
 
 ```bash
 # Using mod-orders and custom module and sidecar gateway URLs
-eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1029 -m http://host.docker.internal:36002 -s http://host.docker.internal:37002
+eureka-cli interceptModule -i mod-orders:13.1.0-SNAPSHOT.1029 -m http://host.docker.internal:36002 -s http://host.docker.internal:37002
 
 # Using mod-orders and default module and sidecar gateway URLs with only ports specified
 # will substitute 36002 for http://host.docker.internal:36002 and 37002 for http://host.docker.internal:37002 internally for Windows and MacOS
 # or http://172.17.0.1:36002 and http://172.17.0.1:37002 respectively for Linux or specify `application.gateway-hostname` explicitly in the config
-eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1029 -g -m 36002 -s 37002
+eureka-cli interceptModule -i mod-orders:13.1.0-SNAPSHOT.1029 -g -m 36002 -s 37002
 
 # To restore both the module and sidecar in the environment as before the gateway service interception
-eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1029 -r
+eureka-cli interceptModule -i mod-orders:13.1.0-SNAPSHOT.1029 -r
 ```
 
 ![CLI Intercept Module Default](images/cli_intercept_module_default.png)
@@ -314,7 +369,7 @@ sidecar-module:
 - Deploy the environment with this config, in our example we deploy an _edge_ application with `custom-folio-module-sidecar:1.0.0` sidecars
 
 ```bash
-eureka-cli -c config.edge.yaml deployApplication
+eureka-cli -p edge deployApplication
 ```
 
 ![CLI Use Custom Folio Module Sidecar (1/2)](images/cli_use_custom_folio_module_sidecar_1.png)
@@ -322,14 +377,14 @@ eureka-cli -c config.edge.yaml deployApplication
 - Check the sidecar image version after application deployment
 
 ```bash
-eureka-cli -c config.edge.yaml listModules
+eureka-cli -p edge listModules
 ```
 
 ![CLI Use Custom Folio Module Sidecar (2/2)](images/cli_use_custom_folio_module_sidecar_2.png)
 
 ## Using the UI
 
-The environment depends on [platform-complete](https://github.com/folio-org/platform-complete) project to correlate and assemble frontend and backend modules into a single UI package. The CLI by default will use a pre-built Docker image of _platform-complete_ stored in the DockerHub to deploy the UI container.
+The environment depends on the [platform-complete](https://github.com/folio-org/platform-complete) project to combine and assemble frontend and backend modules into a single UI package. By default, the CLI uses a pre-built Docker image of _platform-complete_ from DockerHub to deploy the UI container.
 
 - If there is a need to use a different namespace, override the `namespaces.platform-complete-ui` key in the config, for example in `config.combined.yaml`
 
@@ -367,15 +422,29 @@ eureka-cli deployUi -b -u
 
 ## Using the environment
 
-- Access the UI from `http://localhost:3000` using `diku_admin` username and `admin` password:
+- Access the UI from `http://localhost:3000` using `diku_admin` username and `admin` password
 
 ![UI Login page](images/ui_login_page.png)
 
-- After successful login the UI can be used just as any other Folio application:
+- After successful login, the UI can be used like any other FOLIO application
 
 ![UI Main page](images/ui_main_page.png)
 
-- Kong gateway is available at `localhost:8000` and can be used to get an access token directly from the backend:
+If your environment was deployed using the ecs profile, your consortiums are represented by two different UI instances
+
+- The first instance can be accessed from `http://localhost:3000` using `ecs_admin` username and `admin` password
+
+![UI ECS Main page](images/ui_ecs_main_page.png)
+
+> It contains 3 tenants, _ecs_ central tenant and _university_ and _college_ member tenants
+
+- And the second one can be accessed from `http://localhost:3001` (via an incognito Chrome Browser) using `ecs_admin2` username and `admin` password
+
+![UI ECS2 Main page](images/ui_ecs2_main_page.png)
+
+> It contains 2 tenants, _ecs2_ central tenant and _university2_ member tenant
+
+- Kong gateway is available at `localhost:8000` and can be used to get an access token directly from the backend
 
 ```bash
 # Using diku_admin (admin user)
@@ -392,6 +461,22 @@ curl --request POST \
   --header 'Content-Type: application/json' \
   --header 'X-Okapi-Tenant: diku' \
   --data '{"username":"diku_user","password": "user"}' \
+  --verbose
+
+# Using ecs_admin (admin user for ecs consortium)
+curl --request POST \
+  --url localhost:8000/authn/login-with-expiry \
+  --header 'Content-Type: application/json' \
+  --header 'X-Okapi-Tenant: ecs' \
+  --data '{"username":"ecs_admin","password": "admin"}' \
+  --verbose
+
+# Using ecs_admin2 (admin user for ecs2 consortium)
+curl --request POST \
+  --url localhost:8000/authn/login-with-expiry \
+  --header 'Content-Type: application/json' \
+  --header 'X-Okapi-Tenant: ecs2' \
+  --data '{"username":"ecs_admin2","password": "user"}' \
   --verbose
 ```
 

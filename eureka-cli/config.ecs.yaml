@@ -260,7 +260,6 @@ backend-modules:
     resources:
       cpus: 4
   mod-consortia-keycloak:
-    deploy-module: true
     use-vault: true
     use-okapi-url: true
     disable-system-user: true
@@ -301,9 +300,7 @@ backend-modules:
   mod-circulation:
     port-server: 9801
   mod-template-engine:
-    deploy-module: true
   mod-feesfines:
-    deploy-module: true
   mod-search:
     use-okapi-url: true
     disable-system-user: true
@@ -312,6 +309,12 @@ backend-modules:
       ELASTICSEARCH_URL: http://elasticsearch.eureka:9200
       ELASTICSEARCH_HOST: elasticsearch.eureka
       ELASTICSEARCH_PORT: 9200
+  mod-fqm-manager:
+    deploy-module: true
+    environment:
+      IS_EUREKA: "true"
+      QUERY_RETENTION_DURATION: "3h"
+      TASK_EXECUTION_POOL_MAXSIZE: "10"
 frontend-modules:
   folio_stripes-core:
   folio_developer:
