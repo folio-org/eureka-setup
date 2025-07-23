@@ -49,7 +49,7 @@ eureka-cli deployApplication
 
 ### (Optional) Enable autocompletion
 
-- Command autocompletion can be enabled in the shell of your choice, below is an example for the **Bash** shell (`.bash_profile` is preferred on Windows because it is auto-sourced)
+- Command autocompletion can be enabled in the shell of your choice. Below is an example for the **Bash** shell (`.bash_profile` is preferred on Windows because it is auto-sourced)
 
 ```bash
 go install
@@ -87,7 +87,7 @@ eureka-cli -c ./config.combined.yaml deployApplication
 eureka-cli deployApplication -d
 ```
 
-- If you are resource constrained, the CLI also supports deploying the environment with only required system containers with `-R`
+- For resource-constrained environments, use the `-R` flag to deploy only the required system containers
 
 ```bash
 eureka-cli deployApplication -R
@@ -173,7 +173,7 @@ eureka-cli -p ecs undeployApplication
 
 ### Deploy the import application
 
-The import application is another standalone application that contains modules required by the team responsible for them and their development.
+The import application is another standalone application that contains a combination of modules required by the team responsible for data-import functionality in FOLIO.
 
 ```bash
 eureka-cli -p import deployApplication -oR
@@ -204,7 +204,7 @@ eureka-cli -p export deployApplication
 
 #### Deploy the search application
 
-- The search application provides Elastic search capability as required by the Inventory App and for the ECS setup to work
+- The search application provides Elasticsearch capabilities required by the Inventory App and ECS setup
 
 ```bash
 eureka-cli -c ./config.search.yaml deployApplication
