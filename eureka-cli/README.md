@@ -444,12 +444,12 @@ If your environment was deployed using the ecs profile, your consortiums are rep
 
 > It contains 2 tenants, _ecs2_ central tenant and _university2_ member tenant
 
-- Kong gateway is available at `localhost:8000` and can be used to get an access token directly from the backend
+- Kong gateway is available at `http://localhost:8000` and can be used to get an access token directly from the backend
 
 ```bash
 # Using diku_admin (admin user)
 curl --request POST \
-  --url localhost:8000/authn/login-with-expiry \
+  --url http://localhost:8000/authn/login-with-expiry \
   --header 'Content-Type: application/json' \
   --header 'X-Okapi-Tenant: diku' \
   --data '{"username":"diku_admin","password": "admin"}' \
@@ -457,7 +457,7 @@ curl --request POST \
 
 # Using diku_user (limited user)
 curl --request POST \
-  --url localhost:8000/authn/login-with-expiry \
+  --url http://localhost:8000/authn/login-with-expiry \
   --header 'Content-Type: application/json' \
   --header 'X-Okapi-Tenant: diku' \
   --data '{"username":"diku_user","password": "user"}' \
@@ -465,7 +465,7 @@ curl --request POST \
 
 # Using ecs_admin (admin user for ecs consortium)
 curl --request POST \
-  --url localhost:8000/authn/login-with-expiry \
+  --url http://localhost:8000/authn/login-with-expiry \
   --header 'Content-Type: application/json' \
   --header 'X-Okapi-Tenant: ecs' \
   --data '{"username":"ecs_admin","password": "admin"}' \
@@ -473,7 +473,7 @@ curl --request POST \
 
 # Using ecs_admin2 (admin user for ecs2 consortium)
 curl --request POST \
-  --url localhost:8000/authn/login-with-expiry \
+  --url http://localhost:8000/authn/login-with-expiry \
   --header 'Content-Type: application/json' \
   --header 'X-Okapi-Tenant: ecs2' \
   --data '{"username":"ecs_admin2","password": "user"}' \
