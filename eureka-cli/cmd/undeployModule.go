@@ -39,7 +39,9 @@ var undeployModuleCmd = &cobra.Command{
 func UndeployModule() {
 	slog.Info(undeployModuleCommand, internal.GetFuncName(), "### UNDEPLOYING MODULE ###")
 	client := internal.CreateDockerClient(undeployModuleCommand)
-	defer client.Close()
+	defer func() {
+		_ = client.Close()
+	}()
 
 	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(internal.SingleModuleOrSidecarContainerPattern, viper.GetString(internal.ProfileNameKey), withModuleName), true)
 }
@@ -47,5 +49,8 @@ func UndeployModule() {
 func init() {
 	rootCmd.AddCommand(undeployModuleCmd)
 	undeployModuleCmd.PersistentFlags().StringVarP(&withModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders (required)")
-	undeployModuleCmd.MarkPersistentFlagRequired("moduleName")
+	if err := undeployModuleCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
+		slog.Error(undeployModuleCommand, internal.GetFuncName(), "undeployModuleCmd.MarkPersistentFlagRequired error")
+		panic(err)
+	}
 }

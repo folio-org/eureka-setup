@@ -31,14 +31,16 @@ var removeUsersCmd = &cobra.Command{
 	Short: "Create users",
 	Long:  `Create all users.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RemoveUsers()
+		RunByConsortiumAndTenantType(removeUsersCommand, func(consortium string, tenantType internal.TenantType) {
+			RemoveUsers(consortium, tenantType)
+		})
 	},
 }
 
-func RemoveUsers() {
+func RemoveUsers(consortium string, tenantType internal.TenantType) {
 	vaultRootToken := GetVaultRootToken()
 
-	for _, value := range internal.GetTenants(removeUsersCommand, withEnableDebug, false) {
+	for _, value := range internal.GetTenants(removeUsersCommand, withEnableDebug, false, consortium, tenantType) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)

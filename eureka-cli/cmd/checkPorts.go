@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/folio-org/eureka-cli/internal"
 	"github.com/spf13/cobra"
@@ -54,9 +54,11 @@ func deployNetcatContainer() {
 	internal.RunCommandFromDir(checkPortsCommand, preparedCommand, internal.GetHomeMiscDir(checkPortsCommand))
 }
 
-func getDeployedModules() []types.Container {
+func getDeployedModules() []container.Summary {
 	client := internal.CreateDockerClient(checkPortsCommand)
-	defer client.Close()
+	defer func() {
+		_ = client.Close()
+	}()
 
 	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.ProfileContainerPattern, viper.GetString(internal.ProfileNameKey))})
 	containers := internal.GetDeployedModules(checkPortsCommand, client, filters)
@@ -64,7 +66,7 @@ func getDeployedModules() []types.Container {
 	return containers
 }
 
-func runNetcat(modules []types.Container) {
+func runNetcat(modules []container.Summary) {
 	slog.Info(checkPortsCommand, internal.GetFuncName(), "Running netcat -zv [container] [private port]")
 	for _, module := range modules {
 		moduleName := fmt.Sprintf("%s.eureka", strings.ReplaceAll(module.Names[0], "/", ""))

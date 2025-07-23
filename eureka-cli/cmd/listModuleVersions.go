@@ -53,7 +53,9 @@ func ListModuleVersions() {
 
 func getModuleDescritorById(registryUrl string) {
 	resp := internal.DoGetReturnResponse(listModuleVersionsCommand, fmt.Sprintf("%s/_/proxy/modules/%s", registryUrl, withId), withEnableDebug, true, map[string]string{})
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if !withEnableDebug {
 		respBytes, err := httputil.DumpResponse(resp, true)
@@ -88,5 +90,8 @@ func init() {
 	rootCmd.AddCommand(listModuleVersionsCmd)
 	listModuleVersionsCmd.PersistentFlags().StringVarP(&withModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders (required)")
 	listModuleVersionsCmd.PersistentFlags().StringVarP(&withId, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021")
-	listModuleVersionsCmd.MarkPersistentFlagRequired("moduleName")
+	if err := listModuleVersionsCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
+		slog.Error(listModuleVersionsCommand, internal.GetFuncName(), "listModuleVersionsCmd.MarkPersistentFlagRequired error")
+		panic(err)
+	}
 }

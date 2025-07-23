@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -47,21 +48,37 @@ func DeployApplication() {
 	DeployManagement()
 	DeployModules()
 	CreateTenants()
-	CreateTenantEntitlements()
-	CreateRoles()
-	CreateUsers()
-	AttachCapabilitySets(10 * time.Second)
+	RunByConsortiumAndTenantType(deployApplicationCommand, func(consortium string, tenantType internal.TenantType) {
+		waitDuration := 10 * time.Second
+
+		CreateTenantEntitlements(consortium, tenantType)
+		CreateRoles(consortium, tenantType)
+		CreateUsers(consortium, tenantType)
+		AttachCapabilitySets(consortium, tenantType, waitDuration)
+
+		if consortium != internal.NoneConsortium {
+			slog.Info(deployApplicationCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %d duration", waitDuration))
+			time.Sleep(waitDuration)
+		}
+	})
 	CreateConsortium()
 	DeployUi()
 	UpdateKeycloakPublicClients()
+	if internal.HasModule(internal.ModSearchModuleName) {
+		RunByConsortiumAndTenantType(deployApplicationCommand, func(consortium string, tenantType internal.TenantType) {
+			ReindexElasticsearch(consortium, tenantType)
+		})
+	}
 }
 
 func DeployChildApplication() {
 	DeployAdditionalSystem()
 	DeployModules()
-	CreateTenantEntitlements()
-	DetachCapabilitySets()
-	AttachCapabilitySets(0 * time.Second)
+	RunByConsortiumAndTenantType(deployApplicationCommand, func(consortium string, tenantType internal.TenantType) {
+		CreateTenantEntitlements(consortium, tenantType)
+		DetachCapabilitySets(consortium, tenantType)
+		AttachCapabilitySets(consortium, tenantType, 0*time.Second)
+	})
 }
 
 func init() {

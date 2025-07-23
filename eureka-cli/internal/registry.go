@@ -84,7 +84,9 @@ func GetModulesFromRegistries(commandName string, installJsonUrls map[string]str
 			slog.Error(commandName, GetFuncName(), "http.Get error")
 			panic(err)
 		}
-		defer installJsonResp.Body.Close()
+		defer func() {
+			_ = installJsonResp.Body.Close()
+		}()
 
 		err = json.NewDecoder(installJsonResp.Body).Decode(&registryModules)
 		if err != nil {

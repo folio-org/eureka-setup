@@ -31,14 +31,16 @@ var removeRolesCmd = &cobra.Command{
 	Short: "Remove roles",
 	Long:  `Remove all roles.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RemoveRoles()
+		RunByConsortiumAndTenantType(removeRolesCommand, func(consortium string, tenantType internal.TenantType) {
+			RemoveRoles(consortium, tenantType)
+		})
 	},
 }
 
-func RemoveRoles() {
+func RemoveRoles(consortium string, tenantType internal.TenantType) {
 	vaultRootToken := GetVaultRootToken()
 
-	for _, value := range internal.GetTenants(removeRolesCommand, withEnableDebug, false) {
+	for _, value := range internal.GetTenants(removeRolesCommand, withEnableDebug, false, consortium, tenantType) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)

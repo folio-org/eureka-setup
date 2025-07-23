@@ -146,7 +146,9 @@ func ReadJsonFromFile(commandName string, filePath string, data any) {
 		slog.Error(commandName, GetFuncName(), "os.Open error")
 		panic(err)
 	}
-	defer jsonFile.Close()
+	defer func() {
+		_ = jsonFile.Close()
+	}()
 
 	decoder := json.NewDecoder(jsonFile)
 	for {
@@ -165,7 +167,9 @@ func WriteJsonToFile(commandName string, filePath string, packageJson any) {
 		slog.Error(commandName, GetFuncName(), "os.Open error")
 		panic(err)
 	}
-	defer jsonFile.Close()
+	defer func() {
+		_ = jsonFile.Close()
+	}()
 
 	writer := bufio.NewWriter(jsonFile)
 	encoder := json.NewEncoder(writer)
@@ -177,7 +181,7 @@ func WriteJsonToFile(commandName string, filePath string, packageJson any) {
 		panic(err)
 	}
 
-	writer.Flush()
+	_ = writer.Flush()
 }
 
 func CheckIsRegularFile(commandName string, fileName string) {
@@ -200,14 +204,18 @@ func CopySingleFile(commandName string, srcPath string, dstPath string) {
 		slog.Error(commandName, GetFuncName(), "os.Open error")
 		panic(err)
 	}
-	defer src.Close()
+	defer func() {
+		_ = src.Close()
+	}()
 
 	dst, err := os.Create(dstPath)
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "os.Create error")
 		panic(err)
 	}
-	defer dst.Close()
+	defer func() {
+		_ = dst.Close()
+	}()
 
 	_, err = io.Copy(dst, src)
 	if err != nil {
@@ -274,8 +282,9 @@ func IsPortFree(commandName string, portStart, portEnd int, port int) bool {
 		slog.Debug(commandName, GetFuncName(), fmt.Sprintf("TCP %d port is reserved or already bound in range %d-%d", port, portStart, portEnd))
 		return false
 	}
-	defer tcpListen.Close()
-
+	defer func() {
+		_ = tcpListen.Close()
+	}()
 	return true
 }
 

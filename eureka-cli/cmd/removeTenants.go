@@ -30,13 +30,15 @@ var removeTenantsCmd = &cobra.Command{
 	Short: "Remove tenants",
 	Long:  `Remove all tenants.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RemoveTenants()
+		RunByConsortiumAndTenantType(removeTenantsCommand, func(consortium string, tenantType internal.TenantType) {
+			RemoveTenants(consortium, tenantType)
+		})
 	},
 }
 
-func RemoveTenants() {
+func RemoveTenants(consortium string, tenantType internal.TenantType) {
 	slog.Info(removeTenantsCommand, internal.GetFuncName(), "### REMOVING TENANTS ###")
-	internal.RemoveTenants(removeTenantsCommand, withEnableDebug, false)
+	internal.RemoveTenants(removeTenantsCommand, withEnableDebug, false, consortium, tenantType)
 }
 
 func init() {

@@ -31,14 +31,16 @@ var createRolesCmd = &cobra.Command{
 	Short: "Create roles",
 	Long:  `Create all roles.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		CreateRoles()
+		RunByConsortiumAndTenantType(createRolesCommand, func(consortium string, tenantType internal.TenantType) {
+			CreateRoles(consortium, tenantType)
+		})
 	},
 }
 
-func CreateRoles() {
+func CreateRoles(consortium string, tenantType internal.TenantType) {
 	vaultRootToken := GetVaultRootToken()
 
-	for _, value := range internal.GetTenants(createRolesCommand, withEnableDebug, false) {
+	for _, value := range internal.GetTenants(createRolesCommand, withEnableDebug, false, consortium, tenantType) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)

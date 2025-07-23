@@ -62,6 +62,9 @@ func setCommandFlagsFromConfigFile(commandName string, existingTenant string) {
 	if tenants == nil {
 		return
 	}
+	if tenants[existingTenant] == nil {
+		return
+	}
 
 	var tenant = tenants[existingTenant].(map[string]any)
 	if tenant[internal.TenantsSingleTenantEntryKey] != nil {
@@ -136,6 +139,12 @@ func init() {
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withSingleTenant, "singleTenant", "T", true, "Use for Single Tenant workflow")
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withEnableEcsRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
-	buildAndPushUiCmd.MarkPersistentFlagRequired("namespace")
-	buildAndPushUiCmd.MarkPersistentFlagRequired("tenant")
+	if err := buildAndPushUiCmd.MarkPersistentFlagRequired("namespace"); err != nil {
+		slog.Error(buildAndPushUiCmdCommand, internal.GetFuncName(), "buildAndPushUiCmd.MarkPersistentFlagRequired error")
+		panic(err)
+	}
+	if err := buildAndPushUiCmd.MarkPersistentFlagRequired("tenant"); err != nil {
+		slog.Error(buildAndPushUiCmdCommand, internal.GetFuncName(), "buildAndPushUiCmd.MarkPersistentFlagRequired error")
+		panic(err)
+	}
 }

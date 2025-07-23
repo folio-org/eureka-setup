@@ -30,15 +30,17 @@ var removeTenantEntitlementsCmd = &cobra.Command{
 	Short: "Remove tenant entitlements",
 	Long:  `Remove all tenant entitlements.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RemoveUsers()
-		RemoveRoles()
-		RemoveTenantEntitlements()
+		RunByConsortiumAndTenantType(removeTenantEntitlementsCommand, func(consortium string, tenantType internal.TenantType) {
+			RemoveUsers(consortium, tenantType)
+			RemoveRoles(consortium, tenantType)
+			RemoveTenantEntitlements(consortium, tenantType)
+		})
 	},
 }
 
-func RemoveTenantEntitlements() {
+func RemoveTenantEntitlements(consortium string, tenantType internal.TenantType) {
 	slog.Info(removeTenantEntitlementsCommand, internal.GetFuncName(), "### REMOVING TENANT ENTITLEMENTS ###")
-	internal.RemoveTenantEntitlements(removeTenantEntitlementsCommand, withEnableDebug, false, withPurgeSchemas)
+	internal.RemoveTenantEntitlements(removeTenantEntitlementsCommand, withEnableDebug, false, withPurgeSchemas, consortium, tenantType)
 }
 
 func init() {

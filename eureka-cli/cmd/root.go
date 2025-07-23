@@ -19,6 +19,7 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -171,12 +172,28 @@ func createHomeDir(enabledDebug bool, overwriteFiles bool, embeddedFs embed.FS) 
 	}
 }
 
+func RunByConsortiumAndTenantType(commandName string, fn func(string, internal.TenantType)) {
+	if viper.IsSet(internal.ConsortiumsKey) {
+		for consortium := range viper.GetStringMap(internal.ConsortiumsKey) {
+			for _, tenantType := range []internal.TenantType{internal.CentralTenantType, internal.MemberTenantType} {
+				slog.Info(commandName, internal.GetFuncName(), fmt.Sprintf("Running sequentially for %s consortium and %s tenant type", consortium, tenantType))
+				fn(consortium, tenantType)
+			}
+		}
+	} else {
+		fn(internal.NoneConsortium, internal.DefaultTenantType)
+	}
+}
+
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVarP(&withProfile, "profile", "p", "combined", fmt.Sprintf("Use a specific profile, options: %s", internal.AvailableProfiles))
-	rootCmd.RegisterFlagCompletionFunc("profile", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if err := rootCmd.RegisterFlagCompletionFunc("profile", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return internal.AvailableProfiles, cobra.ShellCompDirectiveNoFileComp
-	})
+	}); err != nil {
+		slog.Error(rootCommand, internal.GetFuncName(), "rootCmd.RegisterFlagCompletionFunc error")
+		panic(err)
+	}
 	rootCmd.PersistentFlags().StringVarP(&withConfigFile, "configFile", "c", "", "Use a specific config file")
 	rootCmd.PersistentFlags().BoolVarP(&withOverwriteFiles, "overwriteFiles", "o", false, fmt.Sprintf("Overwrite files in %s home directory", internal.ConfigDir))
 	rootCmd.PersistentFlags().BoolVarP(&withEnableDebug, "enableDebug", "d", false, "Enable debug")

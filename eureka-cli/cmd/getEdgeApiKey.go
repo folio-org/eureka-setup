@@ -75,6 +75,12 @@ func init() {
 	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&withTenant, "tenant", "t", "", "Tenant (required)")
 	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&withUser, "user", "U", "", "User (required)")
 	getEdgeApiKeyCmd.PersistentFlags().IntVarP(&withLength, "length", "l", 17, "Salt length")
-	getEdgeApiKeyCmd.MarkPersistentFlagRequired("tenant")
-	getEdgeApiKeyCmd.MarkPersistentFlagRequired("user")
+	if err := getEdgeApiKeyCmd.MarkPersistentFlagRequired("tenant"); err != nil {
+		slog.Error(getEdgeApiKeyCommand, internal.GetFuncName(), "getEdgeApiKeyCmd.MarkPersistentFlagRequired error")
+		panic(err)
+	}
+	if err := getEdgeApiKeyCmd.MarkPersistentFlagRequired("user"); err != nil {
+		slog.Error(getEdgeApiKeyCommand, internal.GetFuncName(), "getEdgeApiKeyCmd.MarkPersistentFlagRequired error")
+		panic(err)
+	}
 }

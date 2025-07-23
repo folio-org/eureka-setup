@@ -60,7 +60,9 @@ func DeployModules() {
 	internal.ExtractModuleNameAndVersion(deployModulesCommand, withEnableDebug, registryModules, true)
 
 	vaultRootToken, client := GetVaultRootTokenWithDockerClient()
-	defer client.Close()
+	defer func() {
+		_ = client.Close()
+	}()
 
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "### CREATING APPLICATIONS ###")
 	registryUrls := map[string]string{internal.FolioRegistry: registryUrl, internal.EurekaRegistry: registryUrl}

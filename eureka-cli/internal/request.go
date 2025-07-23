@@ -79,7 +79,7 @@ func DoGetDecodeReturnString(commandName string, url string, enableDebug bool, p
 	}
 	defer func() {
 		CheckStatusCodes(commandName, panicOnError, resp)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
 	DumpHttpResponse(commandName, resp, enableDebug)
@@ -122,7 +122,7 @@ func DoGetDecodeReturnAny(commandName string, url string, enableDebug bool, pani
 	}
 	defer func() {
 		CheckStatusCodes(commandName, panicOnError, resp)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
 	DumpHttpResponse(commandName, resp, enableDebug)
@@ -165,7 +165,7 @@ func DoGetDecodeReturnMapStringAny(commandName string, url string, enableDebug b
 	}
 	defer func() {
 		CheckStatusCodes(commandName, panicOnError, resp)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
 	DumpHttpResponse(commandName, resp, enableDebug)
@@ -210,7 +210,7 @@ func DoPostReturnNoContent(commandName string, url string, enableDebug bool, pan
 	}
 	defer func() {
 		CheckStatusCodes(commandName, panicOnError, resp)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
 	DumpHttpResponse(commandName, resp, enableDebug)
@@ -240,7 +240,7 @@ func DoRetryablePostReturnNoContent(commandName string, url string, enableDebug 
 	}
 	defer func() {
 		CheckStatusCodes(commandName, panicOnError, resp)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
 	DumpHttpResponse(commandName, resp, enableDebug)
@@ -272,7 +272,7 @@ func DoPostReturnMapStringAny(commandName string, url string, enableDebug bool, 
 	}
 	defer func() {
 		CheckStatusCodes(commandName, panicOnError, resp)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
 	DumpHttpResponse(commandName, resp, enableDebug)
@@ -312,7 +312,7 @@ func DoPostFormDataReturnMapStringAny(commandName string, url string, enableDebu
 	}
 	defer func() {
 		CheckStatusCodes(commandName, true, resp)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
 	DumpHttpResponse(commandName, resp, enableDebug)
@@ -347,7 +347,7 @@ func DoPutReturnNoContent(commandName string, url string, enableDebug bool, body
 	}
 	defer func() {
 		CheckStatusCodes(commandName, true, resp)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
 	DumpHttpResponse(commandName, resp, enableDebug)
@@ -377,7 +377,7 @@ func DoDelete(commandName string, url string, enableDebug bool, panicOnError boo
 	}
 	defer func() {
 		CheckStatusCodes(commandName, panicOnError, resp)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
 	DumpHttpResponse(commandName, resp, enableDebug)
@@ -400,7 +400,7 @@ func DoDeleteWithBody(commandName string, url string, enableDebug bool, bodyByte
 	}
 	defer func() {
 		CheckStatusCodes(commandName, !ignoreError, resp)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
 	DumpHttpResponse(commandName, resp, enableDebug)

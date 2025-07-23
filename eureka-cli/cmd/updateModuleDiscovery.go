@@ -44,5 +44,8 @@ func init() {
 	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&withId, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
 	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&withSidecarUrl, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
 	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&withRestore, "restore", "r", false, "Restore sidecar URL")
-	updateModuleDiscoveryCmd.MarkPersistentFlagRequired("id")
+	if err := updateModuleDiscoveryCmd.MarkPersistentFlagRequired("id"); err != nil {
+		slog.Error(updateModuleDiscoveryCommand, internal.GetFuncName(), "updateModuleDiscoveryCmd.MarkPersistentFlagRequired error")
+		panic(err)
+	}
 }

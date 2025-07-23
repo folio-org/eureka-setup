@@ -178,31 +178,36 @@ func createDefaultBackendDto(commandName string, name string) (dto BackendModule
 func createConfigurableBackendDto(commandName string, value any, name string) (dto BackendModuleDto) {
 	mapEntry := value.(map[string]any)
 
-	dto.deployModule = getKeyOrDefault(mapEntry, ModuleDeployModuleEntryKey, true).(bool)
+	dto.deployModule = GetAnyKeyOrDefault(mapEntry, ModuleDeployModuleEntryKey, true).(bool)
 
 	if !strings.HasPrefix(name, ManagementModulePattern) && !strings.HasPrefix(name, EdgeModulePattern) {
 		dto.deploySidecar = getDeploySidecar(mapEntry)
 	}
 
-	dto.useVault = getKeyOrDefault(mapEntry, ModuleUseVaultEntryKey, false).(bool)
-	dto.disableSystemUser = getKeyOrDefault(mapEntry, ModuleDisableSystemUserEntryKey, false).(bool)
-	dto.useOkapiUrl = getKeyOrDefault(mapEntry, ModuleUseOkapiUrlEntryKey, false).(bool)
+	dto.useVault = GetAnyKeyOrDefault(mapEntry, ModuleUseVaultEntryKey, false).(bool)
+	dto.disableSystemUser = GetAnyKeyOrDefault(mapEntry, ModuleDisableSystemUserEntryKey, false).(bool)
+	dto.useOkapiUrl = GetAnyKeyOrDefault(mapEntry, ModuleUseOkapiUrlEntryKey, false).(bool)
 	dto.version = getVersion(mapEntry)
 	dto.port = getPort(commandName, dto.deployModule, mapEntry)
 	dto.portServer = getPortServer(mapEntry)
-	dto.environment = getKeyOrDefault(mapEntry, ModuleEnvironmentEntryKey, make(map[string]any)).(map[string]any)
-	dto.resources = getKeyOrDefault(mapEntry, ModuleResourceEntryKey, make(map[string]any)).(map[string]any)
+	dto.environment = GetAnyKeyOrDefault(mapEntry, ModuleEnvironmentEntryKey, make(map[string]any)).(map[string]any)
+	dto.resources = GetAnyKeyOrDefault(mapEntry, ModuleResourceEntryKey, make(map[string]any)).(map[string]any)
 	dto.volumes = getVolumes(commandName, mapEntry)
 
 	return dto
 }
 
-func getKeyOrDefault(mapEntry map[string]any, key string, defaultValue any) any {
+func GetAnyKeyOrDefault(mapEntry map[string]any, key string, defaultValue any) any {
 	if mapEntry[key] == nil {
 		return defaultValue
 	}
 
 	return mapEntry[key]
+}
+
+func GetBoolKey(mapEntry map[string]any, key string) bool {
+	value := mapEntry[key]
+	return value != nil && value.(bool)
 }
 
 func getDeploySidecar(mapEntry map[string]any) *bool {
@@ -262,7 +267,7 @@ func getVolumes(commandName string, mapEntry map[string]any) []string {
 
 	var volumes []string
 	for _, value := range mapEntry[ModuleVolumesEntryKey].([]any) {
-		var volume string = value.(string)
+		var volume = value.(string)
 		if runtime.GOOS == "windows" && strings.Contains(volume, "$EUREKA") {
 			homeConfigDir := GetHomeDirPath(commandName)
 			volume = strings.ReplaceAll(volume, "$EUREKA", homeConfigDir)
@@ -295,7 +300,7 @@ func GetFrontendModulesFromConfig(commandName string, printOutput bool, frontend
 	for _, frontendModulesAnyMap := range frontendModulesAnyMaps {
 		for name, value := range frontendModulesAnyMap {
 			var (
-				deployModule bool = true
+				deployModule = true
 				version      *string
 			)
 
@@ -342,7 +347,7 @@ func PrepareStripesConfigJs(commandName string, configPath string, tenant string
 		"${enableEcsRequests}": strconv.FormatBool(enableEcsRequests),
 	}
 
-	var newReadFileStr string = string(readFileBytes)
+	var newReadFileStr = string(readFileBytes)
 	for key, value := range replaceMap {
 		if !strings.Contains(newReadFileStr, key) {
 			slog.Info(commandName, GetFuncName(), fmt.Sprintf("Key not found in stripes.config.js: %s", key))
@@ -436,10 +441,10 @@ func CanDeployUi(tenant string) bool {
 }
 
 func GetRequiredContainers(commandName string, requiredContainers []string) []string {
-	if CanDeployModule(ModSearchModuleName) {
+	if HasModule(ModSearchModuleName) {
 		requiredContainers = append(requiredContainers, ElasticsearchContainerName)
 	}
-	if CanDeployModule(ModDataExportWorkerModuleName) {
+	if HasModule(ModDataExportWorkerModuleName) {
 		requiredContainers = append(requiredContainers, []string{MinioContainerName, CreateBucketsContainerName, FtpServerContainerName}...)
 	}
 	if len(requiredContainers) > 0 {
@@ -449,7 +454,7 @@ func GetRequiredContainers(commandName string, requiredContainers []string) []st
 	return requiredContainers
 }
 
-func CanDeployModule(module string) bool {
+func HasModule(module string) bool {
 	for name, value := range viper.GetStringMap(BackendModulesKey) {
 		if name == module {
 			if value == nil {

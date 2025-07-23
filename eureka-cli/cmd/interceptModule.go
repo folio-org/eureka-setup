@@ -110,7 +110,9 @@ func InterceptModule() {
 	internal.ExtractModuleNameAndVersion(interceptModuleCommand, withEnableDebug, registryModules, false)
 
 	vaultRootToken, client := GetVaultRootTokenWithDockerClient()
-	defer client.Close()
+	defer func() {
+		_ = client.Close()
+	}()
 
 	slog.Info(interceptModuleCommand, internal.GetFuncName(), "### UNDEPLOYING DEFAULT MODULE AND SIDECAR PAIR ###")
 	internal.UndeployModuleByNamePattern(interceptModuleCommand, client, fmt.Sprintf(internal.SingleModuleOrSidecarContainerPattern, viper.GetString(internal.ProfileNameKey), dto.moduleName), false)
@@ -221,5 +223,8 @@ func init() {
 	interceptModuleCmd.PersistentFlags().StringVarP(&withSidecarUrl, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002 or 37002 (if -g is used)")
 	interceptModuleCmd.PersistentFlags().BoolVarP(&withRestore, "restore", "r", false, "Restore module & sidecar")
 	interceptModuleCmd.PersistentFlags().BoolVarP(&withDefaultGateway, "defaultGateway", "g", false, "Use default gateway in URLs, .e.g http://host.docker.internal:{{port}} will be set automatically")
-	interceptModuleCmd.MarkPersistentFlagRequired("id")
+	if err := interceptModuleCmd.MarkPersistentFlagRequired("id"); err != nil {
+		slog.Error(interceptModuleCommand, internal.GetFuncName(), "interceptModuleCmd.MarkPersistentFlagRequired error")
+		panic(err)
+	}
 }
