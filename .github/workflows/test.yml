@@ -51,7 +51,7 @@ jobs:
         run: go vet ./...
 
       - name: Install golangci-lint
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v8
         with:
           version: latest
           working-directory: ./eureka-cli
