@@ -99,7 +99,7 @@ eureka-cli deployApplication -R
 eureka-cli -p combined deployApplication
 ```
 
-> Available configs are: _combined_, _export_, _search_ and _edge_
+> Available profiles are: _combined_, _export_, _search_, _edge_, _ecs_ and _import_ (_combined_, _ecs_ and _import_ are standalone applications)
 
 - It can be combined with the `-o` flag to overwrite all existing files in the `.eureka` home directory to receive changes from upstream
 
@@ -243,7 +243,7 @@ eureka-cli -p {{profile}} undeployApplication
 
 ### Other commands
 
-The CLI includes several useful commands to enhance developer productivity. Here are the most important ones that can be used independently:
+The CLI includes several useful commands to enhance developer productivity. Here are the most important ones that can be used independently.
 
 - Lists deployed system containers
 
@@ -430,7 +430,7 @@ eureka-cli deployUi -b -u
 
 ![UI Main page](images/ui_main_page.png)
 
-If your environment was deployed using the ecs profile, your consortiums are represented by two different UI instances
+If your environment was deployed using the ecs profile, your consortiums are represented by two different UI instances.
 
 - The first instance can be accessed from `http://localhost:3000` using `ecs_admin` username and `admin` password
 
@@ -447,7 +447,7 @@ If your environment was deployed using the ecs profile, your consortiums are rep
 - Kong gateway is available at `http://localhost:8000` and can be used to get an access token directly from the backend
 
 ```bash
-# Using diku_admin (admin user)
+# Admin user: diku_admin
 curl --request POST \
   --url http://localhost:8000/authn/login-with-expiry \
   --header 'Content-Type: application/json' \
@@ -455,15 +455,19 @@ curl --request POST \
   --data '{"username":"diku_admin","password": "admin"}' \
   --verbose
 
-# Using diku_user (limited user)
+# Limited user: diku_user
 curl --request POST \
   --url http://localhost:8000/authn/login-with-expiry \
   --header 'Content-Type: application/json' \
   --header 'X-Okapi-Tenant: diku' \
   --data '{"username":"diku_user","password": "user"}' \
   --verbose
+```
 
-# Using ecs_admin (admin user for ecs consortium)
+> Using combined or import standalone profiles, because these profiles create _diku\_admin_ and _diku\_user_ users
+
+```bash
+# Admin user: ecs_admin
 curl --request POST \
   --url http://localhost:8000/authn/login-with-expiry \
   --header 'Content-Type: application/json' \
@@ -471,7 +475,7 @@ curl --request POST \
   --data '{"username":"ecs_admin","password": "admin"}' \
   --verbose
 
-# Using ecs_admin2 (admin user for ecs2 consortium)
+# Admin user: ecs_admin2
 curl --request POST \
   --url http://localhost:8000/authn/login-with-expiry \
   --header 'Content-Type: application/json' \
@@ -479,6 +483,8 @@ curl --request POST \
   --data '{"username":"ecs_admin2","password": "user"}' \
   --verbose
 ```
+
+> Using an ecs profile that creates _ecs\_admin_ and _ecs\_admin2_ users in different consortiums
 
 ## Troubleshooting
 
