@@ -2,11 +2,7 @@ name: Test CLI
 
 on:
   push:
-    branches:
-      - "**"
   pull_request:
-    branches:
-      - "**"
   workflow_call:
 
 jobs:
@@ -25,7 +21,6 @@ jobs:
       - name: Validate docker-compose.yml
         run: docker compose -f ./eureka-cli/misc/docker-compose.yaml config
 
-      # Check Docker configurations on pull requests
       - name: Check Docker configurations
         if: github.event_name == 'pull_request'
         uses: aquasecurity/trivy-action@master
@@ -53,12 +48,9 @@ jobs:
       - name: Install golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
-          version: latest
           working-directory: ./eureka-cli
           args: --timeout=5m
-          skip-cache: true # Temporarily skip cache to avoid 400 errors
-          skip-pkg-cache: true
-          skip-build-cache: true
+          only-new-issues: true
 
   test:
     name: Test CLI Help Command (${{ matrix.os }}-${{ matrix.goarch }})
