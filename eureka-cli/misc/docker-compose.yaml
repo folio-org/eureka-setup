@@ -178,6 +178,7 @@ services:
       - vault-file:/vault/file
       - vault-logs:/vault/logs
     cap_add: [IPC_LOCK]
+    user: root
     networks:
       - eureka-net
     ports:
