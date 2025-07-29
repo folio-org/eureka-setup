@@ -15,5 +15,6 @@
   "default_lease_ttl": "168h",
   "max_lease_ttl": "720h",
   "ui": true,
-  "log_level": "info"
+  "log_level": "info",
+  "disable_mlock": true
 }
