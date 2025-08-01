@@ -4,7 +4,7 @@ go 1.24.1
 
 require (
 	github.com/aws/aws-sdk-go v1.55.7
-	github.com/docker/docker v28.3.2+incompatible
+	github.com/docker/docker v28.3.3+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/go-git/go-git/v5 v5.16.2
 	github.com/google/uuid v1.6.0
