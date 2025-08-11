@@ -154,7 +154,8 @@ backend-modules:
       MODULE_URL: http://mgr-tenant-entitlements.eureka:8081
       MT_CLIENT_URL: http://mgr-tenants.eureka:8081
       AM_CLIENT_URL: http://mgr-applications.eureka:8081
-      VALIDATION_INTERFACE_INTEGRITY_ENABLED: "false"
+      VALIDATION_INTERFACE_INTEGRITY_ENTITLEMENT_ENABLED: "false"
+      VALIDATION_INTERFACE_INTEGRITY_UPGRADE_ENABLED: "false"
       ROUTEMANAGEMENT_ENABLE: "false"
       FOLIO_CLIENT_CONNECT_TIMEOUT: 600s
       FOLIO_CLIENT_READ_TIMEOUT: 600s
