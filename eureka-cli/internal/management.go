@@ -686,7 +686,13 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 	caser := cases.Lower(language.English)
 	rolesMap := viper.GetStringMap(RolesKey)
 
-	for _, roleValue := range GetRoles(commandName, enableDebug, true, headers) {
+	foundRoles := GetRoles(commandName, enableDebug, true, headers)
+	if len(foundRoles) == 0 {
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Cannot attach capability sets, found no roles in %s tenant (realm)", tenant))
+		return
+	}
+
+	for _, roleValue := range foundRoles {
 		mapEntry := roleValue.(map[string]any)
 
 		roleName := caser.String(mapEntry["name"].(string))
@@ -747,7 +753,13 @@ func DetachCapabilitySetsFromRoles(commandName string, enableDebug bool, panicOn
 	caser := cases.Lower(language.English)
 	rolesMap := viper.GetStringMap(RolesKey)
 
-	for _, value := range GetRoles(commandName, enableDebug, panicOnError, headers) {
+	foundRoles := GetRoles(commandName, enableDebug, panicOnError, headers)
+	if len(foundRoles) == 0 {
+		slog.Info(commandName, GetFuncName(), fmt.Sprintf("Cannot detach capability sets, found no roles in %s tenant (realm)", tenant))
+		return
+	}
+
+	for _, value := range foundRoles {
 		mapEntry := value.(map[string]any)
 
 		roleName := caser.String(mapEntry["name"].(string))
