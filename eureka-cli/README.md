@@ -57,7 +57,7 @@ echo "source <(eureka-cli completion bash)" >> ~/.bash_profile
 source ~/.bash_profile
 ```
 
-> Type the command partially and hit TAB to see the available command suggestions or full command autocomplete
+> Type `eureka-cli` and hit TAB to see the available suggestions or full autocompletion
 
 ### Deploy the combined application
 

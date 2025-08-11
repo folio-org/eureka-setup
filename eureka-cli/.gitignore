@@ -3,9 +3,7 @@ log
 tmp
 temp
 
-INSTALL.md
-UPGRADE.md
-RELEASE.md
+SETUP.md
 
 temp*.go
 config.temp-*.yaml
