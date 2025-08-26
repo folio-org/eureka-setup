@@ -110,6 +110,7 @@ backend-modules:
   mgr-applications:
     port: 9901
     use-vault: true
+    version: 4.0.0-SNAPSHOT.187
     environment:
       MODULE_URL: http://mgr-applications.eureka:8081
       TE_URL: http://mgr-tenant-entitlements.eureka:8081
@@ -125,6 +126,7 @@ backend-modules:
   mgr-tenants:
     port: 9902
     use-vault: true
+    version: 3.1.0-SNAPSHOT.149
     environment:
       MODULE_URL: http://mgr-tenants.eureka:8081
       FOLIO_CLIENT_CONNECT_TIMEOUT: 600s
@@ -137,6 +139,7 @@ backend-modules:
   mgr-tenant-entitlements:
     port: 9903
     use-vault: true
+    version: 4.0.0-SNAPSHOT.212
     environment:
       MODULE_URL: http://mgr-tenant-entitlements.eureka:8081
       MT_CLIENT_URL: http://mgr-tenants.eureka:8081
@@ -162,6 +165,7 @@ backend-modules:
     use-okapi-url: true
     disable-system-user: true
     port: 9904
+    version: 3.1.0-SNAPSHOT.178
     environment:
       SINGLE_TENANT_UX: "false"
       INCLUDE_ONLY_VISIBLE_PERMISSIONS: "false"
@@ -175,6 +179,7 @@ backend-modules:
   mod-login-keycloak:
     use-vault: true
     port: 9905
+    version: 3.1.0-SNAPSHOT.137
     environment:
       X_OKAPI_TOKEN_HEADER_ENABLED: "true"
       LOGIN_COOKIE_SAMESITE: "NONE"
@@ -183,6 +188,7 @@ backend-modules:
     use-vault: true
     disable-system-user: true
     port: 9906
+    version: 3.1.0-SNAPSHOT.251
     environment:
       CAPABILITY_TOPIC_RETRY_DELAY: 1s
       CAPABILITY_TOPIC_RETRY_ATTEMPTS: "9223372036854775807"
@@ -193,6 +199,7 @@ backend-modules:
     use-okapi-url: true
     disable-system-user: true
     port: 9907
+    version: 3.1.0-SNAPSHOT.138
     resources:
       cpus: 4
   mod-permissions:
@@ -252,4 +259,4 @@ custom-frontend-modules:
   folio_authorization-policies:
     version: 2.0.10990000000095
   folio_plugin-select-application:
-    version: 2.0.10990000000077
+    version: 2.0.10990000000094
