@@ -55,9 +55,6 @@ consortiums:
   ecs:
     create-consortium: true
     enable-central-ordering: true
-  ecs2:
-    create-consortium: true
-    enable-central-ordering: true
 tenants:
   ecs:
     consortium: ecs
@@ -68,18 +65,6 @@ tenants:
     platform-complete-url: http://localhost:3000
   university:
     consortium: ecs
-  college:
-    consortium: ecs
-  # Secondary Cluster
-  ecs2:
-    consortium: ecs2
-    deploy-ui: true
-    single-tenant: false
-    enable-ecs-request: false
-    central-tenant: true
-    platform-complete-url: http://localhost:3001
-  university2:
-    consortium: ecs2
 roles:
   ecs_admin_role:
     consortium: ecs 
@@ -88,19 +73,6 @@ roles:
   university_admin_role:
     consortium: ecs
     tenant: university
-    capability-sets: ["all"]
-  college_admin_role:
-    consortium: ecs
-    tenant: college
-    capability-sets: ["all"]
-  # Secondary Cluster
-  ecs_admin_role2:
-    consortium: ecs2
-    tenant: ecs2
-    capability-sets: ["all"]
-  university_admin_role2:
-    consortium: ecs2
-    tenant: university2
     capability-sets: ["all"]
 users:
   ecs_admin:
@@ -117,28 +89,6 @@ users:
     last-name: John
     first-name: Doe
     roles: ["university_admin_role"]
-  college_admin:
-    consortium: ecs
-    tenant: college
-    password: admin
-    last-name: John
-    first-name: Doe
-    roles: ["college_admin_role"]
-  # Secondary Cluster
-  ecs_admin2:
-    consortium: ecs2 
-    tenant: ecs2
-    password: admin
-    last-name: John
-    first-name: Doe
-    roles: ["ecs_admin_role2"]
-  university_admin2:
-    consortium: ecs2 
-    tenant: university2
-    password: admin
-    last-name: John
-    first-name: Doe
-    roles: ["university_admin_role2"]
 sidecar-module:
   image: folio-module-sidecar
   environment:

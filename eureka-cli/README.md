@@ -59,27 +59,27 @@ source ~/.bash_profile
 
 > Type `eureka-cli` and hit TAB to see the available suggestions or full autocompletion
 
-### Deploy the combined application
+### Deploy the _combined_ application
 
 By default, public images from DockerHub (folioci & folioorg namespaces) will be used.
 
 Available flags:
 
-| Short | Long                | Description                                                  |
-|-------|---------------------|--------------------------------------------------------------|
-| `-p`  | `--profile`         | Select profile (combined, export, search, edge, ecs, import) |
-| `-c`  | `--configFile`      | Specify config file path                                     |
-| `-o`  | `--overwriteFiles`  | Overwrite files in .eureka home directory                    |
-| `-d`  | `--enableDebug`     | Enable debug mode                                            |
-| `-R`  | `--onlyRequired`    | Use only required system containers                          |
-| `-b`  | `--buildImages`     | Build Docker images                                          |
-| `-u`  | `--updateCloned`    | Update Git cloned projects                                   |
+| Short | Long                | Description                                                             |
+|-------|---------------------|------------------------------------------------------------------------ |
+| `-p`  | `--profile`         | Select profile (combined, export, search, edge, ecs, ecs-single import) |
+| `-c`  | `--configFile`      | Specify config file path                                                |
+| `-o`  | `--overwriteFiles`  | Overwrite files in .eureka home directory                               |
+| `-d`  | `--enableDebug`     | Enable debug mode                                                       |
+| `-R`  | `--onlyRequired`    | Use only required system containers                                     |
+| `-b`  | `--buildImages`     | Build Docker images                                                     |
+| `-u`  | `--updateCloned`    | Update Git cloned projects                                              |
 
 ```bash
 eureka-cli -c ./config.combined.yaml deployApplication
 ```
 
-> If no profile or config file is passed, the combined profile will be inferred and used
+> If no profile or config file is passed, the _combined_ profile will be inferred and used
 
 - Use the debug `-d` flag to troubleshoot your environment deployment to see how the CLI interacts with **Kong** via HTTP
 
@@ -99,7 +99,7 @@ eureka-cli deployApplication -R
 eureka-cli -p combined deployApplication
 ```
 
-> Available profiles are: _combined_, _export_, _search_, _edge_, _ecs_ and _import_ (_combined_, _ecs_ and _import_ are standalone applications)
+> Available profiles are: _combined_, _export_, _search_, _edge_, _ecs_, _ecs-single_ and _import_ (_combined_, _ecs_, _ecs-single_ and _import_ are standalone applications)
 
 - It can be combined with the `-o` flag to overwrite all existing files in the `.eureka` home directory to receive changes from upstream
 
@@ -129,13 +129,13 @@ eureka-cli buildSystem
 eureka-cli buildSystem -u
 ```
 
-### Undeploy the combined application
+### Undeploy the _combined_ application
 
 ```bash
 eureka-cli undeployApplication
 ```
 
-### Deploy the combined application from AWS ECR
+### Deploy the _combined_ application from AWS ECR
 
 To use AWS ECR as your container registry instead of the public Folio DockerHub, set `AWS_ECR_FOLIO_REPO` in your environment. When this environment variable is defined, it is assumed that this repository is private and you have also defined credentials in your environment. The value of this variable should be the URL of your repository.
 
@@ -157,18 +157,32 @@ AWS_SDK_LOAD_CONFIG=true eureka-cli deployApplication
 
 > See docs/AWS_CLI.md to prepare AWS CLI beforehand
 
-### Deploy the ecs application
+### Deploy the _ecs_ application
 
-The ecs application is a standalone application that deploys a UI container for each consortium. By default, it creates 3 tenants for the first consortium (ecs) and 2 tenants for the second one (ecs2). This profile also deploys _mod-okapi-facade_ and _mod-search_ modules along with the _elasticsearch_ system container.
+The _ecs_ application is a standalone application that deploys a UI container for each consortium. By default, it creates 3 tenants for the first consortium (ecs) and 2 tenants for the second one (ecs2). This profile also deploys _mod-okapi-facade_ and _mod-search_ modules along with the _elasticsearch_ system container.
 
 ```bash
 eureka-cli -p ecs deployApplication -oR
 ```
 
-### Undeploy the ecs application
+### Undeploy the _ecs_ application
 
 ```bash
 eureka-cli -p ecs undeployApplication
+```
+
+### Deploy the _ecs-single_ application
+
+We can use the _ecs-single_ profile to deploy an environment with just a single consortium. This profile will provision only 3 tenants (i.e. ecs, university and college) with just a single UI container. This profile is preferred over the _ecs_ when there is an obvious resource constraint on the host machine because of how many Kafka topics there needs to be maintained during and after tenant entitlement.
+
+```bash
+eureka-cli -p ecs-single deployApplication -oR
+```
+
+### Undeploy the _ecs-single_ application
+
+```bash
+eureka-cli -p ecs-single undeployApplication
 ```
 
 ### Deploy the import application
@@ -307,7 +321,7 @@ eureka-cli getEdgeApiKey -t diku -U diku_admin
 eureka-cli -p {{profile}} reindexElasticsearch
 ```
 
-> This command assumes that _mod-search_ module and _elasticsearch_ system container are deployed or if `{{profile}}` is being replaced by either _search_ or _ecs_ profiles
+> This command assumes that _mod-search_ module and _elasticsearch_ system container are deployed or if `{{profile}}` is being replaced by either _search_, _ecs_ or _ecs-single_ profiles
 
 - Check if module internal ports are accessible
 
