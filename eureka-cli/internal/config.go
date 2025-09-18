@@ -62,7 +62,7 @@ var (
 	PortEndIndex   int   = 30999
 	ReservedPorts  []int = []int{}
 
-	AvailableProfiles = []string{"combined", "export", "search", "edge", "ecs", "import"}
+	AvailableProfiles = []string{"combined", "export", "search", "edge", "ecs", "ecs-single", "import"}
 )
 
 func GetGatewayUrlTemplate(commandName string) string {
