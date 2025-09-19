@@ -311,7 +311,7 @@ backend-modules:
       ELASTICSEARCH_HOST: elasticsearch.eureka
       ELASTICSEARCH_PORT: 9200
   mod-fqm-manager:
-    deploy-module: true
+    deploy-module: false
     environment:
       IS_EUREKA: "true"
       QUERY_RETENTION_DURATION: "3h"
@@ -341,10 +341,10 @@ frontend-modules:
   folio_plugin-find-authority:
 custom-frontend-modules:
   folio_authorization-roles:
-    version: 2.1.109900000000207
+    version: 2.1.109900000000214
   folio_authorization-policies:
-    version: 2.0.10990000000095
+    version: 2.0.109900000000102
   folio_plugin-select-application:
-    version: 2.0.10990000000077
+    version: 2.0.109900000000116
   folio_consortia-settings:
-    version: 3.0.109900000000114
+    version: 3.0.109900000000130

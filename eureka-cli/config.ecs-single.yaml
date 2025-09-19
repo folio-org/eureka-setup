@@ -1,7 +1,7 @@
 profile:
-  name: combined
+  name: ecs
 application:
-  name: app-combined
+  name: app-ecs
   version: 1.0.0
   platform: base
   fetch-descriptors: false
@@ -51,29 +51,44 @@ environment:
     -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
     -XX:MaxRAMPercentage=80.0 -Xms128m -Xmx400m 
     -Djdk.internal.httpclient.disableHostnameVerification=true
+consortiums:
+  ecs:
+    create-consortium: true
+    enable-central-ordering: true
 tenants:
-  diku:
+  ecs:
+    consortium: ecs
     deploy-ui: true
+    single-tenant: false
+    enable-ecs-request: false
+    central-tenant: true
+    platform-complete-url: http://localhost:3000
+  university:
+    consortium: ecs
 roles:
-  diku_admin_role:
-    tenant: diku
+  ecs_admin_role:
+    consortium: ecs 
+    tenant: ecs
     capability-sets: ["all"]
-  diku_user_role:
-    tenant: diku
-    capability-sets: []
+  university_admin_role:
+    consortium: ecs
+    tenant: university
+    capability-sets: ["all"]
 users:
-  diku_admin:
-    tenant: diku
+  ecs_admin:
+    consortium: ecs 
+    tenant: ecs
     password: admin
     last-name: John
     first-name: Doe
-    roles: ["diku_admin_role", "diku_user_role"]
-  diku_user:
-    tenant: diku
-    password: user
-    last-name: Jane
+    roles: ["ecs_admin_role"]
+  university_admin:
+    consortium: ecs
+    tenant: university
+    password: admin
+    last-name: John
     first-name: Doe
-    roles: ["diku_user_role"]
+    roles: ["university_admin_role"]
 sidecar-module:
   image: folio-module-sidecar
   environment:
@@ -110,7 +125,6 @@ backend-modules:
   mgr-applications:
     port: 9901
     use-vault: true
-    version: 4.0.0-SNAPSHOT.187
     environment:
       MODULE_URL: http://mgr-applications.eureka:8081
       TE_URL: http://mgr-tenant-entitlements.eureka:8081
@@ -126,7 +140,6 @@ backend-modules:
   mgr-tenants:
     port: 9902
     use-vault: true
-    version: 3.1.0-SNAPSHOT.149
     environment:
       MODULE_URL: http://mgr-tenants.eureka:8081
       FOLIO_CLIENT_CONNECT_TIMEOUT: 600s
@@ -139,7 +152,6 @@ backend-modules:
   mgr-tenant-entitlements:
     port: 9903
     use-vault: true
-    version: 4.0.0-SNAPSHOT.212
     environment:
       MODULE_URL: http://mgr-tenant-entitlements.eureka:8081
       MT_CLIENT_URL: http://mgr-tenants.eureka:8081
@@ -165,7 +177,6 @@ backend-modules:
     use-okapi-url: true
     disable-system-user: true
     port: 9904
-    version: 3.1.0-SNAPSHOT.178
     environment:
       SINGLE_TENANT_UX: "false"
       INCLUDE_ONLY_VISIBLE_PERMISSIONS: "false"
@@ -179,7 +190,6 @@ backend-modules:
   mod-login-keycloak:
     use-vault: true
     port: 9905
-    version: 3.1.0-SNAPSHOT.137
     environment:
       X_OKAPI_TOKEN_HEADER_ENABLED: "true"
       LOGIN_COOKIE_SAMESITE: "NONE"
@@ -188,7 +198,6 @@ backend-modules:
     use-vault: true
     disable-system-user: true
     port: 9906
-    version: 3.1.0-SNAPSHOT.251
     environment:
       CAPABILITY_TOPIC_RETRY_DELAY: 1s
       CAPABILITY_TOPIC_RETRY_ATTEMPTS: "9223372036854775807"
@@ -199,9 +208,22 @@ backend-modules:
     use-okapi-url: true
     disable-system-user: true
     port: 9907
-    version: 3.1.0-SNAPSHOT.138
     resources:
       cpus: 4
+  mod-consortia-keycloak:
+    use-vault: true
+    use-okapi-url: true
+    disable-system-user: true
+    port: 9908
+  mod-okapi-facade:
+    environment:
+      TENANT_APPS_TTL: 600s
+      AM_TLS_ENABLED: "false"
+      TM_TLS_ENABLED: "false"
+      TE_TLS_ENABLED: "false"
+      AM_CLIENT_URL: http://mgr-applications.eureka:8081
+      MT_CLIENT_URL: http://mgr-tenants.eureka:8081
+      TE_URL: http://mgr-tenant-entitlements.eureka:8081
   mod-permissions:
   mod-configuration:
   mod-users:
@@ -230,6 +252,20 @@ backend-modules:
     port-server: 9801
   mod-template-engine:
   mod-feesfines:
+  mod-search:
+    use-okapi-url: true
+    disable-system-user: true
+    environment:
+      ELASTICSEARCH_SERVER: "true"
+      ELASTICSEARCH_URL: http://elasticsearch.eureka:9200
+      ELASTICSEARCH_HOST: elasticsearch.eureka
+      ELASTICSEARCH_PORT: 9200
+  mod-fqm-manager:
+    deploy-module: false
+    environment:
+      IS_EUREKA: "true"
+      QUERY_RETENTION_DURATION: "3h"
+      TASK_EXECUTION_POOL_MAXSIZE: "10"
 frontend-modules:
   folio_stripes-core:
   folio_developer:
@@ -260,3 +296,5 @@ custom-frontend-modules:
     version: 2.0.109900000000102
   folio_plugin-select-application:
     version: 2.0.109900000000116
+  folio_consortia-settings:
+    version: 3.0.109900000000130
