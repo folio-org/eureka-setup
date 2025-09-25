@@ -1,8 +1,16 @@
 name: Build UI
 
 on:
+  schedule:
+    # Runs every day at 11:00 AM GMT+5 (6:00 AM UTC)
+    - cron: '0 6 * * *'
   workflow_dispatch:
     inputs:
+      profile:
+        description: "Deployment profile"
+        required: true
+        type: string
+        default: combined
       namespace:
         description: "DockerHub namespace"
         required: true
@@ -12,6 +20,7 @@ on:
         description: "Tenant"
         required: true
         type: string
+        default: diku
       platformCompleteUrl:
         description: "Platform Complete UI url"
         required: true
@@ -35,6 +44,7 @@ jobs:
     steps:
       - name: Using inputs
         run: |
+          echo "profile: ${{ inputs.profile }}"
           echo "namespace: ${{ inputs.namespace }}"
           echo "tenant: ${{ inputs.tenant }}"
           echo "platformCompleteUrl: ${{ inputs.platformCompleteUrl }}"
@@ -68,5 +78,10 @@ jobs:
       - name: Build And Push UI Command
         working-directory: ./eureka-cli
         run: |
-          ./eureka-cli buildAndPushUi --namespace ${{ inputs.namespace }} --tenant ${{ inputs.tenant }} --platformCompleteUrl ${{ inputs.platformCompleteUrl }} --singleTenant ${{ inputs.singleTenant }} --enableEcsRequests ${{ inputs.enableEcsRequests }}
+          ./eureka-cli -p ${{ inputs.profile }} buildAndPushUi \
+            --namespace ${{ inputs.namespace }} \
+            --tenant ${{ inputs.tenant }} \
+            --platformCompleteUrl ${{ inputs.platformCompleteUrl }} \
+            --singleTenant ${{ inputs.singleTenant }} \
+            --enableEcsRequests ${{ inputs.enableEcsRequests }}
           echo "Build And Push UI command ran successfully"
