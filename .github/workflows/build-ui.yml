@@ -2,8 +2,8 @@ name: Build UI
 
 on:
   schedule:
-    # Runs every day at 11:00 AM GMT+5 (6:00 AM UTC)
-    - cron: '0 6 * * *'
+    # Runs every day at 12:00 AM GMT+5 (7:00 AM UTC)
+    - cron: '0 7 * * *'
   workflow_dispatch:
     inputs:
       profile:
@@ -41,20 +41,27 @@ jobs:
   build-ui:
     name: Build And Push UI Command
     runs-on: ubuntu-latest
+    env:
+      DEPLOYMENT_PROFILE: ${{ inputs.profile || 'combined' }}
+      DOCKERHUB_NAMESPACE: ${{ inputs.namespace || 'bkadirkhodjaev' }}
+      TENANT_NAME: ${{ inputs.tenant || 'diku' }}
+      PLATFORM_COMPLETE_URL: ${{ inputs.platformCompleteUrl || 'http://localhost:3000' }}
+      SINGLE_TENANT_MODE: ${{ inputs.singleTenant || 'true' }}
+      ENABLE_ECS_REQUESTS: ${{ inputs.enableEcsRequests || 'false' }}
     steps:
       - name: Using inputs
         run: |
-          echo "profile: ${{ inputs.profile }}"
-          echo "namespace: ${{ inputs.namespace }}"
-          echo "tenant: ${{ inputs.tenant }}"
-          echo "platformCompleteUrl: ${{ inputs.platformCompleteUrl }}"
-          echo "singleTenant: ${{ inputs.singleTenant }}"
-          echo "enableEcsRequests: ${{ inputs.enableEcsRequests }}"
+          echo "profile: $DEPLOYMENT_PROFILE"
+          echo "namespace: $DOCKERHUB_NAMESPACE"
+          echo "tenant: $TENANT_NAME"
+          echo "platformCompleteUrl: $PLATFORM_COMPLETE_URL"
+          echo "singleTenant: $SINGLE_TENANT_MODE"
+          echo "enableEcsRequests: $ENABLE_ECS_REQUESTS"
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ inputs.namespace }}
+          username: ${{ env.DOCKERHUB_NAMESPACE }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Checkout code
@@ -78,10 +85,11 @@ jobs:
       - name: Build And Push UI Command
         working-directory: ./eureka-cli
         run: |
-          ./eureka-cli -p ${{ inputs.profile }} buildAndPushUi \
-            --namespace ${{ inputs.namespace }} \
-            --tenant ${{ inputs.tenant }} \
-            --platformCompleteUrl ${{ inputs.platformCompleteUrl }} \
-            --singleTenant ${{ inputs.singleTenant }} \
-            --enableEcsRequests ${{ inputs.enableEcsRequests }}
+          ./eureka-cli buildAndPushUi \
+            --profile $DEPLOYMENT_PROFILE \
+            --namespace $DOCKERHUB_NAMESPACE \
+            --tenant $TENANT_NAME \
+            --platformCompleteUrl $PLATFORM_COMPLETE_URL \
+            --singleTenant $SINGLE_TENANT_MODE \
+            --enableEcsRequests $ENABLE_ECS_REQUESTS
           echo "Build And Push UI command ran successfully"
