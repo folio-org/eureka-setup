@@ -108,6 +108,7 @@ services:
       ZOO_TICK_TIME: 2000
       ZOO_LOG_LEVEL: INFO
       ALLOW_ANONYMOUS_LOGIN: "yes"
+      ALLOW_PLAINTEXT_LISTENER: "yes"
     networks:
       - eureka-net
     ports:
