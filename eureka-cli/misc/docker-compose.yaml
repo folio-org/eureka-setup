@@ -97,7 +97,7 @@ services:
 
   zookeeper:
     container_name: zookeeper
-    image: bitnami/zookeeper:3.9.3
+    image: bitnamilegacy/zookeeper:3.9.3-debian-12-r22
     restart: unless-stopped
     cpus: 1
     mem_limit: 200m
@@ -121,7 +121,7 @@ services:
 
   kafka:
     container_name: kafka
-    image: bitnami/kafka:3.9.0
+    image: bitnamilegacy/kafka:4.0.0-debian-12-r10
     restart: unless-stopped
     cpus: 6
     mem_limit: 2g
