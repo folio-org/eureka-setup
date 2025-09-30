@@ -97,7 +97,7 @@ services:
 
   zookeeper:
     container_name: zookeeper
-    image: bitnami/zookeeper:3.9.3
+    image: bitnamilegacy/zookeeper:3.9.3-debian-12-r22
     restart: unless-stopped
     cpus: 1
     mem_limit: 200m
@@ -108,6 +108,7 @@ services:
       ZOO_TICK_TIME: 2000
       ZOO_LOG_LEVEL: INFO
       ALLOW_ANONYMOUS_LOGIN: "yes"
+      ALLOW_PLAINTEXT_LISTENER: "yes"
     networks:
       - eureka-net
     ports:
@@ -121,7 +122,7 @@ services:
 
   kafka:
     container_name: kafka
-    image: bitnami/kafka:3.9.0
+    image: bitnamilegacy/kafka:3.3.2-debian-11-r11
     restart: unless-stopped
     cpus: 6
     mem_limit: 2g
@@ -130,6 +131,7 @@ services:
       zookeeper:
         condition: service_healthy
     environment:
+      KAFKA_BROKER_ID: 1
       KAFKA_CFG_NODE_ID: 1
       KAFKA_CFG_LISTENERS: PLAINTEXT://:9091,EXTERNAL://:9092
       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://:9091,EXTERNAL://kafka.eureka:9092
@@ -139,6 +141,7 @@ services:
       KAFKA_CFG_LOG_RETENTION_BYTES: -1
       KAFKA_CFG_LOG_RETENTION_HOURS: -1
       KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      ALLOW_PLAINTEXT_LISTENER: "yes"
     volumes:
       - kafka-data:/kafka
     networks:
