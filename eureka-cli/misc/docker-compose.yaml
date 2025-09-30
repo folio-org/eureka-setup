@@ -301,7 +301,7 @@ services:
   ### Elasticsearch (required for mod-search), Kibana (optional) ###
   kibana:
     container_name: kibana
-    image: bitnami/kibana:8.18.0
+    image: bitnamilegacy/kibana:8.18.0-debian-12-r1
     restart: unless-stopped
     cpus: 1
     mem_limit: 1g
@@ -327,7 +327,7 @@ services:
 
   elasticsearch:
     container_name: elasticsearch
-    image: bitnami/elasticsearch:8.18.0
+    image: bitnamilegacy/elasticsearch:8.18.0-debian-12-r2
     restart: unless-stopped
     cpus: 1
     mem_limit: 2g
