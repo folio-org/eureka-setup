@@ -21,9 +21,16 @@ jobs:
       - name: Validate docker-compose.yml
         run: docker compose -f ./eureka-cli/misc/docker-compose.yaml config
 
+  docker-trivy:
+    name: Docker Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
       - name: Check Docker configurations
-        if: github.event_name == 'pull_request'
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.29.0
         with:
           scan-type: 'config'
           scan-ref: './eureka-cli/misc/folio-vault/Dockerfile'
@@ -32,14 +39,8 @@ jobs:
     name: Go Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: "1.24.1"
-          cache-dependency-path: ./eureka-cli/go.sum
+      - name: Setup Go Environment
+        uses: ./.github/actions/setup-go
 
       - name: Go Vet
         working-directory: ./eureka-cli
@@ -52,9 +53,42 @@ jobs:
           args: --timeout=5m
           only-new-issues: true
 
+  go-trivy:
+    name: Go Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Go Environment
+        uses: ./.github/actions/setup-go
+
+      - name: Download Go dependencies
+        working-directory: ./eureka-cli
+        run: go mod download
+
+      - name: Run Trivy vulnerability scanner on Go dependencies
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          scan-type: 'fs'
+          scan-ref: './eureka-cli'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Trivy vulnerability scanner (table output)
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          scan-type: 'fs'
+          scan-ref: './eureka-cli'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
   test:
     name: Test CLI Help Command (${{ matrix.os }}-${{ matrix.goarch }})
-    needs: [go-lint, docker-lint]
+    needs: [go-lint, docker-lint, docker-trivy, go-trivy]
     strategy:
       matrix:
         include:
@@ -68,8 +102,8 @@ jobs:
             goarch: arm64
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
+      - name: Setup Go Environment
+        uses: ./.github/actions/setup-go
 
       - name: Set up .eureka directory permissions
         shell: bash
@@ -82,12 +116,6 @@ jobs:
           fi
         env:
           RUNNER_OS: ${{ runner.os }}
-
-      - name: Set up Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: "1.24.1"
-          cache-dependency-path: ./eureka-cli/go.sum
 
       - name: Build CLI
         working-directory: ./eureka-cli
