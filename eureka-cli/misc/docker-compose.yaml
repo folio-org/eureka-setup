@@ -153,8 +153,8 @@ services:
       test: ["CMD", "/bin/bash", "-c", "kafka-topics.sh --bootstrap-server kafka.eureka:9092 --list"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 3s
+      retries: 10
+      start_period: 10s
 
   ### Vault (required) ###
   vault:
