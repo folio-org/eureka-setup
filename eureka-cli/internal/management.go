@@ -733,16 +733,23 @@ func AttachCapabilitySetsToRoles(commandName string, enableDebug bool, tenant st
 
 func populateCapabilitySets(commandName string, enableDebug bool, headers map[string]string, capabilitySetNames []any) []string {
 	var capabilitySets = []string{}
-	if len(capabilitySetNames) > 1 && !slices.Contains(capabilitySetNames, "all") {
+	if len(capabilitySetNames) == 0 {
+		return capabilitySets
+	}
+
+	if len(capabilitySetNames) == 1 && !slices.Contains(capabilitySetNames, "all") {
 		for _, capabilitySetName := range capabilitySetNames {
 			for _, value := range GetCapabilitySetsByName(commandName, enableDebug, true, headers, capabilitySetName.(string)) {
 				capabilitySets = append(capabilitySets, value.(map[string]any)["id"].(string))
 			}
+
 		}
-	} else {
-		for _, value := range GetCapabilitySets(commandName, enableDebug, true, headers) {
-			capabilitySets = append(capabilitySets, value.(map[string]any)["id"].(string))
-		}
+
+		return capabilitySets
+	}
+
+	for _, value := range GetCapabilitySets(commandName, enableDebug, true, headers) {
+		capabilitySets = append(capabilitySets, value.(map[string]any)["id"].(string))
 	}
 
 	return capabilitySets

@@ -26,7 +26,7 @@ import (
 
 const deploySystemCommand string = "Deploy System"
 
-var coreRequiredContainers = []string{"postgres", "zookeeper", "kafka", "vault", "keycloak", "keycloak-internal", "kong"}
+var coreRequiredContainers = []string{"postgres", "kafka", "kafka-tools", "vault", "keycloak", "keycloak-internal", "kong"}
 
 // deploySystemCmd represents the deploySystem command
 var deploySystemCmd = &cobra.Command{

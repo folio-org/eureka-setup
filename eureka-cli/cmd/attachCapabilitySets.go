@@ -95,7 +95,7 @@ func pollCapabilitySetsCreation(enableDebug bool, tenant string) {
 }
 
 func getConsumerGroupLag(enableDebug bool, tenant string, consumerGroup string, initialLag int) (lag int) {
-	stdout, stderr := internal.RunCommandReturnOutput(listSystemCommand, exec.Command("docker", "exec", "-i", "kafka", "bash", "-c",
+	stdout, stderr := internal.RunCommandReturnOutput(listSystemCommand, exec.Command("docker", "exec", "-i", "kafka-tools", "bash", "-c",
 		fmt.Sprintf("kafka-consumer-groups.sh --bootstrap-server %s --describe --group %s | grep %s | awk '{print $6}'", KafkaUrl, consumerGroup, tenant)))
 	if stderr.Len() > 0 {
 		if strings.Contains(stderr.String(), NoActiveMembersErrorMessage) || strings.Contains(stderr.String(), IsRebalancingErrorMessage) {

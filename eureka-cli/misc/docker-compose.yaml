@@ -36,7 +36,7 @@ services:
     networks:
       - eureka-net
     healthcheck:
-      test: nc -zv localhost 80 || exit -1
+      test: nc -zv localhost 80 || exit 1
       interval: 10s
       timeout: 5s
       retries: 15
@@ -68,7 +68,7 @@ services:
       timeout: 10s
       retries: 10
 
-  ### Kafka UI (optional), Zookeeper (required), Kafka (required) ###
+  ### Kafka UI (optional), Kafka (required), Kafka tools (required) ###
   kafka-ui:
     container_name: kafka-ui
     image: provectuslabs/kafka-ui:v0.7.2
@@ -77,14 +77,12 @@ services:
     mem_limit: 350m
     memswap_limit: -1
     depends_on:
-      zookeeper:
-        condition: service_healthy
       kafka:
         condition: service_healthy
     environment:
       KAFKA_CLUSTERS_0_NAME: kafka-local
       KAFKA_CLUSTERS_0_JMXPORT: 9997
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka.eureka:9091
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka.eureka:9092
     networks:
       - eureka-net
     ports:
@@ -95,72 +93,73 @@ services:
       timeout: 10s
       retries: 10
 
-  zookeeper:
-    container_name: zookeeper
-    image: bitnamilegacy/zookeeper:3.9.3-debian-12-r22
-    restart: unless-stopped
-    cpus: 1
-    mem_limit: 200m
-    memswap_limit: -1
-    environment:
-      ZOO_SERVER_ID: 1
-      ZOO_PORT_NUMBER: 2181
-      ZOO_TICK_TIME: 2000
-      ZOO_LOG_LEVEL: INFO
-      ALLOW_ANONYMOUS_LOGIN: "yes"
-      ALLOW_PLAINTEXT_LISTENER: "yes"
-    networks:
-      - eureka-net
-    ports:
-      - "2181:2181"
-    healthcheck:
-      test: nc -zv localhost 2181 || exit -1
-      interval: 10s
-      timeout: 5s
-      retries: 15
-      start_period: 5s
-
   kafka:
     container_name: kafka
-    image: bitnamilegacy/kafka:3.3.2-debian-11-r11
+    image: apache/kafka-native:4.1.0
     restart: unless-stopped
     cpus: 6
     mem_limit: 2g
     memswap_limit: -1
-    depends_on:
-      zookeeper:
-        condition: service_healthy
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_CFG_NODE_ID: 1
-      KAFKA_CFG_LISTENERS: PLAINTEXT://:9091,EXTERNAL://:9092
-      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://:9091,EXTERNAL://kafka.eureka:9092
-      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
-      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper.eureka:2181
-      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_CFG_LOG_RETENTION_BYTES: -1
-      KAFKA_CFG_LOG_RETENTION_HOURS: -1
-      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
-      ALLOW_PLAINTEXT_LISTENER: "yes"
+      CLUSTER_ID: kafka-local
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
     volumes:
-      - kafka-data:/kafka
+      - kafka-data:/var/lib/kafka/data
     networks:
       - eureka-net
     ports:
       - "9092:9092"
     healthcheck:
-      test:
-        [
-          "CMD",
-          "kafka-topics.sh",
-          "--bootstrap-server",
-          "localhost:9091",
-          "--list",
-        ]
+      test: nc -zv localhost 9092 || exit 1
       interval: 10s
       timeout: 5s
       retries: 15
       start_period: 5s
+
+  kafka-tools:
+    container_name: kafka-tools
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM ubuntu:22.04
+        RUN apt-get update && \
+            apt-get install -y wget openjdk-17-jre-headless coreutils bash procps && \
+            wget -q https://dlcdn.apache.org/kafka/4.1.0/kafka_2.13-4.1.0.tgz && \
+            tar -xzf kafka_2.13-4.1.0.tgz && \
+            mv kafka_2.13-4.1.0 /opt/kafka && \
+            ln -s /opt/kafka/bin/* /usr/local/bin/ && \
+            rm kafka_2.13-4.1.0.tgz && \
+            apt-get clean && \
+            rm -rf /var/lib/apt/lists/* && \
+            which bash && ls -la /bin/bash /usr/bin/bash
+        ENV PATH="/opt/kafka/bin:/usr/bin:/bin:$PATH"
+        CMD ["/usr/bin/sleep", "infinity"]
+    image: kafka-tools:latest
+    restart: unless-stopped
+    cpus: "0.5"
+    mem_limit: 350m
+    memswap_limit: -1
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - eureka-net
+    healthcheck:
+      test: ["CMD", "/bin/bash", "-c", "kafka-topics.sh --bootstrap-server kafka.eureka:9092 --list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 3s
 
   ### Vault (required) ###
   vault:
@@ -316,11 +315,7 @@ services:
     ports:
       - 15601:5601
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'",
-        ]
+      test: ["CMD-SHELL", "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'"]
       interval: 10s
       timeout: 10s
       retries: 120
@@ -362,9 +357,13 @@ services:
       - 9000:9000
       - 9001:9001
     healthcheck:
-      test: "curl -k -f http://127.0.0.1:9001/minio/health/live || exit 1"
+      test: curl -k -f http://127.0.0.1:9001/minio/health/live || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 30
 
-  createbuckets: # This container will terminate after running its commands to create a bucket in minio
+  # Will terminate after running its commands to create a bucket in minio
+  createbuckets:
     container_name: createbuckets
     image: minio/mc:RELEASE.2025-03-12T17-29-24Z
     restart: on-failure
