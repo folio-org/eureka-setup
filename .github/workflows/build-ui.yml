@@ -64,6 +64,9 @@ jobs:
           username: ${{ env.DOCKERHUB_NAMESPACE }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Checkout code
+        uses: actions/checkout@v5
+
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
 

@@ -39,6 +39,9 @@ jobs:
     name: Go Lint
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
 
@@ -57,6 +60,9 @@ jobs:
     name: Go Security Scan
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
 
@@ -102,6 +108,9 @@ jobs:
             goarch: arm64
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
 
