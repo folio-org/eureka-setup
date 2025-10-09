@@ -3,7 +3,7 @@ ARG VAULT_VERSION=1.19
 FROM hashicorp/vault:$VAULT_VERSION
 
 RUN apk update && apk add --no-cache \
-    curl=8.12.1-r1 \
+    curl=8.14.1-r2 \
     jq=1.7.1-r0 \
     coreutils=9.5-r2
 
