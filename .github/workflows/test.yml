@@ -18,6 +18,11 @@ jobs:
         with:
           dockerfile: ./eureka-cli/misc/folio-vault/Dockerfile
 
+      - name: Validate misc/folio-kafka-tools/Dockerfile
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: ./eureka-cli/misc/folio-kafka-tools/Dockerfile
+
       - name: Validate misc/docker-compose.yml
         run: docker compose -f ./eureka-cli/misc/docker-compose.yaml config
 
@@ -33,6 +38,12 @@ jobs:
         with:
           scan-type: 'config'
           scan-ref: './eureka-cli/misc/folio-vault/Dockerfile'
+
+      - name: Check folio-kafka-tools Dockerfile
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: './eureka-cli/misc/folio-kafka-tools/Dockerfile'
 
   go-lint:
     name: Go Lint

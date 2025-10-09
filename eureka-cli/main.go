@@ -21,7 +21,7 @@ import (
 	"github.com/folio-org/eureka-cli/cmd"
 )
 
-//go:embed misc/edge-modules misc/folio-keycloak-nginx misc/folio-vault misc/postgres misc/docker-compose.yaml *.yaml
+//go:embed misc/edge-modules misc/folio-keycloak-nginx misc/folio-vault misc/folio-kafka-tools misc/postgres misc/docker-compose.yaml *.yaml
 var mainEmbeddedFs embed.FS
 
 func main() {

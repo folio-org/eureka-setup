@@ -23,13 +23,13 @@ services:
   ### Netcat (required by checkPorts command) ###
   netcat:
     container_name: netcat
+    image: netcat:latest
+    restart: unless-stopped
     build:
       context: .
       dockerfile_inline: |
         FROM nginx:1.27.4
         RUN apt update; apt install netcat-traditional -y
-    image: netcat:latest
-    restart: unless-stopped
     cpus: "0.25"
     mem_limit: 35m
     memswap_limit: -1
@@ -136,24 +136,11 @@ services:
 
   kafka-tools:
     container_name: kafka-tools
-    build:
-      context: .
-      dockerfile_inline: |
-        FROM ubuntu:22.04
-        RUN apt-get update && \
-            apt-get install -y wget openjdk-17-jre-headless coreutils bash procps && \
-            wget -q https://dlcdn.apache.org/kafka/4.1.0/kafka_2.13-4.1.0.tgz && \
-            tar -xzf kafka_2.13-4.1.0.tgz && \
-            mv kafka_2.13-4.1.0 /opt/kafka && \
-            ln -s /opt/kafka/bin/* /usr/local/bin/ && \
-            rm kafka_2.13-4.1.0.tgz && \
-            apt-get clean && \
-            rm -rf /var/lib/apt/lists/* && \
-            which bash && ls -la /bin/bash /usr/bin/bash
-        ENV PATH="/opt/kafka/bin:/usr/bin:/bin:$PATH"
-        CMD ["/usr/bin/sleep", "infinity"]
-    image: kafka-tools:latest
+    image: bkadirkhodjaev/folio-kafka-tools:latest
     restart: unless-stopped
+    build:
+      context: ./folio-kafka-tools
+      dockerfile: Dockerfile
     cpus: "0.5"
     mem_limit: 350m
     memswap_limit: -1
@@ -172,7 +159,7 @@ services:
   ### Vault (required) ###
   vault:
     container_name: vault
-    image: folio-vault:latest
+    image: bkadirkhodjaev/folio-vault:latest
     restart: unless-stopped
     build:
       context: ./folio-vault
