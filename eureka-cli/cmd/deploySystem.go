@@ -31,8 +31,8 @@ var coreRequiredContainers = []string{"postgres", "kafka", "kafka-tools", "vault
 // deploySystemCmd represents the deploySystem command
 var deploySystemCmd = &cobra.Command{
 	Use:   "deploySystem",
-	Short: "Undeploy system",
-	Long:  `Undeploy all system containers.`,
+	Short: "Deploy system",
+	Long:  `Deploy all system containers.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		DeploySystem()
 	},

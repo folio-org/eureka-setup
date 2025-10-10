@@ -23,13 +23,11 @@ services:
   ### Netcat (required by checkPorts command) ###
   netcat:
     container_name: netcat
-    build:
-      context: .
-      dockerfile_inline: |
-        FROM nginx:1.27.4
-        RUN apt update; apt install netcat-traditional -y
-    image: netcat:latest
+    image: ${DOCKERHUB_NAMESPACE}/folio-netcat:${FOLIO_NETCAT_VERSION}
     restart: unless-stopped
+    build:
+      context: ./folio-netcat
+      dockerfile: Dockerfile
     cpus: "0.25"
     mem_limit: 35m
     memswap_limit: -1
@@ -45,7 +43,7 @@ services:
   ### Postgres (required)  ###
   postgres:
     container_name: postgres
-    image: postgres:16.8
+    image: postgres:${POSTGRES_VERSION}
     restart: unless-stopped
     command: [
       "-c", "max_connections=500", 
@@ -79,7 +77,7 @@ services:
   ### Kafka UI (optional), Kafka (required), Kafka tools (required) ###
   kafka-ui:
     container_name: kafka-ui
-    image: provectuslabs/kafka-ui:v0.7.2
+    image: provectuslabs/kafka-ui:${KAFKA_UI_VERSION}
     restart: unless-stopped
     cpus: "0.5"
     mem_limit: 350m
@@ -103,7 +101,7 @@ services:
 
   kafka:
     container_name: kafka
-    image: apache/kafka-native:4.1.0
+    image: apache/kafka-native:${KAFKA_VERSION}
     restart: unless-stopped
     cpus: 6
     mem_limit: 2g
@@ -112,11 +110,12 @@ services:
       CLUSTER_ID: kafka-local
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka.eureka:9092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka.eureka:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
@@ -136,24 +135,11 @@ services:
 
   kafka-tools:
     container_name: kafka-tools
-    build:
-      context: .
-      dockerfile_inline: |
-        FROM ubuntu:22.04
-        RUN apt-get update && \
-            apt-get install -y wget openjdk-17-jre-headless coreutils bash procps && \
-            wget -q https://dlcdn.apache.org/kafka/4.1.0/kafka_2.13-4.1.0.tgz && \
-            tar -xzf kafka_2.13-4.1.0.tgz && \
-            mv kafka_2.13-4.1.0 /opt/kafka && \
-            ln -s /opt/kafka/bin/* /usr/local/bin/ && \
-            rm kafka_2.13-4.1.0.tgz && \
-            apt-get clean && \
-            rm -rf /var/lib/apt/lists/* && \
-            which bash && ls -la /bin/bash /usr/bin/bash
-        ENV PATH="/opt/kafka/bin:/usr/bin:/bin:$PATH"
-        CMD ["/usr/bin/sleep", "infinity"]
-    image: kafka-tools:latest
+    image: ${DOCKERHUB_NAMESPACE}/folio-kafka-tools:${FOLIO_KAFKA_TOOLS_VERSION}
     restart: unless-stopped
+    build:
+      context: ./folio-kafka-tools
+      dockerfile: Dockerfile
     cpus: "0.5"
     mem_limit: 350m
     memswap_limit: -1
@@ -166,13 +152,13 @@ services:
       test: ["CMD", "/bin/bash", "-c", "kafka-topics.sh --bootstrap-server kafka.eureka:9092 --list"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 3s
+      retries: 10
+      start_period: 10s
 
   ### Vault (required) ###
   vault:
     container_name: vault
-    image: folio-vault:latest
+    image: ${DOCKERHUB_NAMESPACE}/folio-vault:${FOLIO_VAULT_VERSION}
     restart: unless-stopped
     build:
       context: ./folio-vault
@@ -202,7 +188,7 @@ services:
   ### Keycloak Nginx edge-proxy (required), Keycloak (required) ###
   keycloak:
     container_name: keycloak
-    image: nginx:1.27.4
+    image: nginx:${NGINX_VERSION}
     restart: unless-stopped
     cpus: 1
     mem_limit: 35m
@@ -226,7 +212,7 @@ services:
   # Source repository: https://github.com/folio-org/folio-keycloak
   keycloak-internal:
     container_name: keycloak-internal
-    image: folio-keycloak:latest
+    image: ${DOCKERHUB_NAMESPACE}/folio-keycloak:${FOLIO_KEYCLOAK_VERSION}
     restart: unless-stopped
     build:
       context: ./folio-keycloak
@@ -264,7 +250,7 @@ services:
   # Source repository: https://github.com/folio-org/folio-kong
   kong:
     container_name: kong
-    image: folio-kong:latest
+    image: ${DOCKERHUB_NAMESPACE}/folio-kong:${FOLIO_KONG_VERSION}
     restart: unless-stopped
     build:
       context: ./folio-kong
@@ -308,7 +294,7 @@ services:
   ### Elasticsearch (required for mod-search), Kibana (optional) ###
   kibana:
     container_name: kibana
-    image: bitnamilegacy/kibana:8.18.0-debian-12-r1
+    image: bitnamilegacy/kibana:${KIBANA_VERSION}
     restart: unless-stopped
     cpus: 1
     mem_limit: 1g
@@ -330,7 +316,7 @@ services:
 
   elasticsearch:
     container_name: elasticsearch
-    image: bitnamilegacy/elasticsearch:8.18.0-debian-12-r2
+    image: bitnamilegacy/elasticsearch:${ELASTICSEARCH_VERSION}
     restart: unless-stopped
     cpus: 1
     mem_limit: 2g
@@ -351,7 +337,7 @@ services:
   ### Minio (required for mod-data-export-worker), Minio MC (required) ###
   minio:
     container_name: minio
-    image: minio/minio:RELEASE.2025-03-12T18-04-18Z
+    image: minio/minio:${MINIO_VERSION}
     restart: unless-stopped
     command: server /data --console-address ":9001"
     cpus: 1
@@ -373,7 +359,7 @@ services:
   # Will terminate after running its commands to create a bucket in minio
   createbuckets:
     container_name: createbuckets
-    image: minio/mc:RELEASE.2025-03-12T17-29-24Z
+    image: minio/mc:${MINIO_MC_VERSION}
     restart: on-failure
     cpus: 1
     mem_limit: 300m
@@ -393,7 +379,7 @@ services:
   ### FTP Server (required by mod-data-export-worker) ###
   ftp-server:
     container_name: ftp-server
-    image: garethflowers/ftp-server
+    image: garethflowers/ftp-server:${FTP_SERVER_VERSION}
     restart: on-failure
     cpus: "0.5"
     mem_limit: 100m
