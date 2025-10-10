@@ -12,8 +12,13 @@ RUN apk update && apk add --no-cache \
     ln -s /opt/kafka/bin/* /usr/local/bin/ && \
     rm kafka_2.13-4.1.0.tgz && \
     rm -rf /var/cache/apk/* && \
-    which bash && ls -la /bin/bash
+    which bash && ls -la /bin/bash && \
+    addgroup -g 1000 kafka && \
+    adduser -D -u 1000 -G kafka kafka && \
+    chown -R kafka:kafka /opt/kafka
     
 ENV PATH="/opt/kafka/bin:/usr/bin:/bin:$PATH"
+
+USER kafka
 
 CMD ["/bin/sleep", "infinity"]

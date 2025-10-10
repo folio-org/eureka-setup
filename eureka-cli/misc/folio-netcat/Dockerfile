@@ -6,6 +6,10 @@ RUN apk update && apk add --no-cache \
     wget=1.24.5-r0 \
     bind-tools=9.18.39-r0 \
     traceroute=2.1.5-r0 && \
-    rm -rf /var/cache/apk/*
+    rm -rf /var/cache/apk/* && \
+    addgroup -g 1000 netcat && \
+    adduser -D -u 1000 -G netcat netcat
+
+USER netcat
 
 CMD ["/bin/sh", "-c", "sleep infinity"]
