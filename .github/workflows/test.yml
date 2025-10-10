@@ -13,6 +13,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Validate misc/folio-netcat/Dockerfile
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: ./eureka-cli/misc/folio-netcat/Dockerfile
+
       - name: Validate misc/folio-vault/Dockerfile
         uses: hadolint/hadolint-action@v3.3.0
         with:
@@ -33,7 +38,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Check Docker configurations
+      - name: Check folio-netcat Dockerfile
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: './eureka-cli/misc/folio-netcat/Dockerfile'
+
+      - name: Check folio-vault Dockerfile
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'config'

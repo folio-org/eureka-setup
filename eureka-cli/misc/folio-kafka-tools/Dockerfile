@@ -1,21 +1,19 @@
-FROM ubuntu:22.04
+FROM alpine:3.20
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        wget=1.21.2-* \
-        openjdk-17-jre-headless=17.* \
-        coreutils=8.32-* \
-        bash=5.1-* \
-        procps=2:3.3.17-* && \
+RUN apk update && apk add --no-cache \
+        wget=1.24.5-r0 \
+        openjdk17-jre-headless=17.0.16_p8-r0 \
+        coreutils=9.5-r2 \
+        bash=5.2.26-r0 \
+        procps-ng=4.0.4-r0 && \
     wget -q https://dlcdn.apache.org/kafka/4.1.0/kafka_2.13-4.1.0.tgz && \
     tar -xzf kafka_2.13-4.1.0.tgz && \
     mv kafka_2.13-4.1.0 /opt/kafka && \
     ln -s /opt/kafka/bin/* /usr/local/bin/ && \
     rm kafka_2.13-4.1.0.tgz && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    which bash && ls -la /bin/bash /usr/bin/bash
+    rm -rf /var/cache/apk/* && \
+    which bash && ls -la /bin/bash
     
 ENV PATH="/opt/kafka/bin:/usr/bin:/bin:$PATH"
 
-CMD ["/usr/bin/sleep", "infinity"]
+CMD ["/bin/sleep", "infinity"]

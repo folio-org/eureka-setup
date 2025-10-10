@@ -21,9 +21,19 @@ import (
 	"github.com/folio-org/eureka-cli/cmd"
 )
 
-//go:embed misc/edge-modules misc/folio-keycloak-nginx misc/folio-vault misc/folio-kafka-tools misc/postgres misc/docker-compose.yaml *.yaml
-var mainEmbeddedFs embed.FS
+var (
+	//go:embed misc/edge-modules
+	//go:embed misc/folio-keycloak-nginx
+	//go:embed misc/folio-vault
+	//go:embed misc/folio-kafka-tools
+	//go:embed misc/folio-netcat
+	//go:embed misc/postgres
+	//go:embed misc/docker-compose.yaml
+	//go:embed misc/.env
+	//go:embed *.yaml
+	embeddedFs embed.FS
+)
 
 func main() {
-	cmd.Execute(mainEmbeddedFs)
+	cmd.Execute(embeddedFs)
 }
