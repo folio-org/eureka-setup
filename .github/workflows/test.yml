@@ -66,11 +66,7 @@ jobs:
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
 
-      - name: Go Vet
-        working-directory: ./eureka-cli
-        run: go vet ./...
-
-      - name: Install golangci-lint
+      - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
           working-directory: ./eureka-cli
@@ -101,7 +97,7 @@ jobs:
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: always() && github.actor != 'dependabot[bot]'
         with:
           sarif_file: 'trivy-results.sarif'
 
