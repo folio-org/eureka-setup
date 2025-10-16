@@ -190,16 +190,28 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 
 			moduleDescriptorUrl := fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls[FolioRegistry], module.Id)
 
-			if applicationFetchDescriptors {
-				slog.Info(commandName, GetFuncName(), fmt.Sprintf("Fetching module descriptor for %s from %s", module.Id, moduleDescriptorUrl))
-				dto.ModuleDescriptorsMap[module.Id] = DoGetDecodeReturnAny(commandName, moduleDescriptorUrl, enableDebug, true, map[string]string{})
+			isLocalModule := okBackend && backendModule.LocalDescriptorPath != ""
+
+			if applicationFetchDescriptors || isLocalModule {
+				if isLocalModule {
+					slog.Info(commandName, GetFuncName(), fmt.Sprintf("Fetching local module descriptor for %s from file path", module.Id))
+
+					var descriptor map[string]any
+					ReadJsonFromFile(commandName, backendModule.LocalDescriptorPath, &descriptor)
+					dto.ModuleDescriptorsMap[module.Id] = descriptor
+
+					slog.Info(commandName, GetFuncName(), fmt.Sprintf("Successfully loaded descriptor for %s from local file", module.Id))
+				} else {
+					slog.Info(commandName, GetFuncName(), fmt.Sprintf("Fetching module descriptor for %s from %s", module.Id, moduleDescriptorUrl))
+					dto.ModuleDescriptorsMap[module.Id] = DoGetDecodeReturnAny(commandName, moduleDescriptorUrl, enableDebug, true, map[string]string{})
+				}
 			}
 
 			if okBackend {
 				serverPort := strconv.Itoa(backendModule.ModuleServerPort)
 				backendModule := map[string]string{"id": module.Id, "name": module.Name, "version": *module.Version}
 
-				if applicationFetchDescriptors {
+				if applicationFetchDescriptors || isLocalModule {
 					backendModuleDescriptors = append(backendModuleDescriptors, dto.ModuleDescriptorsMap[module.Id])
 				} else {
 					backendModule["url"] = moduleDescriptorUrl

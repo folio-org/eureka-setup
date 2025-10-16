@@ -187,6 +187,14 @@ func createConfigurableBackendDto(commandName string, value any, name string) (d
 	dto.useVault = GetAnyKeyOrDefault(mapEntry, ModuleUseVaultEntryKey, false).(bool)
 	dto.disableSystemUser = GetAnyKeyOrDefault(mapEntry, ModuleDisableSystemUserEntryKey, false).(bool)
 	dto.useOkapiUrl = GetAnyKeyOrDefault(mapEntry, ModuleUseOkapiUrlEntryKey, false).(bool)
+	dto.localDescriptorPath = GetAnyKeyOrDefault(mapEntry, ModuleLocalDescriptorPathEntryKey, "").(string)
+
+	if dto.localDescriptorPath != "" {
+		if _, err := os.Stat(dto.localDescriptorPath); os.IsNotExist(err) {
+			LogErrorPanic(commandName, fmt.Sprintf("internal.createConfigurableBackendDto error - local-descriptor-path file does not exist: %s for module: %s", dto.localDescriptorPath, name))
+		}
+	}
+
 	dto.version = getVersion(mapEntry)
 	dto.port = getPort(commandName, dto.deployModule, mapEntry)
 	dto.portServer = getPortServer(mapEntry)

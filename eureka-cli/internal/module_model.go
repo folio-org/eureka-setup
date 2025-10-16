@@ -43,18 +43,19 @@ type DeployModulesDto struct {
 }
 
 type BackendModuleDto struct {
-	deployModule      bool
-	deploySidecar     *bool
-	useVault          bool
-	useOkapiUrl       bool
-	disableSystemUser bool
-	name              string
-	version           *string
-	port              *int
-	portServer        *int
-	environment       map[string]any
-	resources         map[string]any
-	volumes           []string
+	deployModule        bool
+	deploySidecar       *bool
+	useVault            bool
+	useOkapiUrl         bool
+	disableSystemUser   bool
+	localDescriptorPath string
+	name                string
+	version             *string
+	port                *int
+	portServer          *int
+	environment         map[string]any
+	resources           map[string]any
+	volumes             []string
 }
 
 type BackendModule struct {
@@ -62,6 +63,7 @@ type BackendModule struct {
 	UseVault                 bool
 	UseOkapiUrl              bool
 	DisableSystemUser        bool
+	LocalDescriptorPath      string
 	ModuleName               string
 	ModuleVersion            *string
 	ModuleExposedServerPort  int
@@ -112,6 +114,7 @@ func NewBackendModuleWithSidecar(commandName string, dto BackendModuleDto) *Back
 		UseVault:                 dto.useVault,
 		UseOkapiUrl:              dto.useOkapiUrl,
 		DisableSystemUser:        dto.disableSystemUser,
+		LocalDescriptorPath:      dto.localDescriptorPath,
 		ModuleName:               dto.name,
 		ModuleVersion:            dto.version,
 		ModuleExposedServerPort:  moduleServerPort,
@@ -139,6 +142,7 @@ func NewBackendModule(commandName string, dto BackendModuleDto) *BackendModule {
 		UseVault:                dto.useVault,
 		UseOkapiUrl:             dto.useOkapiUrl,
 		DisableSystemUser:       dto.disableSystemUser,
+		LocalDescriptorPath:     dto.localDescriptorPath,
 		ModuleName:              dto.name,
 		ModuleVersion:           dto.version,
 		ModuleExposedServerPort: moduleServerPort,
@@ -298,7 +302,7 @@ func NewDeployModuleDto(name string, image string, env []string, backendModule B
 		},
 		NetworkConfig: networkConfig,
 		Platform:      &v1.Platform{},
-		PullImage:     true,
+		PullImage:     backendModule.LocalDescriptorPath == "",
 	}
 }
 

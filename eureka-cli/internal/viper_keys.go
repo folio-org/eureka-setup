@@ -72,6 +72,7 @@ const (
 	ModuleUseVaultEntryKey                  string = "use-vault"
 	ModuleUseOkapiUrlEntryKey               string = "use-okapi-url"
 	ModuleDisableSystemUserEntryKey         string = "disable-system-user"
+	ModuleLocalDescriptorPathEntryKey       string = "local-descriptor-path"
 	ModuleEnvironmentEntryKey               string = "environment"
 	ModuleVolumesEntryKey                   string = "volumes"
 	ModuleResourceEntryKey                  string = "resources"
