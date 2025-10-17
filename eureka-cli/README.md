@@ -396,6 +396,35 @@ eureka-cli -p edge listModules
 
 ![CLI Use Custom Folio Module Sidecar (2/2)](images/cli_use_custom_folio_module_sidecar_2.png)
 
+## Using local backend module images
+
+When developing backend modules locally, you can deploy them with custom module descriptors without pushing to a registry.
+
+- Build your module locally and generate a module descriptor
+
+```bash
+cd <module-directory>
+mvn clean package -DskipTests
+docker build --tag <module-name>:<version> .
+```
+
+- Configure the module to use the local descriptor in your config file
+
+```yaml
+backend-modules:
+  <module-name>:
+    version: "<version>"
+    local-descriptor-path: "/path/to/module/target/ModuleDescriptor.json"
+```
+
+> When `local-descriptor-path` is specified, the Docker image will not be pulled from a registry and the descriptor will be loaded from the local filesystem
+
+- Deploy the environment with your local module
+
+```bash
+eureka-cli deployApplication
+```
+
 ## Using the UI
 
 The environment depends on the [platform-complete](https://github.com/folio-org/platform-complete) project to combine and assemble frontend and backend modules into a single UI package. By default, the CLI uses a pre-built Docker image of _platform-complete_ from DockerHub to deploy the UI container.
