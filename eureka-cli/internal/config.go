@@ -192,6 +192,7 @@ func createConfigurableBackendDto(commandName string, value any, name string) (d
 	if dto.localDescriptorPath != "" {
 		if _, err := os.Stat(dto.localDescriptorPath); os.IsNotExist(err) {
 			LogErrorPanic(commandName, fmt.Sprintf("internal.createConfigurableBackendDto error - local-descriptor-path file does not exist: %s for module: %s", dto.localDescriptorPath, name))
+			return
 		}
 	}
 
