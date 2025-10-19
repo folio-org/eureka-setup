@@ -18,73 +18,18 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	"strings"
+	"os"
 	"sync"
 
-	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/field"
+	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/models"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-const interceptModuleCommand = "Intercept Module"
-
-type InterceptModuleDto struct {
-	id         string
-	moduleName string
-	moduleUrl  *string
-	sidecarUrl *string
-
-	sidecarServerPort int
-
-	portStart int
-	portEnd   int
-
-	deployModulesDto *internal.DeployModulesDto
-	networkConfig    *network.NetworkingConfig
-	backendModule    *internal.BackendModule
-	registryModule   *internal.RegistryModule
-}
-
-func NewInterceptModuleDto(id string, defaultGateway bool, moduleUrl, sidecarUrl string, portStart, portEnd int) *InterceptModuleDto {
-	id = strings.ReplaceAll(id, ":", "-")
-
-	var moduleUrlTemp, sidecarUrlTemp string
-	if defaultGateway {
-		schemaAndUrl := internal.GetGatewaySchemaAndUrl(interceptModuleCommand)
-		// If moduleUrl/sidecarUrl already contain http://, use them as-is
-		// Otherwise, assume they're port numbers and concatenate with gateway
-		if strings.HasPrefix(moduleUrl, "http://") || strings.HasPrefix(moduleUrl, "https://") {
-			moduleUrlTemp = moduleUrl
-		} else {
-			moduleUrlTemp = fmt.Sprintf("%s:%s", schemaAndUrl, moduleUrl)
-		}
-
-		if strings.HasPrefix(sidecarUrl, "http://") || strings.HasPrefix(sidecarUrl, "https://") {
-			sidecarUrlTemp = sidecarUrl
-		} else {
-			sidecarUrlTemp = fmt.Sprintf("%s:%s", schemaAndUrl, sidecarUrl)
-		}
-	} else {
-		moduleUrlTemp = moduleUrl
-		sidecarUrlTemp = sidecarUrl
-	}
-
-	return &InterceptModuleDto{
-		id:         id,
-		moduleName: internal.TrimModuleName(internal.ModuleIdRegexp.ReplaceAllString(id, `$1`)),
-		moduleUrl:  &moduleUrlTemp,
-		sidecarUrl: &sidecarUrlTemp,
-		portStart:  portStart,
-		portEnd:    portEnd,
-	}
-}
-
-func (dto *InterceptModuleDto) ClearUrls() {
-	dto.moduleUrl = nil
-	dto.sidecarUrl = nil
-}
 
 // interceptModuleCmd represents the interceptModule command
 var interceptModuleCmd = &cobra.Command{
@@ -92,123 +37,128 @@ var interceptModuleCmd = &cobra.Command{
 	Short: "Intercept module",
 	Long:  `Intercept/redirect module traffic to IntelliJ.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		InterceptModule()
+		startPort := viper.GetInt(field.ApplicationPortStart)
+		endPort := viper.GetInt(field.ApplicationPortEnd)
+		NewCustomRun(action.InterceptModule, startPort, endPort).InterceptModule()
 	},
 }
 
-func InterceptModule() {
-	dto := NewInterceptModuleDto(withId, withDefaultGateway, withModuleUrl, withSidecarUrl, viper.GetInt(internal.ApplicationPortStartKey), viper.GetInt(internal.ApplicationPortEndKey))
+func (r *Run) InterceptModule() {
+	baseSchemaAndUrl := r.Config.HTTPClient.GetGatewayProtoAndBaseURL()
 
-	slog.Info(interceptModuleCommand, internal.GetFuncName(), fmt.Sprintf("### INTERCEPTING %s MODULE ###", dto.moduleName))
-	internal.PortStartIndex = viper.GetInt(internal.ApplicationPortStartKey)
-	internal.PortEndIndex = viper.GetInt(internal.ApplicationPortEndKey)
-	globalEnvironment := internal.GetEnvironmentFromConfig(interceptModuleCommand, internal.EnvironmentKey)
-	globalSidecarEnvironment := internal.GetEnvironmentFromConfig(deployModulesCommand, internal.SidecarModuleEnvironmentKey)
-	backendModulesMap := internal.GetBackendModulesFromConfig(interceptModuleCommand, false, false, viper.GetStringMap(internal.BackendModulesKey))
-	instalJsonUrls := map[string]string{internal.FolioRegistry: viper.GetString(internal.InstallFolioKey), internal.EurekaRegistry: viper.GetString(internal.InstallEurekaKey)}
-	registryModules := internal.GetModulesFromRegistries(interceptModuleCommand, instalJsonUrls, false)
-	internal.ExtractModuleNameAndVersion(interceptModuleCommand, withEnableDebug, registryModules, false)
+	myModule := models.NewInterceptModule(rp.ID, rp.DefaultGateway, baseSchemaAndUrl, rp.ModuleURL, rp.SidecarURL, viper.GetInt(field.ApplicationPortStart), viper.GetInt(field.ApplicationPortEnd))
 
-	vaultRootToken, client := GetVaultRootTokenWithDockerClient()
+	slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("INTERCEPTING %s MODULE ", myModule.ModuleName))
+	globalEnvironment := helpers.GetConfigEnvVars(field.Environment)
+	globalSidecarEnvironment := helpers.GetConfigEnvVars(field.SidecarModuleEnvironment)
+	backendModulesMap := r.Config.ModuleParams.GetBackendModulesFromConfig(false, false, viper.GetStringMap(field.BackendModules))
+
+	instalJsonURLs := map[string]string{
+		constant.FolioRegistry:  viper.GetString(field.InstallFolio),
+		constant.EurekaRegistry: viper.GetString(field.InstallEureka),
+	}
+	registryModules := r.Config.RegistryStep.GetModules(instalJsonURLs, false)
+	r.Config.RegistryStep.ExtractModuleNameAndVersion(registryModules, false)
+
+	vaultRootToken, client := r.GetVaultRootTokenWithDockerClient()
 	defer func() {
 		_ = client.Close()
 	}()
 
-	slog.Info(interceptModuleCommand, internal.GetFuncName(), "### UNDEPLOYING DEFAULT MODULE AND SIDECAR PAIR ###")
-	internal.UndeployModuleByNamePattern(interceptModuleCommand, client, fmt.Sprintf(internal.SingleModuleOrSidecarContainerPattern, viper.GetString(internal.ProfileNameKey), dto.moduleName), false)
+	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING DEFAULT MODULE AND SIDECAR PAIR")
+	r.Config.ModuleStep.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, viper.GetString(field.ProfileName), myModule.ModuleName), false)
 
-	registryHostnames := map[string]string{internal.FolioRegistry: "", internal.EurekaRegistry: ""}
-	dto.deployModulesDto = internal.NewDeployModulesDto(vaultRootToken, registryHostnames, registryModules, backendModulesMap, globalEnvironment, globalSidecarEnvironment)
+	registryHosts := map[string]string{constant.FolioRegistry: "", constant.EurekaRegistry: ""}
+	myModule.Containers = models.NewCoreAndBusinessContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, globalEnvironment, globalSidecarEnvironment)
 
-	UpdateModuleDiscovery(*dto.sidecarUrl)
-	if withRestore {
-		deployDefaultModuleAndSidecar(dto, client)
+	r.UpdateModuleDiscovery(*myModule.SidecarUrl)
+	if rp.Restore {
+		r.deployDefaultModuleAndSidecar(myModule, client)
 		return
 	}
-	deployCustomSidecarForInterception(!withRestore, dto, client)
+	r.deployCustomSidecarForInterception(!rp.Restore, myModule, client)
 }
 
-func deployDefaultModuleAndSidecar(dto *InterceptModuleDto, client *client.Client) {
-	slog.Info(interceptModuleCommand, internal.GetFuncName(), "### DEPLOYING DEFAULT MODULE AND SIDECAR PAIR ###")
-	dto.ClearUrls()
+func (r *Run) deployDefaultModuleAndSidecar(myModule *models.InterceptModule, client *client.Client) {
+	slog.Info(r.Config.Action.Name, "text", "DEPLOYING DEFAULT MODULE AND SIDECAR PAIR")
+	myModule.ClearURLs()
 
-	prepareContainerNetwork(dto, true)
-	deployModule(dto, client)
-	deploySidecar(false, dto, client)
+	r.prepareContainerNetwork(myModule, true)
+	r.deployModule(myModule, client)
+	r.deploySidecar(false, myModule, client)
 
-	slog.Info(interceptModuleCommand, internal.GetFuncName(), "### WAITING FOR MODULE TO INITIALIZE ###")
+	slog.Info(r.Config.Action.Name, "text", "WAITING FOR MODULE TO INITIALIZE")
 	var waitMutex sync.WaitGroup
 	waitMutex.Add(1)
-	go internal.PerformModuleHealthcheck(interceptModuleCommand, withEnableDebug, &waitMutex, dto.moduleName, dto.backendModule.ModuleExposedServerPort)
+	go r.Config.ModuleStep.PerformModuleHealthCheck(&waitMutex, myModule.ModuleName, myModule.BackendModule.ModuleExposedServerPort)
 	waitMutex.Wait()
 }
 
-func deployCustomSidecarForInterception(printModuleEnvironment bool, dto *InterceptModuleDto, client *client.Client) {
-	slog.Info(interceptModuleCommand, internal.GetFuncName(), "### DEPLOYING CUSTOM SIDECAR FOR INTERCEPTION ###")
-	prepareContainerNetwork(dto, false)
-	deploySidecar(printModuleEnvironment, dto, client)
+func (r *Run) deployCustomSidecarForInterception(printModuleEnvironment bool, myModule *models.InterceptModule, client *client.Client) {
+	slog.Info(r.Config.Action.Name, "text", "DEPLOYING CUSTOM SIDECAR FOR INTERCEPTION")
+	r.prepareContainerNetwork(myModule, false)
+	r.deploySidecar(printModuleEnvironment, myModule, client)
 }
 
-func prepareContainerNetwork(dto *InterceptModuleDto, moduleAndSidecar bool) {
-	dto.networkConfig = internal.NewModuleNetworkConfig()
+func (r *Run) prepareContainerNetwork(myModule *models.InterceptModule, moduleAndSidecar bool) {
+	myModule.NetworkConfig = helpers.NewModuleNetworkConfig()
 
 	if moduleAndSidecar {
-		moduleServerPort := internal.GetAndSetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, &internal.ReservedPorts)
-		moduleDebugPort := internal.GetAndSetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, &internal.ReservedPorts)
-		sidecarServerPort := internal.GetAndSetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, &internal.ReservedPorts)
-		sidecarDebugPort := internal.GetAndSetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, &internal.ReservedPorts)
+		moduleServerPort := helpers.SetFreePortFromRange(r.Config.Action)
+		moduleDebugPort := helpers.SetFreePortFromRange(r.Config.Action)
+		sidecarServerPort := helpers.SetFreePortFromRange(r.Config.Action)
+		sidecarDebugPort := helpers.SetFreePortFromRange(r.Config.Action)
 
-		dto.backendModule, dto.registryModule = internal.GetBackendModule(interceptModuleCommand, dto.deployModulesDto, dto.moduleName)
-		dto.backendModule.ModulePortBindings = internal.CreatePortBindings(moduleServerPort, moduleDebugPort, dto.backendModule.ModuleServerPort)
-		dto.backendModule.SidecarPortBindings = internal.CreatePortBindings(sidecarServerPort, sidecarDebugPort, dto.backendModule.ModuleServerPort)
-		dto.backendModule.ModuleExposedServerPort = moduleServerPort
+		myModule.BackendModule, myModule.RegistryModule = r.Config.ModuleStep.GetBackendModule(myModule.Containers, myModule.ModuleName)
+		myModule.BackendModule.ModulePortBindings = helpers.CreatePortBindings(moduleServerPort, moduleDebugPort, myModule.BackendModule.ModuleServerPort)
+		myModule.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, myModule.BackendModule.ModuleServerPort)
+		myModule.BackendModule.ModuleExposedServerPort = moduleServerPort
 		return
 	}
 
-	sidecarServerPort := internal.ExtractPortFromUrl(interceptModuleCommand, *dto.sidecarUrl)
-	sidecarDebugPort := internal.GetAndSetFreePortFromRange(interceptModuleCommand, dto.portStart, dto.portEnd, &internal.ReservedPorts)
+	sidecarServerPort := helpers.ExtractPortFromURL(r.Config.Action, *myModule.SidecarUrl)
+	sidecarDebugPort := helpers.SetFreePortFromRange(r.Config.Action)
 
-	dto.sidecarServerPort = sidecarServerPort
+	myModule.SidecarServerPort = sidecarServerPort
 
-	dto.backendModule, dto.registryModule = internal.GetBackendModule(interceptModuleCommand, dto.deployModulesDto, dto.moduleName)
-	dto.backendModule.SidecarPortBindings = internal.CreatePortBindings(sidecarServerPort, sidecarDebugPort, dto.backendModule.ModuleServerPort)
+	myModule.BackendModule, myModule.RegistryModule = r.Config.ModuleStep.GetBackendModule(myModule.Containers, myModule.ModuleName)
+	myModule.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, myModule.BackendModule.ModuleServerPort)
 }
 
-func deployModule(dto *InterceptModuleDto, client *client.Client) {
-	moduleVersion := internal.GetModuleImageVersion(*dto.backendModule, dto.registryModule)
-	moduleImage := internal.GetModuleImage(interceptModuleCommand, moduleVersion, dto.registryModule)
-	moduleEnvironment := internal.GetModuleEnvironment(dto.deployModulesDto, dto.registryModule, *dto.backendModule)
-	moduleDeployDto := internal.NewDeployModuleDto(dto.registryModule.Name, moduleImage, moduleEnvironment, *dto.backendModule, dto.networkConfig)
-	internal.DeployModule(interceptModuleCommand, client, moduleDeployDto)
+func (r *Run) deployModule(myModule *models.InterceptModule, client *client.Client) {
+	moduleVersion := r.Config.ModuleStep.GetModuleImageVersion(*myModule.BackendModule, myModule.RegistryModule)
+	moduleImage := r.Config.ModuleStep.GetModuleImage(moduleVersion, myModule.RegistryModule)
+	moduleEnvironment := r.Config.ModuleStep.GetModuleEnvironment(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule)
+	moduleContainer := models.NewModuleContainer(myModule.RegistryModule.Name, moduleImage, moduleEnvironment, *myModule.BackendModule, myModule.NetworkConfig)
+	r.Config.ModuleStep.DeployModule(client, moduleContainer)
 }
 
-func deploySidecar(printModuleEnvironment bool, dto *InterceptModuleDto, client *client.Client) {
-	sidecarImage, pullSidecarImage := internal.GetSidecarImage(interceptModuleCommand, dto.deployModulesDto.RegistryModules[internal.EurekaRegistry])
-	sidecarResources := internal.CreateResources(false, viper.GetStringMap(internal.SidecarModuleResourcesKey))
-	sidecarEnvironment := internal.GetSidecarEnvironment(dto.deployModulesDto, dto.registryModule, *dto.backendModule, dto.moduleUrl, dto.sidecarUrl)
-	sidecarDeployDto := internal.NewDeploySidecarDto(dto.registryModule.SidecarName, sidecarImage, sidecarEnvironment, *dto.backendModule, dto.networkConfig, sidecarResources)
+func (r *Run) deploySidecar(printModuleEnvironment bool, myModule *models.InterceptModule, client *client.Client) {
+	sidecarImage, pullSidecarImage := r.Config.ModuleStep.GetSidecarImage(myModule.Containers.RegistryModules[constant.EurekaRegistry])
+	sidecarResources := helpers.CreateResources(false, viper.GetStringMap(field.SidecarModuleResources))
+	sidecarEnvironment := r.Config.ModuleStep.GetSidecarEnvironment(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule, myModule.ModuleUrl, myModule.SidecarUrl)
+	sidecarContainer := models.NewSidecarContainer(myModule.RegistryModule.SidecarName, sidecarImage, sidecarEnvironment, *myModule.BackendModule, myModule.NetworkConfig, sidecarResources)
+	sidecarContainer.PullImage = pullSidecarImage
 
-	sidecarDeployDto.PullImage = pullSidecarImage
-
-	internal.DeployModule(interceptModuleCommand, client, sidecarDeployDto)
+	r.Config.ModuleStep.DeployModule(client, sidecarContainer)
 
 	if printModuleEnvironment {
-		moduleEnvironment := internal.GetModuleEnvironment(dto.deployModulesDto, dto.registryModule, *dto.backendModule)
+		moduleEnvironment := r.Config.ModuleStep.GetModuleEnvironment(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule)
 
-		if dto.backendModule.UseOkapiUrl {
+		if myModule.BackendModule.UseOkapiURL {
 			moduleOkapiEnvironment := []string{"OKAPI_HOST=localhost",
-				fmt.Sprintf("OKAPI_PORT=%d", dto.sidecarServerPort),
+				fmt.Sprintf("OKAPI_PORT=%d", myModule.SidecarServerPort),
 				"OKAPI_SERVICE_HOST=localhost",
-				fmt.Sprintf("OKAPI_SERVICE_PORT=%d", dto.sidecarServerPort),
-				fmt.Sprintf("OKAPI_SERVICE_URL=http://localhost:%d", dto.sidecarServerPort),
-				fmt.Sprintf("OKAPI_URL=http://localhost:%d", dto.sidecarServerPort),
+				fmt.Sprintf("OKAPI_SERVICE_PORT=%d", myModule.SidecarServerPort),
+				fmt.Sprintf("OKAPI_SERVICE_URL=http://localhost:%d", myModule.SidecarServerPort),
+				fmt.Sprintf("OKAPI_URL=http://localhost:%d", myModule.SidecarServerPort),
 			}
 
 			moduleEnvironment = append(moduleEnvironment, moduleOkapiEnvironment...)
 		}
 
 		fmt.Println()
-		fmt.Printf("### %s ###\n", "Can be embedded into IntelliJ Run/Debug Configuration")
+		fmt.Printf("%s ###\n", "Can be embedded into IntelliJ Run/Debug Configuration")
 		for _, value := range moduleEnvironment {
 			fmt.Println(value)
 		}
@@ -218,13 +168,13 @@ func deploySidecar(printModuleEnvironment bool, dto *InterceptModuleDto, client 
 
 func init() {
 	rootCmd.AddCommand(interceptModuleCmd)
-	interceptModuleCmd.PersistentFlags().StringVarP(&withId, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
-	interceptModuleCmd.PersistentFlags().StringVarP(&withModuleUrl, "moduleUrl", "m", "", "Module URL, e.g. http://host.docker.internal:36002 or 36002 (if -g is used)")
-	interceptModuleCmd.PersistentFlags().StringVarP(&withSidecarUrl, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002 or 37002 (if -g is used)")
-	interceptModuleCmd.PersistentFlags().BoolVarP(&withRestore, "restore", "r", false, "Restore module & sidecar")
-	interceptModuleCmd.PersistentFlags().BoolVarP(&withDefaultGateway, "defaultGateway", "g", false, "Use default gateway in URLs, .e.g http://host.docker.internal:{{port}} will be set automatically")
+	interceptModuleCmd.PersistentFlags().StringVarP(&rp.ID, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
+	interceptModuleCmd.PersistentFlags().StringVarP(&rp.ModuleURL, "moduleUrl", "m", "", "Module URL, e.g. http://host.docker.internal:36002 or 36002 (if -g is used)")
+	interceptModuleCmd.PersistentFlags().StringVarP(&rp.SidecarURL, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002 or 37002 (if -g is used)")
+	interceptModuleCmd.PersistentFlags().BoolVarP(&rp.Restore, "restore", "r", false, "Restore module & sidecar")
+	interceptModuleCmd.PersistentFlags().BoolVarP(&rp.DefaultGateway, "defaultGateway", "g", false, "Use default gateway in URLs, .e.g http://host.docker.internal:{{port}} will be set automatically")
 	if err := interceptModuleCmd.MarkPersistentFlagRequired("id"); err != nil {
-		slog.Error(interceptModuleCommand, internal.GetFuncName(), "interceptModuleCmd.MarkPersistentFlagRequired error")
-		panic(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 }

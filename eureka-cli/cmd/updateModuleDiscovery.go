@@ -17,12 +17,12 @@ package cmd
 
 import (
 	"log/slog"
+	"os"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
 )
-
-const updateModuleDiscoveryCommand = "Update Module Discovery"
 
 // updateModuleDiscoveryCmd represents the redirect command
 var updateModuleDiscoveryCmd = &cobra.Command{
@@ -30,22 +30,22 @@ var updateModuleDiscoveryCmd = &cobra.Command{
 	Short: "Update module discovery",
 	Long:  `Update module discovery to point to a different sidecar URL.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		UpdateModuleDiscovery(withSidecarUrl)
+		NewRun(action.UpdateModuleDiscovery).UpdateModuleDiscovery(rp.SidecarURL)
 	},
 }
 
-func UpdateModuleDiscovery(sidecarUrl string) {
-	slog.Info(updateModuleDiscoveryCommand, internal.GetFuncName(), "### UPDATING MODULE DISCOVERY URL ###")
-	internal.UpdateModuleDiscovery(updateModuleDiscoveryCommand, withEnableDebug, withId, sidecarUrl, withRestore, internal.DefaultServerPort)
+func (r *Run) UpdateModuleDiscovery(sidecarUrl string) {
+	slog.Info(r.Config.Action.Name, "text", "UPDATING MODULE DISCOVERY URL")
+	r.Config.ManagementStep.UpdateModuleDiscovery(rp.ID, sidecarUrl, rp.Restore, constant.DefaultServerPort)
 }
 
 func init() {
 	rootCmd.AddCommand(updateModuleDiscoveryCmd)
-	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&withId, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
-	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&withSidecarUrl, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
-	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&withRestore, "restore", "r", false, "Restore sidecar URL")
+	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&rp.ID, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
+	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&rp.SidecarURL, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
+	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&rp.Restore, "restore", "r", false, "Restore sidecar URL")
 	if err := updateModuleDiscoveryCmd.MarkPersistentFlagRequired("id"); err != nil {
-		slog.Error(updateModuleDiscoveryCommand, internal.GetFuncName(), "updateModuleDiscoveryCmd.MarkPersistentFlagRequired error")
-		panic(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 }

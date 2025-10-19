@@ -18,34 +18,34 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
+	"os"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
 	"github.com/spf13/cobra"
 )
-
-const getKeycloakAccessTokenCommand string = "Get Keycloak Access Token"
 
 // getKeycloakAccessTokenCmd represents the getAccessToken command
 var getKeycloakAccessTokenCmd = &cobra.Command{
 	Use:   "getKeycloakAccessToken",
-	Short: "Get keyclaok access token",
+	Short: "Get keycloak access token",
 	Long:  `Get a keycloak master access token.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		vaultRootToken := GetVaultRootToken()
-		GetKeycloakAccessToken(vaultRootToken)
+		r := NewRun(action.GetKeycloakAccessToken)
+		vaultRootToken := r.GetVaultRootToken()
+		r.GetKeycloakAccessToken(vaultRootToken)
 	},
 }
 
-func GetKeycloakAccessToken(vaultRootToken string) {
-	keycloakAccessToken := internal.GetKeycloakAccessToken(getKeycloakAccessTokenCommand, withEnableDebug, vaultRootToken, withTenant)
+func (r *Run) GetKeycloakAccessToken(vaultRootToken string) {
+	keycloakAccessToken := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, rp.Tenant)
 	fmt.Println(keycloakAccessToken)
 }
 
 func init() {
 	rootCmd.AddCommand(getKeycloakAccessTokenCmd)
-	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&withTenant, "tenant", "t", "", "Tenant (required)")
+	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&rp.Tenant, "tenant", "t", "", "Tenant (required)")
 	if err := getKeycloakAccessTokenCmd.MarkPersistentFlagRequired("tenant"); err != nil {
-		slog.Error(getKeycloakAccessTokenCommand, internal.GetFuncName(), "getKeycloakAccessTokenCmd.MarkPersistentFlagRequired error")
-		panic(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 }

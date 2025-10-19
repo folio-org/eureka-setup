@@ -18,11 +18,12 @@ package cmd
 import (
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 )
-
-const updateKeycloakPublicClientsCommand string = "Update Keycloak Public Clients"
 
 // updateKeycloakPublicClientsCmd represents the updateKeycloakPublicClients command
 var updateKeycloakPublicClientsCmd = &cobra.Command{
@@ -30,26 +31,26 @@ var updateKeycloakPublicClientsCmd = &cobra.Command{
 	Short: "Update Keycloak public client params",
 	Long:  `Update Keycloak public client params for each UI container.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		UpdateKeycloakPublicClients()
+		NewRun(action.UpdateKeycloakPublicClients).UpdateKeycloakPublicClients()
 	},
 }
 
-func UpdateKeycloakPublicClients() {
-	slog.Info(updateKeycloakPublicClientsCommand, internal.GetFuncName(), "### UPDATING KEYCLOAK PUBLIC CLIENTS ###")
-	keycloakMasterAccessToken := internal.GetKeycloakMasterAccessToken(updateKeycloakPublicClientsCommand, withEnableDebug)
+func (r *Run) UpdateKeycloakPublicClients() {
+	slog.Info(r.Config.Action.Name, "text", "UPDATING KEYCLOAK PUBLIC CLIENTS")
+	keycloakMasterAccessToken := r.Config.KeycloakStep.GetKeycloakMasterAccessToken()
 
-	for _, value := range internal.GetTenants(updateKeycloakPublicClientsCommand, withEnableDebug, false, internal.NoneConsortium, internal.AllTenantTypes) {
+	for _, value := range r.Config.ManagementStep.GetTenants(false, constant.NoneConsortium, tenanttype.All) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
-		if !internal.HasTenant(existingTenant) || !internal.CanDeployUi(existingTenant) {
+		if !helpers.HasTenant(existingTenant) || !helpers.IsUIEnabled(existingTenant) {
 			continue
 		}
 
-		setCommandFlagsFromConfigFile(updateKeycloakPublicClientsCommand, existingTenant)
+		r.Config.TenantStep.SetDefaultConfigTenantParams(&rp, existingTenant)
 
-		slog.Info(updateKeycloakPublicClientsCommand, internal.GetFuncName(), "Updating keycloak public client")
-		internal.UpdateKeycloakPublicClientParams(updateKeycloakPublicClientsCommand, withEnableDebug, existingTenant, keycloakMasterAccessToken, withPlatformCompleteUrl)
+		slog.Info(r.Config.Action.Name, "text", "Updating keycloak public client")
+		r.Config.KeycloakStep.UpdateKeycloakPublicClientParams(existingTenant, keycloakMasterAccessToken, rp.PlatformCompleteURL)
 	}
 }
 

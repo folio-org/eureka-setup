@@ -19,11 +19,11 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 )
-
-const createUsersCommand string = "Create Users"
 
 // createUsersCmd represents the createUsers command
 var createUsersCmd = &cobra.Command{
@@ -31,26 +31,27 @@ var createUsersCmd = &cobra.Command{
 	Short: "Create users",
 	Long:  `Create all users.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RunByConsortiumAndTenantType(createUsersCommand, func(consortium string, tenantType internal.TenantType) {
-			CreateUsers(consortium, tenantType)
+		r := NewRun(action.CreateUsers)
+		r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+			r.CreateUsers(consortiumName, tenantType)
 		})
 	},
 }
 
-func CreateUsers(consortium string, tenantType internal.TenantType) {
-	vaultRootToken := GetVaultRootToken()
+func (r *Run) CreateUsers(consortiumName string, tenantType tenanttype.TenantType) {
+	vaultRootToken := r.GetVaultRootToken()
 
-	for _, value := range internal.GetTenants(createUsersCommand, withEnableDebug, false, consortium, tenantType) {
+	for _, value := range r.Config.ManagementStep.GetTenants(false, consortiumName, tenantType) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
-		if !internal.HasTenant(existingTenant) {
+		if !helpers.HasTenant(existingTenant) {
 			continue
 		}
 
-		slog.Info(createUsersCommand, internal.GetFuncName(), fmt.Sprintf("### CREATING USERS FOR %s TENANT ###", existingTenant))
-		keycloakAccessToken := internal.GetKeycloakAccessToken(createUsersCommand, withEnableDebug, vaultRootToken, existingTenant)
-		internal.CreateUsers(createUsersCommand, withEnableDebug, false, existingTenant, keycloakAccessToken)
+		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("CREATING USERS FOR %s TENANT", existingTenant))
+		keycloakAccessToken := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		r.Config.ManagementStep.CreateUsers(false, existingTenant, keycloakAccessToken)
 	}
 }
 

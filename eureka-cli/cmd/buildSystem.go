@@ -16,16 +16,15 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"os/exec"
 	"time"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/gitclient"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
-)
-
-const (
-	buildSystemCommand string = "Build System"
 )
 
 // buildSystemCmd represents the buildSystem command
@@ -35,39 +34,42 @@ var buildSystemCmd = &cobra.Command{
 	Long:  `Build system images.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
-		CloneUpdateRepositories()
-		BuildSystem()
-		slog.Info(buildSystemCommand, "Elapsed, duration", time.Since(start))
+
+		r := NewRun(action.BuildSystem)
+		r.CloneUpdateRepositories()
+		r.BuildSystem()
+
+		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Elapsed, duration %.1f", time.Since(start).Minutes()))
 	},
 }
 
-func CloneUpdateRepositories() {
-	slog.Info(buildSystemCommand, internal.GetFuncName(), "### CLONING & UPDATING REPOSITORIES ###")
-	repositories := []*internal.Repository{
-		internal.NewRepository(buildSystemCommand, internal.FolioKongRepositoryUrl, internal.DefaultFolioKongOutputDir, internal.DefaultFolioKongBranchName),
-		internal.NewRepository(buildSystemCommand, internal.FolioKeycloakRepositoryUrl, internal.DefaultFolioKeycloakOutputDir, internal.DefaultFolioKeycloakBranchName),
+func (r *Run) CloneUpdateRepositories() {
+	slog.Info(r.Config.Action.Name, "text", "CLONING & UPDATING REPOSITORIES")
+	repositories := []*gitclient.GitRepository{
+		r.Config.GitClient.KongRepository(),
+		r.Config.GitClient.KeycloakRepository(),
 	}
 
-	slog.Info(buildSystemCommand, internal.GetFuncName(), "Cloning repositories")
+	slog.Info(r.Config.Action.Name, "text", "Cloning repositories")
 	for _, repository := range repositories {
-		internal.GitCloneRepository(buildSystemCommand, withEnableDebug, false, repository)
+		r.Config.GitClient.GitClone(false, repository)
 	}
 
-	if withUpdateCloned {
-		slog.Info(buildSystemCommand, internal.GetFuncName(), "Updating repositories")
+	if rp.UpdateCloned {
+		slog.Info(r.Config.Action.Name, "text", "Updating repositories")
 		for _, repository := range repositories {
-			internal.GitResetHardPullFromOriginRepository(buildSystemCommand, withEnableDebug, repository)
+			r.Config.GitClient.GitResetHardPullFromOrigin(repository)
 		}
 	}
 }
 
-func BuildSystem() {
-	slog.Info(buildSystemCommand, internal.GetFuncName(), "### BUILDING SYSTEM IMAGES ###")
+func (r *Run) BuildSystem() {
+	slog.Info(r.Config.Action.Name, "text", "BUILDING SYSTEM IMAGES")
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache"}
-	internal.RunCommandFromDir(buildSystemCommand, exec.Command("docker", subCommand...), internal.GetHomeMiscDir(buildSystemCommand))
+	helpers.ExecFromDir(exec.Command("docker", subCommand...), helpers.GetHomeMiscDir(r.Config.Action))
 }
 
 func init() {
 	rootCmd.AddCommand(buildSystemCmd)
-	buildSystemCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	buildSystemCmd.PersistentFlags().BoolVarP(&rp.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
 }

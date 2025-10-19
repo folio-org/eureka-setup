@@ -22,15 +22,11 @@ import (
 	"fmt"
 	"log/slog"
 	"math/big"
+	"os"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
-)
-
-const (
-	getEdgeApiKeyCommand string = "Get Edge Api Key"
-
-	charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 )
 
 // getEdgeApiKeyCmd represents the generateApiKey command
@@ -39,15 +35,19 @@ var getEdgeApiKeyCmd = &cobra.Command{
 	Short: "Get Edge API key",
 	Long:  `Get Edge API key for a tenant`,
 	Run: func(cmd *cobra.Command, args []string) {
-		GetEdgeApiKey()
+		NewRun(action.GetEdgeApiKey).GetEdgeApiKey()
 	},
 }
 
-func GetEdgeApiKey() {
-	apiKeyBytes, err := json.Marshal(map[string]any{"s": getRandomString(withLength), "t": withTenant, "u": withUser})
+func (r *Run) GetEdgeApiKey() {
+	apiKeyBytes, err := json.Marshal(map[string]any{
+		"s": r.getRandomString(rp.Length),
+		"t": rp.Tenant,
+		"u": rp.User,
+	})
 	if err != nil {
-		slog.Error(getEdgeApiKeyCommand, internal.GetFuncName(), "json.Marshal error")
-		panic(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 
 	apiKey := base64.URLEncoding.EncodeToString(apiKeyBytes)
@@ -55,16 +55,16 @@ func GetEdgeApiKey() {
 	fmt.Println(apiKey)
 }
 
-func getRandomString(length int) string {
+func (r *Run) getRandomString(length int) string {
 	bytes := make([]byte, length)
 	for i := range length {
-		charsetIdx, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		charsetIdx, err := rand.Int(rand.Reader, big.NewInt(int64(len(constant.Charset))))
 		if err != nil {
-			slog.Error(getEdgeApiKeyCommand, internal.GetFuncName(), "rand.Int error")
-			panic(err)
+			slog.Error(err.Error())
+			os.Exit(1)
 		}
 
-		bytes[i] = charset[charsetIdx.Int64()]
+		bytes[i] = constant.Charset[charsetIdx.Int64()]
 	}
 
 	return string(bytes)
@@ -72,15 +72,15 @@ func getRandomString(length int) string {
 
 func init() {
 	rootCmd.AddCommand(getEdgeApiKeyCmd)
-	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&withTenant, "tenant", "t", "", "Tenant (required)")
-	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&withUser, "user", "U", "", "User (required)")
-	getEdgeApiKeyCmd.PersistentFlags().IntVarP(&withLength, "length", "l", 17, "Salt length")
+	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&rp.Tenant, "tenant", "t", "", "Tenant (required)")
+	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&rp.User, "user", "U", "", "User (required)")
+	getEdgeApiKeyCmd.PersistentFlags().IntVarP(&rp.Length, "length", "l", 17, "Salt length")
 	if err := getEdgeApiKeyCmd.MarkPersistentFlagRequired("tenant"); err != nil {
-		slog.Error(getEdgeApiKeyCommand, internal.GetFuncName(), "getEdgeApiKeyCmd.MarkPersistentFlagRequired error")
-		panic(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 	if err := getEdgeApiKeyCmd.MarkPersistentFlagRequired("user"); err != nil {
-		slog.Error(getEdgeApiKeyCommand, internal.GetFuncName(), "getEdgeApiKeyCmd.MarkPersistentFlagRequired error")
-		panic(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 }

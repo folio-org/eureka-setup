@@ -19,11 +19,9 @@ import (
 	"fmt"
 
 	"github.com/docker/docker/client"
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
 	"github.com/spf13/cobra"
 )
-
-const getVaultRootTokenCommand string = "Get Vault Root Token"
 
 // getVaultRootTokenCmd represents the getVaultRootToken command
 var getVaultRootTokenCmd = &cobra.Command{
@@ -31,24 +29,24 @@ var getVaultRootTokenCmd = &cobra.Command{
 	Short: "Get vault root token",
 	Long:  `Get vault root token from the server.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		vaultRootToken := GetVaultRootToken()
+		vaultRootToken := NewRun(action.GetVaultRootToken).GetVaultRootToken()
 		fmt.Println(vaultRootToken)
 	},
 }
 
-func GetVaultRootToken() string {
-	client := internal.CreateDockerClient(getVaultRootTokenCommand)
+func (r *Run) GetVaultRootToken() string {
+	client := r.Config.DockerClient.Create()
 	defer func() {
 		_ = client.Close()
 	}()
 
-	return internal.GetVaultRootToken(getVaultRootTokenCommand, client)
+	return r.Config.ModuleStep.GetVaultRootToken(client)
 }
 
-func GetVaultRootTokenWithDockerClient() (string, *client.Client) {
-	client := internal.CreateDockerClient(getVaultRootTokenCommand)
+func (r *Run) GetVaultRootTokenWithDockerClient() (string, *client.Client) {
+	client := r.Config.DockerClient.Create()
 
-	return internal.GetVaultRootToken(getVaultRootTokenCommand, client), client
+	return r.Config.ModuleStep.GetVaultRootToken(client), client
 }
 
 func init() {

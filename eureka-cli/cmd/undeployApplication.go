@@ -16,15 +16,16 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"time"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/field"
+	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-const undeployApplicationCommand string = "Undeploy Application"
 
 // undeployApplicationCmd represents the undeployApplication command
 var undeployApplicationCmd = &cobra.Command{
@@ -33,35 +34,38 @@ var undeployApplicationCmd = &cobra.Command{
 	Long:  `Undeploy platform application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
-		if len(viper.GetStringMap(internal.ApplicationGatewayDependenciesKey)) > 0 {
-			UndeployChildApplication()
+
+		r := NewRun(action.UndeployApplication)
+		if len(viper.GetStringMap(field.ApplicationGatewayDependencies)) > 0 {
+			r.UndeployChildApplication()
 		} else {
-			UndeployApplication()
+			r.UndeployApplication()
 		}
-		slog.Info(undeployApplicationCommand, "Elapsed, duration", time.Since(start))
+
+		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Elapsed, duration %.1f", time.Since(start).Minutes()))
 	},
 }
 
-func UndeployApplication() {
-	UndeployUi()
-	UndeployModules()
-	UndeployManagement()
-	UndeploySystem()
+func (r *Run) UndeployApplication() {
+	r.UndeployUi()
+	r.UndeployModules()
+	r.UndeployManagement()
+	r.UndeploySystem()
 }
 
-func UndeployChildApplication() {
-	RunByConsortiumAndTenantType(undeployApplicationCommand, func(consortium string, tenantType internal.TenantType) {
-		RemoveTenantEntitlements(consortium, tenantType)
+func (r *Run) UndeployChildApplication() {
+	r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+		r.RemoveTenantEntitlements(consortiumName, tenantType)
 	})
-	UndeployModules()
-	UndeployAdditionalSystem()
-	RunByConsortiumAndTenantType(undeployApplicationCommand, func(consortium string, tenantType internal.TenantType) {
-		DetachCapabilitySets(consortium, tenantType)
-		AttachCapabilitySets(consortium, tenantType, 0*time.Second)
+	r.UndeployModules()
+	r.UndeployAdditionalSystem()
+	r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+		r.DetachCapabilitySets(consortiumName, tenantType)
+		r.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second)
 	})
 }
 
 func init() {
 	rootCmd.AddCommand(undeployApplicationCmd)
-	undeployApplicationCmd.PersistentFlags().BoolVarP(&withPurgeSchemas, "purgeSchemas", "S", false, "Purge schemas in PostgreSQL on uninstallation")
+	undeployApplicationCmd.PersistentFlags().BoolVarP(&rp.PurgeSchemas, "purgeSchemas", "S", false, "Purge schemas in PostgreSQL on uninstallation")
 }

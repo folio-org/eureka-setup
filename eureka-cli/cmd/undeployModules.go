@@ -19,12 +19,12 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/field"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-const undeployModulesCommand = "Undeploy Modules"
 
 // undeployModulesCmd represents the undeployModules command
 var undeployModulesCmd = &cobra.Command{
@@ -32,22 +32,22 @@ var undeployModulesCmd = &cobra.Command{
 	Short: "Undeploy modules",
 	Long:  `Undeploy multiple modules.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		UndeployModules()
+		NewRun(action.UndeployModules).UndeployModules()
 	},
 }
 
-func UndeployModules() {
-	slog.Info(undeployModulesCommand, internal.GetFuncName(), "### REMOVING APPLICATIONS ###")
-	applicationId := fmt.Sprintf("%s-%s", viper.GetString(internal.ApplicationNameKey), viper.GetString(internal.ApplicationVersionKey))
-	internal.RemoveApplication(undeployModulesCommand, withEnableDebug, false, applicationId)
+func (r *Run) UndeployModules() {
+	slog.Info(r.Config.Action.Name, "text", "REMOVING APPLICATIONS")
+	applicationId := fmt.Sprintf("%s-%s", viper.GetString(field.ApplicationName), viper.GetString(field.ApplicationVersion))
+	r.Config.ManagementStep.RemoveApplication(false, applicationId)
 
-	slog.Info(undeployModulesCommand, internal.GetFuncName(), "### UNDEPLOYING MODULES ###")
-	client := internal.CreateDockerClient(undeployModulesCommand)
+	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING MODULES")
+	client := r.Config.DockerClient.Create()
 	defer func() {
 		_ = client.Close()
 	}()
 
-	internal.UndeployModuleByNamePattern(undeployModulesCommand, client, fmt.Sprintf(internal.ProfileContainerPattern, viper.GetString(internal.ProfileNameKey)), true)
+	r.Config.ModuleStep.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.ProfileContainerPattern, viper.GetString(field.ProfileName)), true)
 }
 
 func init() {

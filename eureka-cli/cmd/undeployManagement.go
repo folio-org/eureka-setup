@@ -18,11 +18,10 @@ package cmd
 import (
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
 )
-
-const undeployManagementCommand = "Undeploy Management"
 
 // undeployManagementCmd represents the undeployManagement command
 var undeployManagementCmd = &cobra.Command{
@@ -30,19 +29,20 @@ var undeployManagementCmd = &cobra.Command{
 	Short: "Undeploy management",
 	Long:  `Undeploy all management modules.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		UndeployModules()
-		UndeployManagement()
+		r := NewRun(action.UndeployManagement)
+		r.UndeployModules()
+		r.UndeployManagement()
 	},
 }
 
-func UndeployManagement() {
-	slog.Info(undeployManagementCommand, internal.GetFuncName(), "### UNDEPLOYING MANAGEMENT MODULES ###")
-	client := internal.CreateDockerClient(undeployManagementCommand)
+func (r *Run) UndeployManagement() {
+	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING MANAGEMENT MODULES")
+	client := r.Config.DockerClient.Create()
 	defer func() {
 		_ = client.Close()
 	}()
 
-	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, internal.ManagementContainerPattern, true)
+	r.Config.ModuleStep.UndeployModuleByNamePattern(client, constant.ManagementContainerPattern, true)
 }
 
 func init() {

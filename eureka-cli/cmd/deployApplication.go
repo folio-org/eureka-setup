@@ -20,12 +20,14 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/field"
+	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-const deployApplicationCommand string = "Deploy Application"
 
 // deployApplicationCmd represents the deployApplication command
 var deployApplicationCmd = &cobra.Command{
@@ -34,56 +36,57 @@ var deployApplicationCmd = &cobra.Command{
 	Long:  `Deploy platform application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
-		if len(viper.GetStringMap(internal.ApplicationGatewayDependenciesKey)) > 0 {
-			DeployChildApplication()
+
+		r := NewRun(action.DeployApplication)
+		if len(viper.GetStringMap(field.ApplicationGatewayDependencies)) > 0 {
+			r.DeployChildApplication()
 		} else {
-			DeployApplication()
+			r.DeployApplication()
 		}
-		slog.Info(deployApplicationCommand, "Elapsed, duration", time.Since(start))
+
+		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Elapsed, duration %.1f", time.Since(start).Minutes()))
 	},
 }
 
-func DeployApplication() {
-	DeploySystem()
-	DeployManagement()
-	DeployModules()
-	CreateTenants()
-	RunByConsortiumAndTenantType(deployApplicationCommand, func(consortium string, tenantType internal.TenantType) {
+func (r *Run) DeployApplication() {
+	r.DeploySystem()
+	r.DeployManagement()
+	r.DeployModules()
+	r.CreateTenants()
+	r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
 		waitDuration := 10 * time.Second
-
-		CreateTenantEntitlements(consortium, tenantType)
-		CreateRoles(consortium, tenantType)
-		CreateUsers(consortium, tenantType)
-		AttachCapabilitySets(consortium, tenantType, waitDuration)
-
-		if consortium != internal.NoneConsortium {
-			slog.Info(deployApplicationCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %d duration", waitDuration))
+		r.CreateTenantEntitlements(consortiumName, tenantType)
+		r.CreateRoles(consortiumName, tenantType)
+		r.CreateUsers(consortiumName, tenantType)
+		r.AttachCapabilitySets(consortiumName, tenantType, waitDuration)
+		if consortiumName != constant.NoneConsortium {
+			slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Waiting for %.1f duration", waitDuration.Seconds()))
 			time.Sleep(waitDuration)
 		}
 	})
-	CreateConsortium()
-	DeployUi()
-	UpdateKeycloakPublicClients()
-	if internal.HasModule(internal.ModSearchModuleName) {
-		RunByConsortiumAndTenantType(deployApplicationCommand, func(consortium string, tenantType internal.TenantType) {
-			ReindexElasticsearch(consortium, tenantType)
+	r.CreateConsortium()
+	r.DeployUi()
+	r.UpdateKeycloakPublicClients()
+	if helpers.IsModuleEnabled(constant.ModSearchModuleName) {
+		r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+			r.ReindexElasticsearch(consortiumName, tenantType)
 		})
 	}
 }
 
-func DeployChildApplication() {
-	DeployAdditionalSystem()
-	DeployModules()
-	RunByConsortiumAndTenantType(deployApplicationCommand, func(consortium string, tenantType internal.TenantType) {
-		CreateTenantEntitlements(consortium, tenantType)
-		DetachCapabilitySets(consortium, tenantType)
-		AttachCapabilitySets(consortium, tenantType, 0*time.Second)
+func (r *Run) DeployChildApplication() {
+	r.DeployAdditionalSystem()
+	r.DeployModules()
+	r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+		r.CreateTenantEntitlements(consortiumName, tenantType)
+		r.DetachCapabilitySets(consortiumName, tenantType)
+		r.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second)
 	})
 }
 
 func init() {
 	rootCmd.AddCommand(deployApplicationCmd)
-	deployApplicationCmd.PersistentFlags().BoolVarP(&withBuildImages, "buildImages", "b", false, "Build Docker images")
-	deployApplicationCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
-	deployApplicationCmd.PersistentFlags().BoolVarP(&withOnlyRequired, "onlyRequired", "R", false, "Use only required system containers")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&rp.BuildImages, "buildImages", "b", false, "Build Docker images")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&rp.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&rp.OnlyRequired, "onlyRequired", "R", false, "Use only required system containers")
 }

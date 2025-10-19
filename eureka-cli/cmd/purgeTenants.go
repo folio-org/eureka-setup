@@ -20,12 +20,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"os"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
 	"github.com/spf13/cobra"
 )
-
-const purgeTenantsCommand = "Purge Tenants"
 
 var (
 	withKongGateway      string
@@ -39,41 +38,42 @@ var purgeTenantsCmd = &cobra.Command{
 	Short: "Purge tenants",
 	Long:  `Purge tenants and their entitlements.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		slog.Info(buildSystemCommand, internal.GetFuncName(), "### PURGING TENANTS ###")
-		slog.Info(purgeTenantsCommand, internal.GetFuncName(), fmt.Sprintf("Using Kong Gateway: %s", withKongGateway))
+		run := NewRun(action.PurgeTenants)
 
-		slog.Info(purgeTenantsCommand, internal.GetFuncName(), "Purging tenant entitlements")
+		slog.Info(run.Config.Action.Name, slog.String("text", "PURGING TENANTS"), slog.String("Using Kong Gateway", withKongGateway))
+
+		slog.Info(run.Config.Action.Name, "text", "Purging tenant entitlements")
 		for _, tenantId := range withTenantIds {
 			for key, value := range map[string][]string{tenantId: withApplicationNames} {
-				requestUrl, err := url.JoinPath(withKongGateway, "/entitlements")
+				requestURL, err := url.JoinPath(withKongGateway, "/entitlements")
 				if err != nil {
-					slog.Error(purgeTenantsCommand, internal.GetFuncName(), "json.Marshal error")
-					panic(err)
+					slog.Error(run.Config.Action.Name, "error", err)
+					os.Exit(1)
 				}
 
 				bytes, err := json.Marshal(map[string]any{"tenantId": key, "applications": value})
 				if err != nil {
-					slog.Error(purgeTenantsCommand, internal.GetFuncName(), "json.Marshal error")
-					panic(err)
+					slog.Error(run.Config.Action.Name, "error", err)
+					os.Exit(1)
 				}
 
-				internal.DoDeleteWithBody(purgeTenantsCommand, fmt.Sprintf("%s%s", requestUrl, "?purge=true"), withEnableDebug, bytes, false, map[string]string{})
+				run.Config.HTTPClient.DoDeleteWithBody(fmt.Sprintf("%s%s", requestURL, "?purge=true"), bytes, false, map[string]string{})
 
-				slog.Info(purgeTenantsCommand, internal.GetFuncName(), fmt.Sprintf("Purged %s tenant entitlement with %s applications", key, value))
+				slog.Info(run.Config.Action.Name, "text", fmt.Sprintf("Purged %s tenant entitlement with %s applications", key, value))
 			}
 		}
 
-		slog.Info(purgeTenantsCommand, internal.GetFuncName(), "Purging tenants")
+		slog.Info(run.Config.Action.Name, "text", "Purging tenants")
 		for _, tenantId := range withTenantIds {
-			requestUrl, err := url.JoinPath(withKongGateway, "/tenants", tenantId)
+			requestURL, err := url.JoinPath(withKongGateway, "/tenants", tenantId)
 			if err != nil {
-				slog.Error(purgeTenantsCommand, internal.GetFuncName(), "json.Marshal error")
-				panic(err)
+				slog.Error(run.Config.Action.Name, "error", err.Error())
+				os.Exit(1)
 			}
 
-			internal.DoDelete(purgeTenantsCommand, fmt.Sprintf("%s%s", requestUrl, "?purgeKafkaTopics=true"), withEnableDebug, true, map[string]string{})
+			run.Config.HTTPClient.DoDelete(fmt.Sprintf("%s%s", requestURL, "?purgeKafkaTopics=true"), true, map[string]string{})
 
-			slog.Info(purgeTenantsCommand, internal.GetFuncName(), fmt.Sprintf("Purged %s tenant", tenantId))
+			slog.Info(run.Config.Action.Name, "text", fmt.Sprintf("Purged %s tenant", tenantId))
 		}
 	},
 }

@@ -19,11 +19,11 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 )
-
-const removeRolesCommand string = "Remove Roles"
 
 // removeRolesCmd represents the removeRoles command
 var removeRolesCmd = &cobra.Command{
@@ -31,26 +31,27 @@ var removeRolesCmd = &cobra.Command{
 	Short: "Remove roles",
 	Long:  `Remove all roles.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RunByConsortiumAndTenantType(removeRolesCommand, func(consortium string, tenantType internal.TenantType) {
-			RemoveRoles(consortium, tenantType)
+		r := NewRun(action.RemoveRoles)
+		r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+			r.RemoveRoles(consortiumName, tenantType)
 		})
 	},
 }
 
-func RemoveRoles(consortium string, tenantType internal.TenantType) {
-	vaultRootToken := GetVaultRootToken()
+func (r *Run) RemoveRoles(consortiumName string, tenantType tenanttype.TenantType) {
+	vaultRootToken := r.GetVaultRootToken()
 
-	for _, value := range internal.GetTenants(removeRolesCommand, withEnableDebug, false, consortium, tenantType) {
+	for _, value := range r.Config.ManagementStep.GetTenants(false, consortiumName, tenantType) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
-		if !internal.HasTenant(existingTenant) {
+		if !helpers.HasTenant(existingTenant) {
 			continue
 		}
 
-		slog.Info(removeRolesCommand, internal.GetFuncName(), fmt.Sprintf("### REMOVING ROLES FOR %s TENANT ###", existingTenant))
-		keycloakAccessToken := internal.GetKeycloakAccessToken(removeRolesCommand, withEnableDebug, vaultRootToken, existingTenant)
-		internal.RemoveRoles(removeRolesCommand, withEnableDebug, false, existingTenant, keycloakAccessToken)
+		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("REMOVING ROLES FOR %s TENANT ", existingTenant))
+		keycloakAccessToken := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		r.Config.ManagementStep.RemoveRoles(false, existingTenant, keycloakAccessToken)
 	}
 }
 

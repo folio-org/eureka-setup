@@ -18,13 +18,14 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
+	"os"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/field"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-const undeployModuleCommand = "Undeploy Module"
 
 // undeployModuleCmd represents the undeployModule command
 var undeployModuleCmd = &cobra.Command{
@@ -32,25 +33,26 @@ var undeployModuleCmd = &cobra.Command{
 	Short: "Undeploy module",
 	Long:  `Undeploy a single module.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		UndeployModule()
+		NewRun(action.UndeployModule).UndeployModule()
 	},
 }
 
-func UndeployModule() {
-	slog.Info(undeployModuleCommand, internal.GetFuncName(), "### UNDEPLOYING MODULE ###")
-	client := internal.CreateDockerClient(undeployModuleCommand)
+func (r *Run) UndeployModule() {
+	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING MODULE")
+
+	client := r.Config.DockerClient.Create()
 	defer func() {
 		_ = client.Close()
 	}()
 
-	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(internal.SingleModuleOrSidecarContainerPattern, viper.GetString(internal.ProfileNameKey), withModuleName), true)
+	r.Config.ModuleStep.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, viper.GetString(field.ProfileName), rp.ModuleName), true)
 }
 
 func init() {
 	rootCmd.AddCommand(undeployModuleCmd)
-	undeployModuleCmd.PersistentFlags().StringVarP(&withModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders (required)")
+	undeployModuleCmd.PersistentFlags().StringVarP(&rp.ModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders (required)")
 	if err := undeployModuleCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
-		slog.Error(undeployModuleCommand, internal.GetFuncName(), "undeployModuleCmd.MarkPersistentFlagRequired error")
-		panic(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 }

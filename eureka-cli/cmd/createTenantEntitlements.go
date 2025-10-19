@@ -18,11 +18,10 @@ package cmd
 import (
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 )
-
-const createTenantEntitlementsCommand string = "Create Tenant Entitlements"
 
 // createTenantEntitlementsCmd represents the createTenantEntitlements command
 var createTenantEntitlementsCmd = &cobra.Command{
@@ -30,15 +29,16 @@ var createTenantEntitlementsCmd = &cobra.Command{
 	Short: "Create tenant entitlements",
 	Long:  `Create all tenant entitlements.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RunByConsortiumAndTenantType(createTenantEntitlementsCommand, func(consortium string, tenantType internal.TenantType) {
-			CreateTenantEntitlements(consortium, tenantType)
+		r := NewRun(action.CreateTenantEntitlements)
+		r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+			r.CreateTenantEntitlements(consortiumName, tenantType)
 		})
 	},
 }
 
-func CreateTenantEntitlements(consortium string, tenantType internal.TenantType) {
-	slog.Info(createTenantEntitlementsCommand, internal.GetFuncName(), "### CREATING TENANT ENTITLEMENTS ###")
-	internal.CreateTenantEntitlement(createTenantEntitlementsCommand, withEnableDebug, consortium, tenantType)
+func (r *Run) CreateTenantEntitlements(consortiumName string, tenantType tenanttype.TenantType) {
+	slog.Info(r.Config.Action.Name, "text", "CREATING TENANT ENTITLEMENTS")
+	r.Config.ManagementStep.CreateTenantEntitlement(consortiumName, tenantType)
 }
 
 func init() {

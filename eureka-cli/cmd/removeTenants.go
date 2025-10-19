@@ -18,11 +18,10 @@ package cmd
 import (
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 )
-
-const removeTenantsCommand string = "Remove Tenants"
 
 // removeTenantsCmd represents the removeTenants command
 var removeTenantsCmd = &cobra.Command{
@@ -30,15 +29,16 @@ var removeTenantsCmd = &cobra.Command{
 	Short: "Remove tenants",
 	Long:  `Remove all tenants.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RunByConsortiumAndTenantType(removeTenantsCommand, func(consortium string, tenantType internal.TenantType) {
-			RemoveTenants(consortium, tenantType)
+		r := NewRun(action.RemoveTenants)
+		r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+			r.RemoveTenants(consortiumName, tenantType)
 		})
 	},
 }
 
-func RemoveTenants(consortium string, tenantType internal.TenantType) {
-	slog.Info(removeTenantsCommand, internal.GetFuncName(), "### REMOVING TENANTS ###")
-	internal.RemoveTenants(removeTenantsCommand, withEnableDebug, false, consortium, tenantType)
+func (r *Run) RemoveTenants(consortiumName string, tenantType tenanttype.TenantType) {
+	slog.Info(r.Config.Action.Name, "text", "REMOVING TENANTS")
+	r.Config.ManagementStep.RemoveTenants(false, consortiumName, tenantType)
 }
 
 func init() {

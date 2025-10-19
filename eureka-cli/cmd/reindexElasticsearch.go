@@ -19,12 +19,13 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/field"
+	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-const reindexElasticsearchCommand = "Reindex Elasticsearch"
 
 // reindexElasticsearchCmd represents the reindexElasticsearch command
 var reindexElasticsearchCmd = &cobra.Command{
@@ -32,32 +33,33 @@ var reindexElasticsearchCmd = &cobra.Command{
 	Short: "Reindex elasticsearch",
 	Long:  `Reindex elasticsearch indices.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RunByConsortiumAndTenantType(reindexElasticsearchCommand, func(consortium string, tenantType internal.TenantType) {
-			ReindexElasticsearch(consortium, tenantType)
+		r := NewRun(action.ReindexElasticsearch)
+		r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+			r.ReindexElasticsearch(consortiumName, tenantType)
 		})
 	},
 }
 
-func ReindexElasticsearch(consortium string, tenantType internal.TenantType) {
-	vaultRootToken := GetVaultRootToken()
+func (r *Run) ReindexElasticsearch(consortiumName string, tenantType tenanttype.TenantType) {
+	vaultRootToken := r.GetVaultRootToken()
 
-	for _, value := range internal.GetTenants(reindexElasticsearchCommand, withEnableDebug, false, consortium, tenantType) {
+	for _, value := range r.Config.ManagementStep.GetTenants(false, consortiumName, tenantType) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
-		if !internal.HasTenant(existingTenant) {
+		if !helpers.HasTenant(existingTenant) {
 			continue
 		}
 
 		tenantType := mapEntry["description"].(string)
-		if viper.IsSet(internal.ConsortiumsKey) && tenantType != fmt.Sprintf("%s-%s", consortium, internal.CentralTenantType) {
+		if viper.IsSet(field.Consortiums) && tenantType != fmt.Sprintf("%s-%s", consortiumName, tenanttype.Central) {
 			continue
 		}
 
-		slog.Info(reindexElasticsearchCommand, internal.GetFuncName(), fmt.Sprintf("### REINDEXING ELASTICSEARCH FOR %s TENANT ###", existingTenant))
-		keycloakAccessToken := internal.GetKeycloakAccessToken(reindexElasticsearchCommand, withEnableDebug, vaultRootToken, existingTenant)
-		internal.ReindexInventoryRecords(reindexElasticsearchCommand, withEnableDebug, existingTenant, keycloakAccessToken)
-		internal.ReindexInstanceRecords(reindexElasticsearchCommand, withEnableDebug, existingTenant, keycloakAccessToken)
+		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("REINDEXING ELASTICSEARCH FOR %s TENANT ", existingTenant))
+		keycloakAccessToken := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		r.Config.SearchStep.ReindexInventoryRecords(existingTenant, keycloakAccessToken)
+		r.Config.SearchStep.ReindexInstanceRecords(existingTenant, keycloakAccessToken)
 	}
 }
 

@@ -20,11 +20,10 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
-
-const deployAdditionalSystemCommand string = "Deploy Additional System"
 
 // deployAdditionalSystemCmd represents the deployAdditionalSystem command
 var deployAdditionalSystemCmd = &cobra.Command{
@@ -32,25 +31,25 @@ var deployAdditionalSystemCmd = &cobra.Command{
 	Short: "Deploy additional system",
 	Long:  `Deploy additional system containers.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		DeployAdditionalSystem()
+		NewRun(action.DeployAdditionalSystem).DeployAdditionalSystem()
 	},
 }
 
-func DeployAdditionalSystem() {
-	slog.Info(deployAdditionalSystemCommand, internal.GetFuncName(), "### DEPLOYING ADDITIONAL SYSTEM CONTAINERS ###")
+func (r *Run) DeployAdditionalSystem() {
+	slog.Info(r.Config.Action.Name, "text", "DEPLOYING ADDITIONAL SYSTEM CONTAINERS")
 
-	additionalRequiredContainers := internal.GetRequiredContainers(deployAdditionalSystemCommand, []string{})
-	if len(additionalRequiredContainers) == 0 {
-		slog.Info(deployAdditionalSystemCommand, internal.GetFuncName(), "No additional system containers deployed")
+	finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(r.Config.Action, []string{})
+	if len(finalRequiredContainers) == 0 {
+		slog.Info(r.Config.Action.Name, "text", "No additional system containers deployed")
 		return
 	}
 
-	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}, additionalRequiredContainers...)
-	internal.RunCommandFromDir(deployAdditionalSystemCommand, exec.Command("docker", subCommand...), internal.GetHomeMiscDir(deployAdditionalSystemCommand))
+	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}, finalRequiredContainers...)
+	helpers.ExecFromDir(exec.Command("docker", subCommand...), helpers.GetHomeMiscDir(r.Config.Action))
 
-	slog.Info(deployAdditionalSystemCommand, internal.GetFuncName(), "### WAITING FOR SYSTEM TO INITIALIZE ###")
+	slog.Info(r.Config.Action.Name, "text", "WAITING FOR SYSTEM TO INITIALIZE")
 	time.Sleep(15 * time.Second)
-	slog.Info(deployAdditionalSystemCommand, internal.GetFuncName(), "All system containers have initialized")
+	slog.Info(r.Config.Action.Name, "text", "All system containers have initialized")
 }
 
 func init() {

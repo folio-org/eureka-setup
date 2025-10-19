@@ -19,14 +19,10 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
-)
-
-const (
-	undeployUiCommand string = "Undeploy UI"
-
-	singleUiContainerPattern string = "eureka-platform-complete-ui-%s"
 )
 
 // undeployUiCmd represents the undeployUi command
@@ -35,19 +31,19 @@ var undeployUiCmd = &cobra.Command{
 	Short: "Undeploy UI",
 	Long:  `Undeploy the UI containers.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		UndeployUi()
+		NewRun(action.UndeployUi).UndeployUi()
 	},
 }
 
-func UndeployUi() {
-	slog.Info(undeployUiCommand, internal.GetFuncName(), "### UNDEPLOYING UI CONTAINERS ###")
-	client := internal.CreateDockerClient(undeployUiCommand)
+func (r *Run) UndeployUi() {
+	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING UI CONTAINERS")
+	client := r.Config.DockerClient.Create()
 	defer func() {
 		_ = client.Close()
 	}()
 
-	for _, value := range internal.GetTenants(undeployUiCommand, withEnableDebug, false, internal.NoneConsortium, internal.AllTenantTypes) {
-		internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(singleUiContainerPattern, value.(map[string]any)["name"].(string)), false)
+	for _, value := range r.Config.ManagementStep.GetTenants(false, constant.NoneConsortium, tenanttype.All) {
+		r.Config.ModuleStep.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleUiContainerPattern, value.(map[string]any)["name"].(string)), false)
 	}
 }
 

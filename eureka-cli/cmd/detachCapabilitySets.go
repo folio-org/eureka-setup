@@ -19,11 +19,11 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 )
-
-const detachCapabilitySetsCommand string = "Detach Capability Sets"
 
 // detachCapabilitySetsCmd represents the detachCapabilitySets command
 var detachCapabilitySetsCmd = &cobra.Command{
@@ -31,26 +31,27 @@ var detachCapabilitySetsCmd = &cobra.Command{
 	Short: "Detach capability sets",
 	Long:  `Detach all capability sets from roles.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RunByConsortiumAndTenantType(detachCapabilitySetsCommand, func(consortium string, tenantType internal.TenantType) {
-			DetachCapabilitySets(consortium, tenantType)
+		r := NewRun(action.DetachCapabilitySets)
+		r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+			r.DetachCapabilitySets(consortiumName, tenantType)
 		})
 	},
 }
 
-func DetachCapabilitySets(consortium string, tenantType internal.TenantType) {
-	vaultRootToken := GetVaultRootToken()
+func (r *Run) DetachCapabilitySets(consortiumName string, tenantType tenanttype.TenantType) {
+	vaultRootToken := r.GetVaultRootToken()
 
-	for _, value := range internal.GetTenants(detachCapabilitySetsCommand, withEnableDebug, false, consortium, tenantType) {
+	for _, value := range r.Config.ManagementStep.GetTenants(false, consortiumName, tenantType) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
-		if !internal.HasTenant(existingTenant) {
+		if !helpers.HasTenant(existingTenant) {
 			continue
 		}
 
-		slog.Info(detachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("### DETACHING CAPABILITY SETS FROM ROLES FOR %s TENANT ###", existingTenant))
-		keycloakAccessToken := internal.GetKeycloakAccessToken(detachCapabilitySetsCommand, withEnableDebug, vaultRootToken, existingTenant)
-		internal.DetachCapabilitySetsFromRoles(detachCapabilitySetsCommand, withEnableDebug, false, existingTenant, keycloakAccessToken)
+		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("DETACHING CAPABILITY SETS FROM ROLES FOR %s TENANT ", existingTenant))
+		keycloakAccessToken := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		r.Config.ManagementStep.DetachCapabilitySetsFromRoles(false, existingTenant, keycloakAccessToken)
 	}
 }
 

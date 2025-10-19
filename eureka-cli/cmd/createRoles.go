@@ -19,11 +19,11 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 )
-
-const createRolesCommand string = "Create Roles"
 
 // createRolesCmd represents the createRoles command
 var createRolesCmd = &cobra.Command{
@@ -31,26 +31,27 @@ var createRolesCmd = &cobra.Command{
 	Short: "Create roles",
 	Long:  `Create all roles.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		RunByConsortiumAndTenantType(createRolesCommand, func(consortium string, tenantType internal.TenantType) {
-			CreateRoles(consortium, tenantType)
+		run := NewRun(action.CreateRoles)
+		run.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+			run.CreateRoles(consortiumName, tenantType)
 		})
 	},
 }
 
-func CreateRoles(consortium string, tenantType internal.TenantType) {
-	vaultRootToken := GetVaultRootToken()
+func (r *Run) CreateRoles(consortiumName string, tenantType tenanttype.TenantType) {
+	vaultRootToken := r.GetVaultRootToken()
 
-	for _, value := range internal.GetTenants(createRolesCommand, withEnableDebug, false, consortium, tenantType) {
+	for _, value := range r.Config.ManagementStep.GetTenants(false, consortiumName, tenantType) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
-		if !internal.HasTenant(existingTenant) {
+		if !helpers.HasTenant(existingTenant) {
 			continue
 		}
 
-		slog.Info(createRolesCommand, internal.GetFuncName(), fmt.Sprintf("### CREATING ROLES FOR %s TENANT ###", existingTenant))
-		keycloakAccessToken := internal.GetKeycloakAccessToken(createRolesCommand, withEnableDebug, vaultRootToken, existingTenant)
-		internal.CreateRoles(createRolesCommand, withEnableDebug, false, existingTenant, keycloakAccessToken)
+		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("CREATING ROLES FOR %s TENANT", existingTenant))
+		keycloakAccessToken := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		r.Config.ManagementStep.CreateRoles(false, existingTenant, keycloakAccessToken)
 	}
 }
 

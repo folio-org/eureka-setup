@@ -18,22 +18,16 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/field"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-const (
-	listModulesCommand string = "List Modules"
-
-	module     string = "module"
-	sidecar    string = "sidecar"
-	management string = "management"
-)
-
-var availableModuleTypes []string = []string{module, sidecar, management}
 
 // listModulesCmd represents the listModules command
 var listModulesCmd = &cobra.Command{
@@ -41,46 +35,47 @@ var listModulesCmd = &cobra.Command{
 	Short: "List modules",
 	Long:  `List all modules.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		ListModules()
+		NewRun(action.ListModules).ListModules()
 	},
 }
 
-func ListModules() {
-	filter := fmt.Sprintf("name=%s", createFilter(withModuleName, withModuleType, withAll))
-	internal.RunCommand(listModulesCommand, exec.Command("docker", "container", "ls", "--all", "--filter", filter))
+func (r *Run) ListModules() {
+	filter := fmt.Sprintf("name=%s", r.createFilter(rp.ModuleName, rp.ModuleType, rp.All))
+	helpers.Exec(exec.Command("docker", "container", "ls", "--all", "--filter", filter))
 }
 
-func createFilter(moduleName string, moduleType string, all bool) string {
+func (r *Run) createFilter(moduleName string, moduleType string, all bool) string {
 	if all {
-		return internal.AllContainerPattern
+		return constant.AllContainerPattern
 	}
 
-	currentProfile := viper.GetString(internal.ProfileNameKey)
+	currentProfile := viper.GetString(field.ProfileName)
 	if moduleName != "" {
-		return fmt.Sprintf(internal.SingleModuleOrSidecarContainerPattern, currentProfile, moduleName)
+		return fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, currentProfile, moduleName)
 	}
 
 	switch moduleType {
-	case management:
-		return fmt.Sprintf(internal.ManagementContainerPattern)
-	case module:
-		return fmt.Sprintf(internal.ModuleContainerPattern, currentProfile)
-	case sidecar:
-		return fmt.Sprintf(internal.SidecarContainerPattern, currentProfile)
+	case constant.Management:
+		return fmt.Sprintf(constant.ManagementContainerPattern)
+	case constant.Module:
+		return fmt.Sprintf(constant.ModuleContainerPattern, currentProfile)
+	case constant.Sidecar:
+		return fmt.Sprintf(constant.SidecarContainerPattern, currentProfile)
 	default:
-		return fmt.Sprintf(internal.ProfileContainerPattern, currentProfile)
+		return fmt.Sprintf(constant.ProfileContainerPattern, currentProfile)
 	}
 }
 
 func init() {
+	availableModuleTypes := []string{constant.Module, constant.Sidecar, constant.Management}
 	rootCmd.AddCommand(listModulesCmd)
-	listModulesCmd.Flags().BoolVarP(&withAll, "all", "a", false, "All modules for all profiles")
-	listModulesCmd.Flags().StringVarP(&withModuleName, "moduleName", "m", "", "By module name, e.g. mod-orders")
-	listModulesCmd.Flags().StringVarP(&withModuleType, "moduleType", "M", "", fmt.Sprintf("By module type, options: %s", availableModuleTypes))
+	listModulesCmd.Flags().BoolVarP(&rp.All, "all", "a", false, "All modules for all profiles")
+	listModulesCmd.Flags().StringVarP(&rp.ModuleName, "moduleName", "m", "", "By module name, e.g. mod-orders")
+	listModulesCmd.Flags().StringVarP(&rp.ModuleType, "moduleType", "M", "", fmt.Sprintf("By module type, options: %s", availableModuleTypes))
 	if err := listModulesCmd.RegisterFlagCompletionFunc("moduleType", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return availableModuleTypes, cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
-		slog.Error(listModulesCommand, internal.GetFuncName(), "listModulesCmd.RegisterFlagCompletionFunc error")
-		panic(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 }

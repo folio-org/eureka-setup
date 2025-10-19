@@ -18,11 +18,9 @@ package cmd
 import (
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
 	"github.com/spf13/cobra"
 )
-
-const createTenantsCommand string = "Create Tenants"
 
 // createTenantsCmd represents the createTenants command
 var createTenantsCmd = &cobra.Command{
@@ -30,13 +28,13 @@ var createTenantsCmd = &cobra.Command{
 	Short: "Create tenants",
 	Long:  `Create all tenants.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		CreateTenants()
+		NewRun(action.CreateTenants).CreateTenants()
 	},
 }
 
-func CreateTenants() {
-	slog.Info(createTenantsCommand, internal.GetFuncName(), "### CREATING TENANTS ###")
-	internal.CreateTenants(createTenantsCommand, withEnableDebug)
+func (r *Run) CreateTenants() {
+	slog.Info(r.Config.Action.Name, "text", "CREATING TENANTS")
+	r.Config.ManagementStep.CreateTenants()
 }
 
 func init() {
