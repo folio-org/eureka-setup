@@ -32,7 +32,7 @@ var removeUsersCmd = &cobra.Command{
 	Long:  `Create all users.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		r := NewRun(action.RemoveUsers)
-		r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+		r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
 			r.RemoveUsers(consortiumName, tenantType)
 		})
 	},

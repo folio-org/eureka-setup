@@ -34,14 +34,14 @@ var listModulesCmd = &cobra.Command{
 	Use:   "listModules",
 	Short: "List modules",
 	Long:  `List all modules.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.ListModules).ListModules()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return NewRun(action.ListModules).ListModules()
 	},
 }
 
-func (r *Run) ListModules() {
+func (r *Run) ListModules() error {
 	filter := fmt.Sprintf("name=%s", r.createFilter(rp.ModuleName, rp.ModuleType, rp.All))
-	helpers.Exec(exec.Command("docker", "container", "ls", "--all", "--filter", filter))
+	return helpers.Exec(exec.Command("docker", "container", "ls", "--all", "--filter", filter))
 }
 
 func (r *Run) createFilter(moduleName string, moduleType string, all bool) string {

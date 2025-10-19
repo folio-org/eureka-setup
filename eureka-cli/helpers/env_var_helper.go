@@ -13,7 +13,6 @@ func GetConfigEnvVars(key string) []string {
 	for key, value := range viper.GetStringMapString(key) {
 		envVars = append(envVars, fmt.Sprintf("%s=%s", strings.ToUpper(key), value))
 	}
-
 	return envVars
 }
 

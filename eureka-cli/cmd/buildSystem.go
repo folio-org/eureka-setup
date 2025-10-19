@@ -32,14 +32,19 @@ var buildSystemCmd = &cobra.Command{
 	Use:   "buildSystem",
 	Short: "Build system",
 	Long:  `Build system images.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		start := time.Now()
 
 		r := NewRun(action.BuildSystem)
 		r.CloneUpdateRepositories()
-		r.BuildSystem()
+		err := r.BuildSystem()
+		if err != nil {
+			return err
+		}
 
 		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Elapsed, duration %.1f", time.Since(start).Minutes()))
+
+		return nil
 	},
 }
 
@@ -63,10 +68,10 @@ func (r *Run) CloneUpdateRepositories() {
 	}
 }
 
-func (r *Run) BuildSystem() {
+func (r *Run) BuildSystem() error {
 	slog.Info(r.Config.Action.Name, "text", "BUILDING SYSTEM IMAGES")
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache"}
-	helpers.ExecFromDir(exec.Command("docker", subCommand...), helpers.GetHomeMiscDir(r.Config.Action))
+	return helpers.ExecFromDir(exec.Command("docker", subCommand...), helpers.GetHomeMiscDir(r.Config.Action))
 }
 
 func init() {

@@ -18,7 +18,6 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -38,14 +37,15 @@ var attachCapabilitySetsCmd = &cobra.Command{
 	Use:   "attachCapabilitySets",
 	Short: "Attach capability sets",
 	Long:  `Attach capability sets to roles.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		r := NewRun(action.AttachCapabilitySets)
-		r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+		return r.PartitionErr(func(consortiumName string, tenantType tenanttype.TenantType) error {
 			err := r.AttachCapabilitySets(consortiumName, tenantType, time.Duration(0*time.Second))
 			if err != nil {
-				slog.Error(r.Config.Action.Name, "error", err.Error())
-				os.Exit(1)
+				return err
 			}
+
+			return nil
 		})
 	},
 }

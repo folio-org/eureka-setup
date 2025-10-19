@@ -34,7 +34,7 @@ var reindexElasticsearchCmd = &cobra.Command{
 	Long:  `Reindex elasticsearch indices.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		r := NewRun(action.ReindexElasticsearch)
-		r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+		r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
 			r.ReindexElasticsearch(consortiumName, tenantType)
 		})
 	},

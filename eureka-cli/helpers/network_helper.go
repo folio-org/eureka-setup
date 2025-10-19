@@ -19,7 +19,6 @@ func SetFreePortFromRange(action *action.Action) int {
 		}
 	}
 	LogErrorPanic(action, fmt.Errorf("cannot find free TCP ports in range %d-%d", action.StartPort, action.EndPort))
-
 	return 0
 }
 
@@ -32,7 +31,6 @@ func IsPortFree(action *action.Action, portStart, portEnd int, port int) bool {
 	defer func() {
 		_ = tcpListen.Close()
 	}()
-
 	return true
 }
 
@@ -41,7 +39,6 @@ func HostnameExists(action *action.Action, hostname string) bool {
 	if err != nil {
 		slog.Debug(action.Name, "text", fmt.Sprintf("host %s is unreachable: %s", hostname, err.Error()))
 	}
-
 	return err == nil
 }
 
@@ -49,7 +46,6 @@ func ConstructURL(url string, schemaAndBaseURL string) string {
 	if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
 		return url
 	}
-
 	return fmt.Sprintf("%s:%s", schemaAndBaseURL, url)
 }
 
@@ -59,6 +55,5 @@ func ExtractPortFromURL(action *action.Action, url string) int {
 		slog.Error(action.Name, "error", err)
 		panic(err)
 	}
-
 	return sidecarServer
 }

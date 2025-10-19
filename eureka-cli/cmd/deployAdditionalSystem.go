@@ -30,26 +30,31 @@ var deployAdditionalSystemCmd = &cobra.Command{
 	Use:   "deployAdditionalSystem",
 	Short: "Deploy additional system",
 	Long:  `Deploy additional system containers.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.DeployAdditionalSystem).DeployAdditionalSystem()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return NewRun(action.DeployAdditionalSystem).DeployAdditionalSystem()
 	},
 }
 
-func (r *Run) DeployAdditionalSystem() {
+func (r *Run) DeployAdditionalSystem() error {
 	slog.Info(r.Config.Action.Name, "text", "DEPLOYING ADDITIONAL SYSTEM CONTAINERS")
 
 	finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(r.Config.Action, []string{})
 	if len(finalRequiredContainers) == 0 {
 		slog.Info(r.Config.Action.Name, "text", "No additional system containers deployed")
-		return
+		return nil
 	}
 
 	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}, finalRequiredContainers...)
-	helpers.ExecFromDir(exec.Command("docker", subCommand...), helpers.GetHomeMiscDir(r.Config.Action))
+	err := helpers.ExecFromDir(exec.Command("docker", subCommand...), helpers.GetHomeMiscDir(r.Config.Action))
+	if err != nil {
+		return err
+	}
 
 	slog.Info(r.Config.Action.Name, "text", "WAITING FOR SYSTEM TO INITIALIZE")
 	time.Sleep(15 * time.Second)
 	slog.Info(r.Config.Action.Name, "text", "All system containers have initialized")
+
+	return nil
 }
 
 func init() {

@@ -34,31 +34,45 @@ func (dc *DockerClient) Create() *client.Client {
 	return newClient
 }
 
-func (dc *DockerClient) PushImage(namespace string, imageName string) {
+func (dc *DockerClient) PushImage(namespace string, imageName string) error {
 	slog.Info(dc.Action.Name, "text", "PUSHING PLATFORM COMPLETE UI IMAGE TO DOCKER HUB")
 	finalImageName := fmt.Sprintf("%s/%s", namespace, imageName)
 
 	slog.Info(dc.Action.Name, "text", "Tagging platform complete UI image")
-	helpers.Exec(exec.Command("docker", "tag", imageName, finalImageName))
+	err := helpers.Exec(exec.Command("docker", "tag", imageName, finalImageName))
+	if err != nil {
+		return err
+	}
 
 	slog.Info(dc.Action.Name, "text", "Pushing new platform complete UI image to DockerHub")
-	helpers.Exec(exec.Command("docker", "push", finalImageName))
+	err = helpers.Exec(exec.Command("docker", "push", finalImageName))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (dc *DockerClient) ForcePullImage(imageName string) (finalImageName string) {
+func (dc *DockerClient) ForcePullImage(imageName string) (finalImageName string, err error) {
 	slog.Info(dc.Action.Name, "text", "PULLING PLATFORM COMPLETE UI IMAGE FROM DOCKER HUB")
 	if !viper.IsSet(field.NamespacesPlatformCompleteUI) {
 		helpers.LogErrorPanic(dc.Action, fmt.Errorf("cannot run %s image, key %s is not set in current config file", imageName, field.NamespacesPlatformCompleteUI))
 
-		return ""
+		return "", nil
 	}
 	finalImageName = fmt.Sprintf("%s/%s", viper.GetString(field.NamespacesPlatformCompleteUI), imageName)
 
 	slog.Info(dc.Action.Name, "text", "Removing old platform complete UI image")
-	helpers.Exec(exec.Command("docker", "image", "rm", "--force", finalImageName))
+	err = helpers.Exec(exec.Command("docker", "image", "rm", "--force", finalImageName))
+	if err != nil {
+		return "", err
+	}
 
 	slog.Info(dc.Action.Name, "text", "Pulling new platform complete UI image from DockerHub")
-	helpers.Exec(exec.Command("docker", "image", "pull", finalImageName))
+	err = helpers.Exec(exec.Command("docker", "image", "pull", finalImageName))
+	if err != nil {
+		return "", err
+	}
 
-	return finalImageName
+	return finalImageName, nil
 }

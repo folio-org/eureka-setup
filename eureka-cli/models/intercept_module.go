@@ -30,7 +30,7 @@ func NewInterceptModule(
 	portStart,
 	portEnd int,
 ) *InterceptModule {
-	var moduleURLTemp, sidecarURLTemp string = moduleUrl, sidecarUrl
+	var moduleURLTemp, sidecarURLTemp = moduleUrl, sidecarUrl
 	if defaultGateway {
 		moduleURLTemp = helpers.ConstructURL(moduleUrl, baseSchemaAndUrl)
 		sidecarURLTemp = helpers.ConstructURL(sidecarUrl, baseSchemaAndUrl)

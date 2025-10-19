@@ -31,15 +31,18 @@ var deploySystemCmd = &cobra.Command{
 	Use:   "deploySystem",
 	Short: "Deploy system",
 	Long:  `Deploy all system containers.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.DeploySystem).DeploySystem()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return NewRun(action.DeploySystem).DeploySystem()
 	},
 }
 
-func (r *Run) DeploySystem() {
+func (r *Run) DeploySystem() error {
 	r.CloneUpdateRepositories()
 	if rp.BuildImages {
-		r.BuildSystem()
+		err := r.BuildSystem()
+		if err != nil {
+			return err
+		}
 	}
 
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}
@@ -50,11 +53,16 @@ func (r *Run) DeploySystem() {
 	}
 
 	slog.Info(r.Config.Action.Name, "text", "DEPLOYING SYSTEM CONTAINERS")
-	helpers.ExecFromDir(exec.Command("docker", subCommand...), helpers.GetHomeMiscDir(r.Config.Action))
+	err := helpers.ExecFromDir(exec.Command("docker", subCommand...), helpers.GetHomeMiscDir(r.Config.Action))
+	if err != nil {
+		return err
+	}
 
 	slog.Info(r.Config.Action.Name, "text", "WAITING FOR SYSTEM CONTAINERS TO INITIALIZE")
 	time.Sleep(15 * time.Second)
 	slog.Info(r.Config.Action.Name, "text", "All system containers have initialized")
+
+	return nil
 }
 
 func init() {

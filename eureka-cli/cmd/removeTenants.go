@@ -30,7 +30,7 @@ var removeTenantsCmd = &cobra.Command{
 	Long:  `Remove all tenants.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		r := NewRun(action.RemoveTenants)
-		r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+		r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
 			r.RemoveTenants(consortiumName, tenantType)
 		})
 	},

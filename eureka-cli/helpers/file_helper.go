@@ -105,7 +105,6 @@ func GetCurrentWorkDirPath(action *action.Action) string {
 		slog.Error(action.Name, "error", err)
 		panic(err)
 	}
-
 	return cwd
 }
 
@@ -122,7 +121,6 @@ func GetHomeDirPath(action *action.Action) string {
 		slog.Error(action.Name, "error", err)
 		panic(err)
 	}
-
 	return homeDir
 }
 

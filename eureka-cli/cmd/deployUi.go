@@ -30,12 +30,12 @@ var deployUiCmd = &cobra.Command{
 	Use:   "deployUi",
 	Short: "Deploy UI",
 	Long:  `Deploy the UI container.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.DeployUi).DeployUi()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return NewRun(action.DeployUi).DeployUi()
 	},
 }
 
-func (r *Run) DeployUi() {
+func (r *Run) DeployUi() error {
 	slog.Info(r.Config.Action.Name, "text", "DEPLOYING UI")
 
 	for _, value := range r.Config.ManagementStep.GetTenants(false, constant.NoneConsortium, tenanttype.All) {
@@ -46,10 +46,19 @@ func (r *Run) DeployUi() {
 
 		r.Config.TenantStep.SetDefaultConfigTenantParams(&rp, existingTenant)
 
-		finalImageName := r.Config.UIStep.PrepareUIImage(&rp, existingTenant)
+		finalImageName, err := r.Config.UIStep.PrepareUIImage(&rp, existingTenant)
+		if err != nil {
+			return err
+		}
+
 		externalPort := helpers.ExtractPortFromURL(r.Config.Action, rp.PlatformCompleteURL)
-		r.Config.UIStep.DeployContainer(existingTenant, finalImageName, externalPort)
+		err = r.Config.UIStep.DeployContainer(existingTenant, finalImageName, externalPort)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func init() {

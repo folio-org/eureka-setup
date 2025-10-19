@@ -24,18 +24,17 @@ func New(action *action.Action) *GitClient {
 
 func (gc *GitClient) KeycloakRepository() *GitRepository {
 	var (
-		url    string                 = constant.FolioKongRepositoryURL
-		dir    string                 = constant.DefaultFolioKongOutputDir
+		url                           = constant.FolioKongRepositoryURL
+		dir                           = constant.DefaultFolioKongOutputDir
 		branch plumbing.ReferenceName = constant.DefaultFolioKongBranch
 	)
-
 	return NewRepository(gc.Action, url, dir, branch)
 }
 
 func (gc *GitClient) KongRepository() *GitRepository {
 	var (
-		url    string                 = constant.FolioKeycloakRepositoryURL
-		dir    string                 = constant.DefaultFolioKeycloakOutputDir
+		url                           = constant.FolioKeycloakRepositoryURL
+		dir                           = constant.DefaultFolioKeycloakOutputDir
 		branch plumbing.ReferenceName = constant.DefaultFolioKeycloakBranch
 	)
 	return NewRepository(gc.Action, url, dir, branch)
@@ -46,7 +45,11 @@ func (gc *GitClient) PlatformCompleteRepository(branch plumbing.ReferenceName) *
 }
 
 func (rc *GitClient) GitClone(panicIfExists bool, repository *GitRepository) {
-	targetRepository, err := git.PlainClone(repository.Dir, false, &git.CloneOptions{URL: repository.URL, ReferenceName: repository.Branch, Progress: os.Stdout})
+	targetRepository, err := git.PlainClone(repository.Dir, false, &git.CloneOptions{
+		URL:           repository.URL,
+		ReferenceName: repository.Branch,
+		Progress:      os.Stdout,
+	})
 	if err != nil {
 		if panicIfExists {
 			slog.Error(rc.Action.Name, "error", err)

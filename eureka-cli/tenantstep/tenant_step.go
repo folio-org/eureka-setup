@@ -58,5 +58,5 @@ func (ts *TenantStep) SetDefaultConfigTenantParams(rp *runparams.RunParams, tena
 	}
 
 	preparedParams := []any{tenant, rp.SingleTenant, rp.EnableECSRequests, rp.PlatformCompleteURL}
-	slog.Info(ts.Action.Name, "text", fmt.Sprintf("Setting default tenant config params, tenant: %t, singleTenant: %t, enableECSRequests: %t, platformCompleteURL: %s", preparedParams...))
+	slog.Info(ts.Action.Name, "text", fmt.Sprintf("Setting default tenant config params, tenant: %s, singleTenant: %t, enableECSRequests: %t, platformCompleteURL: %s", preparedParams...))
 }

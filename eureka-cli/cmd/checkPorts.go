@@ -37,22 +37,27 @@ var checkPortsCmd = &cobra.Command{
 	Use:   "checkPorts",
 	Short: "Check ports",
 	Long:  `Check container ports.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.CheckPorts).CheckPorts()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return NewRun(action.CheckPorts).CheckPorts()
 	},
 }
 
-func (r *Run) CheckPorts() {
+func (r *Run) CheckPorts() error {
 	slog.Info(r.Config.Action.Name, "text", "CHECKING CONTAINER PORTS")
-	r.deployNetcatContainer()
+	err := r.deployNetcatContainer()
+	if err != nil {
+		return err
+	}
 
 	modules := r.getDeployedModules()
 	r.runNetcat(modules)
+
+	return nil
 }
 
-func (r *Run) deployNetcatContainer() {
+func (r *Run) deployNetcatContainer() error {
 	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach", "netcat")
-	helpers.ExecFromDir(preparedCommand, helpers.GetHomeMiscDir(r.Config.Action))
+	return helpers.ExecFromDir(preparedCommand, helpers.GetHomeMiscDir(r.Config.Action))
 }
 
 func (r *Run) getDeployedModules() []container.Summary {

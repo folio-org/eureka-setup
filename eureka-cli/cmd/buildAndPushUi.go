@@ -30,22 +30,31 @@ var buildAndPushUiCmd = &cobra.Command{
 	Use:   "buildAndPushUi",
 	Short: "Build and push UI",
 	Long:  `Build and push UI image to DockerHub.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.BuildAndPushUi).BuildAndPushUi()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return NewRun(action.BuildAndPushUi).BuildAndPushUi()
 	},
 }
 
-func (r *Run) BuildAndPushUi() {
+func (r *Run) BuildAndPushUi() error {
 	start := time.Now()
 
 	r.Config.TenantStep.SetDefaultConfigTenantParams(&rp, rp.Tenant)
 
 	slog.Info(r.Config.Action.Name, "text", "BUILDING AND PUSHING PLATFORM COMPLETE UI IMAGE TO DOCKER HUB")
 	outputDir := r.Config.UIStep.CloneAndUpdateUIRepository(rp.UpdateCloned)
-	imageName := r.Config.UIStep.BuildImage(&rp, outputDir, rp.Tenant)
-	r.Config.DockerClient.PushImage(rp.Namespace, imageName)
+	imageName, err := r.Config.UIStep.BuildImage(&rp, outputDir, rp.Tenant)
+	if err != nil {
+		return err
+	}
+
+	err = r.Config.DockerClient.PushImage(rp.Namespace, imageName)
+	if err != nil {
+		return err
+	}
 
 	slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Elapsed, duration %.1f", time.Since(start).Minutes()))
+
+	return nil
 }
 
 func init() {

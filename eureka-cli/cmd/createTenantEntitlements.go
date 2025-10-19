@@ -30,7 +30,7 @@ var createTenantEntitlementsCmd = &cobra.Command{
 	Long:  `Create all tenant entitlements.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		r := NewRun(action.CreateTenantEntitlements)
-		r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+		r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
 			r.CreateTenantEntitlements(consortiumName, tenantType)
 		})
 	},

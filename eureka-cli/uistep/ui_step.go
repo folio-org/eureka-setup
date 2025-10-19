@@ -50,7 +50,7 @@ func (us *UIStep) CloneAndUpdateUIRepository(updateCloned bool) (outputDir strin
 	return repository.Dir
 }
 
-func (us *UIStep) PrepareUIImage(rp *runparams.RunParams, tenant string) (finalImageName string) {
+func (us *UIStep) PrepareUIImage(rp *runparams.RunParams, tenant string) (finalImageName string, err error) {
 	imageName := fmt.Sprintf("platform-complete-ui-%s", tenant)
 	if rp.BuildImages {
 		outputDir := us.CloneAndUpdateUIRepository(rp.UpdateCloned)
@@ -58,10 +58,15 @@ func (us *UIStep) PrepareUIImage(rp *runparams.RunParams, tenant string) (finalI
 		return us.BuildImage(rp, outputDir, tenant)
 	}
 
-	return us.DockerClient.ForcePullImage(imageName)
+	finalImageName, err = us.DockerClient.ForcePullImage(imageName)
+	if err != nil {
+		return "", err
+	}
+
+	return finalImageName, nil
 }
 
-func (us *UIStep) BuildImage(rp *runparams.RunParams, outputDir string, tenant string) (finalImageName string) {
+func (us *UIStep) BuildImage(rp *runparams.RunParams, outputDir string, tenant string) (finalImageName string, err error) {
 	finalImageName = fmt.Sprintf("platform-complete-ui-%s", tenant)
 
 	slog.Info(us.Action.Name, "text", "Copying UI configs")
@@ -73,7 +78,7 @@ func (us *UIStep) BuildImage(rp *runparams.RunParams, outputDir string, tenant s
 	us.PreparePackageJSON(outputDir, tenant)
 
 	slog.Info(us.Action.Name, "text", "Building UI from a Dockerfile")
-	helpers.ExecFromDir(exec.Command("docker", "build", "--tag", finalImageName,
+	err = helpers.ExecFromDir(exec.Command("docker", "build", "--tag", finalImageName,
 		"--build-arg", fmt.Sprintf("OKAPI_URL=%s", constant.KongExternalHTTP),
 		"--build-arg", fmt.Sprintf("TENANT_ID=%s", tenant),
 		"--file", "./docker/Dockerfile",
@@ -81,15 +86,18 @@ func (us *UIStep) BuildImage(rp *runparams.RunParams, outputDir string, tenant s
 		"--no-cache",
 		".",
 	), outputDir)
+	if err != nil {
+		return "", err
+	}
 
-	return finalImageName
+	return finalImageName, nil
 }
 
-func (us *UIStep) DeployContainer(tenant string, imageName string, externalPort int) {
+func (us *UIStep) DeployContainer(tenant string, imageName string, externalPort int) error {
 	slog.Info(us.Action.Name, "text", fmt.Sprintf("Deploying UI container for %s tenant", tenant))
 	containerName := fmt.Sprintf("eureka-platform-complete-ui-%s", tenant)
 
-	helpers.Exec(exec.Command("docker", "run", "--name", containerName,
+	err := helpers.Exec(exec.Command("docker", "run", "--name", containerName,
 		"--hostname", containerName,
 		"--publish", fmt.Sprintf("%d:80", externalPort),
 		"--restart", "unless-stopped",
@@ -99,7 +107,15 @@ func (us *UIStep) DeployContainer(tenant string, imageName string, externalPort 
 		"--detach",
 		imageName,
 	))
+	if err != nil {
+		return err
+	}
 
 	slog.Info(us.Action.Name, "text", fmt.Sprintf("Connecting UI container for %s tenant to %s network", tenant, constant.DefaultNetworkID))
-	helpers.Exec(exec.Command("docker", "network", "connect", constant.DefaultNetworkID, containerName))
+	err = helpers.Exec(exec.Command("docker", "network", "connect", constant.DefaultNetworkID, containerName))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

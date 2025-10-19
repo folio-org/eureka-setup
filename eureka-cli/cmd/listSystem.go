@@ -28,13 +28,13 @@ var listSystemCmd = &cobra.Command{
 	Use:   "listSystem",
 	Short: "List system containers",
 	Long:  `List all system containers.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.ListSystem).ListSystem()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return NewRun(action.ListSystem).ListSystem()
 	},
 }
 
-func (r *Run) ListSystem() {
-	helpers.Exec(exec.Command("docker", "compose", "--project-name", "eureka", "ps", "--all"))
+func (r *Run) ListSystem() error {
+	return helpers.Exec(exec.Command("docker", "compose", "--project-name", "eureka", "ps", "--all"))
 }
 
 func init() {

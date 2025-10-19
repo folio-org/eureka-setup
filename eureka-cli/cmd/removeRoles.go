@@ -32,7 +32,7 @@ var removeRolesCmd = &cobra.Command{
 	Long:  `Remove all roles.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		r := NewRun(action.RemoveRoles)
-		r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+		r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
 			r.RemoveRoles(consortiumName, tenantType)
 		})
 	},

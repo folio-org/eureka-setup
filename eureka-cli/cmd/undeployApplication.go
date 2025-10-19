@@ -18,6 +18,7 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/folio-org/eureka-cli/action"
@@ -50,18 +51,34 @@ func (r *Run) UndeployApplication() {
 	r.UndeployUi()
 	r.UndeployModules()
 	r.UndeployManagement()
-	r.UndeploySystem()
+
+	err := r.UndeploySystem()
+	if err != nil {
+		slog.Error(r.Config.Action.Name, "error", err.Error())
+		os.Exit(1)
+	}
 }
 
 func (r *Run) UndeployChildApplication() {
-	r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+	r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
 		r.RemoveTenantEntitlements(consortiumName, tenantType)
 	})
+
 	r.UndeployModules()
-	r.UndeployAdditionalSystem()
-	r.PartitionByConsortiumAndTenantType(func(consortiumName string, tenantType tenanttype.TenantType) {
+
+	err := r.UndeployAdditionalSystem()
+	if err != nil {
+		slog.Error(r.Config.Action.Name, "error", err.Error())
+		os.Exit(1)
+	}
+	r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
 		r.DetachCapabilitySets(consortiumName, tenantType)
-		r.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second)
+
+		err := r.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second)
+		if err != nil {
+			slog.Error(r.Config.Action.Name, "error", err.Error())
+			os.Exit(1)
+		}
 	})
 }
 

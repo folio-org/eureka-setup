@@ -29,25 +29,33 @@ var undeployAdditionalSystemCmd = &cobra.Command{
 	Use:   "undeployAdditionalSystem",
 	Short: "Undeploy additional system",
 	Long:  `Undeploy additional system containers.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.UndeployAdditionalSystem).UndeployAdditionalSystem()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return NewRun(action.UndeployAdditionalSystem).UndeployAdditionalSystem()
 	},
 }
 
-func (r *Run) UndeployAdditionalSystem() {
+func (r *Run) UndeployAdditionalSystem() error {
 	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING ADDITIONAL SYSTEM CONTAINERS")
 
 	finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(r.Config.Action, []string{})
 	if len(finalRequiredContainers) == 0 {
 		slog.Info(r.Config.Action.Name, "text", "No additional system containers undeployed")
-		return
+		return nil
 	}
 
 	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "stop"}, finalRequiredContainers...)
-	helpers.Exec(exec.Command("docker", subCommand...))
+	err := helpers.Exec(exec.Command("docker", subCommand...))
+	if err != nil {
+		return nil
+	}
 
 	subCommand = append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "rm", "--volumes", "--force"}, finalRequiredContainers...)
-	helpers.Exec(exec.Command("docker", subCommand...))
+	err = helpers.Exec(exec.Command("docker", subCommand...))
+	if err != nil {
+		return nil
+	}
+
+	return nil
 }
 
 func init() {
