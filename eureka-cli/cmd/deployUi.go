@@ -30,27 +30,46 @@ var deployUiCmd = &cobra.Command{
 	Short: "Deploy UI",
 	Long:  `Deploy the UI container.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return New(action.DeployUi).DeployUi()
+		r, err := New(action.DeployUi)
+		if err != nil {
+			return err
+		}
+
+		err = r.DeployUi()
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
 func (r *Run) DeployUi() error {
 	slog.Info(r.Config.Action.Name, "text", "DEPLOYING UI")
 
-	for _, value := range r.Config.ManagementStep.GetTenants(false, constant.NoneConsortium, constant.All) {
+	foundTenants, _ := r.Config.ManagementStep.GetTenants(constant.NoneConsortium, constant.All)
+
+	for _, value := range foundTenants {
 		existingTenant := value.(map[string]any)["name"].(string)
 		if !helpers.HasTenant(existingTenant) || !helpers.IsUIEnabled(existingTenant) {
 			continue
 		}
 
-		r.Config.TenantStep.SetDefaultConfigTenantParams(&rp, existingTenant)
+		err := r.Config.TenantStep.SetDefaultConfigTenantParams(&rp, existingTenant)
+		if err != nil {
+			return err
+		}
 
 		finalImageName, err := r.Config.UIStep.PrepareUIImage(&rp, existingTenant)
 		if err != nil {
 			return err
 		}
 
-		externalPort := helpers.ExtractPortFromURL(r.Config.Action, rp.PlatformCompleteURL)
+		externalPort, err := helpers.ExtractPortFromURL(rp.PlatformCompleteURL)
+		if err != nil {
+			return err
+		}
+
 		err = r.Config.UIStep.DeployContainer(existingTenant, finalImageName, externalPort)
 		if err != nil {
 			return err

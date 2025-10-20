@@ -31,21 +31,34 @@ var createConsortiumsCmd = &cobra.Command{
 	Use:   "createConsortiums",
 	Short: "Create consortiums",
 	Long:  `Create consortiums with multiple tenants.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		New(action.CreateConsortiums).CreateConsortium()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.CreateConsortiums)
+		if err != nil {
+			return err
+		}
+
+		err = r.CreateConsortium()
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
-func (r *Run) CreateConsortium() {
+func (r *Run) CreateConsortium() error {
 	if !viper.IsSet(field.Consortiums) {
-		return
+		return nil
 	}
 
 	consortiums := viper.GetStringMap(field.Consortiums)
 	tenants := viper.GetStringMap(field.Tenants)
 	users := viper.GetStringMap(field.Users)
 
-	vaultRootToken := r.GetVaultRootToken()
+	vaultRootToken, err := r.GetVaultRootToken()
+	if err != nil {
+		return err
+	}
 
 	for consortium, properties := range consortiums {
 		mapEntry := properties.(map[string]any)
@@ -57,20 +70,28 @@ func (r *Run) CreateConsortium() {
 
 		centralTenant := r.Config.ConsortiumStep.GetConsortiumCentralTenant(consortium, tenants)
 		if centralTenant == "" {
-			helpers.LogErrorPanic(r.Config.Action, fmt.Errorf("%s consortium does not contain a central tenant", consortium))
-			return
+			return fmt.Errorf("%s consortium does not contain a central tenant", consortium)
 		}
 
 		consortiumTenants := r.Config.ConsortiumStep.GetSortedConsortiumTenants(consortium, tenants)
 		consortiumUsers := r.Config.ConsortiumStep.GetConsortiumUsers(consortium, users)
-		keycloakAccessToken := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, centralTenant)
+		keycloakAccessToken, err := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, centralTenant)
+		if err != nil {
+			return err
+		}
 
 		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("CREATING %s CONSORTIUM", consortium))
-		consortiumId := r.Config.ConsortiumStep.CreateConsortium(centralTenant, keycloakAccessToken, consortium)
+		consortiumId, err := r.Config.ConsortiumStep.CreateConsortium(centralTenant, keycloakAccessToken, consortium)
+		if err != nil {
+			return err
+		}
 
 		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("ADDING %s (%d) TENANTS TO %s CONSORTIUM", consortiumTenants, len(consortiumTenants), consortium))
 		adminUsername := r.Config.ConsortiumStep.GetAdminUsername(centralTenant, consortiumUsers)
-		r.Config.ConsortiumStep.CreateConsortiumTenants(centralTenant, keycloakAccessToken, consortiumId, consortiumTenants, adminUsername)
+		err = r.Config.ConsortiumStep.CreateConsortiumTenants(centralTenant, keycloakAccessToken, consortiumId, consortiumTenants, adminUsername)
+		if err != nil {
+			return err
+		}
 
 		if !helpers.GetBool(mapEntry, field.ConsortiumEnableCentralOrderingEntry) {
 			slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("IGNORING ENABLEMENT OF CENTRAL ORDERING FOR %s TENANT IN %s CONSORTIUM", centralTenant, consortium))
@@ -78,8 +99,14 @@ func (r *Run) CreateConsortium() {
 		}
 
 		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("ENABLING CENTRAL ORDERING FOR %s TENANT IN %s CONSORTIUM", centralTenant, consortium))
-		r.Config.ConsortiumStep.EnableCentralOrdering(centralTenant, keycloakAccessToken)
+		err = r.Config.ConsortiumStep.EnableCentralOrdering(centralTenant, keycloakAccessToken)
+		if err != nil {
+			return err
+		}
+
 	}
+
+	return nil
 }
 
 func init() {

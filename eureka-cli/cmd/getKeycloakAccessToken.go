@@ -29,16 +29,35 @@ var getKeycloakAccessTokenCmd = &cobra.Command{
 	Use:   "getKeycloakAccessToken",
 	Short: "Get keycloak access token",
 	Long:  `Get a keycloak master access token.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		r := New(action.GetKeycloakAccessToken)
-		vaultRootToken := r.GetVaultRootToken()
-		r.GetKeycloakAccessToken(vaultRootToken)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.GetKeycloakAccessToken)
+		if err != nil {
+			return err
+		}
+
+		vaultRootToken, err := r.GetVaultRootToken()
+		if err != nil {
+			return err
+		}
+
+		err = r.GetKeycloakAccessToken(vaultRootToken)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
-func (r *Run) GetKeycloakAccessToken(vaultRootToken string) {
-	keycloakAccessToken := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, rp.Tenant)
+func (r *Run) GetKeycloakAccessToken(vaultRootToken string) error {
+	keycloakAccessToken, err := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, rp.Tenant)
+	if err != nil {
+		return err
+	}
+
 	fmt.Println(keycloakAccessToken)
+
+	return nil
 }
 
 func init() {

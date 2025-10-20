@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 	"os/exec"
 	"time"
@@ -35,43 +34,67 @@ var buildSystemCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		start := time.Now()
 
-		r := New(action.BuildSystem)
-		r.CloneUpdateRepositories()
-		err := r.BuildSystem()
+		r, err := New(action.BuildSystem)
 		if err != nil {
 			return err
 		}
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Elapsed, duration %.1f", time.Since(start).Minutes()))
+		err = r.CloneUpdateRepositories()
+		if err != nil {
+			return err
+		}
+		err = r.BuildSystem()
+		if err != nil {
+			return err
+		}
+		helpers.LogCompletion(r.Config.Action.Name, start)
 
 		return nil
 	},
 }
 
-func (r *Run) CloneUpdateRepositories() {
+func (r *Run) CloneUpdateRepositories() error {
 	slog.Info(r.Config.Action.Name, "text", "CLONING & UPDATING REPOSITORIES")
-	repositories := []*gitclient.GitRepository{
-		r.Config.GitClient.KongRepository(),
-		r.Config.GitClient.KeycloakRepository(),
+
+	kongRepository, err := r.Config.GitClient.KongRepository()
+	if err != nil {
+		return err
 	}
+
+	keycloakRepository, err := r.Config.GitClient.KeycloakRepository()
+	if err != nil {
+		return err
+	}
+
+	repositories := []*gitclient.GitRepository{kongRepository, keycloakRepository}
 
 	slog.Info(r.Config.Action.Name, "text", "Cloning repositories")
 	for _, repository := range repositories {
-		r.Config.GitClient.Clone(false, repository)
+		_ = r.Config.GitClient.Clone(repository)
 	}
 
 	if rp.UpdateCloned {
 		slog.Info(r.Config.Action.Name, "text", "Updating repositories")
 		for _, repository := range repositories {
-			r.Config.GitClient.ResetHardPullFromOrigin(repository)
+			err = r.Config.GitClient.ResetHardPullFromOrigin(repository)
+			if err != nil {
+				return err
+			}
 		}
 	}
+
+	return nil
 }
 
 func (r *Run) BuildSystem() error {
 	slog.Info(r.Config.Action.Name, "text", "BUILDING SYSTEM IMAGES")
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache"}
-	return helpers.ExecFromDir(exec.Command("docker", subCommand...), helpers.GetHomeMiscDir(r.Config.Action))
+	dir, err := helpers.GetHomeMiscDir(r.Config.Action)
+	if err != nil {
+		return err
+	}
+
+	return helpers.ExecFromDir(exec.Command("docker", subCommand...), dir)
 }
 
 func init() {

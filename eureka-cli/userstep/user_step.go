@@ -21,7 +21,7 @@ func New(action *action.Action, httpClient *httpclient.HTTPClient) *UserStep {
 }
 
 func (us *UserStep) GetUser(tenant string, accessToken string, username string) (any, error) {
-	requestURL := fmt.Sprintf(us.Action.GatewayURL, constant.KongPort, fmt.Sprintf("/users?query=username==%s", username))
+	requestURL := us.Action.CreateURL(constant.KongPort, fmt.Sprintf("/users?query=username==%s", username))
 
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.ApplicationJSON,
@@ -29,7 +29,7 @@ func (us *UserStep) GetUser(tenant string, accessToken string, username string) 
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	data, err := us.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, headers)
+	data, err := us.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 	if err != nil {
 		return nil, err
 	}

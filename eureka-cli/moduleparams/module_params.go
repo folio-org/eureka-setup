@@ -28,7 +28,7 @@ func New(action *action.Action) *ModuleParams {
 func (mp *ModuleParams) GetBackendModulesFromConfig(managementOnly bool, printOutput bool, backendModulesAnyMap map[string]any) (map[string]models.BackendModule, error) {
 	if len(backendModulesAnyMap) == 0 {
 		if printOutput {
-			slog.Info(mp.Action.Name, "text", "No backend modules were found in config")
+			slog.Info(mp.Action.Name, "text", "No backend modules were read")
 		}
 
 		return make(map[string]models.BackendModule), nil
@@ -91,7 +91,7 @@ func (mp *ModuleParams) printModuleInfo(name string, properties models.BackendMo
 	sidecarServerPort := backendModulesMap[name].SidecarExposedServerPort
 	sidecarDebugPort := backendModulesMap[name].SidecarExposedDebugPort
 
-	slog.Info(mp.Action.Name, "text", fmt.Sprintf("Found backend module in config: %s, reserved ports: %d %d %d %d", moduleInfo, moduleServerPort, moduleDebugPort, sidecarServerPort, sidecarDebugPort))
+	slog.Info(mp.Action.Name, "text", fmt.Sprintf("Read %s backend module with reserved ports [ %d %d %d %d ]", moduleInfo, moduleServerPort, moduleDebugPort, sidecarServerPort, sidecarDebugPort))
 }
 
 func (mp *ModuleParams) IsManagementModule(name string) bool {
@@ -138,7 +138,7 @@ func (mp *ModuleParams) createConfigurableBackendProperties(value any, name stri
 
 	if properties.LocalDescriptorPath != "" {
 		if _, err := os.Stat(properties.LocalDescriptorPath); os.IsNotExist(err) {
-			err := fmt.Errorf("local-descriptor-path file does not exist: %s for module: %s", properties.LocalDescriptorPath, name)
+			err := fmt.Errorf("%s local-descriptor-path file does not exist for %s module", properties.LocalDescriptorPath, name)
 			return models.BackendModuleProperties{}, err
 		}
 	}
@@ -248,7 +248,7 @@ func (mp *ModuleParams) getVolumes(mapEntry map[string]any) ([]string, error) {
 func (mp *ModuleParams) GetFrontendModulesFromConfig(printOutput bool, frontendModulesAnyMaps ...map[string]any) map[string]models.FrontendModule {
 	if len(frontendModulesAnyMaps) == 0 {
 		if printOutput {
-			slog.Info(mp.Action.Name, "text", "No frontend modules were found in config")
+			slog.Info(mp.Action.Name, "text", "No frontend modules were read")
 		}
 
 		return make(map[string]models.FrontendModule)
@@ -282,7 +282,7 @@ func (mp *ModuleParams) GetFrontendModulesFromConfig(printOutput bool, frontendM
 				moduleInfo = fmt.Sprintf("name %s with version %s", name, *version)
 			}
 
-			slog.Info(mp.Action.Name, "text", fmt.Sprintf("Found frontend module in config: %s", moduleInfo))
+			slog.Info(mp.Action.Name, "text", fmt.Sprintf("Read %s frontend module", moduleInfo))
 		}
 	}
 

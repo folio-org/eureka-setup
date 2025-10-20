@@ -28,25 +28,50 @@ var getVaultRootTokenCmd = &cobra.Command{
 	Use:   "getVaultRootToken",
 	Short: "Get vault root token",
 	Long:  `Get vault root token from the server.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		vaultRootToken := New(action.GetVaultRootToken).GetVaultRootToken()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.GetVaultRootToken)
+		if err != nil {
+			return err
+		}
+
+		vaultRootToken, err := r.GetVaultRootToken()
+		if err != nil {
+			return err
+		}
+
 		fmt.Println(vaultRootToken)
+
+		return nil
 	},
 }
 
-func (r *Run) GetVaultRootToken() string {
-	client := r.Config.DockerClient.Create()
-	defer func() {
-		_ = client.Close()
-	}()
+func (r *Run) GetVaultRootToken() (string, error) {
+	client, err := r.Config.DockerClient.Create()
+	if err != nil {
+		return "", err
+	}
+	defer r.Config.DockerClient.Close(client)
 
-	return r.Config.ModuleStep.GetVaultRootToken(client)
+	vaultRootToken, err := r.Config.ModuleStep.GetVaultRootToken(client)
+	if err != nil {
+		return "", err
+	}
+
+	return vaultRootToken, nil
 }
 
-func (r *Run) GetVaultRootTokenWithDockerClient() (string, *client.Client) {
-	client := r.Config.DockerClient.Create()
+func (r *Run) GetVaultRootTokenWithDockerClient() (string, *client.Client, error) {
+	client, err := r.Config.DockerClient.Create()
+	if err != nil {
+		return "", nil, err
+	}
 
-	return r.Config.ModuleStep.GetVaultRootToken(client), client
+	vaultRootToken, err := r.Config.ModuleStep.GetVaultRootToken(client)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return vaultRootToken, client, nil
 }
 
 func init() {

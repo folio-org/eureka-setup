@@ -37,7 +37,7 @@ func (ss *SearchStep) ReindexInventoryRecords(tenant string, accessToken string)
 			return err
 		}
 
-		reindexJobMap, err := ss.HTTPClient.DoPostReturnMapStringAny(fmt.Sprintf(ss.Action.GatewayURL, constant.KongPort, "/search/index/inventory/reindex"), b, headers)
+		reindexJobMap, err := ss.HTTPClient.PostReturnMapStringAny(ss.Action.CreateURL(constant.KongPort, "/search/index/inventory/reindex"), b, headers)
 		if err != nil {
 			return err
 		}
@@ -73,7 +73,7 @@ func (ss *SearchStep) ReindexInstanceRecords(tenant string, accessToken string) 
 		return err
 	}
 
-	ss.HTTPClient.DoPostReturnNoContent(fmt.Sprintf(ss.Action.GatewayURL, constant.KongPort, "/search/index/instance-records/reindex/full"), bytes, headers)
+	ss.HTTPClient.PostReturnNoContent(ss.Action.CreateURL(constant.KongPort, "/search/index/instance-records/reindex/full"), bytes, headers)
 
 	slog.Info(ss.Action.Name, "text", fmt.Sprintf("Reindexed instance records for %s tenant", tenant))
 

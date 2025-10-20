@@ -16,15 +16,15 @@ import (
 )
 
 func GetGatewayURL(actionName string) (string, error) {
-	protoAndBaseURL := GetGatewayProtoAndBaseURL(actionName)
+	protoAndBaseURL := GetProtoAndBaseURL(actionName)
 	if protoAndBaseURL == "" {
 		return "", fmt.Errorf("cannot construct getaway url for %s platform", runtime.GOOS)
 	}
 
-	return protoAndBaseURL + ":%s%s", nil
+	return protoAndBaseURL + ":%s", nil
 }
 
-func GetGatewayProtoAndBaseURL(action string) string {
+func GetProtoAndBaseURL(action string) string {
 	if viper.IsSet(field.ApplicationGatewayHostname) {
 		return viper.GetString(field.ApplicationGatewayHostname)
 	} else if HostnameExists(action, constant.DockerHostname) {

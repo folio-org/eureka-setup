@@ -13,9 +13,9 @@ import (
 )
 
 func (ks *KeycloakStep) GetRoles(headers map[string]string) ([]any, error) {
-	requestURL := fmt.Sprintf(ks.Action.GatewayURL, constant.KongPort, "/roles?offset=0&limit=10000")
+	requestURL := ks.Action.CreateURL(constant.KongPort, "/roles?offset=0&limit=10000")
 
-	foundRolesMap, err := ks.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, headers)
+	foundRolesMap, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -28,9 +28,9 @@ func (ks *KeycloakStep) GetRoles(headers map[string]string) ([]any, error) {
 }
 
 func (ks *KeycloakStep) GetRoleByName(roleName string, headers map[string]string) (map[string]any, error) {
-	requestURL := fmt.Sprintf(ks.Action.GatewayURL, constant.KongPort, fmt.Sprintf("/roles?query=name==%s", roleName))
+	requestURL := ks.Action.CreateURL(constant.KongPort, fmt.Sprintf("/roles?query=name==%s", roleName))
 
-	foundRolesMap, err := ks.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, headers)
+	foundRolesMap, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func (ks *KeycloakStep) GetRoleByName(roleName string, headers map[string]string
 }
 
 func (ks *KeycloakStep) CreateRoles(existingTenant string, accessToken string) error {
-	requestURL := fmt.Sprintf(ks.Action.GatewayURL, constant.KongPort, "/roles")
+	requestURL := ks.Action.CreateURL(constant.KongPort, "/roles")
 	caser := cases.Lower(language.English)
 	roles := viper.GetStringMap(field.Roles)
 
@@ -71,7 +71,7 @@ func (ks *KeycloakStep) CreateRoles(existingTenant string, accessToken string) e
 			return err
 		}
 
-		err = ks.HTTPClient.DoPostReturnNoContent(requestURL, b, headers)
+		err = ks.HTTPClient.PostReturnNoContent(requestURL, b, headers)
 		if err != nil {
 			return err
 		}
@@ -105,9 +105,9 @@ func (ks *KeycloakStep) RemoveRoles(tenant string, accessToken string) error {
 			continue
 		}
 
-		requestURL := fmt.Sprintf(ks.Action.GatewayURL, constant.KongPort, fmt.Sprintf("/roles/%s", mapEntry["id"].(string)))
+		requestURL := ks.Action.CreateURL(constant.KongPort, fmt.Sprintf("/roles/%s", mapEntry["id"].(string)))
 
-		_ = ks.HTTPClient.DoDelete(requestURL, headers)
+		_ = ks.HTTPClient.Delete(requestURL, headers)
 
 		slog.Info(ks.Action.Name, "text", fmt.Sprintf("Removed %s role in %s tenant (realm)", roleName, tenant))
 	}

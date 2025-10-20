@@ -13,12 +13,12 @@ import (
 )
 
 func (ms *ManagementStep) GetTenants(consortiumName string, tenantType constant.TenantType) ([]any, error) {
-	requestURL := fmt.Sprintf(ms.Action.GatewayURL, constant.KongPort, "/tenants")
+	requestURL := ms.Action.CreateURL(constant.KongPort, "/tenants")
 	if tenantType != constant.All {
 		requestURL += fmt.Sprintf("?query=description==%s-%s", consortiumName, tenantType)
 	}
 
-	foundTenantsMap, err := ms.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, map[string]string{})
+	foundTenantsMap, err := ms.HTTPClient.GetDecodeReturnMapStringAny(requestURL, map[string]string{})
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (ms *ManagementStep) GetTenants(consortiumName string, tenantType constant.
 }
 
 func (ms *ManagementStep) CreateTenants() error {
-	requestURL := fmt.Sprintf(ms.Action.GatewayURL, constant.KongPort, "/tenants")
+	requestURL := ms.Action.CreateURL(constant.KongPort, "/tenants")
 	foundTenants := viper.GetStringMap(field.Tenants)
 
 	for tenant, properties := range foundTenants {
@@ -54,7 +54,7 @@ func (ms *ManagementStep) CreateTenants() error {
 			return err
 		}
 
-		err = ms.HTTPClient.DoPostReturnNoContent(requestURL, b, map[string]string{})
+		err = ms.HTTPClient.PostReturnNoContent(requestURL, b, map[string]string{})
 		if err != nil {
 			return err
 		}
@@ -80,9 +80,9 @@ func (ms *ManagementStep) RemoveTenants(panicOnError bool, consortiumName string
 			continue
 		}
 
-		requestURL := fmt.Sprintf(ms.Action.GatewayURL, constant.KongPort, fmt.Sprintf("/tenants/%s?purgeKafkaTopics=true", mapEntry["id"].(string)))
+		requestURL := ms.Action.CreateURL(constant.KongPort, fmt.Sprintf("/tenants/%s?purgeKafkaTopics=true", mapEntry["id"].(string)))
 
-		_ = ms.HTTPClient.DoDelete(requestURL, map[string]string{})
+		_ = ms.HTTPClient.Delete(requestURL, map[string]string{})
 
 		slog.Info(ms.Action.Name, "text", fmt.Sprintf("Removed %s tenant (realm)", tenant))
 	}

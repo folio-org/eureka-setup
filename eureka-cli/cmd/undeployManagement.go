@@ -38,7 +38,6 @@ var undeployManagementCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
 		err = r.UndeployManagement()
 		if err != nil {
 			return err
@@ -54,11 +53,12 @@ func (r *Run) UndeployManagement() error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = client.Close()
-	}()
+	defer r.Config.DockerClient.Close(client)
 
-	r.Config.ModuleStep.UndeployModuleByNamePattern(client, constant.ManagementContainerPattern, true)
+	err = r.Config.ModuleStep.UndeployModuleByNamePattern(client, constant.ManagementContainerPattern, true)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

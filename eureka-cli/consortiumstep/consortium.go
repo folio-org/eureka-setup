@@ -62,7 +62,7 @@ func (cs *ConsortiumStep) CreateConsortium(centralTenant string, accessToken str
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	cs.HTTPClient.DoPostReturnNoContent(fmt.Sprintf(cs.Action.GatewayURL, constant.KongPort, "/consortia"), b, headers)
+	cs.HTTPClient.PostReturnNoContent(cs.Action.CreateURL(constant.KongPort, "/consortia"), b, headers)
 
 	slog.Info(cs.Action.Name, "text", fmt.Sprintf("Created %s consortium", consortiumName))
 
@@ -70,7 +70,7 @@ func (cs *ConsortiumStep) CreateConsortium(centralTenant string, accessToken str
 }
 
 func (cs *ConsortiumStep) GetConsortiumByName(centralTenant string, accessToken string, consortiumName string) (any, error) {
-	requestURL := fmt.Sprintf(cs.Action.GatewayURL, constant.KongPort, fmt.Sprintf("/consortia?query=name==%s", consortiumName))
+	requestURL := cs.Action.CreateURL(constant.KongPort, fmt.Sprintf("/consortia?query=name==%s", consortiumName))
 
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.ApplicationJSON,
@@ -78,7 +78,7 @@ func (cs *ConsortiumStep) GetConsortiumByName(centralTenant string, accessToken 
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	foundConsortiumsMap, err := cs.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, headers)
+	foundConsortiumsMap, err := cs.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 	if err != nil {
 		return nil, err
 	}

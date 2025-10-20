@@ -11,7 +11,7 @@ import (
 )
 
 func (ks *KeycloakStep) GetUsers(tenant string, accessToken string) ([]any, error) {
-	requestURL := fmt.Sprintf(ks.Action.GatewayURL, constant.KongPort, "/users?offset=0&limit=10000")
+	requestURL := ks.Action.CreateURL(constant.KongPort, "/users?offset=0&limit=10000")
 
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.ApplicationJSON,
@@ -19,7 +19,7 @@ func (ks *KeycloakStep) GetUsers(tenant string, accessToken string) ([]any, erro
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	foundUsersMap, err := ks.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, headers)
+	foundUsersMap, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -32,9 +32,9 @@ func (ks *KeycloakStep) GetUsers(tenant string, accessToken string) ([]any, erro
 }
 
 func (ks *KeycloakStep) CreateUsers(panicOnError bool, existingTenant string, accessToken string) error {
-	postUserRequestUrl := fmt.Sprintf(ks.Action.GatewayURL, constant.KongPort, "/users-keycloak/users")
-	postUserPasswordRequestUrl := fmt.Sprintf(ks.Action.GatewayURL, constant.KongPort, "/authn/credentials")
-	postUserRoleRequestUrl := fmt.Sprintf(ks.Action.GatewayURL, constant.KongPort, "/roles/users")
+	postUserRequestURL := ks.Action.CreateURL(constant.KongPort, "/users-keycloak/users")
+	postUserPasswordRequestURL := ks.Action.CreateURL(constant.KongPort, "/authn/credentials")
+	postUserRoleRequestURL := ks.Action.CreateURL(constant.KongPort, "/roles/users")
 	usersMap := viper.GetStringMap(field.Users)
 
 	for username, value := range usersMap {
@@ -77,7 +77,7 @@ func (ks *KeycloakStep) CreateUsers(panicOnError bool, existingTenant string, ac
 			constant.AuthorizationHeader: fmt.Sprintf("Bearer %s", accessToken),
 		}
 
-		createdUserMap, err := ks.HTTPClient.DoPostReturnMapStringAny(postUserRequestUrl, userBytes, okapiBasedHeaders)
+		createdUserMap, err := ks.HTTPClient.PostReturnMapStringAny(postUserRequestURL, userBytes, okapiBasedHeaders)
 		if err != nil {
 			return err
 		}
@@ -91,7 +91,7 @@ func (ks *KeycloakStep) CreateUsers(panicOnError bool, existingTenant string, ac
 			return err
 		}
 
-		err = ks.HTTPClient.DoPostReturnNoContent(postUserPasswordRequestUrl, userPasswordBytes, nonOkapiBasedHeaders)
+		err = ks.HTTPClient.PostReturnNoContent(postUserPasswordRequestURL, userPasswordBytes, nonOkapiBasedHeaders)
 		if err != nil {
 			return err
 		}
@@ -121,7 +121,7 @@ func (ks *KeycloakStep) CreateUsers(panicOnError bool, existingTenant string, ac
 			return err
 		}
 
-		ks.HTTPClient.DoPostReturnNoContent(postUserRoleRequestUrl, userRoleBytes, okapiBasedHeaders)
+		ks.HTTPClient.PostReturnNoContent(postUserRoleRequestURL, userRoleBytes, okapiBasedHeaders)
 
 		slog.Info(ks.Action.Name, "text", fmt.Sprintf("Attached %d roles to %s user in %s tenant (realm)", len(roleIds), username, tenant))
 	}
@@ -150,9 +150,9 @@ func (ks *KeycloakStep) RemoveUsers(tenant string, accessToken string) error {
 			continue
 		}
 
-		requestURL := fmt.Sprintf(ks.Action.GatewayURL, constant.KongPort, fmt.Sprintf("/users-keycloak/users/%s", mapEntry["id"].(string)))
+		requestURL := ks.Action.CreateURL(constant.KongPort, fmt.Sprintf("/users-keycloak/users/%s", mapEntry["id"].(string)))
 
-		_ = ks.HTTPClient.DoDelete(requestURL, headers)
+		_ = ks.HTTPClient.Delete(requestURL, headers)
 
 		slog.Info(ks.Action.Name, "text", fmt.Sprintf("Removed %s in %s tenant (realm)", username, tenant))
 	}

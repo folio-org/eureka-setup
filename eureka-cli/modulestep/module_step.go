@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
@@ -35,6 +37,16 @@ type ModuleStep struct {
 	RegistryStep *registrystep.RegistryStep
 }
 
+type SidecarRequest struct {
+	Client           *client.Client
+	Containers       *models.Containers
+	RegistryModule   *models.RegistryModule
+	BackendModule    models.BackendModule
+	SidecarImage     string
+	NetworkConfig    *network.NetworkingConfig
+	SidecarResources *container.Resources
+}
+
 func New(
 	action *action.Action,
 	httpClient *httpclient.HTTPClient,
@@ -50,11 +62,10 @@ func New(
 	}
 }
 
-func (ms *ModuleStep) GetVaultRootToken(client *client.Client) string {
+func (ms *ModuleStep) GetVaultRootToken(client *client.Client) (string, error) {
 	logStream, err := client.ContainerLogs(context.Background(), constant.VaultContainer, container.LogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
-		slog.Error(ms.Action.Name, "error", err)
-		panic(err)
+		return "", err
 	}
 	defer func() {
 		_ = logStream.Close()
@@ -64,8 +75,7 @@ func (ms *ModuleStep) GetVaultRootToken(client *client.Client) string {
 	for {
 		_, err := logStream.Read(buffer)
 		if err != nil {
-			slog.Error(ms.Action.Name, "error", err)
-			panic(err)
+			return "", err
 		}
 
 		count := binary.BigEndian.Uint32(buffer[4:])
@@ -81,57 +91,70 @@ func (ms *ModuleStep) GetVaultRootToken(client *client.Client) string {
 		if strings.Contains(parsedLogLine, constant.VaultRootTokenPattern) {
 			vaultRootToken := helpers.GetVaultRootTokenFromLogs(parsedLogLine)
 
-			return vaultRootToken
+			return vaultRootToken, nil
 		}
 	}
 }
 
-func (ms *ModuleStep) PerformModuleHealthCheck(waitMutex *sync.WaitGroup, moduleName string, port int) error {
-	slog.Info(ms.Action.Name, "text", fmt.Sprintf("Waiting for module container %s on port %d to initialize", moduleName, port))
+func (ms *ModuleStep) PerformModuleReadinessCheck(wg *sync.WaitGroup, errCh chan<- error, moduleName string, port int) {
+	defer wg.Done()
 
-	healthCheckWait := 10 * time.Second
+	slog.Info(ms.Action.Name, "text", fmt.Sprintf("Waiting %s module on port %d", moduleName, port))
 
-	requestURL := fmt.Sprintf(ms.Action.GatewayURL, port, "/admin/health")
-	healthCheckAttempts := constant.ModuleHealthCheckMaxRetries
+	requestURL := ms.Action.CreateURL(strconv.Itoa(port), "/admin/health")
+	retries := constant.ModuleReadinessMaxRetries
 	for {
-		time.Sleep(healthCheckWait)
+		time.Sleep(10 * time.Second)
 
-		if ms.checkContainerStatusCode(requestURL) {
-			slog.Info(ms.Action.Name, "text", fmt.Sprintf("Module container %s is healthy", moduleName))
-			waitMutex.Done()
-			break
+		ready, err := ms.checkContainerStatusCode(requestURL)
+		if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
+			slog.Debug(ms.Action.Name, "text", err)
 		}
 
-		healthCheckAttempts--
-
-		if healthCheckAttempts == 0 {
-			slog.Info(ms.Action.Name, "text", fmt.Sprintf("Module container %s is unhealthy, out of attempts", moduleName))
-			waitMutex.Done()
-
-			return fmt.Errorf("module container %s did not initialize, cannot continue", moduleName)
+		if ready {
+			slog.Info(ms.Action.Name, "text", fmt.Sprintf("Module %s is ready", moduleName))
+			return
 		}
 
-		slog.Info(ms.Action.Name, "text", fmt.Sprintf("Module container %s is unhealthy, %d/%d attempts left", moduleName, healthCheckAttempts, constant.ModuleHealthCheckMaxRetries))
+		retries--
+
+		if retries == 0 {
+			slog.Info(ms.Action.Name, "text", fmt.Sprintf("Module %s is unready, out of retries", moduleName))
+
+			err := fmt.Errorf("module %s is unready, cannot continue", moduleName)
+			slog.Error(ms.Action.Name, "error", err)
+			select {
+			case errCh <- err:
+			default:
+			}
+			return
+		}
+
+		slog.Info(ms.Action.Name, "text", fmt.Sprintf("Module %s is unready, %d/%d remaining", moduleName, retries, constant.ModuleReadinessMaxRetries))
 	}
-
-	return nil
 }
 
-func (ms *ModuleStep) checkContainerStatusCode(requestURL string) bool {
-	response, _ := ms.HTTPClient.DoGetReturnResponse(requestURL, map[string]string{})
+func (ms *ModuleStep) checkContainerStatusCode(requestURL string) (bool, error) {
+	response, err := ms.HTTPClient.GetReturnResponse(requestURL, map[string]string{})
+	if err != nil {
+		return false, err
+	}
 	if response == nil {
-		return false
+		return false, nil
 	}
 	defer func() {
 		_ = response.Body.Close()
 	}()
 
-	return response.StatusCode == http.StatusOK
+	return response.StatusCode == http.StatusOK, nil
 }
 
-func (ms *ModuleStep) DeployModules(client *client.Client, containers *models.Containers, sidecarImage string, sidecarResources *container.Resources) map[string]int {
+func (ms *ModuleStep) DeployModules(client *client.Client, containers *models.Containers, sidecarImage string, sidecarResources *container.Resources) (map[string]int, error) {
 	deployedModules := make(map[string]int)
 	networkConfig := helpers.NewModuleNetworkConfig()
+
+	var sidecarWg sync.WaitGroup
+	sidecarErrCh := make(chan error, 10)
 
 	for registryName, registryModules := range containers.RegistryModules {
 		if len(registryModules) > 0 {
@@ -154,22 +177,57 @@ func (ms *ModuleStep) DeployModules(client *client.Client, containers *models.Co
 			moduleEnv := ms.GetModuleEnv(containers, registryModule, backendModule)
 			container := models.NewModuleContainer(registryModule.Name, moduleImage, moduleEnv, backendModule, networkConfig)
 
-			ms.DeployModule(client, container)
+			err := ms.DeployModule(client, container)
+			if err != nil {
+				return nil, err
+			}
 
 			deployedModules[registryModule.Name] = backendModule.ModuleExposedServerPort
 
 			if backendModule.DeploySidecar && sidecarImage != "" {
-				go func() {
-					sidecarEnv := ms.GetSidecarEnv(containers, registryModule, backendModule, nil, nil)
-					sidecarContainer := models.NewSidecarContainer(registryModule.SidecarName, sidecarImage, sidecarEnv, backendModule, networkConfig, sidecarResources)
+				sidecarWg.Add(1)
 
-					ms.DeployModule(client, sidecarContainer)
-				}()
+				go ms.deploySidecarAsync(&sidecarWg, sidecarErrCh, &SidecarRequest{
+					Client:           client,
+					Containers:       containers,
+					RegistryModule:   registryModule,
+					BackendModule:    backendModule,
+					SidecarImage:     sidecarImage,
+					NetworkConfig:    networkConfig,
+					SidecarResources: sidecarResources,
+				})
 			}
 		}
 	}
 
-	return deployedModules
+	go func() {
+		sidecarWg.Wait()
+		close(sidecarErrCh)
+	}()
+
+	for err := range sidecarErrCh {
+		return nil, err
+	}
+
+	return deployedModules, nil
+}
+
+func (ms *ModuleStep) deploySidecarAsync(wg *sync.WaitGroup, errCh chan<- error, req *SidecarRequest) {
+	defer wg.Done()
+
+	sidecarEnv := ms.GetSidecarEnv(req.Containers, req.RegistryModule, req.BackendModule, nil, nil)
+	sidecarContainer := models.NewSidecarContainer(req.RegistryModule.SidecarName, req.SidecarImage, sidecarEnv, req.BackendModule, req.NetworkConfig, req.SidecarResources)
+
+	err := ms.DeployModule(req.Client, sidecarContainer)
+	if err != nil {
+		err := fmt.Errorf("failed to deploy %s sidecar with error %w", req.RegistryModule.SidecarName, err)
+		slog.Error(ms.Action.Name, "error", err)
+
+		select {
+		case errCh <- err:
+		default:
+		}
+	}
 }
 
 func (ms *ModuleStep) GetBackendModule(containers *models.Containers, moduleName string) (*models.BackendModule, *models.RegistryModule) {
@@ -269,30 +327,33 @@ func (ms *ModuleStep) GetSidecarEnv(containers *models.Containers, module *model
 	return combinedEnv
 }
 
-func (ms *ModuleStep) DeployModule(client *client.Client, myContainer *models.Container) {
+func (ms *ModuleStep) DeployModule(client *client.Client, myContainer *models.Container) error {
 	containerName := ms.getContainerName(myContainer)
 
 	if myContainer.PullImage {
-		ms.PullModule(client, myContainer.Image)
+		err := ms.PullModule(client, myContainer.Image)
+		if err != nil {
+			return err
+		}
 	}
 
 	cr, err := client.ContainerCreate(context.Background(), myContainer.Config, myContainer.HostConfig, myContainer.NetworkConfig, myContainer.Platform, containerName)
 	if err != nil {
-		slog.Error(ms.Action.Name, "error", err)
-		panic(err)
+		return err
 	}
 
 	if len(cr.Warnings) > 0 {
-		slog.Warn(ms.Action.Name, "text", fmt.Sprintf("container creation warnings: %s", cr.Warnings))
+		slog.Warn(ms.Action.Name, "text", fmt.Sprintf("caught %s module creation warnings %s", containerName, cr.Warnings))
 	}
 
 	err = client.ContainerStart(context.Background(), cr.ID, container.StartOptions{})
 	if err != nil {
-		slog.Error(ms.Action.Name, "error", err)
-		panic(err)
+		return err
 	}
 
-	slog.Info(ms.Action.Name, "text", fmt.Sprintf("Deployed module container, name: %s", containerName))
+	slog.Info(ms.Action.Name, "text", fmt.Sprintf("Deployed %s module", containerName))
+
+	return nil
 }
 
 func (ms *ModuleStep) getContainerName(myContainer *models.Container) string {
@@ -328,47 +389,53 @@ func (ms *ModuleStep) PullModule(client *client.Client, imageName string) error 
 		}
 
 		if event.Error != "" {
-			return fmt.Errorf("pulling module container image %+v", event.Error)
+			return fmt.Errorf("pulling module image with error %+v", event.Error)
 		}
 	}
 
 	return nil
 }
 
-func (ms *ModuleStep) GetDeployedModules(client *client.Client, filters filters.Args) []container.Summary {
+func (ms *ModuleStep) GetDeployedModules(client *client.Client, filters filters.Args) ([]container.Summary, error) {
 	deployedModules, err := client.ContainerList(context.Background(), container.ListOptions{All: true, Filters: filters})
 	if err != nil {
-		slog.Error(ms.Action.Name, "error", err)
-		panic(err)
+		return nil, err
 	}
 
-	return deployedModules
+	return deployedModules, nil
 }
 
-func (ms *ModuleStep) UndeployModuleByNamePattern(client *client.Client, value string, removeAsync bool) {
-	deployedModules := ms.GetDeployedModules(client, filters.NewArgs(filters.KeyValuePair{Key: "name", Value: value}))
+func (ms *ModuleStep) UndeployModuleByNamePattern(client *client.Client, value string, removeAsync bool) error {
+	deployedModules, err := ms.GetDeployedModules(client, filters.NewArgs(filters.KeyValuePair{Key: "name", Value: value}))
+	if err != nil {
+		return err
+	}
+
 	for _, deployedModule := range deployedModules {
-		ms.undeployModule(client, deployedModule, removeAsync)
+		err = ms.undeployModule(client, deployedModule, removeAsync)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
-func (ms *ModuleStep) undeployModule(client *client.Client, deployedModule container.Summary, removeAsync bool) {
+func (ms *ModuleStep) undeployModule(client *client.Client, deployedModule container.Summary, removeAsync bool) error {
 	err := client.NetworkDisconnect(context.Background(), constant.NetworkID, deployedModule.ID, false)
 	if err != nil {
-		slog.Warn(ms.Action.Name, "text", fmt.Sprintf("network disconnected: %s", err.Error()))
+		slog.Warn(ms.Action.Name, "text", fmt.Sprintf("module %s network is disconnected", err.Error()))
 	}
 
 	err = client.ContainerStop(context.Background(), deployedModule.ID, container.StopOptions{Signal: "9"})
 	if err != nil {
-		slog.Error(ms.Action.Name, "error", err)
-		panic(err)
+		return err
 	}
 
 	var callback = func() {
 		err = client.ContainerRemove(context.Background(), deployedModule.ID, container.RemoveOptions{Force: true, RemoveVolumes: true})
 		if err != nil {
-			slog.Error(ms.Action.Name, "error", err)
-			panic(err)
+			slog.Error(ms.Action.Name, "error", fmt.Sprintf("failed to remove %s module with error %v", deployedModule.ID, err))
 		}
 	}
 
@@ -380,5 +447,7 @@ func (ms *ModuleStep) undeployModule(client *client.Client, deployedModule conta
 
 	containerName := strings.ReplaceAll(deployedModule.Names[0], "/", "")
 
-	slog.Info(ms.Action.Name, "text", fmt.Sprintf("Undeployed module container, name: %s", containerName))
+	slog.Info(ms.Action.Name, "text", fmt.Sprintf("Undeployed %s module", containerName))
+
+	return nil
 }

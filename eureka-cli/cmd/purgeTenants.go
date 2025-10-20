@@ -60,7 +60,7 @@ var purgeTenantsCmd = &cobra.Command{
 					os.Exit(1)
 				}
 
-				_ = run.Config.HTTPClient.DoDeleteWithBody(fmt.Sprintf("%s%s", requestURL, "?purge=true"), bytes, map[string]string{})
+				_ = run.Config.HTTPClient.DeleteWithBody(fmt.Sprintf("%s%s", requestURL, "?purge=true"), bytes, map[string]string{})
 
 				slog.Info(run.Config.Action.Name, "text", fmt.Sprintf("Purged %s tenant entitlement with %s applications", key, value))
 			}
@@ -74,7 +74,7 @@ var purgeTenantsCmd = &cobra.Command{
 				os.Exit(1)
 			}
 
-			_ = run.Config.HTTPClient.DoDelete(fmt.Sprintf("%s%s", requestURL, "?purgeKafkaTopics=true"), map[string]string{})
+			_ = run.Config.HTTPClient.Delete(fmt.Sprintf("%s%s", requestURL, "?purgeKafkaTopics=true"), map[string]string{})
 
 			slog.Info(run.Config.Action.Name, "text", fmt.Sprintf("Purged %s tenant", tenantId))
 		}

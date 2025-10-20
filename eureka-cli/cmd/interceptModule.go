@@ -36,32 +36,50 @@ var interceptModuleCmd = &cobra.Command{
 	Use:   "interceptModule",
 	Short: "Intercept module",
 	Long:  `Intercept/redirect module traffic to IntelliJ.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		startPort := viper.GetInt(field.ApplicationPortStart)
 		endPort := viper.GetInt(field.ApplicationPortEnd)
-		NewCustom(action.InterceptModule, startPort, endPort).InterceptModule()
+		r, err := NewCustom(action.InterceptModule, startPort, endPort)
+		if err != nil {
+			return err
+		}
+
+		err = r.InterceptModule()
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
-func (r *Run) InterceptModule() {
+func (r *Run) InterceptModule() error {
 	myModule := models.NewInterceptModule(r.Config.Action, rp.ID, rp.DefaultGateway, rp.ModuleURL, rp.SidecarURL, viper.GetInt(field.ApplicationPortStart), viper.GetInt(field.ApplicationPortEnd))
 
 	slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("INTERCEPTING %s MODULE", myModule.ModuleName))
 	globalEnv := helpers.GetConfigEnvVars(field.Env)
 	globalSidecarEnv := helpers.GetConfigEnvVars(field.SidecarModuleEnv)
-	backendModulesMap := r.Config.ModuleParams.GetBackendModulesFromConfig(false, false, viper.GetStringMap(field.BackendModules))
+	backendModulesMap, err := r.Config.ModuleParams.GetBackendModulesFromConfig(false, false, viper.GetStringMap(field.BackendModules))
+	if err != nil {
+		return err
+	}
 
 	instalJsonURLs := map[string]string{
 		constant.FolioRegistry:  viper.GetString(field.InstallFolio),
 		constant.EurekaRegistry: viper.GetString(field.InstallEureka),
 	}
-	registryModules := r.Config.RegistryStep.GetModules(instalJsonURLs, false)
+	registryModules, err := r.Config.RegistryStep.GetModules(instalJsonURLs, false)
+	if err != nil {
+		return err
+	}
+
 	r.Config.RegistryStep.ExtractModuleNameAndVersion(registryModules, false)
 
-	vaultRootToken, client := r.GetVaultRootTokenWithDockerClient()
-	defer func() {
-		_ = client.Close()
-	}()
+	vaultRootToken, client, err := r.GetVaultRootTokenWithDockerClient()
+	if err != nil {
+		return err
+	}
+	defer r.Config.DockerClient.Close(client)
 
 	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING DEFAULT MODULE AND SIDECAR PAIR")
 	r.Config.ModuleStep.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, viper.GetString(field.ProfileName), myModule.ModuleName), false)
@@ -69,76 +87,141 @@ func (r *Run) InterceptModule() {
 	registryHosts := map[string]string{constant.FolioRegistry: "", constant.EurekaRegistry: ""}
 	myModule.Containers = models.NewCoreAndBusinessContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, globalEnv, globalSidecarEnv)
 
-	r.UpdateModuleDiscovery(*myModule.SidecarUrl)
-	if rp.Restore {
-		r.deployDefaultModuleAndSidecar(myModule, client)
-		return
+	err = r.UpdateModuleDiscovery(*myModule.SidecarUrl)
+	if err != nil {
+		return err
 	}
-	r.deployCustomSidecarForInterception(!rp.Restore, myModule, client)
+
+	if rp.Restore {
+		return r.deployDefaultModuleAndSidecar(myModule, client)
+	}
+
+	return r.deployCustomSidecarForInterception(!rp.Restore, myModule, client)
 }
 
-func (r *Run) deployDefaultModuleAndSidecar(myModule *models.InterceptModule, client *client.Client) {
+func (r *Run) deployDefaultModuleAndSidecar(myModule *models.InterceptModule, client *client.Client) error {
 	slog.Info(r.Config.Action.Name, "text", "DEPLOYING DEFAULT MODULE AND SIDECAR PAIR")
 	myModule.ClearURLs()
 
-	r.prepareContainerNetwork(myModule, true)
-	r.deployModule(myModule, client)
-	r.deploySidecar(false, myModule, client)
+	err := r.prepareContainerNetwork(myModule, true)
+	if err != nil {
+		return err
+	}
+
+	err = r.deployModule(myModule, client)
+	if err != nil {
+		return err
+	}
+
+	err = r.deploySidecar(false, myModule, client)
+	if err != nil {
+		return err
+	}
 
 	slog.Info(r.Config.Action.Name, "text", "WAITING FOR MODULE TO INITIALIZE")
-	var waitMutex sync.WaitGroup
-	waitMutex.Add(1)
-	go r.Config.ModuleStep.PerformModuleHealthCheck(&waitMutex, myModule.ModuleName, myModule.BackendModule.ModuleExposedServerPort)
-	waitMutex.Wait()
+	var wg sync.WaitGroup
+	errCh := make(chan error, 1)
+
+	wg.Add(1)
+	go r.Config.ModuleStep.PerformModuleReadinessCheck(&wg, errCh, myModule.ModuleName, myModule.BackendModule.ModuleExposedServerPort)
+	wg.Wait()
+	close(errCh)
+
+	select {
+	case err := <-errCh:
+		return err
+	default:
+	}
+
+	return nil
 }
 
-func (r *Run) deployCustomSidecarForInterception(printModuleEnv bool, myModule *models.InterceptModule, client *client.Client) {
+func (r *Run) deployCustomSidecarForInterception(printModuleEnv bool, myModule *models.InterceptModule, client *client.Client) error {
 	slog.Info(r.Config.Action.Name, "text", "DEPLOYING CUSTOM SIDECAR FOR INTERCEPTION")
-	r.prepareContainerNetwork(myModule, false)
-	r.deploySidecar(printModuleEnv, myModule, client)
+	err := r.prepareContainerNetwork(myModule, false)
+	if err != nil {
+		return err
+	}
+
+	return r.deploySidecar(printModuleEnv, myModule, client)
 }
 
-func (r *Run) prepareContainerNetwork(myModule *models.InterceptModule, moduleAndSidecar bool) {
+func (r *Run) prepareContainerNetwork(myModule *models.InterceptModule, moduleAndSidecar bool) error {
 	myModule.NetworkConfig = helpers.NewModuleNetworkConfig()
 
 	if moduleAndSidecar {
-		moduleServerPort := helpers.SetFreePortFromRange(r.Config.Action)
-		moduleDebugPort := helpers.SetFreePortFromRange(r.Config.Action)
-		sidecarServerPort := helpers.SetFreePortFromRange(r.Config.Action)
-		sidecarDebugPort := helpers.SetFreePortFromRange(r.Config.Action)
+		moduleServerPort, err := helpers.SetFreePortFromRange(r.Config.Action)
+		if err != nil {
+			return err
+		}
+		moduleDebugPort, err := helpers.SetFreePortFromRange(r.Config.Action)
+		if err != nil {
+			return err
+		}
+		sidecarServerPort, err := helpers.SetFreePortFromRange(r.Config.Action)
+		if err != nil {
+			return err
+		}
+		sidecarDebugPort, err := helpers.SetFreePortFromRange(r.Config.Action)
+		if err != nil {
+			return err
+		}
 
 		myModule.BackendModule, myModule.RegistryModule = r.Config.ModuleStep.GetBackendModule(myModule.Containers, myModule.ModuleName)
 		myModule.BackendModule.ModulePortBindings = helpers.CreatePortBindings(moduleServerPort, moduleDebugPort, myModule.BackendModule.ModuleServerPort)
 		myModule.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, myModule.BackendModule.ModuleServerPort)
 		myModule.BackendModule.ModuleExposedServerPort = moduleServerPort
-		return
+
+		return nil
 	}
 
-	sidecarServerPort := helpers.ExtractPortFromURL(r.Config.Action, *myModule.SidecarUrl)
-	sidecarDebugPort := helpers.SetFreePortFromRange(r.Config.Action)
+	sidecarServerPort, err := helpers.ExtractPortFromURL(*myModule.SidecarUrl)
+	if err != nil {
+		return err
+	}
+
+	sidecarDebugPort, err := helpers.SetFreePortFromRange(r.Config.Action)
+	if err != nil {
+		return err
+	}
 
 	myModule.SidecarServerPort = sidecarServerPort
 
 	myModule.BackendModule, myModule.RegistryModule = r.Config.ModuleStep.GetBackendModule(myModule.Containers, myModule.ModuleName)
 	myModule.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, myModule.BackendModule.ModuleServerPort)
+
+	return nil
 }
 
-func (r *Run) deployModule(myModule *models.InterceptModule, client *client.Client) {
+func (r *Run) deployModule(myModule *models.InterceptModule, client *client.Client) error {
 	moduleVersion := r.Config.ModuleStep.GetModuleImageVersion(*myModule.BackendModule, myModule.RegistryModule)
 	moduleImage := r.Config.ModuleStep.GetModuleImage(moduleVersion, myModule.RegistryModule)
 	moduleEnv := r.Config.ModuleStep.GetModuleEnv(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule)
 	moduleContainer := models.NewModuleContainer(myModule.RegistryModule.Name, moduleImage, moduleEnv, *myModule.BackendModule, myModule.NetworkConfig)
-	r.Config.ModuleStep.DeployModule(client, moduleContainer)
+
+	err := r.Config.ModuleStep.DeployModule(client, moduleContainer)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (r *Run) deploySidecar(printModuleEnv bool, myModule *models.InterceptModule, client *client.Client) {
-	sidecarImage, pullSidecarImage := r.Config.ModuleStep.GetSidecarImage(myModule.Containers.RegistryModules[constant.EurekaRegistry])
+func (r *Run) deploySidecar(printModuleEnv bool, myModule *models.InterceptModule, client *client.Client) error {
+	sidecarImage, pullSidecarImage, err := r.Config.ModuleStep.GetSidecarImage(myModule.Containers.RegistryModules[constant.EurekaRegistry])
+	if err != nil {
+		return err
+	}
+
 	sidecarResources := helpers.CreateResources(false, viper.GetStringMap(field.SidecarModuleResources))
 	sidecarEnv := r.Config.ModuleStep.GetSidecarEnv(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule, myModule.ModuleUrl, myModule.SidecarUrl)
 	sidecarContainer := models.NewSidecarContainer(myModule.RegistryModule.SidecarName, sidecarImage, sidecarEnv, *myModule.BackendModule, myModule.NetworkConfig, sidecarResources)
 	sidecarContainer.PullImage = pullSidecarImage
 
-	r.Config.ModuleStep.DeployModule(client, sidecarContainer)
+	err = r.Config.ModuleStep.DeployModule(client, sidecarContainer)
+	if err != nil {
+		return err
+	}
 
 	if printModuleEnv {
 		moduleEnv := r.Config.ModuleStep.GetModuleEnv(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule)
@@ -162,6 +245,8 @@ func (r *Run) deploySidecar(printModuleEnv bool, myModule *models.InterceptModul
 		}
 		fmt.Println()
 	}
+
+	return nil
 }
 
 func init() {

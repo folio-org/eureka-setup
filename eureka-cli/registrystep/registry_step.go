@@ -131,7 +131,7 @@ func (rs *RegistryStep) GetModules(installJsonURLs map[string]string, printOutpu
 
 		if len(registryModules) > 0 {
 			if printOutput {
-				slog.Info(rs.Action.Name, "text", fmt.Sprintf("Found %s modules: %d", registryName, len(registryModules)))
+				slog.Info(rs.Action.Name, "text", fmt.Sprintf("Read %s registry with %d modules", registryName, len(registryModules)))
 			}
 
 			sort.Slice(registryModules, func(i, j int) bool {

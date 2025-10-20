@@ -102,8 +102,7 @@ func (cs *ConsortiumStep) CreateConsortiumTenants(centralTenant string, accessTo
 			"isCentral": consortiumTenant.IsCentral,
 		})
 		if err != nil {
-			slog.Error(cs.Action.Name, "error", err)
-			panic(err)
+			return err
 		}
 
 		existingTenant, err := cs.getConsortiumTenantByIdAndName(centralTenant, accessToken, consortiumId, consortiumTenant.Tenant)
@@ -128,7 +127,7 @@ func (cs *ConsortiumStep) CreateConsortiumTenants(centralTenant string, accessTo
 
 		slog.Info(cs.Action.Name, "text", fmt.Sprintf("Trying to create %s consortium tenant for %s consortium", consortiumTenant.Tenant, consortiumId))
 
-		err = cs.HTTPClient.DoPostReturnNoContent(fmt.Sprintf(cs.Action.GatewayURL, constant.KongPort, requestURL), b, headers)
+		err = cs.HTTPClient.PostReturnNoContent(cs.Action.CreateURL(constant.KongPort, requestURL), b, headers)
 		if err != nil {
 			return err
 		}
@@ -140,7 +139,7 @@ func (cs *ConsortiumStep) CreateConsortiumTenants(centralTenant string, accessTo
 }
 
 func (cs *ConsortiumStep) getConsortiumTenantByIdAndName(centralTenant string, accessToken string, consortiumId string, tenant string) (any, error) {
-	requestURL := fmt.Sprintf(cs.Action.GatewayURL, constant.KongPort, fmt.Sprintf("/consortia/%s/tenants", consortiumId))
+	requestURL := cs.Action.CreateURL(constant.KongPort, fmt.Sprintf("/consortia/%s/tenants", consortiumId))
 
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.ApplicationJSON,
@@ -148,7 +147,7 @@ func (cs *ConsortiumStep) getConsortiumTenantByIdAndName(centralTenant string, a
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	foundConsortiumTenantsMap, err := cs.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, headers)
+	foundConsortiumTenantsMap, err := cs.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +169,7 @@ func (cs *ConsortiumStep) getConsortiumTenantByIdAndName(centralTenant string, a
 func (cs *ConsortiumStep) checkConsortiumTenantStatus(centralTenant string, consortiumId string, tenant string, headers map[string]string) error {
 	requestURL := fmt.Sprintf("/consortia/%s/tenants/%s", consortiumId, tenant)
 
-	foundConsortiumTenantMap, err := cs.HTTPClient.DoGetDecodeReturnMapStringAny(fmt.Sprintf(cs.Action.GatewayURL, constant.KongPort, requestURL), headers)
+	foundConsortiumTenantMap, err := cs.HTTPClient.GetDecodeReturnMapStringAny(cs.Action.CreateURL(constant.KongPort, requestURL), headers)
 	if err != nil {
 		return err
 	}

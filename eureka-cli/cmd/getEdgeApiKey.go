@@ -34,40 +34,55 @@ var getEdgeApiKeyCmd = &cobra.Command{
 	Use:   "getEdgeApiKey",
 	Short: "Get Edge API key",
 	Long:  `Get Edge API key for a tenant`,
-	Run: func(cmd *cobra.Command, args []string) {
-		New(action.GetEdgeApiKey).GetEdgeApiKey()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.GetEdgeApiKey)
+		if err != nil {
+			return err
+		}
+
+		err = r.GetEdgeApiKey()
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
-func (r *Run) GetEdgeApiKey() {
+func (r *Run) GetEdgeApiKey() error {
+	randomStr, err := r.getRandomString(rp.Length)
+	if err != nil {
+		return err
+	}
+
 	apiKeyBytes, err := json.Marshal(map[string]any{
-		"s": r.getRandomString(rp.Length),
+		"s": randomStr,
 		"t": rp.Tenant,
 		"u": rp.User,
 	})
 	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
+		return err
 	}
 
 	apiKey := base64.URLEncoding.EncodeToString(apiKeyBytes)
 
 	fmt.Println(apiKey)
+
+	return nil
 }
 
-func (r *Run) getRandomString(length int) string {
+func (r *Run) getRandomString(length int) (string, error) {
 	bytes := make([]byte, length)
 	for i := range length {
 		charsetIdx, err := rand.Int(rand.Reader, big.NewInt(int64(len(constant.Charset))))
 		if err != nil {
-			slog.Error(err.Error())
-			os.Exit(1)
+			return "", err
 		}
 
 		bytes[i] = constant.Charset[charsetIdx.Int64()]
 	}
 
-	return string(bytes)
+	return string(bytes), nil
 }
 
 func init() {

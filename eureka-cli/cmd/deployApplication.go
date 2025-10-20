@@ -18,7 +18,6 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	"os"
 	"time"
 
 	"github.com/folio-org/eureka-cli/action"
@@ -34,83 +33,127 @@ var deployApplicationCmd = &cobra.Command{
 	Use:   "deployApplication",
 	Short: "Deploy application",
 	Long:  `Deploy platform application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		start := time.Now()
 
-		r := New(action.DeployApplication)
-		if len(viper.GetStringMap(field.ApplicationGatewayDependencies)) > 0 {
-			r.DeployChildApplication()
-		} else {
-			r.DeployApplication()
+		var err error
+		r, err := New(action.DeployApplication)
+		if err != nil {
+			return err
 		}
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Elapsed, duration %.1f", time.Since(start).Minutes()))
+		if len(viper.GetStringMap(field.ApplicationGatewayDependencies)) > 0 {
+			err = r.DeployChildApplication()
+		} else {
+			err = r.DeployApplication()
+		}
+		if err != nil {
+			return err
+		}
+		helpers.LogCompletion(r.Config.Action.Name, start)
+
+		return nil
 	},
 }
 
-func (r *Run) DeployApplication() {
+func (r *Run) DeployApplication() error {
 	err := r.DeploySystem()
 	if err != nil {
-		slog.Error(r.Config.Action.Name, "error", err.Error())
-		os.Exit(1)
+		return err
 	}
-
-	r.DeployManagement()
-	r.DeployModules()
-	r.CreateTenants()
-	r.Partition(func(consortiumName string, tenantType constant.TenantType) {
+	err = r.DeployManagement()
+	if err != nil {
+		return err
+	}
+	err = r.DeployModules()
+	if err != nil {
+		return err
+	}
+	err = r.CreateTenants()
+	if err != nil {
+		return err
+	}
+	err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 		waitDuration := 10 * time.Second
-
-		r.CreateTenantEntitlements(consortiumName, tenantType)
-		r.CreateRoles(consortiumName, tenantType)
-		r.CreateUsers(consortiumName, tenantType)
-
+		err = r.CreateTenantEntitlements(consortiumName, tenantType)
+		if err != nil {
+			return err
+		}
+		err = r.CreateRoles(consortiumName, tenantType)
+		if err != nil {
+			return err
+		}
+		err = r.CreateUsers(consortiumName, tenantType)
+		if err != nil {
+			return err
+		}
 		err := r.AttachCapabilitySets(consortiumName, tenantType, waitDuration)
 		if err != nil {
-			slog.Error(r.Config.Action.Name, "error", err.Error())
-			os.Exit(1)
+			return err
 		}
-
 		if consortiumName != constant.NoneConsortium {
-			slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Waiting for %.1f duration", waitDuration.Seconds()))
+			slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("waiting for %.1f duration", waitDuration.Seconds()))
 			time.Sleep(waitDuration)
 		}
-	})
-	r.CreateConsortium()
 
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	err = r.CreateConsortium()
+	if err != nil {
+		return err
+	}
 	err = r.DeployUi()
 	if err != nil {
-		slog.Error(r.Config.Action.Name, "error", err.Error())
-		os.Exit(1)
+		return err
 	}
-
-	r.UpdateKeycloakPublicClients()
-
+	err = r.UpdateKeycloakPublicClients()
+	if err != nil {
+		return err
+	}
 	if helpers.IsModuleEnabled(constant.ModSearchModule) {
-		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
-			r.ReindexElasticsearch(consortiumName, tenantType)
+		err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+			return r.ReindexElasticsearch(consortiumName, tenantType)
 		})
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
-func (r *Run) DeployChildApplication() {
+func (r *Run) DeployChildApplication() error {
 	err := r.DeployAdditionalSystem()
 	if err != nil {
-		slog.Error(r.Config.Action.Name, "error", err.Error())
-		os.Exit(1)
+		return err
 	}
-
-	r.DeployModules()
-	r.Partition(func(consortiumName string, tenantType constant.TenantType) {
-		r.CreateTenantEntitlements(consortiumName, tenantType)
-		r.DetachCapabilitySets(consortiumName, tenantType)
-
+	err = r.DeployModules()
+	if err != nil {
+		return err
+	}
+	err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+		err = r.CreateTenantEntitlements(consortiumName, tenantType)
+		if err != nil {
+			return err
+		}
+		err = r.DetachCapabilitySets(consortiumName, tenantType)
+		if err != nil {
+			return err
+		}
 		err := r.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second)
 		if err != nil {
-			slog.Error(r.Config.Action.Name, "error", err.Error())
-			os.Exit(1)
+			return err
 		}
+		return nil
 	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func init() {

@@ -2,7 +2,6 @@ package vaultclient
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
@@ -23,7 +22,7 @@ func New(action *action.Action, httpClient *httpclient.HTTPClient) *VaultClient 
 }
 
 func (vc *VaultClient) Create() (*vault.Client, error) {
-	serverURL := fmt.Sprintf(vc.Action.GatewayURL, constant.VaultServerPort, "")
+	serverURL := vc.Action.CreateURL(constant.VaultServerPort, "")
 
 	client, err := vault.New(vault.WithAddress(serverURL), vault.WithRequestTimeout(constant.VaultTimeout))
 	if err != nil {

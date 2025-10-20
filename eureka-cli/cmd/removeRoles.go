@@ -45,7 +45,10 @@ var removeRolesCmd = &cobra.Command{
 }
 
 func (r *Run) RemoveRoles(consortiumName string, tenantType constant.TenantType) error {
-	vaultRootToken := r.GetVaultRootToken()
+	vaultRootToken, err := r.GetVaultRootToken()
+	if err != nil {
+		return err
+	}
 
 	foundTenants, _ := r.Config.ManagementStep.GetTenants(consortiumName, tenantType)
 

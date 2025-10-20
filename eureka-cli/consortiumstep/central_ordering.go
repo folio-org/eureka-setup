@@ -33,7 +33,7 @@ func (cs *ConsortiumStep) EnableCentralOrdering(centralTenant string, accessToke
 		return err
 	}
 
-	cs.HTTPClient.DoPostReturnNoContent(fmt.Sprintf(cs.Action.GatewayURL, constant.KongPort, "/orders-storage/settings"), b, headers)
+	cs.HTTPClient.PostReturnNoContent(cs.Action.CreateURL(constant.KongPort, "/orders-storage/settings"), b, headers)
 
 	slog.Info(cs.Action.Name, "text", fmt.Sprintf("Enabled central ordering for %s tenant", centralTenant))
 
@@ -41,7 +41,7 @@ func (cs *ConsortiumStep) EnableCentralOrdering(centralTenant string, accessToke
 }
 
 func (cs *ConsortiumStep) getEnableCentralOrderingByKey(centralTenant string, accessToken string, key string) (bool, error) {
-	requestURL := fmt.Sprintf(cs.Action.GatewayURL, constant.KongPort, fmt.Sprintf("/orders-storage/settings?query=key==%s", key))
+	requestURL := cs.Action.CreateURL(constant.KongPort, fmt.Sprintf("/orders-storage/settings?query=key==%s", key))
 
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.ApplicationJSON,
@@ -49,7 +49,7 @@ func (cs *ConsortiumStep) getEnableCentralOrderingByKey(centralTenant string, ac
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	foundSettingsMap, err := cs.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, headers)
+	foundSettingsMap, err := cs.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 	if err != nil {
 		return false, err
 	}

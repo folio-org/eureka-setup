@@ -34,6 +34,10 @@ func (dc *DockerClient) Create() (*client.Client, error) {
 	return newClient, nil
 }
 
+func (dc *DockerClient) Close(client *client.Client) {
+	_ = client.Close()
+}
+
 func (dc *DockerClient) PushImage(namespace string, imageName string) error {
 	slog.Info(dc.Action.Name, "text", "PUSHING PLATFORM COMPLETE UI IMAGE TO DOCKER HUB")
 	finalImageName := fmt.Sprintf("%s/%s", namespace, imageName)
@@ -44,7 +48,7 @@ func (dc *DockerClient) PushImage(namespace string, imageName string) error {
 		return err
 	}
 
-	slog.Info(dc.Action.Name, "text", "Pushing new platform complete UI image to DockerHub")
+	slog.Info(dc.Action.Name, "text", "Pushing new platform complete UI image to Docker Hub")
 	err = helpers.Exec(exec.Command("docker", "push", finalImageName))
 	if err != nil {
 		return err
@@ -56,7 +60,7 @@ func (dc *DockerClient) PushImage(namespace string, imageName string) error {
 func (dc *DockerClient) ForcePullImage(imageName string) (finalImageName string, err error) {
 	slog.Info(dc.Action.Name, "text", "PULLING PLATFORM COMPLETE UI IMAGE FROM DOCKER HUB")
 	if !viper.IsSet(field.NamespacesPlatformCompleteUI) {
-		return "", fmt.Errorf("cannot run %s image, key %s is not set in current config file", imageName, field.NamespacesPlatformCompleteUI)
+		return "", fmt.Errorf("cannot run %s image key %s is not set in current config file", imageName, field.NamespacesPlatformCompleteUI)
 	}
 
 	finalImageName = fmt.Sprintf("%s/%s", viper.GetString(field.NamespacesPlatformCompleteUI), imageName)
@@ -67,7 +71,7 @@ func (dc *DockerClient) ForcePullImage(imageName string) (finalImageName string,
 		return "", err
 	}
 
-	slog.Info(dc.Action.Name, "text", "Pulling new platform complete UI image from DockerHub")
+	slog.Info(dc.Action.Name, "text", "Pulling new platform complete UI image from Docker Hub")
 	err = helpers.Exec(exec.Command("docker", "image", "pull", finalImageName))
 	if err != nil {
 		return "", err

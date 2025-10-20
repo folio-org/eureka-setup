@@ -60,7 +60,7 @@ func (ks *KeycloakStep) GetKeycloakAccessToken(vaultRootToken string, tenant str
 	formData.Set("username", systemUser)
 	formData.Set("password", systemUserPassword)
 
-	tokensMap, err := ks.HTTPClient.DoPostFormDataReturnMapStringAny(requestURL, formData, headers)
+	tokensMap, err := ks.HTTPClient.PostFormDataReturnMapStringAny(requestURL, formData, headers)
 	if err != nil {
 		return "", err
 	}
@@ -85,7 +85,7 @@ func (ks *KeycloakStep) GetKeycloakMasterAccessToken() (string, error) {
 	formData.Set("username", constant.KeycloakAdminUsername)
 	formData.Set("password", constant.KeycloakAdminPassword)
 
-	tokensMap, err := ks.HTTPClient.DoPostFormDataReturnMapStringAny(requestURL, formData, headers)
+	tokensMap, err := ks.HTTPClient.PostFormDataReturnMapStringAny(requestURL, formData, headers)
 	if err != nil {
 		return "", err
 	}
@@ -105,7 +105,7 @@ func (ks *KeycloakStep) UpdateKeycloakPublicClientParams(tenant string, accessTo
 
 	clientID := fmt.Sprintf("%s%s", tenant, helpers.GetConfigEnv("KC_LOGIN_CLIENT_SUFFIX"))
 	getRequestURL := fmt.Sprintf("%s/admin/realms/%s/clients?clientId=%s", constant.KeycloakHTTP, tenant, clientID)
-	foundClientsResp, err := ks.HTTPClient.DoGetDecodeReturnAny(getRequestURL, headers)
+	foundClientsResp, err := ks.HTTPClient.GetDecodeReturnAny(getRequestURL, headers)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func (ks *KeycloakStep) UpdateKeycloakPublicClientParams(tenant string, accessTo
 	}
 
 	putRequestURL := fmt.Sprintf("%s/admin/realms/%s/clients/%s", constant.KeycloakHTTP, tenant, clientUUID)
-	ks.HTTPClient.DoPutReturnNoContent(putRequestURL, clientParamsBytes, headers)
+	ks.HTTPClient.PutReturnNoContent(putRequestURL, clientParamsBytes, headers)
 
 	slog.Info(ks.Action.Name, "text", fmt.Sprintf("Updated keycloak public %s client in %s realm", clientID, tenant))
 

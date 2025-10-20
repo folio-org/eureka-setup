@@ -34,7 +34,10 @@ var listSystemCmd = &cobra.Command{
 			return err
 		}
 
-		r.ListSystem()
+		err = r.ListSystem()
+		if err != nil {
+			return err
+		}
 
 		return nil
 	},

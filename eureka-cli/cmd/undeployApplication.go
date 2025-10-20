@@ -16,13 +16,12 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -35,20 +34,23 @@ var undeployApplicationCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		start := time.Now()
 
+		var err error
 		r, err := New(action.UndeployApplication)
 		if err != nil {
 			return err
 		}
 
 		if len(viper.GetStringMap(field.ApplicationGatewayDependencies)) > 0 {
-			r.UndeployChildApplication()
+			err = r.UndeployChildApplication()
 		} else {
-			r.UndeployApplication()
+			err = r.UndeployApplication()
 		}
+		if err != nil {
+			return err
+		}
+		helpers.LogCompletion(r.Config.Action.Name, start)
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Elapsed, duration %.1f", time.Since(start).Minutes()))
-
-		return err
+		return nil
 	},
 }
 
@@ -57,17 +59,14 @@ func (r *Run) UndeployApplication() error {
 	if err != nil {
 		return err
 	}
-
 	err = r.UndeployModules()
 	if err != nil {
 		return err
 	}
-
 	err = r.UndeployManagement()
 	if err != nil {
 		return err
 	}
-
 	err = r.UndeploySystem()
 	if err != nil {
 		return err
@@ -80,24 +79,29 @@ func (r *Run) UndeployChildApplication() error {
 	r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 		r.RemoveTenantEntitlements(consortiumName, tenantType)
 	})
-
-	r.UndeployModules()
-
-	err := r.UndeployAdditionalSystem()
+	err := r.UndeployModules()
 	if err != nil {
 		return err
 	}
-
-	r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
-		r.DetachCapabilitySets(consortiumName, tenantType)
-
-		err := r.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second)
+	err = r.UndeployAdditionalSystem()
+	if err != nil {
+		return err
+	}
+	err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+		err := r.DetachCapabilitySets(consortiumName, tenantType)
+		if err != nil {
+			return err
+		}
+		err = r.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second)
 		if err != nil {
 			return err
 		}
 
 		return nil
 	})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

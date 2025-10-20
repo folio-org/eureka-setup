@@ -16,12 +16,12 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 	"time"
 
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -43,10 +43,17 @@ var buildAndPushUiCmd = &cobra.Command{
 func (r *Run) BuildAndPushUi() error {
 	start := time.Now()
 
-	r.Config.TenantStep.SetDefaultConfigTenantParams(&rp, rp.Tenant)
+	err := r.Config.TenantStep.SetDefaultConfigTenantParams(&rp, rp.Tenant)
+	if err != nil {
+		return err
+	}
 
 	slog.Info(r.Config.Action.Name, "text", "BUILDING AND PUSHING PLATFORM COMPLETE UI IMAGE TO DOCKER HUB")
-	outputDir := r.Config.UIStep.CloneAndUpdateUIRepository(rp.UpdateCloned)
+	outputDir, err := r.Config.UIStep.CloneAndUpdateUIRepository(rp.UpdateCloned)
+	if err != nil {
+		return err
+	}
+
 	imageName, err := r.Config.UIStep.BuildImage(&rp, outputDir, rp.Tenant)
 	if err != nil {
 		return err
@@ -56,8 +63,7 @@ func (r *Run) BuildAndPushUi() error {
 	if err != nil {
 		return err
 	}
-
-	slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Elapsed, duration %.1f", time.Since(start).Minutes()))
+	helpers.LogCompletion(r.Config.Action.Name, start)
 
 	return nil
 }

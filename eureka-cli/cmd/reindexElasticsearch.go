@@ -38,16 +38,22 @@ var reindexElasticsearchCmd = &cobra.Command{
 			return err
 		}
 
-		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
-			r.ReindexElasticsearch(consortiumName, tenantType)
+		err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+			return r.ReindexElasticsearch(consortiumName, tenantType)
 		})
+		if err != nil {
+			return err
+		}
 
 		return nil
 	},
 }
 
 func (r *Run) ReindexElasticsearch(consortiumName string, tenantType constant.TenantType) error {
-	vaultRootToken := r.GetVaultRootToken()
+	vaultRootToken, err := r.GetVaultRootToken()
+	if err != nil {
+		return err
+	}
 
 	foundTenants, _ := r.Config.ManagementStep.GetTenants(consortiumName, tenantType)
 

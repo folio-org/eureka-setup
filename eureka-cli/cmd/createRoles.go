@@ -30,18 +30,32 @@ var createRolesCmd = &cobra.Command{
 	Use:   "createRoles",
 	Short: "Create roles",
 	Long:  `Create all roles.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		run := New(action.CreateRoles)
-		run.Partition(func(consortiumName string, tenantType constant.TenantType) {
-			run.CreateRoles(consortiumName, tenantType)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.CreateRoles)
+		if err != nil {
+			return err
+		}
+
+		err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+			return r.CreateRoles(consortiumName, tenantType)
 		})
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
-func (r *Run) CreateRoles(consortiumName string, tenantType constant.TenantType) {
-	vaultRootToken := r.GetVaultRootToken()
+func (r *Run) CreateRoles(consortiumName string, tenantType constant.TenantType) error {
+	vaultRootToken, err := r.GetVaultRootToken()
+	if err != nil {
+		return err
+	}
 
-	for _, value := range r.Config.ManagementStep.GetTenants(false, consortiumName, tenantType) {
+	foundTenants, _ := r.Config.ManagementStep.GetTenants(consortiumName, tenantType)
+
+	for _, value := range foundTenants {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
@@ -50,9 +64,18 @@ func (r *Run) CreateRoles(consortiumName string, tenantType constant.TenantType)
 		}
 
 		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("CREATING ROLES FOR %s TENANT", existingTenant))
-		keycloakAccessToken := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
-		r.Config.ManagementStep.CreateRoles(false, existingTenant, keycloakAccessToken)
+		keycloakAccessToken, err := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		if err != nil {
+			return err
+		}
+
+		err = r.Config.KeycloakStep.CreateRoles(existingTenant, keycloakAccessToken)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func init() {

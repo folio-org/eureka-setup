@@ -31,19 +31,24 @@ func (l *LoggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, erro
 
 func createCustomClient() *http.Client {
 	return &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 30 * time.Minute,
 		Transport: &LoggingRoundTripper{
 			logger: slog.Default(),
 			next: &http.Transport{
 				DialContext: (&net.Dialer{
-					Timeout:   5 * time.Second,
-					KeepAlive: 30 * time.Second,
+					Timeout:   5 * time.Minute,
+					KeepAlive: 90 * time.Second,
 				}).DialContext,
-				ResponseHeaderTimeout: 10 * time.Second,
-				ExpectContinueTimeout: 1 * time.Second,
-				IdleConnTimeout:       90 * time.Second,
-				MaxIdleConns:          100,
-				MaxIdleConnsPerHost:   10,
+				MaxIdleConns:           50,
+				MaxIdleConnsPerHost:    10,
+				IdleConnTimeout:        120 * time.Second,
+				MaxResponseHeaderBytes: 16 << 20,
+				WriteBufferSize:        64 << 10,
+				ReadBufferSize:         64 << 10,
+				ResponseHeaderTimeout:  5 * time.Minute,
+				ExpectContinueTimeout:  10 * time.Second,
+				DisableCompression:     false,
+				ForceAttemptHTTP2:      false,
 			},
 		},
 	}

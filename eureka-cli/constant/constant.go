@@ -70,7 +70,7 @@ const (
 	OkapiTokenHeader          = "X-Okapi-Token"
 
 	// Module health check retries
-	ModuleHealthCheckMaxRetries = 50
+	ModuleReadinessMaxRetries = 50
 
 	// Consortium properties
 	NoneConsortium = "nop"

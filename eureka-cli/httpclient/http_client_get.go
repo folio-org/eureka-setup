@@ -4,51 +4,18 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-
-	"github.com/folio-org/eureka-cli/helpers"
 )
 
-func (hc *HTTPClient) DoGetReturnResponse(url string, headers map[string]string) (*http.Response, error) {
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	SetRequestHeaders(req, headers)
-	helpers.DumpRequest(hc.Action, req)
-
-	resp, err := hc.customClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	helpers.DumpResponse(hc.Action, resp, false)
-
-	return resp, nil
+func (hc *HTTPClient) GetReturnResponse(url string, headers map[string]string) (*http.Response, error) {
+	return hc.doRequest(http.MethodGet, url, nil, headers, false)
 }
 
-func (hc *HTTPClient) DoGetDecodeReturnString(url string, headers map[string]string) (string, error) {
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+func (hc *HTTPClient) GetDecodeReturnString(url string, headers map[string]string) (string, error) {
+	resp, err := hc.doRequest(http.MethodGet, url, nil, headers, false)
 	if err != nil {
 		return "", err
 	}
-
-	SetRequestHeaders(req, headers)
-	helpers.DumpRequest(hc.Action, req)
-
-	resp, err := hc.customClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	if err := hc.ValidateResponse(resp); err != nil {
-		return "", err
-	}
-
-	helpers.DumpResponse(hc.Action, resp, false)
+	defer closeResponse(resp)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -58,66 +25,30 @@ func (hc *HTTPClient) DoGetDecodeReturnString(url string, headers map[string]str
 	return string(body), nil
 }
 
-func (hc *HTTPClient) DoGetDecodeReturnAny(url string, headers map[string]string) (any, error) {
+func (hc *HTTPClient) GetDecodeReturnAny(url string, headers map[string]string) (any, error) {
+	resp, err := hc.doRequest(http.MethodGet, url, nil, headers, false)
+	if err != nil {
+		return nil, err
+	}
+	defer closeResponse(resp)
+
 	var respMap any
-
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	SetRequestHeaders(req, headers)
-	helpers.DumpRequest(hc.Action, req)
-
-	resp, err := hc.customClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	if err := hc.ValidateResponse(resp); err != nil {
-		return nil, err
-	}
-
-	helpers.DumpResponse(hc.Action, resp, false)
-
-	err = json.NewDecoder(resp.Body).Decode(&respMap)
-	if err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&respMap); err != nil {
 		return nil, err
 	}
 
 	return respMap, nil
 }
 
-func (hc *HTTPClient) DoGetDecodeReturnMapStringAny(url string, headers map[string]string) (map[string]any, error) {
+func (hc *HTTPClient) GetDecodeReturnMapStringAny(url string, headers map[string]string) (map[string]any, error) {
+	resp, err := hc.doRequest(http.MethodGet, url, nil, headers, false)
+	if err != nil {
+		return nil, err
+	}
+	defer closeResponse(resp)
+
 	var respMap map[string]any
-
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	SetRequestHeaders(req, headers)
-	helpers.DumpRequest(hc.Action, req)
-
-	resp, err := hc.customClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	if err := hc.ValidateResponse(resp); err != nil {
-		return nil, err
-	}
-
-	helpers.DumpResponse(hc.Action, resp, false)
-
-	err = json.NewDecoder(resp.Body).Decode(&respMap)
-	if err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&respMap); err != nil {
 		return nil, err
 	}
 

@@ -20,7 +20,7 @@ func (ms *ManagementStep) CreateTenantEntitlement(consortiumName string, tenantT
 		return err
 	}
 
-	requestURL := fmt.Sprintf(ms.Action.GatewayURL, constant.KongPort, fmt.Sprintf("/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=%s", tenantParameters))
+	requestURL := ms.Action.CreateURL(constant.KongPort, fmt.Sprintf("/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=%s", tenantParameters))
 	applicationMap := viper.GetStringMap(field.Application)
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)
@@ -43,7 +43,7 @@ func (ms *ManagementStep) CreateTenantEntitlement(consortiumName string, tenantT
 			return err
 		}
 
-		err = ms.HTTPClient.DoPostReturnNoContent(requestURL, b, map[string]string{})
+		err = ms.HTTPClient.PostReturnNoContent(requestURL, b, map[string]string{})
 		if err != nil {
 			return err
 		}
@@ -55,7 +55,7 @@ func (ms *ManagementStep) CreateTenantEntitlement(consortiumName string, tenantT
 }
 
 func (ms *ManagementStep) RemoveTenantEntitlements(purgeSchemas bool, consortiumName string, tenantType constant.TenantType) error {
-	requestURL := fmt.Sprintf(ms.Action.GatewayURL, constant.KongPort, fmt.Sprintf("/entitlements?purge=%t&ignoreErrors=false", purgeSchemas))
+	requestURL := ms.Action.CreateURL(constant.KongPort, fmt.Sprintf("/entitlements?purge=%t&ignoreErrors=false", purgeSchemas))
 	applicationMap := viper.GetStringMap(field.Application)
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)
@@ -84,7 +84,7 @@ func (ms *ManagementStep) RemoveTenantEntitlements(purgeSchemas bool, consortium
 			return err
 		}
 
-		err = ms.HTTPClient.DoDeleteWithBody(requestURL, b, map[string]string{})
+		err = ms.HTTPClient.DeleteWithBody(requestURL, b, map[string]string{})
 		if err != nil {
 			return err
 		}

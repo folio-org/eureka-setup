@@ -33,7 +33,7 @@ func NewInterceptModule(
 ) *InterceptModule {
 	var moduleURLTemp, sidecarURLTemp = moduleUrl, sidecarUrl
 	if defaultGateway {
-		baseSchemaAndUrl := helpers.GetGatewayProtoAndBaseURL(action.Name)
+		baseSchemaAndUrl := helpers.GetProtoAndBaseURL(action.Name)
 		moduleURLTemp = helpers.ConstructURL(moduleUrl, baseSchemaAndUrl)
 		sidecarURLTemp = helpers.ConstructURL(sidecarUrl, baseSchemaAndUrl)
 	}

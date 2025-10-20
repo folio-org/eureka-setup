@@ -61,10 +61,16 @@ func (r *Run) UpdateKeycloakPublicClients() error {
 			continue
 		}
 
-		r.Config.TenantStep.SetDefaultConfigTenantParams(&rp, existingTenant)
+		err = r.Config.TenantStep.SetDefaultConfigTenantParams(&rp, existingTenant)
+		if err != nil {
+			return err
+		}
 
 		slog.Info(r.Config.Action.Name, "text", "Updating keycloak public client")
-		r.Config.KeycloakStep.UpdateKeycloakPublicClientParams(existingTenant, keycloakMasterAccessToken, rp.PlatformCompleteURL)
+		err = r.Config.KeycloakStep.UpdateKeycloakPublicClientParams(existingTenant, keycloakMasterAccessToken, rp.PlatformCompleteURL)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -24,9 +24,9 @@ func (ks *KeycloakStep) GetCapabilitySets(headers map[string]string) ([]any, err
 	for _, value := range applications.ApplicationDescriptors {
 		applicationId := value["id"].(string)
 
-		requestURL := fmt.Sprintf(ks.Action.GatewayURL, constant.KongPort, fmt.Sprintf("/capability-sets?offset=0&limit=10000&query=applicationId==%s", applicationId))
+		requestURL := ks.Action.CreateURL(constant.KongPort, fmt.Sprintf("/capability-sets?offset=0&limit=10000&query=applicationId==%s", applicationId))
 
-		foundCapabilitySetsMap, err := ks.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, headers)
+		foundCapabilitySetsMap, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 		if err != nil {
 			return nil, err
 		}
@@ -42,9 +42,9 @@ func (ks *KeycloakStep) GetCapabilitySets(headers map[string]string) ([]any, err
 }
 
 func (ks *KeycloakStep) GetCapabilitySetsByName(headers map[string]string, capabilitySetName string) ([]any, error) {
-	requestURL := fmt.Sprintf(ks.Action.GatewayURL, constant.KongPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", capabilitySetName))
+	requestURL := ks.Action.CreateURL(constant.KongPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", capabilitySetName))
 
-	foundCapabilitySetsMap, err := ks.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, headers)
+	foundCapabilitySetsMap, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (ks *KeycloakStep) GetCapabilitySetsByName(headers map[string]string, capab
 }
 
 func (ks *KeycloakStep) AttachCapabilitySetsToRoles(tenant string, accessToken string) error {
-	requestURL := fmt.Sprintf(ks.Action.GatewayURL, constant.KongPort, "/roles/capability-sets")
+	requestURL := ks.Action.CreateURL(constant.KongPort, "/roles/capability-sets")
 
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.ApplicationJSON,
@@ -113,7 +113,7 @@ func (ks *KeycloakStep) AttachCapabilitySetsToRoles(tenant string, accessToken s
 				return err
 			}
 
-			err = ks.HTTPClient.DoRetryPostReturnNoContent(requestURL, b, headers)
+			err = ks.HTTPClient.RetryPostReturnNoContent(requestURL, b, headers)
 			if err != nil {
 				return err
 			}
@@ -187,9 +187,9 @@ func (ks *KeycloakStep) DetachCapabilitySetsFromRoles(tenant string, accessToken
 			continue
 		}
 
-		requestURL := fmt.Sprintf(ks.Action.GatewayURL, constant.KongPort, fmt.Sprintf("/roles/%s/capability-sets", mapEntry["id"].(string)))
+		requestURL := ks.Action.CreateURL(constant.KongPort, fmt.Sprintf("/roles/%s/capability-sets", mapEntry["id"].(string)))
 
-		_ = ks.HTTPClient.DoDelete(requestURL, headers)
+		_ = ks.HTTPClient.Delete(requestURL, headers)
 
 		slog.Info(ks.Action.Name, "text", fmt.Sprintf("Detached capability sets from %s role in %s tenant (realm)", roleName, tenant))
 	}

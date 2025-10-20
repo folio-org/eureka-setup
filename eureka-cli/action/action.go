@@ -1,5 +1,9 @@
 package action
 
+import (
+	"fmt"
+)
+
 // Action is a container that holds the state of the deployment
 type Action struct {
 	Name          string
@@ -25,4 +29,8 @@ func newGeneric(name, gatewayURL string, startPort, endPort int) *Action {
 		EndPort:       endPort,
 		ReservedPorts: []int{},
 	}
+}
+
+func (a *Action) CreateURL(port string, route string) string {
+	return fmt.Sprintf(a.GatewayURL, port) + route
 }

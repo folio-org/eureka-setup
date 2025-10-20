@@ -27,14 +27,24 @@ var createTenantsCmd = &cobra.Command{
 	Use:   "createTenants",
 	Short: "Create tenants",
 	Long:  `Create all tenants.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		New(action.CreateTenants).CreateTenants()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.CreateTenants)
+		if err != nil {
+			return err
+		}
+
+		err = r.CreateTenants()
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
-func (r *Run) CreateTenants() {
+func (r *Run) CreateTenants() error {
 	slog.Info(r.Config.Action.Name, "text", "CREATING TENANTS")
-	r.Config.ManagementStep.CreateTenants()
+	return r.Config.ManagementStep.CreateTenants()
 }
 
 func init() {

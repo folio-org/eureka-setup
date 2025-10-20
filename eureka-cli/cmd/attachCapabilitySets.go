@@ -37,22 +37,26 @@ var attachCapabilitySetsCmd = &cobra.Command{
 	Short: "Attach capability sets",
 	Long:  `Attach capability sets to roles.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r := New(action.AttachCapabilitySets)
-		return r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
-			err := r.AttachCapabilitySets(consortiumName, tenantType, time.Duration(0*time.Second))
-			if err != nil {
-				return err
-			}
+		r, err := New(action.AttachCapabilitySets)
+		if err != nil {
+			return err
+		}
 
-			return nil
+		return r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+			return r.AttachCapabilitySets(consortiumName, tenantType, time.Duration(0*time.Second))
 		})
 	},
 }
 
 func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.TenantType, initialWaitDuration time.Duration) error {
-	vaultRootToken := r.GetVaultRootToken()
+	vaultRootToken, err := r.GetVaultRootToken()
+	if err != nil {
+		return err
+	}
 
-	for _, value := range r.Config.ManagementStep.GetTenants(false, consortiumName, tenantType) {
+	foundTenants, _ := r.Config.ManagementStep.GetTenants(consortiumName, tenantType)
+
+	for _, value := range foundTenants {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
@@ -70,8 +74,15 @@ func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.Te
 		}
 
 		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("ATTACHING CAPABILITY SETS TO ROLES FOR %s TENANT", existingTenant))
-		keycloakAccessToken := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
-		r.Config.ManagementStep.AttachCapabilitySetsToRoles(existingTenant, keycloakAccessToken)
+		keycloakAccessToken, err := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		if err != nil {
+			return err
+		}
+
+		err = r.Config.KeycloakStep.AttachCapabilitySetsToRoles(existingTenant, keycloakAccessToken)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -110,12 +121,10 @@ func (r *Run) getConsumerGroupLag(tenant string, consumerGroup string, initialLa
 	if stderr.Len() > 0 {
 		if strings.Contains(stderr.String(), constant.ErrNoActiveMembers) || strings.Contains(stderr.String(), constant.ErrRebalancing) {
 			time.Sleep(30 * time.Second)
-
 			return initialLag, nil
 		}
-		helpers.LogErrorPrintStderrPanic(r.Config.Action, "failed to execute a container command", stderr.String())
 
-		return 0, nil
+		return 0, fmt.Errorf("failed to execute a container command, stderr: %+v", stderr.String())
 	}
 
 	lag, err = strconv.Atoi(helpers.GetKafkaConsumerLagFromLogLine(stdout))

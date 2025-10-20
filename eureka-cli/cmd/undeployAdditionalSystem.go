@@ -51,13 +51,13 @@ func (r *Run) UndeployAdditionalSystem() error {
 	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "stop"}, finalRequiredContainers...)
 	err := helpers.Exec(exec.Command("docker", subCommand...))
 	if err != nil {
-		return nil
+		return err
 	}
 
 	subCommand = append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "rm", "--volumes", "--force"}, finalRequiredContainers...)
 	err = helpers.Exec(exec.Command("docker", subCommand...))
 	if err != nil {
-		return nil
+		return err
 	}
 
 	return nil

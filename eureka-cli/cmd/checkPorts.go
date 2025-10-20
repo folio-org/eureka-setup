@@ -38,7 +38,17 @@ var checkPortsCmd = &cobra.Command{
 	Short: "Check ports",
 	Long:  `Check container ports.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return New(action.CheckPorts).CheckPorts()
+		r, err := New(action.CheckPorts)
+		if err != nil {
+			return err
+		}
+
+		err = r.CheckPorts()
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
@@ -49,7 +59,11 @@ func (r *Run) CheckPorts() error {
 		return err
 	}
 
-	modules := r.getDeployedModules()
+	modules, err := r.getDeployedModules()
+	if err != nil {
+		return err
+	}
+
 	r.runNetcat(modules)
 
 	return nil
@@ -57,19 +71,29 @@ func (r *Run) CheckPorts() error {
 
 func (r *Run) deployNetcatContainer() error {
 	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach", "netcat")
-	return helpers.ExecFromDir(preparedCommand, helpers.GetHomeMiscDir(r.Config.Action))
+
+	dir, err := helpers.GetHomeMiscDir(r.Config.Action)
+	if err != nil {
+		return err
+	}
+
+	return helpers.ExecFromDir(preparedCommand, dir)
 }
 
-func (r *Run) getDeployedModules() []container.Summary {
-	client := r.Config.DockerClient.Create()
-	defer func() {
-		_ = client.Close()
-	}()
+func (r *Run) getDeployedModules() ([]container.Summary, error) {
+	client, err := r.Config.DockerClient.Create()
+	if err != nil {
+		return nil, err
+	}
+	defer r.Config.DockerClient.Close(client)
 
 	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(constant.ProfileContainerPattern, viper.GetString(field.ProfileName))})
-	containers := r.Config.ModuleStep.GetDeployedModules(client, filters)
+	containers, err := r.Config.ModuleStep.GetDeployedModules(client, filters)
+	if err != nil {
+		return nil, err
+	}
 
-	return containers
+	return containers, nil
 }
 
 func (r *Run) runNetcat(modules []container.Summary) {

@@ -15,19 +15,18 @@ import (
 )
 
 func (ms *ManagementStep) GetApplications() (models.Applications, error) {
-	requestURL := fmt.Sprintf(ms.Action.GatewayURL, constant.KongPort, "/applications")
+	requestURL := ms.Action.CreateURL(constant.KongPort, "/applications")
 
-	response, err := ms.HTTPClient.DoGetReturnResponse(requestURL, map[string]string{})
+	response, err := ms.HTTPClient.GetReturnResponse(requestURL, map[string]string{})
 	if err != nil {
 		return models.Applications{}, err
-	}
-
-	if response == nil {
-		return models.Applications{}, nil
 	}
 	defer func() {
 		_ = response.Body.Close()
 	}()
+	if response == nil {
+		return models.Applications{}, nil
+	}
 
 	var applications models.Applications
 
@@ -101,7 +100,7 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 					slog.Info(ms.Action.Name, "text", fmt.Sprintf("Successfully loaded descriptor for %s from local file", module.Id))
 				} else {
 					slog.Info(ms.Action.Name, "text", fmt.Sprintf("Fetching module descriptor for %s from %s", module.Id, moduleDescriptorUrl))
-					moduleDescriptorsMapResp, err := ms.HTTPClient.DoGetDecodeReturnAny(moduleDescriptorUrl, map[string]string{})
+					moduleDescriptorsMapResp, err := ms.HTTPClient.GetDecodeReturnAny(moduleDescriptorUrl, map[string]string{})
 					if err != nil {
 						return err
 					}
@@ -136,7 +135,7 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 				frontendModules = append(frontendModules, frontendModule)
 			}
 
-			slog.Info(ms.Action.Name, "text", fmt.Sprintf("Adding module to application, module: %s, version: %s", module.Name, *module.Version))
+			slog.Info(ms.Action.Name, "text", fmt.Sprintf("Including %s:%s module into %s application", module.Name, *module.Version, applicationId))
 		}
 	}
 
@@ -156,7 +155,7 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 		return err
 	}
 
-	err = ms.HTTPClient.DoPostReturnNoContent(fmt.Sprintf(ms.Action.GatewayURL, constant.KongPort, "/applications?check=true"), applicationBytes, map[string]string{})
+	err = ms.HTTPClient.PostReturnNoContent(ms.Action.CreateURL(constant.KongPort, "/applications?check=true"), applicationBytes, map[string]string{})
 	if err != nil {
 		return err
 	}
@@ -169,7 +168,7 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 			return err
 		}
 
-		err = ms.HTTPClient.DoPostReturnNoContent(fmt.Sprintf(ms.Action.GatewayURL, constant.KongPort, "/modules/discovery"), applicationDiscoveryBytes, map[string]string{})
+		err = ms.HTTPClient.PostReturnNoContent(ms.Action.CreateURL(constant.KongPort, "/modules/discovery"), applicationDiscoveryBytes, map[string]string{})
 		if err != nil {
 			return err
 		}
@@ -181,9 +180,9 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 }
 
 func (ms *ManagementStep) RemoveApplication(applicationId string) {
-	requestURL := fmt.Sprintf(ms.Action.GatewayURL, constant.KongPort, fmt.Sprintf("/applications/%s", applicationId))
+	requestURL := ms.Action.CreateURL(constant.KongPort, fmt.Sprintf("/applications/%s", applicationId))
 
-	_ = ms.HTTPClient.DoDelete(requestURL, map[string]string{})
+	_ = ms.HTTPClient.Delete(requestURL, map[string]string{})
 
 	slog.Info(ms.Action.Name, "text", fmt.Sprintf("Removed %s application", applicationId))
 }
@@ -209,9 +208,9 @@ func (ms *ManagementStep) UpdateModuleDiscovery(id string, sidecarUrl string, re
 		return err
 	}
 
-	requestURL := fmt.Sprintf(ms.Action.GatewayURL, constant.KongPort, fmt.Sprintf("/modules/%s/discovery", id))
+	requestURL := ms.Action.CreateURL(constant.KongPort, fmt.Sprintf("/modules/%s/discovery", id))
 
-	ms.HTTPClient.DoPutReturnNoContent(requestURL, applicationDiscoveryBytes, map[string]string{})
+	ms.HTTPClient.PutReturnNoContent(requestURL, applicationDiscoveryBytes, map[string]string{})
 
 	slog.Info(ms.Action.Name, "text", fmt.Sprintf("Updated application module discovery for %s module with %s sidecar URL", name, sidecarUrl))
 

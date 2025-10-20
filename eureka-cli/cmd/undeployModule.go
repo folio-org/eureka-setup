@@ -54,11 +54,12 @@ func (r *Run) UndeployModule() error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = client.Close()
-	}()
+	defer r.Config.DockerClient.Close(client)
 
-	r.Config.ModuleStep.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, viper.GetString(field.ProfileName), rp.ModuleName), true)
+	err = r.Config.ModuleStep.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, viper.GetString(field.ProfileName), rp.ModuleName), true)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
