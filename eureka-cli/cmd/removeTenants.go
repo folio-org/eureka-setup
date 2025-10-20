@@ -19,7 +19,7 @@ import (
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/tenanttype"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
 )
 
@@ -30,13 +30,13 @@ var removeTenantsCmd = &cobra.Command{
 	Long:  `Remove all tenants.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		r := NewRun(action.RemoveTenants)
-		r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
+		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 			r.RemoveTenants(consortiumName, tenantType)
 		})
 	},
 }
 
-func (r *Run) RemoveTenants(consortiumName string, tenantType tenanttype.TenantType) {
+func (r *Run) RemoveTenants(consortiumName string, tenantType constant.TenantType) {
 	slog.Info(r.Config.Action.Name, "text", "REMOVING TENANTS")
 	r.Config.ManagementStep.RemoveTenants(false, consortiumName, tenantType)
 }

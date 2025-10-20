@@ -57,13 +57,13 @@ func (r *Run) CloneUpdateRepositories() {
 
 	slog.Info(r.Config.Action.Name, "text", "Cloning repositories")
 	for _, repository := range repositories {
-		r.Config.GitClient.GitClone(false, repository)
+		r.Config.GitClient.Clone(false, repository)
 	}
 
 	if rp.UpdateCloned {
 		slog.Info(r.Config.Action.Name, "text", "Updating repositories")
 		for _, repository := range repositories {
-			r.Config.GitClient.GitResetHardPullFromOrigin(repository)
+			r.Config.GitClient.ResetHardPullFromOrigin(repository)
 		}
 	}
 }

@@ -44,8 +44,8 @@ var deployModulesCmd = &cobra.Command{
 
 func (r *Run) DeployModules() {
 	registryURL := viper.GetString(field.RegistryURL)
-	environment := helpers.GetConfigEnvVars(field.Environment)
-	sidecarEnvironment := helpers.GetConfigEnvVars(field.SidecarModuleEnvironment)
+	env := helpers.GetConfigEnvVars(field.Env)
+	sidecarEnv := helpers.GetConfigEnvVars(field.SidecarModuleEnv)
 
 	slog.Info(r.Config.Action.Name, "text", "READING BACKEND MODULES FROM CONFIG")
 	backendModulesMap := r.Config.ModuleParams.GetBackendModulesFromConfig(false, true, viper.GetStringMap(field.BackendModules))
@@ -75,7 +75,7 @@ func (r *Run) DeployModules() {
 
 	slog.Info(r.Config.Action.Name, "text", "PULLING SIDECAR IMAGE")
 	registryHosts := map[string]string{constant.FolioRegistry: "", constant.EurekaRegistry: ""}
-	containers := models.NewCoreAndBusinessContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, environment, sidecarEnvironment)
+	containers := models.NewCoreAndBusinessContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, env, sidecarEnv)
 	sidecarImage, pullSidecarImage := r.Config.ModuleStep.GetSidecarImage(containers.RegistryModules[constant.EurekaRegistry])
 	slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Using sidecar image %s", sidecarImage))
 	sidecarResources := helpers.CreateResources(false, viper.GetStringMap(field.SidecarModuleResources))

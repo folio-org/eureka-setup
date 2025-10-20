@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/docker/docker/api/types/network"
+	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/helpers"
 )
 
@@ -22,9 +23,9 @@ type InterceptModule struct {
 }
 
 func NewInterceptModule(
+	action *action.Action,
 	id string,
 	defaultGateway bool,
-	baseSchemaAndUrl string,
 	moduleUrl,
 	sidecarUrl string,
 	portStart,
@@ -32,6 +33,7 @@ func NewInterceptModule(
 ) *InterceptModule {
 	var moduleURLTemp, sidecarURLTemp = moduleUrl, sidecarUrl
 	if defaultGateway {
+		baseSchemaAndUrl := helpers.GetGatewayProtoAndBaseURL(action)
 		moduleURLTemp = helpers.ConstructURL(moduleUrl, baseSchemaAndUrl)
 		sidecarURLTemp = helpers.ConstructURL(sidecarUrl, baseSchemaAndUrl)
 	}
@@ -39,7 +41,7 @@ func NewInterceptModule(
 	id = strings.ReplaceAll(id, ":", "-")
 	return &InterceptModule{
 		Id:         id,
-		ModuleName: helpers.GetModuleName(id),
+		ModuleName: helpers.GetModuleNameFromID(id),
 		ModuleUrl:  &moduleURLTemp,
 		SidecarUrl: &sidecarURLTemp,
 		PortStart:  portStart,

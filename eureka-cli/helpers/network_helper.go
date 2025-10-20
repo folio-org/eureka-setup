@@ -4,12 +4,38 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/field"
+	"github.com/spf13/viper"
 )
+
+func GetGatewayURL(action *action.Action) string {
+	protoAndBaseURL := GetGatewayProtoAndBaseURL(action)
+	if protoAndBaseURL == "" {
+		LogErrorPanic(action, fmt.Errorf("cannot construct getaway url for %s platform", runtime.GOOS))
+		return ""
+	}
+
+	return protoAndBaseURL + ":%s%s"
+}
+
+func GetGatewayProtoAndBaseURL(action *action.Action) string {
+	if viper.IsSet(field.ApplicationGatewayHostname) {
+		return viper.GetString(field.ApplicationGatewayHostname)
+	} else if HostnameExists(action, constant.DockerHostname) {
+		return fmt.Sprintf("http://%s", constant.DockerHostname)
+	} else if runtime.GOOS == "linux" || runtime.GOOS == "darwin" {
+		return fmt.Sprintf("http://%s", constant.DockerGatewayIP)
+	}
+
+	return ""
+}
 
 func SetFreePortFromRange(action *action.Action) int {
 	for port := action.StartPort; port <= action.EndPort; port++ {

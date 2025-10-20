@@ -20,13 +20,16 @@ import (
 	"log/slog"
 	"net/http/httputil"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/mod/semver"
 )
 
 // listModuleVersionsCmd represents the listModuleVersions command
@@ -45,7 +48,7 @@ func (r *Run) ListModuleVersions() {
 		r.getModuleDescriptorById(registryURL)
 		return
 	}
-	r.listModuleVersions(registryURL)
+	r.listModuleVersionsSortedDescendingOrder(registryURL)
 }
 
 func (r *Run) getModuleDescriptorById(registryURL string) {
@@ -71,15 +74,30 @@ func (r *Run) getModuleDescriptorById(registryURL string) {
 	}
 }
 
-func (r *Run) listModuleVersions(registryURL string) {
+func (r *Run) listModuleVersionsSortedDescendingOrder(registryURL string) {
 	resp := r.Config.HTTPClient.DoGetDecodeReturnAny(fmt.Sprintf("%s/_/proxy/modules", registryURL), true, map[string]string{})
+
+	var versions []string
 
 	for _, value := range resp.([]any) {
 		mapEntry := value.(map[string]any)
 
-		if strings.Contains(mapEntry["id"].(string), rp.ModuleName) {
-			fmt.Println(mapEntry["id"])
+		if helpers.MatchesModuleName(mapEntry["id"].(string), rp.ModuleName) {
+			versions = append(versions, mapEntry["id"].(string))
 		}
+	}
+
+	sort.Slice(versions, func(i, j int) bool {
+		vi := "v" + strings.TrimPrefix(versions[i], rp.ModuleName+"-")
+		vj := "v" + strings.TrimPrefix(versions[j], rp.ModuleName+"-")
+		return semver.Compare(vi, vj) > 0
+	})
+
+	for idx, version := range versions {
+		if idx >= rp.Lines {
+			break
+		}
+		fmt.Println(version)
 	}
 }
 
@@ -87,6 +105,7 @@ func init() {
 	rootCmd.AddCommand(listModuleVersionsCmd)
 	listModuleVersionsCmd.PersistentFlags().StringVarP(&rp.ModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders (required)")
 	listModuleVersionsCmd.PersistentFlags().StringVarP(&rp.ID, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021")
+	listModuleVersionsCmd.PersistentFlags().IntVarP(&rp.Lines, "lines", "L", 5, "Number of lines, e.g. 5")
 	if err := listModuleVersionsCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)

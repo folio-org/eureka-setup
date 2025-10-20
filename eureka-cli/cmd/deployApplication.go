@@ -25,7 +25,6 @@ import (
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -59,7 +58,7 @@ func (r *Run) DeployApplication() {
 	r.DeployManagement()
 	r.DeployModules()
 	r.CreateTenants()
-	r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
+	r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 		waitDuration := 10 * time.Second
 
 		r.CreateTenantEntitlements(consortiumName, tenantType)
@@ -87,8 +86,8 @@ func (r *Run) DeployApplication() {
 
 	r.UpdateKeycloakPublicClients()
 
-	if helpers.IsModuleEnabled(constant.ModSearchModuleName) {
-		r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
+	if helpers.IsModuleEnabled(constant.ModSearchModule) {
+		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 			r.ReindexElasticsearch(consortiumName, tenantType)
 		})
 	}
@@ -102,7 +101,7 @@ func (r *Run) DeployChildApplication() {
 	}
 
 	r.DeployModules()
-	r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
+	r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 		r.CreateTenantEntitlements(consortiumName, tenantType)
 		r.DetachCapabilitySets(consortiumName, tenantType)
 

@@ -51,7 +51,7 @@ func (r *Run) CreateConsortium() {
 		mapEntry := properties.(map[string]any)
 
 		if !helpers.GetBoolKey(mapEntry, field.ConsortiumCreateConsortiumEntry) {
-			slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("IGNORING CREATION OF %s CONSORTIUM ", consortium))
+			slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("IGNORING CREATION OF %s CONSORTIUM", consortium))
 			continue
 		}
 
@@ -65,19 +65,19 @@ func (r *Run) CreateConsortium() {
 		consortiumUsers := r.Config.ConsortiumStep.GetConsortiumUsers(consortium, users)
 		keycloakAccessToken := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, centralTenant)
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("CREATING %s CONSORTIUM ", consortium))
+		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("CREATING %s CONSORTIUM", consortium))
 		consortiumId := r.Config.ConsortiumStep.CreateConsortium(centralTenant, keycloakAccessToken, consortium)
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("ADDING %s (%d) TENANTS TO %s CONSORTIUM ", consortiumTenants, len(consortiumTenants), consortium))
+		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("ADDING %s (%d) TENANTS TO %s CONSORTIUM", consortiumTenants, len(consortiumTenants), consortium))
 		adminUsername := r.Config.ConsortiumStep.GetAdminUsername(centralTenant, consortiumUsers)
 		r.Config.ConsortiumStep.CreateConsortiumTenants(centralTenant, keycloakAccessToken, consortiumId, consortiumTenants, adminUsername)
 
 		if !helpers.GetBoolKey(mapEntry, field.ConsortiumEnableCentralOrderingEntry) {
-			slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("IGNORING ENABLEMENT OF CENTRAL ORDERING FOR %s TENANT IN %s CONSORTIUM ", centralTenant, consortium))
+			slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("IGNORING ENABLEMENT OF CENTRAL ORDERING FOR %s TENANT IN %s CONSORTIUM", centralTenant, consortium))
 			continue
 		}
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("ENABLING CENTRAL ORDERING FOR %s TENANT IN %s CONSORTIUM ", centralTenant, consortium))
+		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("ENABLING CENTRAL ORDERING FOR %s TENANT IN %s CONSORTIUM", centralTenant, consortium))
 		r.Config.ConsortiumStep.EnableCentralOrdering(centralTenant, keycloakAccessToken)
 	}
 }

@@ -20,8 +20,8 @@ import (
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 )
 
@@ -32,13 +32,13 @@ var createRolesCmd = &cobra.Command{
 	Long:  `Create all roles.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		run := NewRun(action.CreateRoles)
-		run.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
+		run.Partition(func(consortiumName string, tenantType constant.TenantType) {
 			run.CreateRoles(consortiumName, tenantType)
 		})
 	},
 }
 
-func (r *Run) CreateRoles(consortiumName string, tenantType tenanttype.TenantType) {
+func (r *Run) CreateRoles(consortiumName string, tenantType constant.TenantType) {
 	vaultRootToken := r.GetVaultRootToken()
 
 	for _, value := range r.Config.ManagementStep.GetTenants(false, consortiumName, tenantType) {

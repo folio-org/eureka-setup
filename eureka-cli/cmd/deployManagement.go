@@ -42,7 +42,7 @@ var deployManagementCmd = &cobra.Command{
 }
 
 func (r *Run) DeployManagement() {
-	environment := helpers.GetConfigEnvVars(field.Environment)
+	env := helpers.GetConfigEnvVars(field.Env)
 
 	slog.Info(r.Config.Action.Name, "text", "READING BACKEND MODULES FROM CONFIG")
 	backendModulesMap := r.Config.ModuleParams.GetBackendModulesFromConfig(true, true, viper.GetStringMap(field.BackendModules))
@@ -61,7 +61,7 @@ func (r *Run) DeployManagement() {
 
 	slog.Info(r.Config.Action.Name, "text", "DEPLOYING MANAGEMENT MODULES")
 	registryHosts := map[string]string{constant.EurekaRegistry: ""}
-	containers := models.NewManagementContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, environment)
+	containers := models.NewManagementContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, env)
 	deployedModules := r.Config.ModuleStep.DeployModules(client, containers, "", nil)
 	time.Sleep(5 * time.Second)
 

@@ -44,13 +44,11 @@ var interceptModuleCmd = &cobra.Command{
 }
 
 func (r *Run) InterceptModule() {
-	baseSchemaAndUrl := r.Config.HTTPClient.GetGatewayProtoAndBaseURL()
+	myModule := models.NewInterceptModule(r.Config.Action, rp.ID, rp.DefaultGateway, rp.ModuleURL, rp.SidecarURL, viper.GetInt(field.ApplicationPortStart), viper.GetInt(field.ApplicationPortEnd))
 
-	myModule := models.NewInterceptModule(rp.ID, rp.DefaultGateway, baseSchemaAndUrl, rp.ModuleURL, rp.SidecarURL, viper.GetInt(field.ApplicationPortStart), viper.GetInt(field.ApplicationPortEnd))
-
-	slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("INTERCEPTING %s MODULE ", myModule.ModuleName))
-	globalEnvironment := helpers.GetConfigEnvVars(field.Environment)
-	globalSidecarEnvironment := helpers.GetConfigEnvVars(field.SidecarModuleEnvironment)
+	slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("INTERCEPTING %s MODULE", myModule.ModuleName))
+	globalEnv := helpers.GetConfigEnvVars(field.Env)
+	globalSidecarEnv := helpers.GetConfigEnvVars(field.SidecarModuleEnv)
 	backendModulesMap := r.Config.ModuleParams.GetBackendModulesFromConfig(false, false, viper.GetStringMap(field.BackendModules))
 
 	instalJsonURLs := map[string]string{
@@ -69,7 +67,7 @@ func (r *Run) InterceptModule() {
 	r.Config.ModuleStep.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, viper.GetString(field.ProfileName), myModule.ModuleName), false)
 
 	registryHosts := map[string]string{constant.FolioRegistry: "", constant.EurekaRegistry: ""}
-	myModule.Containers = models.NewCoreAndBusinessContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, globalEnvironment, globalSidecarEnvironment)
+	myModule.Containers = models.NewCoreAndBusinessContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, globalEnv, globalSidecarEnv)
 
 	r.UpdateModuleDiscovery(*myModule.SidecarUrl)
 	if rp.Restore {
@@ -94,10 +92,10 @@ func (r *Run) deployDefaultModuleAndSidecar(myModule *models.InterceptModule, cl
 	waitMutex.Wait()
 }
 
-func (r *Run) deployCustomSidecarForInterception(printModuleEnvironment bool, myModule *models.InterceptModule, client *client.Client) {
+func (r *Run) deployCustomSidecarForInterception(printModuleEnv bool, myModule *models.InterceptModule, client *client.Client) {
 	slog.Info(r.Config.Action.Name, "text", "DEPLOYING CUSTOM SIDECAR FOR INTERCEPTION")
 	r.prepareContainerNetwork(myModule, false)
-	r.deploySidecar(printModuleEnvironment, myModule, client)
+	r.deploySidecar(printModuleEnv, myModule, client)
 }
 
 func (r *Run) prepareContainerNetwork(myModule *models.InterceptModule, moduleAndSidecar bool) {
@@ -128,25 +126,25 @@ func (r *Run) prepareContainerNetwork(myModule *models.InterceptModule, moduleAn
 func (r *Run) deployModule(myModule *models.InterceptModule, client *client.Client) {
 	moduleVersion := r.Config.ModuleStep.GetModuleImageVersion(*myModule.BackendModule, myModule.RegistryModule)
 	moduleImage := r.Config.ModuleStep.GetModuleImage(moduleVersion, myModule.RegistryModule)
-	moduleEnvironment := r.Config.ModuleStep.GetModuleEnvironment(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule)
-	moduleContainer := models.NewModuleContainer(myModule.RegistryModule.Name, moduleImage, moduleEnvironment, *myModule.BackendModule, myModule.NetworkConfig)
+	moduleEnv := r.Config.ModuleStep.GetModuleEnv(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule)
+	moduleContainer := models.NewModuleContainer(myModule.RegistryModule.Name, moduleImage, moduleEnv, *myModule.BackendModule, myModule.NetworkConfig)
 	r.Config.ModuleStep.DeployModule(client, moduleContainer)
 }
 
-func (r *Run) deploySidecar(printModuleEnvironment bool, myModule *models.InterceptModule, client *client.Client) {
+func (r *Run) deploySidecar(printModuleEnv bool, myModule *models.InterceptModule, client *client.Client) {
 	sidecarImage, pullSidecarImage := r.Config.ModuleStep.GetSidecarImage(myModule.Containers.RegistryModules[constant.EurekaRegistry])
 	sidecarResources := helpers.CreateResources(false, viper.GetStringMap(field.SidecarModuleResources))
-	sidecarEnvironment := r.Config.ModuleStep.GetSidecarEnvironment(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule, myModule.ModuleUrl, myModule.SidecarUrl)
-	sidecarContainer := models.NewSidecarContainer(myModule.RegistryModule.SidecarName, sidecarImage, sidecarEnvironment, *myModule.BackendModule, myModule.NetworkConfig, sidecarResources)
+	sidecarEnv := r.Config.ModuleStep.GetSidecarEnv(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule, myModule.ModuleUrl, myModule.SidecarUrl)
+	sidecarContainer := models.NewSidecarContainer(myModule.RegistryModule.SidecarName, sidecarImage, sidecarEnv, *myModule.BackendModule, myModule.NetworkConfig, sidecarResources)
 	sidecarContainer.PullImage = pullSidecarImage
 
 	r.Config.ModuleStep.DeployModule(client, sidecarContainer)
 
-	if printModuleEnvironment {
-		moduleEnvironment := r.Config.ModuleStep.GetModuleEnvironment(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule)
+	if printModuleEnv {
+		moduleEnv := r.Config.ModuleStep.GetModuleEnv(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule)
 
 		if myModule.BackendModule.UseOkapiURL {
-			moduleOkapiEnvironment := []string{"OKAPI_HOST=localhost",
+			moduleOkapiEnv := []string{"OKAPI_HOST=localhost",
 				fmt.Sprintf("OKAPI_PORT=%d", myModule.SidecarServerPort),
 				"OKAPI_SERVICE_HOST=localhost",
 				fmt.Sprintf("OKAPI_SERVICE_PORT=%d", myModule.SidecarServerPort),
@@ -154,12 +152,12 @@ func (r *Run) deploySidecar(printModuleEnvironment bool, myModule *models.Interc
 				fmt.Sprintf("OKAPI_URL=http://localhost:%d", myModule.SidecarServerPort),
 			}
 
-			moduleEnvironment = append(moduleEnvironment, moduleOkapiEnvironment...)
+			moduleEnv = append(moduleEnv, moduleOkapiEnv...)
 		}
 
 		fmt.Println()
 		fmt.Printf("%s ###\n", "Can be embedded into IntelliJ Run/Debug Configuration")
-		for _, value := range moduleEnvironment {
+		for _, value := range moduleEnv {
 			fmt.Println(value)
 		}
 		fmt.Println()

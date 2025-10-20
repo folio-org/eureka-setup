@@ -19,7 +19,7 @@ import (
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/tenanttype"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
 )
 
@@ -30,13 +30,13 @@ var createTenantEntitlementsCmd = &cobra.Command{
 	Long:  `Create all tenant entitlements.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		r := NewRun(action.CreateTenantEntitlements)
-		r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
+		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 			r.CreateTenantEntitlements(consortiumName, tenantType)
 		})
 	},
 }
 
-func (r *Run) CreateTenantEntitlements(consortiumName string, tenantType tenanttype.TenantType) {
+func (r *Run) CreateTenantEntitlements(consortiumName string, tenantType constant.TenantType) {
 	slog.Info(r.Config.Action.Name, "text", "CREATING TENANT ENTITLEMENTS")
 	r.Config.ManagementStep.CreateTenantEntitlement(consortiumName, tenantType)
 }

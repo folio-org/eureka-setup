@@ -21,7 +21,6 @@ import (
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 )
 
@@ -38,7 +37,7 @@ var deployUiCmd = &cobra.Command{
 func (r *Run) DeployUi() error {
 	slog.Info(r.Config.Action.Name, "text", "DEPLOYING UI")
 
-	for _, value := range r.Config.ManagementStep.GetTenants(false, constant.NoneConsortium, tenanttype.All) {
+	for _, value := range r.Config.ManagementStep.GetTenants(false, constant.NoneConsortium, constant.All) {
 		existingTenant := value.(map[string]any)["name"].(string)
 		if !helpers.HasTenant(existingTenant) || !helpers.IsUIEnabled(existingTenant) {
 			continue

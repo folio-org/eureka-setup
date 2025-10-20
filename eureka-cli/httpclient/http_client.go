@@ -16,15 +16,17 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 )
 
-const ()
-
 type HTTPClient struct {
-	Action *action.Action
+	Action       *action.Action
+	customClient *http.Client
+	retryClient  *retryablehttp.Client
 }
 
 func New(action *action.Action) *HTTPClient {
 	return &HTTPClient{
-		Action: action,
+		Action:       action,
+		customClient: createCustomClient(),
+		retryClient:  createRetryClient(),
 	}
 }
 
@@ -40,7 +42,7 @@ func (hc *HTTPClient) DoGetReturnResponse(url string, panicOnError bool, headers
 	addRequestHeaders(req, headers)
 	helpers.DumpRequest(hc.Action, req)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := hc.customClient.Do(req)
 	if err != nil {
 		if panicOnError {
 			slog.Error(hc.Action.Name, "error", err)
@@ -67,7 +69,7 @@ func (hc *HTTPClient) DoGetDecodeReturnString(url string, panicOnError bool, hea
 	addRequestHeaders(req, headers)
 	helpers.DumpRequest(hc.Action, req)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := hc.customClient.Do(req)
 	if err != nil {
 		if panicOnError {
 			slog.Error(hc.Action.Name, "error", err)
@@ -112,7 +114,7 @@ func (hc *HTTPClient) DoGetDecodeReturnAny(url string, panicOnError bool, header
 	addRequestHeaders(req, headers)
 	helpers.DumpRequest(hc.Action, req)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := hc.customClient.Do(req)
 	if err != nil {
 		if panicOnError {
 			slog.Error(hc.Action.Name, "error", err)
@@ -157,7 +159,7 @@ func (hc *HTTPClient) DoGetDecodeReturnMapStringAny(url string, panicOnError boo
 	addRequestHeaders(req, headers)
 	helpers.DumpRequest(hc.Action, req)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := hc.customClient.Do(req)
 	if err != nil {
 		if panicOnError {
 			slog.Error(hc.Action.Name, "error", err)
@@ -204,7 +206,7 @@ func (hc *HTTPClient) DoPostReturnNoContent(url string, panicOnError bool, bodyB
 	addRequestHeaders(req, headers)
 	helpers.DumpRequest(hc.Action, req)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := hc.customClient.Do(req)
 	if err != nil {
 		if panicOnError {
 			slog.Error(hc.Action.Name, "error", err)
@@ -235,7 +237,7 @@ func (hc *HTTPClient) DoRetryPostReturnNoContent(url string, panicOnError bool, 
 	addRequestHeaders(req.Request, headers)
 	helpers.DumpRequest(hc.Action, req.Request)
 
-	resp, err := createRetryClient().Do(req)
+	resp, err := hc.retryClient.Do(req)
 	if err != nil {
 		if panicOnError {
 			slog.Error(hc.Action.Name, "error", err)
@@ -268,7 +270,7 @@ func (hc *HTTPClient) DoPostReturnMapStringAny(url string, panicOnError bool, bo
 	addRequestHeaders(req, headers)
 	helpers.DumpRequest(hc.Action, req)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := hc.customClient.Do(req)
 	if err != nil {
 		if panicOnError {
 			slog.Error(hc.Action.Name, "error", err)
@@ -315,7 +317,7 @@ func (hc *HTTPClient) DoPostFormDataReturnMapStringAny(url string, formData url.
 	addRequestHeaders(req, headers)
 	helpers.DumpRequest(hc.Action, req)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := hc.customClient.Do(req)
 	if err != nil {
 		slog.Error(hc.Action.Name, "error", err)
 		panic(err)
@@ -350,7 +352,7 @@ func (hc *HTTPClient) DoPutReturnNoContent(url string, bodyBytes []byte, headers
 	addRequestHeaders(req, headers)
 	helpers.DumpRequest(hc.Action, req)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := hc.customClient.Do(req)
 	if err != nil {
 		slog.Error(hc.Action.Name, "error", err)
 		panic(err)
@@ -375,7 +377,7 @@ func (hc *HTTPClient) DoDelete(url string, panicOnError bool, headers map[string
 	addRequestHeaders(req, headers)
 	helpers.DumpRequest(hc.Action, req)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := hc.customClient.Do(req)
 	if err != nil {
 		if panicOnError {
 			slog.Error(hc.Action.Name, "error", err)
@@ -404,7 +406,7 @@ func (hc *HTTPClient) DoDeleteWithBody(url string, bodyBytes []byte, ignoreError
 	addRequestHeaders(req, headers)
 	helpers.DumpRequest(hc.Action, req)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := hc.customClient.Do(req)
 	if err != nil {
 		slog.Error(hc.Action.Name, "error", err)
 		panic(err)
@@ -415,16 +417,6 @@ func (hc *HTTPClient) DoDeleteWithBody(url string, bodyBytes []byte, ignoreError
 	}()
 
 	helpers.DumpResponse(hc.Action, resp, false)
-}
-
-func createRetryClient() *retryablehttp.Client {
-	client := retryablehttp.NewClient()
-	client.RetryMax = constant.DefaultHTTPRetryMax
-	client.RetryWaitMin = constant.DefaultHTTPRetryWaitMin
-	client.RetryWaitMax = constant.DefaultHTTPRetryWaitMax
-	client.Logger = slog.Default()
-
-	return client
 }
 
 func (hc *HTTPClient) checkStatusCodes(panicOnError bool, resp *http.Response) {

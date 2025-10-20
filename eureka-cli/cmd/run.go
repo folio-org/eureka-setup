@@ -30,7 +30,6 @@ import (
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/runconfig"
 	"github.com/folio-org/eureka-cli/runparams"
-	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -56,10 +55,10 @@ func NewCustomRun(name string, startPort, endPort int) *Run {
 	}
 }
 
-func (r *Run) Partition(callback func(string, tenanttype.TenantType)) {
+func (r *Run) Partition(callback func(string, constant.TenantType)) {
 	if viper.IsSet(field.Consortiums) {
 		for consortiumName := range viper.GetStringMap(field.Consortiums) {
-			for _, tenantType := range tenanttype.Get() {
+			for _, tenantType := range constant.Get() {
 				slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Running sequentially for %s consortium and %s tenant type", consortiumName, tenantType))
 				callback(consortiumName, tenantType)
 			}
@@ -67,13 +66,13 @@ func (r *Run) Partition(callback func(string, tenanttype.TenantType)) {
 		return
 	}
 
-	callback(constant.NoneConsortium, tenanttype.Default)
+	callback(constant.NoneConsortium, constant.Default)
 }
 
-func (r *Run) PartitionErr(callback func(string, tenanttype.TenantType) error) error {
+func (r *Run) PartitionErr(callback func(string, constant.TenantType) error) error {
 	if viper.IsSet(field.Consortiums) {
 		for consortiumName := range viper.GetStringMap(field.Consortiums) {
-			for _, tenantType := range tenanttype.Get() {
+			for _, tenantType := range constant.Get() {
 				slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Running sequentially for %s consortium and %s tenant type", consortiumName, tenantType))
 				err := callback(consortiumName, tenantType)
 				if err != nil {
@@ -85,7 +84,7 @@ func (r *Run) PartitionErr(callback func(string, tenanttype.TenantType) error) e
 		return nil
 	}
 
-	err := callback(constant.NoneConsortium, tenanttype.Default)
+	err := callback(constant.NoneConsortium, constant.Default)
 	if err != nil {
 		return err
 	}

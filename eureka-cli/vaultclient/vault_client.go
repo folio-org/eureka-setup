@@ -7,6 +7,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/httpclient"
 	"github.com/hashicorp/vault-client-go"
 )
@@ -24,7 +25,7 @@ func New(action *action.Action, httpClient *httpclient.HTTPClient) *VaultClient 
 }
 
 func (vc *VaultClient) Create() *vault.Client {
-	serverURL := fmt.Sprintf(vc.HTTPClient.GetGatewayURL(), constant.VaultServerPort, "")
+	serverURL := fmt.Sprintf(helpers.GetGatewayURL(vc.Action), constant.VaultServerPort, "")
 
 	client, err := vault.New(vault.WithAddress(serverURL), vault.WithRequestTimeout(constant.VaultTimeout))
 	if err != nil {

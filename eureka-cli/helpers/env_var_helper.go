@@ -17,5 +17,5 @@ func GetConfigEnvVars(key string) []string {
 }
 
 func GetConfigEnv(key string) string {
-	return viper.GetStringMapString(field.Environment)[strings.ToLower(key)]
+	return viper.GetStringMapString(field.Env)[strings.ToLower(key)]
 }

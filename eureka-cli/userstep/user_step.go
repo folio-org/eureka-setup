@@ -5,6 +5,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/httpclient"
 )
 
@@ -21,12 +22,12 @@ func New(action *action.Action, httpClient *httpclient.HTTPClient) *UserStep {
 }
 
 func (us *UserStep) GetUser(panicOnError bool, tenant string, accessToken string, username string) any {
-	requestURL := fmt.Sprintf(us.HTTPClient.GetGatewayURL(), constant.GatewayPort, fmt.Sprintf("/users?query=username==%s", username))
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(us.Action), constant.KongPort, fmt.Sprintf("/users?query=username==%s", username))
 
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.JsonContentType,
-		constant.TenantHeader:      tenant,
-		constant.TokenHeader:       accessToken,
+		constant.OkapiTenantHeader: tenant,
+		constant.OkapiTokenHeader:  accessToken,
 	}
 
 	data := us.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, panicOnError, headers)

@@ -44,8 +44,8 @@ func (rs *RegistryStep) ExtractModuleNameAndVersion(registryModulesMap map[strin
 				continue
 			}
 
-			module.Name = helpers.GetModuleName(module.Id)
-			module.Version = helpers.GetModuleVersionP(module.Id)
+			module.Name = helpers.GetModuleNameFromID(module.Id)
+			module.Version = helpers.GetModuleVersionPFromID(module.Id)
 
 			if strings.HasPrefix(module.Name, "edge") {
 				module.SidecarName = module.Name
@@ -60,7 +60,7 @@ func (rs *RegistryStep) ExtractModuleNameAndVersion(registryModulesMap map[strin
 
 func (rs *RegistryStep) GetAuthTokenIfPresent() string {
 	// If this env variable isn't set, then assume it is a public repository and no auth token is needed.
-	if os.Getenv(constant.ECRRepository) == "" {
+	if os.Getenv(constant.ECRRepositoryEnv) == "" {
 		return ""
 	}
 
@@ -157,7 +157,7 @@ func (rs *RegistryStep) GetModules(installJsonURLs map[string]string, printOutpu
 
 func (rs *RegistryStep) GetNamespace(version string) string {
 	// AWS ECR Folio registry should be considered a secret because it has an account id in it so we put it in the env.
-	namespace := os.Getenv(constant.ECRRepository)
+	namespace := os.Getenv(constant.ECRRepositoryEnv)
 	if namespace != "" {
 		slog.Info(rs.Action.Name, "text", fmt.Sprintf("Using AWS ECR registry namespace: %s", namespace))
 

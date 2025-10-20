@@ -25,8 +25,8 @@ func New(action *action.Action) *GitClient {
 func (gc *GitClient) KeycloakRepository() *GitRepository {
 	var (
 		url                           = constant.FolioKongRepositoryURL
-		dir                           = constant.DefaultFolioKongOutputDir
-		branch plumbing.ReferenceName = constant.DefaultFolioKongBranch
+		dir                           = constant.FolioKongOutputDir
+		branch plumbing.ReferenceName = constant.FolioKongBranch
 	)
 	return NewRepository(gc.Action, url, dir, branch)
 }
@@ -34,17 +34,17 @@ func (gc *GitClient) KeycloakRepository() *GitRepository {
 func (gc *GitClient) KongRepository() *GitRepository {
 	var (
 		url                           = constant.FolioKeycloakRepositoryURL
-		dir                           = constant.DefaultFolioKeycloakOutputDir
-		branch plumbing.ReferenceName = constant.DefaultFolioKeycloakBranch
+		dir                           = constant.FolioKeycloakOutputDir
+		branch plumbing.ReferenceName = constant.FolioKeycloakBranch
 	)
 	return NewRepository(gc.Action, url, dir, branch)
 }
 
 func (gc *GitClient) PlatformCompleteRepository(branch plumbing.ReferenceName) *GitRepository {
-	return NewRepository(gc.Action, constant.PlatformCompleteRepositoryURL, constant.DefaultPlatformCompleteOutputDir, branch)
+	return NewRepository(gc.Action, constant.PlatformCompleteRepositoryURL, constant.PlatformCompleteOutputDir, branch)
 }
 
-func (rc *GitClient) GitClone(panicIfExists bool, repository *GitRepository) {
+func (rc *GitClient) Clone(panicIfExists bool, repository *GitRepository) {
 	targetRepository, err := git.PlainClone(repository.Dir, false, &git.CloneOptions{
 		URL:           repository.URL,
 		ReferenceName: repository.Branch,
@@ -69,7 +69,7 @@ func (rc *GitClient) GitClone(panicIfExists bool, repository *GitRepository) {
 	slog.Info(rc.Action.Name, "text", fmt.Sprintf("Ref: %s", ref))
 }
 
-func (rc *GitClient) GitResetHardPullFromOrigin(repository *GitRepository) {
+func (rc *GitClient) ResetHardPullFromOrigin(repository *GitRepository) {
 	slog.Info(rc.Action.Name, "text", fmt.Sprintf("Updating repository, url: %s, branch: %s", repository.URL, repository.Branch))
 
 	targetRepository, err := git.PlainOpen(repository.Dir)

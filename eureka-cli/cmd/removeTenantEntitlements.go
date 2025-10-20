@@ -19,7 +19,7 @@ import (
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/tenanttype"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +30,7 @@ var removeTenantEntitlementsCmd = &cobra.Command{
 	Long:  `Remove all tenant entitlements.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		r := NewRun(action.RemoveTenantEntitlements)
-		r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
+		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 			r.RemoveUsers(consortiumName, tenantType)
 			r.RemoveRoles(consortiumName, tenantType)
 			r.RemoveTenantEntitlements(consortiumName, tenantType)
@@ -38,7 +38,7 @@ var removeTenantEntitlementsCmd = &cobra.Command{
 	},
 }
 
-func (r *Run) RemoveTenantEntitlements(consortiumName string, tenantType tenanttype.TenantType) {
+func (r *Run) RemoveTenantEntitlements(consortiumName string, tenantType constant.TenantType) {
 	slog.Info(r.Config.Action.Name, "text", "REMOVING TENANT ENTITLEMENTS")
 	r.Config.ManagementStep.RemoveTenantEntitlements(false, rp.PurgeSchemas, consortiumName, tenantType)
 }

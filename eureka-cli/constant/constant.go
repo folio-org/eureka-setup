@@ -5,79 +5,97 @@ import (
 )
 
 const (
-	KafkaTCP     = "kafka.eureka:9092"
-	VaultHTTP    = "http://vault.eureka:8200"
-	KeycloakHTTP = "http://keycloak.eureka:8080"
-
-	KongExternalHTTP     = "http://localhost:8000"
-	KeycloakExternalHTTP = "http://keycloak.eureka:8080"
-
+	// Keycloak credentials
 	KeycloakAdminUsername = "admin"
 	KeycloakAdminPassword = "admin"
 
-	VaultServerPort = 8200
-	VaultTimeout    = 30 * time.Second
+	// Vault client properties
+	VaultTimeout = 30 * time.Second
 
-	DefaultHTTPRetryMax     = 10
-	DefaultHTTPRetryWaitMin = 3 * time.Second
-	DefaultHTTPRetryWaitMax = 10 * time.Second
+	// HTTP client properties
+	RetryHTTPClientRetryMax     = 10
+	RetryHTTPClientRetryWaitMin = 3 * time.Second
+	RetryHTTPClientRetryWaitMax = 10 * time.Second
 
+	// Container types
+	ManagementType = "management"
+	ModuleType     = "module"
+	SidecarType    = "sidecar"
+
+	SidecarProjectName = "folio-module-sidecar"
+
+	// Folio source Git repository URLs
 	FolioKongRepositoryURL        = "https://github.com/folio-org/folio-kong"
 	FolioKeycloakRepositoryURL    = "https://github.com/folio-org/folio-keycloak"
 	PlatformCompleteRepositoryURL = "https://github.com/folio-org/platform-complete.git"
 
-	Module     = "module"
-	Sidecar    = "sidecar"
-	Management = "management"
+	// Folio source Git output directory names
+	FolioKongOutputDir        = "folio-kong"
+	FolioKeycloakOutputDir    = "folio-keycloak"
+	PlatformCompleteOutputDir = "platform-complete"
 
-	SidecarProjectName               = "folio-module-sidecar"
-	DefaultFolioKongOutputDir        = "folio-kong"
-	DefaultFolioKeycloakOutputDir    = "folio-keycloak"
-	DefaultPlatformCompleteOutputDir = "platform-complete"
-	DefaultFolioKongBranch           = "master"
-	DefaultFolioKeycloakBranch       = "master"
-	DefaultStripesBranch             = "snapshot"
-	SnapshotRegistry                 = "folioci"
-	ReleaseRegistry                  = "folioorg"
-	ECRRepository                    = "AWS_ECR_FOLIO_REPO"
+	// Branch names
+	FolioKongBranch     = "master"
+	FolioKeycloakBranch = "master"
+	StripesBranch       = "snapshot"
 
-	DefaultModuleCPU                = 1
-	DefaultModuleMemoryReservation  = 128
-	DefaultModuleMemory             = 750
-	DefaultModuleSwap               = -1
-	DefaultSidecarCPU               = 1
-	DefaultSidecarMemoryReservation = 64
-	DefaultSidecarMemory            = 450
-	DefaultSidecarSwap              = -1
+	// Docker Hub registries
+	SnapshotRegistry = "folioci"
+	ReleaseRegistry  = "folioorg"
 
+	// AWS ECR env var name
+	ECRRepositoryEnv = "AWS_ECR_FOLIO_REPO"
+
+	// Container resources
+	ModuleCPU               = 1
+	ModuleMemoryReservation = 128
+	ModuleMemory            = 750
+	ModuleSwap              = -1
+
+	// Sidecar resources
+	SidecarCPU               = 1
+	SidecarMemoryReservation = 64
+	SidecarMemory            = 450
+	SidecarSwap              = -1
+
+	// Charset for key generation
 	Charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
+	// HTTP Headers
 	JsonContentType           = "application/json"
 	FormURLEncodedContentType = "application/x-www-form-urlencoded"
+	ContentTypeHeader         = "Content-Type"
+	AuthorizationHeader       = "Authorization"
+	OkapiTenantHeader         = "X-Okapi-Tenant"
+	OkapiTokenHeader          = "X-Okapi-Token"
 
-	ContentTypeHeader   = "Content-Type"
-	AuthorizationHeader = "Authorization"
-	TenantHeader        = "X-Okapi-Tenant"
-	TokenHeader         = "X-Okapi-Token"
+	// Module health check retries
+	ModuleHealthCheckMaxRetries = 50
 
-	HealthCheckMaxAttempts = 50
-	NoneConsortium         = "nop"
+	// Consortium properties
+	NoneConsortium = "nop"
 
-	ConfigDir              = ".eureka"
-	ConfigType             = "yaml"
-	FolioRegistry          = "folio"
-	EurekaRegistry         = "eureka"
-	DockerComposeWorkDir   = "./misc"
-	DefaultNetworkID       = "eureka"
-	DefaultNetworkAlias    = "eureka-net"
-	DefaultDockerHostname  = "host.docker.internal"
-	DefaultDockerGatewayIP = "172.17.0.1"
-	DefaultHostIP          = "0.0.0.0"
-	GatewayPort            = 8000
-	DefaultServerPort      = "8081"
-	DefaultDebugPort       = "5005"
+	// Config
+	ConfigDir  = ".eureka"
+	ConfigType = "yaml"
 
-	ColonDelimitedPattern                 = ".*:"
+	// Module registries
+	FolioRegistry  = "folio"
+	EurekaRegistry = "eureka"
+
+	// Docker compose properties
+	DockerComposeWorkDir = "./misc"
+
+	// Container network properties
+	NetworkID       = "eureka"
+	NetworkAlias    = "eureka-net"
+	DockerHostname  = "host.docker.internal"
+	DockerGatewayIP = "172.17.0.1"
+	HostIP          = "0.0.0.0"
+	ServerPort      = "8081"
+	DebugPort       = "5005"
+
+	// Container regexp patterns
 	ManagementModulePattern               = "mgr-"
 	EdgeModulePattern                     = "edge-"
 	AllContainerPattern                   = "^eureka-"
@@ -87,31 +105,95 @@ const (
 	SidecarContainerPattern               = "^eureka-%s-[a-z]+-[a-z]+(-[a-z]{3,})?-sc$"
 	SingleModuleOrSidecarContainerPattern = "^(eureka-%s-)(%[2]s|%[2]s-sc)$"
 	SingleUiContainerPattern              = "eureka-platform-complete-ui-%s"
-	ModuleIDPattern                       = "([a-z-_]+)([\\d-_.]+)([a-zA-Z0-9-_.]+)"
-	VaultRootTokenPattern                 = "init.sh: Root VAULT TOKEN is:"
-	NewLinePattern                        = `[\r\n\s-]+`
 
-	VaultContainerName            = "vault"
-	ElasticsearchContainerName    = "elasticsearch"
-	MinioContainerName            = "minio"
-	CreateBucketsContainerName    = "createbuckets"
-	FtpServerContainerName        = "ftp-server"
-	ModSearchModuleName           = "mod-search"
-	ModDataExportWorkerModuleName = "mod-data-export-worker"
+	// Other regexp patterns
+	ColonDelimitedPattern = ".*:"
+	ModuleIDPattern       = "([a-z-_]+)([\\d-_.]+)([a-zA-Z0-9-_.]+)"
+	VaultRootTokenPattern = "init.sh: Root VAULT TOKEN is:"
+	NewLinePattern        = `[\r\n\s-]+`
 
+	// System containers name
+	PostgreSQLContainer    = "postgres"
+	KafkaContainer         = "kafka"
+	KafkaToolsContainer    = "kafka-tools"
+	KeycloakProxyContainer = "keycloak"
+	KeycloakContainer      = "keycloak-internal"
+	KongContainer          = "kong"
+	VaultContainer         = "vault"
+	ElasticsearchContainer = "elasticsearch"
+	MinIOContainer         = "minio"
+	CreateBucketsContainer = "createbuckets"
+	FTPServerContainer     = "ftp-server"
+
+	// System container ports
+	KongPort        = "8000"
+	VaultServerPort = "8200"
+
+	// System container internal endpoints
+	KafkaTCP     = "kafka.eureka:9092"
+	VaultHTTP    = "http://vault.eureka:8200"
+	KeycloakHTTP = "http://keycloak.eureka:8080"
+
+	// System container external endpoints
+	KongExternalHTTP     = "http://localhost:8000"
+	KeycloakExternalHTTP = "http://keycloak.eureka:8080"
+
+	// Backend modules
+	ModSearchModule           = "mod-search"
+	ModDataExportWorkerModule = "mod-data-export-worker"
+
+	// Kafka consumer group properties
 	ConsumerGroupSuffix = "mod-roles-keycloak-capability-group"
 	ErrNoActiveMembers  = "Consumer group 'folio-mod-roles-keycloak-capability-group' has no active members."
 	ErrRebalancing      = "Consumer group 'folio-mod-roles-keycloak-capability-group' is rebalancing."
+
+	// Profile names
+	CombinedProfile  = "combined"
+	ExportProfile    = "export"
+	SearchProfile    = "search"
+	EdgeProfile      = "edge"
+	ECSProfile       = "ecs"
+	ECSSingleProfile = "ecs-single"
+	ImportProfile    = "import"
 )
 
+type TenantType string
+
+const (
+	All     TenantType = ""
+	Default TenantType = "default"
+	Central TenantType = "central"
+	Member  TenantType = "member"
+)
+
+func Get() []TenantType {
+	return []TenantType{Central, Member}
+}
+
 func GetInitialRequiredContainers() []string {
-	return []string{"postgres", "kafka", "kafka-tools", "vault", "keycloak", "keycloak-internal", "kong"}
+	return []string{
+		PostgreSQLContainer,
+		KafkaContainer,
+		KafkaToolsContainer,
+		VaultContainer,
+		KeycloakProxyContainer,
+		KeycloakContainer,
+		KongContainer,
+	}
 }
 
 func GetProfiles() []string {
-	return []string{"combined", "export", "search", "edge", "ecs", "ecs-single", "import"}
+	return []string{
+		CombinedProfile,
+		ExportProfile,
+		SearchProfile,
+		EdgeProfile,
+		ECSProfile,
+		ECSSingleProfile,
+		ImportProfile,
+	}
 }
 
 func GetDefaultProfile() string {
-	return "combined"
+	return CombinedProfile
 }

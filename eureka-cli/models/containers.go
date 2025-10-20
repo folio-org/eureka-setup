@@ -1,13 +1,13 @@
 package models
 
 type Containers struct {
-	VaultRootToken     string
-	RegistryHostname   map[string]string
-	RegistryModules    map[string][]*RegistryModule
-	BackendModulesMap  map[string]BackendModule
-	GlobalEnvironment  []string
-	SidecarEnvironment []string
-	ManagementOnly     bool
+	VaultRootToken    string
+	RegistryHostname  map[string]string
+	RegistryModules   map[string][]*RegistryModule
+	BackendModulesMap map[string]BackendModule
+	GlobalEnv         []string
+	SidecarEnv        []string
+	ManagementOnly    bool
 }
 
 func NewCoreAndBusinessContainers(
@@ -15,18 +15,18 @@ func NewCoreAndBusinessContainers(
 	registryHosts map[string]string,
 	registryModules map[string][]*RegistryModule,
 	backendModulesMap map[string]BackendModule,
-	globalEnvironment []string,
-	sidecarEnvironment []string,
+	globalEnv []string,
+	sidecarEnv []string,
 ) *Containers {
 
 	return &Containers{
-		VaultRootToken:     vaultRootToken,
-		RegistryHostname:   registryHosts,
-		RegistryModules:    registryModules,
-		BackendModulesMap:  backendModulesMap,
-		GlobalEnvironment:  globalEnvironment,
-		SidecarEnvironment: sidecarEnvironment,
-		ManagementOnly:     false,
+		VaultRootToken:    vaultRootToken,
+		RegistryHostname:  registryHosts,
+		RegistryModules:   registryModules,
+		BackendModulesMap: backendModulesMap,
+		GlobalEnv:         globalEnv,
+		SidecarEnv:        sidecarEnv,
+		ManagementOnly:    false,
 	}
 }
 
@@ -35,16 +35,16 @@ func NewManagementContainers(
 	registryHosts map[string]string,
 	registryModules map[string][]*RegistryModule,
 	backendModulesMap map[string]BackendModule,
-	globalEnvironment []string,
+	globalEnv []string,
 ) *Containers {
 
 	return &Containers{
-		VaultRootToken:     vaultRootToken,
-		RegistryHostname:   registryHosts,
-		RegistryModules:    registryModules,
-		BackendModulesMap:  backendModulesMap,
-		GlobalEnvironment:  globalEnvironment,
-		SidecarEnvironment: nil,
-		ManagementOnly:     true,
+		VaultRootToken:    vaultRootToken,
+		RegistryHostname:  registryHosts,
+		RegistryModules:   registryModules,
+		BackendModulesMap: backendModulesMap,
+		GlobalEnv:         globalEnv,
+		SidecarEnv:        nil,
+		ManagementOnly:    true,
 	}
 }

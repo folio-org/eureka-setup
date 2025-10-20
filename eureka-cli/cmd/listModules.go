@@ -55,11 +55,11 @@ func (r *Run) createFilter(moduleName string, moduleType string, all bool) strin
 	}
 
 	switch moduleType {
-	case constant.Management:
+	case constant.ManagementType:
 		return fmt.Sprintf(constant.ManagementContainerPattern)
-	case constant.Module:
+	case constant.ModuleType:
 		return fmt.Sprintf(constant.ModuleContainerPattern, currentProfile)
-	case constant.Sidecar:
+	case constant.SidecarType:
 		return fmt.Sprintf(constant.SidecarContainerPattern, currentProfile)
 	default:
 		return fmt.Sprintf(constant.ProfileContainerPattern, currentProfile)
@@ -67,7 +67,7 @@ func (r *Run) createFilter(moduleName string, moduleType string, all bool) strin
 }
 
 func init() {
-	availableModuleTypes := []string{constant.Module, constant.Sidecar, constant.Management}
+	availableModuleTypes := []string{constant.ModuleType, constant.SidecarType, constant.ManagementType}
 	rootCmd.AddCommand(listModulesCmd)
 	listModulesCmd.Flags().BoolVarP(&rp.All, "all", "a", false, "All modules for all profiles")
 	listModulesCmd.Flags().StringVarP(&rp.ModuleName, "moduleName", "m", "", "By module name, e.g. mod-orders")

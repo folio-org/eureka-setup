@@ -21,7 +21,6 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +41,7 @@ func (r *Run) UndeployUi() {
 		_ = client.Close()
 	}()
 
-	for _, value := range r.Config.ManagementStep.GetTenants(false, constant.NoneConsortium, tenanttype.All) {
+	for _, value := range r.Config.ManagementStep.GetTenants(false, constant.NoneConsortium, constant.All) {
 		r.Config.ModuleStep.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleUiContainerPattern, value.(map[string]any)["name"].(string)), false)
 	}
 }

@@ -41,21 +41,21 @@ func (mp *ModuleParams) GetBackendModulesFromConfig(managementOnly bool, printOu
 			continue
 		}
 
-		backendDto := mp.createBackendDto(name, value)
-		backendModulesMap[name] = *mp.createBackendModule(backendDto)
+		properties := mp.createBackendProperties(name, value)
+		backendModulesMap[name] = *mp.createBackendModule(properties)
 
-		mp.printModuleInfo(name, backendDto, backendModulesMap, printOutput)
+		mp.printModuleInfo(name, properties, backendModulesMap, printOutput)
 	}
 
 	return backendModulesMap
 }
 
-func (mp *ModuleParams) createBackendDto(name string, value any) models.BackendModuleProperties {
+func (mp *ModuleParams) createBackendProperties(name string, value any) models.BackendModuleProperties {
 	if value == nil {
-		return mp.createDefaultBackendDto(name)
+		return mp.createDefaultBackendProperties(name)
 	}
 
-	return mp.createConfigurableBackendDto(value, name)
+	return mp.createConfigurableBackendProperties(value, name)
 }
 
 func (mp *ModuleParams) createBackendModule(properties models.BackendModuleProperties) *models.BackendModule {
@@ -92,7 +92,7 @@ func (mp *ModuleParams) IsEdgeModule(name string) bool {
 	return strings.HasPrefix(name, constant.EdgeModulePattern)
 }
 
-func (mp *ModuleParams) createDefaultBackendDto(name string) (properties models.BackendModuleProperties) {
+func (mp *ModuleParams) createDefaultBackendProperties(name string) (properties models.BackendModuleProperties) {
 	properties.DeployModule = true
 
 	if !mp.IsManagementModule(name) && !mp.IsEdgeModule(name) {
@@ -101,14 +101,14 @@ func (mp *ModuleParams) createDefaultBackendDto(name string) (properties models.
 
 	properties.Port = mp.getDefaultPort()
 	properties.PortServer = mp.getDefaultPortServer()
-	properties.Environment = make(map[string]any)
+	properties.Env = make(map[string]any)
 	properties.Resources = make(map[string]any)
 	properties.Volumes = []string{}
 
 	return properties
 }
 
-func (mp *ModuleParams) createConfigurableBackendDto(value any, name string) (properties models.BackendModuleProperties) {
+func (mp *ModuleParams) createConfigurableBackendProperties(value any, name string) (properties models.BackendModuleProperties) {
 	mapEntry := value.(map[string]any)
 
 	properties.DeployModule = helpers.GetAnyOrDefault(mapEntry, field.ModuleDeployModuleEntry, true).(bool)
@@ -132,7 +132,7 @@ func (mp *ModuleParams) createConfigurableBackendDto(value any, name string) (pr
 	properties.Version = mp.getVersion(mapEntry)
 	properties.Port = mp.getPort(properties.DeployModule, mapEntry)
 	properties.PortServer = mp.getPortServer(mapEntry)
-	properties.Environment = helpers.GetAnyOrDefault(mapEntry, field.ModuleEnvironmentEntry, make(map[string]any)).(map[string]any)
+	properties.Env = helpers.GetAnyOrDefault(mapEntry, field.ModuleEnvEntry, make(map[string]any)).(map[string]any)
 	properties.Resources = helpers.GetAnyOrDefault(mapEntry, field.ModuleResourceEntry, make(map[string]any)).(map[string]any)
 	properties.Volumes = mp.getVolumes(mapEntry)
 
@@ -184,7 +184,7 @@ func (mp *ModuleParams) getPortServer(mapEntry map[string]any) *int {
 }
 
 func (mp *ModuleParams) getDefaultPortServer() *int {
-	defaultServerPort, _ := strconv.Atoi(constant.DefaultServerPort)
+	defaultServerPort, _ := strconv.Atoi(constant.ServerPort)
 
 	return helpers.IntP(defaultServerPort)
 }

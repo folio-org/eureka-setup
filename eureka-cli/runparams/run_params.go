@@ -26,6 +26,7 @@ type RunParams struct {
 	Length              int
 	ModuleType          string
 	PurgeSchemas        bool
+	Lines               int
 }
 
 func New() *RunParams {

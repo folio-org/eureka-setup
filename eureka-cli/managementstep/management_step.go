@@ -15,7 +15,6 @@ import (
 	"github.com/folio-org/eureka-cli/httpclient"
 	"github.com/folio-org/eureka-cli/models"
 	"github.com/folio-org/eureka-cli/tenantstep"
-	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/viper"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -40,7 +39,7 @@ func New(action *action.Action, httpClient *httpclient.HTTPClient, tenantStep *t
 func (ms *ManagementStep) GetApplications(panicOnError bool) models.Applications {
 	var applications models.Applications
 
-	requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, "/applications")
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, "/applications")
 
 	response := ms.HTTPClient.DoGetReturnResponse(requestURL, panicOnError, map[string]string{})
 	if response == nil {
@@ -172,7 +171,7 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 		panic(err)
 	}
 
-	ms.HTTPClient.DoPostReturnNoContent(fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, "/applications?check=true"), true, applicationBytes, map[string]string{})
+	ms.HTTPClient.DoPostReturnNoContent(fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, "/applications?check=true"), true, applicationBytes, map[string]string{})
 
 	slog.Info(ms.Action.Name, "text", fmt.Sprintf("Created %s application", applicationId))
 
@@ -183,14 +182,14 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 			panic(err)
 		}
 
-		ms.HTTPClient.DoPostReturnNoContent(fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, "/modules/discovery"), true, applicationDiscoveryBytes, map[string]string{})
+		ms.HTTPClient.DoPostReturnNoContent(fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, "/modules/discovery"), true, applicationDiscoveryBytes, map[string]string{})
 	}
 
 	slog.Info(ms.Action.Name, "text", fmt.Sprintf("Created %d entries of application module discovery", len(discoveryModules)))
 }
 
 func (ms *ManagementStep) RemoveApplication(panicOnError bool, applicationId string) {
-	requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, fmt.Sprintf("/applications/%s", applicationId))
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, fmt.Sprintf("/applications/%s", applicationId))
 
 	ms.HTTPClient.DoDelete(requestURL, false, map[string]string{})
 
@@ -199,7 +198,7 @@ func (ms *ManagementStep) RemoveApplication(panicOnError bool, applicationId str
 
 func (ms *ManagementStep) UpdateModuleDiscovery(id string, sidecarUrl string, restore bool, portServer string) {
 	id = strings.ReplaceAll(id, ":", "-")
-	name := helpers.GetModuleName(id)
+	name := helpers.GetModuleNameFromID(id)
 	if sidecarUrl == "" || restore {
 		if strings.HasPrefix(name, "edge") {
 			sidecarUrl = fmt.Sprintf("http://%s.eureka:%s", name, portServer)
@@ -211,7 +210,7 @@ func (ms *ManagementStep) UpdateModuleDiscovery(id string, sidecarUrl string, re
 	applicationDiscoveryBytes, err := json.Marshal(map[string]any{
 		"id":       id,
 		"name":     name,
-		"version":  helpers.GetModuleVersion(id),
+		"version":  helpers.GetModuleVersionFromID(id),
 		"location": sidecarUrl,
 	})
 	if err != nil {
@@ -219,7 +218,7 @@ func (ms *ManagementStep) UpdateModuleDiscovery(id string, sidecarUrl string, re
 		panic(err)
 	}
 
-	requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, fmt.Sprintf("/modules/%s/discovery", id))
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, fmt.Sprintf("/modules/%s/discovery", id))
 
 	ms.HTTPClient.DoPutReturnNoContent(requestURL, applicationDiscoveryBytes, map[string]string{})
 
@@ -228,9 +227,9 @@ func (ms *ManagementStep) UpdateModuleDiscovery(id string, sidecarUrl string, re
 
 // ######## Tenants ########
 
-func (ms *ManagementStep) GetTenants(panicOnError bool, consortiumName string, tenantType tenanttype.TenantType) []any {
-	requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, "/tenants")
-	if tenantType != tenanttype.All {
+func (ms *ManagementStep) GetTenants(panicOnError bool, consortiumName string, tenantType constant.TenantType) []any {
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, "/tenants")
+	if tenantType != constant.All {
 		requestURL += fmt.Sprintf("?query=description==%s-%s", consortiumName, tenantType)
 	}
 
@@ -243,19 +242,19 @@ func (ms *ManagementStep) GetTenants(panicOnError bool, consortiumName string, t
 }
 
 func (ms *ManagementStep) CreateTenants() {
-	requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, "/tenants")
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, "/tenants")
 	tenants := viper.GetStringMap(field.Tenants)
 
 	for tenant, properties := range tenants {
 		mapEntry := properties.(map[string]any)
 
-		description := fmt.Sprintf("%s-%s", constant.NoneConsortium, tenanttype.Default)
+		description := fmt.Sprintf("%s-%s", constant.NoneConsortium, constant.Default)
 
 		consortiumName := helpers.GetAnyOrDefault(mapEntry, field.TenantsConsortiumEntry, nil)
 		if consortiumName != nil {
-			tenantType := tenanttype.Member
+			tenantType := constant.Member
 			if helpers.GetBoolKey(mapEntry, field.TenantsCentralTenantEntry) {
-				tenantType = tenanttype.Central
+				tenantType = constant.Central
 			}
 
 			description = fmt.Sprintf("%s-%s", consortiumName, tenantType)
@@ -273,7 +272,7 @@ func (ms *ManagementStep) CreateTenants() {
 	}
 }
 
-func (ms *ManagementStep) RemoveTenants(panicOnError bool, consortiumName string, tenantType tenanttype.TenantType) {
+func (ms *ManagementStep) RemoveTenants(panicOnError bool, consortiumName string, tenantType constant.TenantType) {
 	for _, value := range ms.GetTenants(panicOnError, consortiumName, tenantType) {
 		mapEntry := value.(map[string]any)
 
@@ -283,7 +282,7 @@ func (ms *ManagementStep) RemoveTenants(panicOnError bool, consortiumName string
 			continue
 		}
 
-		requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, fmt.Sprintf("/tenants/%s?purgeKafkaTopics=true", mapEntry["id"].(string)))
+		requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, fmt.Sprintf("/tenants/%s?purgeKafkaTopics=true", mapEntry["id"].(string)))
 
 		ms.HTTPClient.DoDelete(requestURL, false, map[string]string{})
 
@@ -293,12 +292,12 @@ func (ms *ManagementStep) RemoveTenants(panicOnError bool, consortiumName string
 
 // ######## Tenant Entitlements ########
 
-func (ms *ManagementStep) CreateTenantEntitlement(consortiumName string, tenantType tenanttype.TenantType) {
+func (ms *ManagementStep) CreateTenantEntitlement(consortiumName string, tenantType constant.TenantType) {
 	tenants := viper.GetStringMap(field.Tenants)
 
 	tenantParameters := ms.TenantStep.GetTenantParameters(consortiumName, tenants)
 
-	requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, fmt.Sprintf("/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=%s", tenantParameters))
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, fmt.Sprintf("/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=%s", tenantParameters))
 	applicationMap := viper.GetStringMap(field.Application)
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)
@@ -326,8 +325,8 @@ func (ms *ManagementStep) CreateTenantEntitlement(consortiumName string, tenantT
 	}
 }
 
-func (ms *ManagementStep) RemoveTenantEntitlements(panicOnError bool, purgeSchemas bool, consortiumName string, tenantType tenanttype.TenantType) {
-	requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, fmt.Sprintf("/entitlements?purge=%t&ignoreErrors=false", purgeSchemas))
+func (ms *ManagementStep) RemoveTenantEntitlements(panicOnError bool, purgeSchemas bool, consortiumName string, tenantType constant.TenantType) {
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, fmt.Sprintf("/entitlements?purge=%t&ignoreErrors=false", purgeSchemas))
 	applicationMap := viper.GetStringMap(field.Application)
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)
@@ -361,12 +360,12 @@ func (ms *ManagementStep) RemoveTenantEntitlements(panicOnError bool, purgeSchem
 // ######## Users ########
 
 func (ms *ManagementStep) GetUsers(panicOnError bool, tenant string, accessToken string) []any {
-	requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, "/users?offset=0&limit=10000")
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, "/users?offset=0&limit=10000")
 
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.JsonContentType,
-		constant.TenantHeader:      tenant,
-		constant.TokenHeader:       accessToken,
+		constant.OkapiTenantHeader: tenant,
+		constant.OkapiTokenHeader:  accessToken,
 	}
 
 	foundUsersMap := ms.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, panicOnError, headers)
@@ -378,9 +377,9 @@ func (ms *ManagementStep) GetUsers(panicOnError bool, tenant string, accessToken
 }
 
 func (ms *ManagementStep) CreateUsers(panicOnError bool, existingTenant string, accessToken string) {
-	postUserRequestUrl := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, "/users-keycloak/users")
-	postUserPasswordRequestUrl := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, "/authn/credentials")
-	postUserRoleRequestUrl := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, "/roles/users")
+	postUserRequestUrl := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, "/users-keycloak/users")
+	postUserPasswordRequestUrl := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, "/authn/credentials")
+	postUserRoleRequestUrl := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, "/roles/users")
 	usersMap := viper.GetStringMap(field.Users)
 
 	for username, value := range usersMap {
@@ -414,13 +413,13 @@ func (ms *ManagementStep) CreateUsers(panicOnError bool, existingTenant string, 
 
 		okapiBasedHeaders := map[string]string{
 			constant.ContentTypeHeader: constant.JsonContentType,
-			constant.TenantHeader:      tenant,
-			constant.TokenHeader:       accessToken,
+			constant.OkapiTenantHeader: tenant,
+			constant.OkapiTokenHeader:  accessToken,
 		}
 
 		nonOkapiBasedHeaders := map[string]string{
 			constant.ContentTypeHeader:   constant.JsonContentType,
-			constant.TenantHeader:        tenant,
+			constant.OkapiTenantHeader:   tenant,
 			constant.AuthorizationHeader: fmt.Sprintf("Bearer %s", accessToken),
 		}
 
@@ -469,8 +468,8 @@ func (ms *ManagementStep) CreateUsers(panicOnError bool, existingTenant string, 
 func (ms *ManagementStep) RemoveUsers(panicOnError bool, tenant string, accessToken string) {
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.JsonContentType,
-		constant.TenantHeader:      tenant,
-		constant.TokenHeader:       accessToken,
+		constant.OkapiTenantHeader: tenant,
+		constant.OkapiTokenHeader:  accessToken,
 	}
 
 	for _, value := range ms.GetUsers(panicOnError, tenant, accessToken) {
@@ -482,7 +481,7 @@ func (ms *ManagementStep) RemoveUsers(panicOnError bool, tenant string, accessTo
 			continue
 		}
 
-		requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, fmt.Sprintf("/users-keycloak/users/%s", mapEntry["id"].(string)))
+		requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, fmt.Sprintf("/users-keycloak/users/%s", mapEntry["id"].(string)))
 
 		ms.HTTPClient.DoDelete(requestURL, false, headers)
 
@@ -493,7 +492,7 @@ func (ms *ManagementStep) RemoveUsers(panicOnError bool, tenant string, accessTo
 // ######## Roles ########
 
 func (ms *ManagementStep) GetRoles(panicOnError bool, headers map[string]string) []any {
-	requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, "/roles?offset=0&limit=10000")
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, "/roles?offset=0&limit=10000")
 
 	foundRolesMap := ms.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, panicOnError, headers)
 	if foundRolesMap["roles"] == nil || len(foundRolesMap["roles"].([]any)) == 0 {
@@ -504,7 +503,7 @@ func (ms *ManagementStep) GetRoles(panicOnError bool, headers map[string]string)
 }
 
 func (ms *ManagementStep) GetRoleByName(roleName string, headers map[string]string) map[string]any {
-	requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, fmt.Sprintf("/roles?query=name==%s", roleName))
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, fmt.Sprintf("/roles?query=name==%s", roleName))
 
 	foundRolesMap := ms.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, true, headers)
 	if foundRolesMap["roles"] == nil {
@@ -521,7 +520,7 @@ func (ms *ManagementStep) GetRoleByName(roleName string, headers map[string]stri
 }
 
 func (ms *ManagementStep) CreateRoles(panicOnError bool, existingTenant string, accessToken string) {
-	requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, "/roles")
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, "/roles")
 	caser := cases.Lower(language.English)
 	roles := viper.GetStringMap(field.Roles)
 
@@ -535,8 +534,8 @@ func (ms *ManagementStep) CreateRoles(panicOnError bool, existingTenant string, 
 
 		headers := map[string]string{
 			constant.ContentTypeHeader: constant.JsonContentType,
-			constant.TenantHeader:      tenant,
-			constant.TokenHeader:       accessToken,
+			constant.OkapiTenantHeader: tenant,
+			constant.OkapiTokenHeader:  accessToken,
 		}
 
 		roleBytes, err := json.Marshal(map[string]string{"name": caser.String(role), "description": "Default"})
@@ -554,8 +553,8 @@ func (ms *ManagementStep) CreateRoles(panicOnError bool, existingTenant string, 
 func (ms *ManagementStep) RemoveRoles(panicOnError bool, tenant string, accessToken string) {
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.JsonContentType,
-		constant.TenantHeader:      tenant,
-		constant.TokenHeader:       accessToken,
+		constant.OkapiTenantHeader: tenant,
+		constant.OkapiTokenHeader:  accessToken,
 	}
 
 	caser := cases.Lower(language.English)
@@ -569,7 +568,7 @@ func (ms *ManagementStep) RemoveRoles(panicOnError bool, tenant string, accessTo
 			continue
 		}
 
-		requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, fmt.Sprintf("/roles/%s", mapEntry["id"].(string)))
+		requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, fmt.Sprintf("/roles/%s", mapEntry["id"].(string)))
 
 		ms.HTTPClient.DoDelete(requestURL, false, headers)
 
@@ -587,7 +586,7 @@ func (ms *ManagementStep) GetCapabilitySets(panicOnError bool, headers map[strin
 	for _, value := range applications.ApplicationDescriptors {
 		applicationId := value["id"].(string)
 
-		requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, fmt.Sprintf("/capability-sets?offset=0&limit=10000&query=applicationId==%s", applicationId))
+		requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, fmt.Sprintf("/capability-sets?offset=0&limit=10000&query=applicationId==%s", applicationId))
 
 		foundCapabilitySetsMap := ms.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, panicOnError, headers)
 		if foundCapabilitySetsMap["capabilitySets"] == nil || len(foundCapabilitySetsMap["capabilitySets"].([]any)) == 0 {
@@ -601,7 +600,7 @@ func (ms *ManagementStep) GetCapabilitySets(panicOnError bool, headers map[strin
 }
 
 func (ms *ManagementStep) GetCapabilitySetsByName(panicOnError bool, headers map[string]string, capabilitySetName string) []any {
-	requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", capabilitySetName))
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", capabilitySetName))
 
 	foundCapabilitySetsMap := ms.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, panicOnError, headers)
 	if foundCapabilitySetsMap["capabilitySets"] == nil || len(foundCapabilitySetsMap["capabilitySets"].([]any)) == 0 {
@@ -612,12 +611,12 @@ func (ms *ManagementStep) GetCapabilitySetsByName(panicOnError bool, headers map
 }
 
 func (ms *ManagementStep) AttachCapabilitySetsToRoles(tenant string, accessToken string) {
-	requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, "/roles/capability-sets")
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, "/roles/capability-sets")
 
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.JsonContentType,
-		constant.TenantHeader:      tenant,
-		constant.TokenHeader:       accessToken,
+		constant.OkapiTenantHeader: tenant,
+		constant.OkapiTokenHeader:  accessToken,
 	}
 
 	caser := cases.Lower(language.English)
@@ -695,8 +694,8 @@ func (ms *ManagementStep) populateCapabilitySets(headers map[string]string, capa
 func (ms *ManagementStep) DetachCapabilitySetsFromRoles(panicOnError bool, tenant string, accessToken string) {
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.JsonContentType,
-		constant.TenantHeader:      tenant,
-		constant.TokenHeader:       accessToken,
+		constant.OkapiTenantHeader: tenant,
+		constant.OkapiTokenHeader:  accessToken,
 	}
 
 	caser := cases.Lower(language.English)
@@ -716,7 +715,7 @@ func (ms *ManagementStep) DetachCapabilitySetsFromRoles(panicOnError bool, tenan
 			continue
 		}
 
-		requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), constant.GatewayPort, fmt.Sprintf("/roles/%s/capability-sets", mapEntry["id"].(string)))
+		requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), constant.KongPort, fmt.Sprintf("/roles/%s/capability-sets", mapEntry["id"].(string)))
 
 		ms.HTTPClient.DoDelete(requestURL, false, headers)
 

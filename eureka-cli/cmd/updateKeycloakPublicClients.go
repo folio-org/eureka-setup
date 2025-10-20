@@ -21,7 +21,6 @@ import (
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +38,7 @@ func (r *Run) UpdateKeycloakPublicClients() {
 	slog.Info(r.Config.Action.Name, "text", "UPDATING KEYCLOAK PUBLIC CLIENTS")
 	keycloakMasterAccessToken := r.Config.KeycloakStep.GetKeycloakMasterAccessToken()
 
-	for _, value := range r.Config.ManagementStep.GetTenants(false, constant.NoneConsortium, tenanttype.All) {
+	for _, value := range r.Config.ManagementStep.GetTenants(false, constant.NoneConsortium, constant.All) {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)

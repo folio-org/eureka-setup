@@ -22,8 +22,8 @@ import (
 	"time"
 
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
-	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -60,7 +60,7 @@ func (r *Run) UndeployApplication() {
 }
 
 func (r *Run) UndeployChildApplication() {
-	r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
+	r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 		r.RemoveTenantEntitlements(consortiumName, tenantType)
 	})
 
@@ -71,7 +71,7 @@ func (r *Run) UndeployChildApplication() {
 		slog.Error(r.Config.Action.Name, "error", err.Error())
 		os.Exit(1)
 	}
-	r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
+	r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 		r.DetachCapabilitySets(consortiumName, tenantType)
 
 		err := r.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second)

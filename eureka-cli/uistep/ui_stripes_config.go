@@ -24,9 +24,9 @@ func (us *UIStep) GetStripesBranch() plumbing.ReferenceName {
 
 		return stripesBranch
 	}
-	slog.Info(us.Action.Name, "text", fmt.Sprintf("No stripes branch is defined in config, using default branch: %s", constant.DefaultStripesBranch))
+	slog.Info(us.Action.Name, "text", fmt.Sprintf("No stripes branch is defined in config, using default branch: %s", constant.StripesBranch))
 
-	return constant.DefaultStripesBranch
+	return constant.StripesBranch
 }
 
 func (us *UIStep) PrepareStripesConfigJS(rp *runparams.RunParams, configPath string, tenant string) {

@@ -51,7 +51,7 @@ func New(
 }
 
 func (ms *ModuleStep) GetVaultRootToken(client *client.Client) string {
-	logStream, err := client.ContainerLogs(context.Background(), constant.VaultContainerName, container.LogsOptions{ShowStdout: true, ShowStderr: true})
+	logStream, err := client.ContainerLogs(context.Background(), constant.VaultContainer, container.LogsOptions{ShowStdout: true, ShowStderr: true})
 	if err != nil {
 		slog.Error(ms.Action.Name, "error", err)
 		panic(err)
@@ -91,8 +91,8 @@ func (ms *ModuleStep) PerformModuleHealthCheck(waitMutex *sync.WaitGroup, module
 
 	healthCheckWait := 10 * time.Second
 
-	requestURL := fmt.Sprintf(ms.HTTPClient.GetGatewayURL(), port, "/admin/health")
-	healthCheckAttempts := constant.HealthCheckMaxAttempts
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), port, "/admin/health")
+	healthCheckAttempts := constant.ModuleHealthCheckMaxRetries
 	for {
 		time.Sleep(healthCheckWait)
 
@@ -112,7 +112,7 @@ func (ms *ModuleStep) PerformModuleHealthCheck(waitMutex *sync.WaitGroup, module
 			return
 		}
 
-		slog.Info(ms.Action.Name, "text", fmt.Sprintf("Module container %s is unhealthy, %d/%d attempts left", moduleName, healthCheckAttempts, constant.HealthCheckMaxAttempts))
+		slog.Info(ms.Action.Name, "text", fmt.Sprintf("Module container %s is unhealthy, %d/%d attempts left", moduleName, healthCheckAttempts, constant.ModuleHealthCheckMaxRetries))
 	}
 }
 
@@ -150,8 +150,8 @@ func (ms *ModuleStep) DeployModules(client *client.Client, containers *models.Co
 
 			moduleVersion := ms.GetModuleImageVersion(backendModule, registryModule)
 			moduleImage := ms.GetModuleImage(moduleVersion, registryModule)
-			moduleEnvironment := ms.GetModuleEnvironment(containers, registryModule, backendModule)
-			container := models.NewModuleContainer(registryModule.Name, moduleImage, moduleEnvironment, backendModule, networkConfig)
+			moduleEnv := ms.GetModuleEnv(containers, registryModule, backendModule)
+			container := models.NewModuleContainer(registryModule.Name, moduleImage, moduleEnv, backendModule, networkConfig)
 
 			ms.DeployModule(client, container)
 
@@ -159,8 +159,8 @@ func (ms *ModuleStep) DeployModules(client *client.Client, containers *models.Co
 
 			if backendModule.DeploySidecar && sidecarImage != "" {
 				go func() {
-					sidecarEnvironment := ms.GetSidecarEnvironment(containers, registryModule, backendModule, nil, nil)
-					sidecarContainer := models.NewSidecarContainer(registryModule.SidecarName, sidecarImage, sidecarEnvironment, backendModule, networkConfig, sidecarResources)
+					sidecarEnv := ms.GetSidecarEnv(containers, registryModule, backendModule, nil, nil)
+					sidecarContainer := models.NewSidecarContainer(registryModule.SidecarName, sidecarImage, sidecarEnv, backendModule, networkConfig, sidecarResources)
 
 					ms.DeployModule(client, sidecarContainer)
 				}()
@@ -238,32 +238,32 @@ func (ms *ModuleStep) GetModuleImage(moduleVersion string, registryModule *model
 	return fmt.Sprintf("%s/%s:%s", ms.RegistryStep.GetNamespace(moduleVersion), registryModule.Name, moduleVersion)
 }
 
-func (ms *ModuleStep) GetModuleEnvironment(myContainer *models.Containers, module *models.RegistryModule, backendModule models.BackendModule) []string {
-	var combinedEnvironment []string
-	combinedEnvironment = append(combinedEnvironment, myContainer.GlobalEnvironment...)
+func (ms *ModuleStep) GetModuleEnv(myContainer *models.Containers, module *models.RegistryModule, backendModule models.BackendModule) []string {
+	var combinedEnv []string
+	combinedEnv = append(combinedEnv, myContainer.GlobalEnv...)
 
 	if backendModule.UseVault {
-		combinedEnvironment = moduleenv.AppendVaultEnv(combinedEnvironment, myContainer.VaultRootToken)
+		combinedEnv = moduleenv.AppendVaultEnv(combinedEnv, myContainer.VaultRootToken)
 	}
 	if backendModule.UseOkapiURL {
-		combinedEnvironment = moduleenv.AppendOkapiEnv(combinedEnvironment, module.SidecarName, backendModule.ModuleServerPort)
+		combinedEnv = moduleenv.AppendOkapiEnv(combinedEnv, module.SidecarName, backendModule.ModuleServerPort)
 	}
 	if backendModule.DisableSystemUser {
-		combinedEnvironment = moduleenv.AppendDisableSystemUserEnv(combinedEnvironment, module.Name)
+		combinedEnv = moduleenv.AppendDisableSystemUserEnv(combinedEnv, module.Name)
 	}
-	combinedEnvironment = moduleenv.AppendModuleEnvironment(combinedEnvironment, backendModule.ModuleEnvironment)
+	combinedEnv = moduleenv.AppendModuleEnv(combinedEnv, backendModule.ModuleEnv)
 
-	return combinedEnvironment
+	return combinedEnv
 }
 
-func (ms *ModuleStep) GetSidecarEnvironment(containers *models.Containers, module *models.RegistryModule, backendModule models.BackendModule, moduleURL *string, sidecarURL *string) []string {
-	var combinedEnvironment []string
-	combinedEnvironment = append(combinedEnvironment, containers.SidecarEnvironment...)
-	combinedEnvironment = moduleenv.AppendVaultEnv(combinedEnvironment, containers.VaultRootToken)
-	combinedEnvironment = moduleenv.AppendKeycloakEnv(combinedEnvironment)
-	combinedEnvironment = moduleenv.AppendSidecarEnvironment(combinedEnvironment, module, backendModule.ModuleServerPort, moduleURL, sidecarURL)
+func (ms *ModuleStep) GetSidecarEnv(containers *models.Containers, module *models.RegistryModule, backendModule models.BackendModule, moduleURL *string, sidecarURL *string) []string {
+	var combinedEnv []string
+	combinedEnv = append(combinedEnv, containers.SidecarEnv...)
+	combinedEnv = moduleenv.AppendVaultEnv(combinedEnv, containers.VaultRootToken)
+	combinedEnv = moduleenv.AppendKeycloakEnv(combinedEnv)
+	combinedEnv = moduleenv.AppendSidecarEnv(combinedEnv, module, backendModule.ModuleServerPort, moduleURL, sidecarURL)
 
-	return combinedEnvironment
+	return combinedEnv
 }
 
 func (ms *ModuleStep) DeployModule(client *client.Client, myContainer *models.Container) {
@@ -348,7 +348,7 @@ func (ms *ModuleStep) UndeployModuleByNamePattern(client *client.Client, value s
 }
 
 func (ms *ModuleStep) undeployModule(client *client.Client, deployedModule container.Summary, removeAsync bool) {
-	err := client.NetworkDisconnect(context.Background(), constant.DefaultNetworkID, deployedModule.ID, false)
+	err := client.NetworkDisconnect(context.Background(), constant.NetworkID, deployedModule.ID, false)
 	if err != nil {
 		slog.Warn(ms.Action.Name, "text", fmt.Sprintf("network disconnected: %s", err.Error()))
 	}

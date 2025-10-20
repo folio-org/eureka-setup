@@ -55,7 +55,7 @@ func AppendKeycloakEnv(envVars []string) []string {
 	return envVars
 }
 
-func AppendModuleEnvironment(envVars []string, extraEnvVars map[string]any) []string {
+func AppendModuleEnv(envVars []string, extraEnvVars map[string]any) []string {
 	for key, value := range extraEnvVars {
 		if key == "" {
 			continue
@@ -66,7 +66,7 @@ func AppendModuleEnvironment(envVars []string, extraEnvVars map[string]any) []st
 	return envVars
 }
 
-func AppendSidecarEnvironment(envVars []string, module *models.RegistryModule, portServer int, moduleURL *string, sidecarURL *string) []string {
+func AppendSidecarEnv(envVars []string, module *models.RegistryModule, portServer int, moduleURL *string, sidecarURL *string) []string {
 	var extraEnvVars []string
 	if moduleURL == nil && sidecarURL == nil {
 		extraEnvVars = []string{fmt.Sprintf("MODULE_NAME=%s", module.Name),
@@ -84,7 +84,7 @@ func AppendSidecarEnvironment(envVars []string, module *models.RegistryModule, p
 		}
 	}
 	// Change the default port on Quarkus netty server
-	if strconv.Itoa(portServer) != constant.DefaultServerPort {
+	if strconv.Itoa(portServer) != constant.ServerPort {
 		extraEnvVars = append(extraEnvVars, fmt.Sprintf("QUARKUS_HTTP_PORT=%d", portServer))
 	}
 	envVars = append(envVars, extraEnvVars...)

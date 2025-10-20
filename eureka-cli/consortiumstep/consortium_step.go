@@ -77,11 +77,11 @@ func (cs *ConsortiumStep) CreateConsortium(centralTenant string, accessToken str
 
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.JsonContentType,
-		constant.TenantHeader:      centralTenant,
-		constant.TokenHeader:       accessToken,
+		constant.OkapiTenantHeader: centralTenant,
+		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	cs.HTTPClient.DoPostReturnNoContent(fmt.Sprintf(cs.HTTPClient.GetGatewayURL(), constant.GatewayPort, "/consortia"), true, bytes, headers)
+	cs.HTTPClient.DoPostReturnNoContent(fmt.Sprintf(helpers.GetGatewayURL(cs.Action), constant.KongPort, "/consortia"), true, bytes, headers)
 
 	slog.Info(cs.Action.Name, "text", fmt.Sprintf("Created %s consortium", consortiumName))
 
@@ -89,12 +89,12 @@ func (cs *ConsortiumStep) CreateConsortium(centralTenant string, accessToken str
 }
 
 func (cs *ConsortiumStep) GetConsortiumByName(panicOnError bool, centralTenant string, accessToken string, consortiumName string) any {
-	requestURL := fmt.Sprintf(cs.HTTPClient.GetGatewayURL(), constant.GatewayPort, fmt.Sprintf("/consortia?query=name==%s", consortiumName))
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(cs.Action), constant.KongPort, fmt.Sprintf("/consortia?query=name==%s", consortiumName))
 
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.JsonContentType,
-		constant.TenantHeader:      centralTenant,
-		constant.TokenHeader:       accessToken,
+		constant.OkapiTenantHeader: centralTenant,
+		constant.OkapiTokenHeader:  accessToken,
 	}
 
 	foundConsortiumsMap := cs.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, panicOnError, headers)
@@ -157,8 +157,8 @@ func (cs *ConsortiumStep) GetAdminUsername(centralTenant string, consortiumUsers
 func (cs *ConsortiumStep) CreateConsortiumTenants(centralTenant string, accessToken string, consortiumId string, consortiumTenants ConsortiumTenants, adminUsername string) {
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.JsonContentType,
-		constant.TenantHeader:      centralTenant,
-		constant.TokenHeader:       accessToken,
+		constant.OkapiTenantHeader: centralTenant,
+		constant.OkapiTokenHeader:  accessToken,
 	}
 
 	for _, consortiumTenant := range consortiumTenants {
@@ -188,19 +188,19 @@ func (cs *ConsortiumStep) CreateConsortiumTenants(centralTenant string, accessTo
 
 		slog.Info(cs.Action.Name, "text", fmt.Sprintf("Trying to create %s consortium tenant for %s consortium", consortiumTenant.Tenant, consortiumId))
 
-		cs.HTTPClient.DoPostReturnNoContent(fmt.Sprintf(cs.HTTPClient.GetGatewayURL(), constant.GatewayPort, requestURL), true, bytes, headers)
+		cs.HTTPClient.DoPostReturnNoContent(fmt.Sprintf(helpers.GetGatewayURL(cs.Action), constant.KongPort, requestURL), true, bytes, headers)
 
-		cs.checkConsortiumTenantStatus(true, centralTenant, consortiumId, consortiumTenant.Tenant, headers)
+		cs.checkConsortiumTenantStatus(centralTenant, consortiumId, consortiumTenant.Tenant, headers)
 	}
 }
 
 func (cs *ConsortiumStep) getConsortiumTenantByIdAndName(panicOnError bool, centralTenant string, accessToken string, consortiumId string, tenant string) any {
-	requestURL := fmt.Sprintf(cs.HTTPClient.GetGatewayURL(), constant.GatewayPort, fmt.Sprintf("/consortia/%s/tenants", consortiumId))
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(cs.Action), constant.KongPort, fmt.Sprintf("/consortia/%s/tenants", consortiumId))
 
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.JsonContentType,
-		constant.TenantHeader:      centralTenant,
-		constant.TokenHeader:       accessToken,
+		constant.OkapiTenantHeader: centralTenant,
+		constant.OkapiTokenHeader:  accessToken,
 	}
 
 	foundConsortiumTenantsMap := cs.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, panicOnError, headers)
@@ -218,10 +218,10 @@ func (cs *ConsortiumStep) getConsortiumTenantByIdAndName(panicOnError bool, cent
 	return nil
 }
 
-func (cs *ConsortiumStep) checkConsortiumTenantStatus(panicOnError bool, centralTenant string, consortiumId string, tenant string, headers map[string]string) {
+func (cs *ConsortiumStep) checkConsortiumTenantStatus(centralTenant string, consortiumId string, tenant string, headers map[string]string) {
 	requestURL := fmt.Sprintf("/consortia/%s/tenants/%s", consortiumId, tenant)
 
-	foundConsortiumTenantMap := cs.HTTPClient.DoGetDecodeReturnMapStringAny(fmt.Sprintf(cs.HTTPClient.GetGatewayURL(), constant.GatewayPort, requestURL), true, headers)
+	foundConsortiumTenantMap := cs.HTTPClient.DoGetDecodeReturnMapStringAny(fmt.Sprintf(helpers.GetGatewayURL(cs.Action), constant.KongPort, requestURL), true, headers)
 	if foundConsortiumTenantMap == nil {
 		return
 	}
@@ -239,7 +239,7 @@ func (cs *ConsortiumStep) checkConsortiumTenantStatus(panicOnError bool, central
 	case IN_PROGRESS:
 		slog.Info(cs.Action.Name, "text", fmt.Sprintf("waiting for %s consortium tenant creation", tenant))
 		time.Sleep(WaitConsortiumTenant)
-		cs.checkConsortiumTenantStatus(true, centralTenant, consortiumId, tenant, headers)
+		cs.checkConsortiumTenantStatus(centralTenant, consortiumId, tenant, headers)
 		return
 	case FAILED:
 	case COMPLETED_WITH_ERRORS:
@@ -264,8 +264,8 @@ func (cs *ConsortiumStep) EnableCentralOrdering(centralTenant string, accessToke
 
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.JsonContentType,
-		constant.TenantHeader:      centralTenant,
-		constant.TokenHeader:       accessToken,
+		constant.OkapiTenantHeader: centralTenant,
+		constant.OkapiTokenHeader:  accessToken,
 	}
 
 	bytes, err := json.Marshal(map[string]any{"key": centralOrderingLookupKey, "value": "true"})
@@ -274,18 +274,18 @@ func (cs *ConsortiumStep) EnableCentralOrdering(centralTenant string, accessToke
 		panic(err)
 	}
 
-	cs.HTTPClient.DoPostReturnNoContent(fmt.Sprintf(cs.HTTPClient.GetGatewayURL(), constant.GatewayPort, "/orders-storage/settings"), true, bytes, headers)
+	cs.HTTPClient.DoPostReturnNoContent(fmt.Sprintf(helpers.GetGatewayURL(cs.Action), constant.KongPort, "/orders-storage/settings"), true, bytes, headers)
 
 	slog.Info(cs.Action.Name, "text", fmt.Sprintf("Enabled central ordering for %s tenant", centralTenant))
 }
 
 func (cs *ConsortiumStep) getEnableCentralOrderingByKey(panicOnError bool, centralTenant string, accessToken string, key string) bool {
-	requestURL := fmt.Sprintf(cs.HTTPClient.GetGatewayURL(), constant.GatewayPort, fmt.Sprintf("/orders-storage/settings?query=key==%s", key))
+	requestURL := fmt.Sprintf(helpers.GetGatewayURL(cs.Action), constant.KongPort, fmt.Sprintf("/orders-storage/settings?query=key==%s", key))
 
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.JsonContentType,
-		constant.TenantHeader:      centralTenant,
-		constant.TokenHeader:       accessToken,
+		constant.OkapiTenantHeader: centralTenant,
+		constant.OkapiTokenHeader:  accessToken,
 	}
 
 	foundSettingsMap := cs.HTTPClient.DoGetDecodeReturnMapStringAny(requestURL, panicOnError, headers)

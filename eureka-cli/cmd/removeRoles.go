@@ -20,8 +20,8 @@ import (
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 )
 
@@ -32,13 +32,13 @@ var removeRolesCmd = &cobra.Command{
 	Long:  `Remove all roles.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		r := NewRun(action.RemoveRoles)
-		r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
+		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 			r.RemoveRoles(consortiumName, tenantType)
 		})
 	},
 }
 
-func (r *Run) RemoveRoles(consortiumName string, tenantType tenanttype.TenantType) {
+func (r *Run) RemoveRoles(consortiumName string, tenantType constant.TenantType) {
 	vaultRootToken := r.GetVaultRootToken()
 
 	for _, value := range r.Config.ManagementStep.GetTenants(false, consortiumName, tenantType) {
@@ -49,7 +49,7 @@ func (r *Run) RemoveRoles(consortiumName string, tenantType tenanttype.TenantTyp
 			continue
 		}
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("REMOVING ROLES FOR %s TENANT ", existingTenant))
+		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("REMOVING ROLES FOR %s TENANT", existingTenant))
 		keycloakAccessToken := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
 		r.Config.ManagementStep.RemoveRoles(false, existingTenant, keycloakAccessToken)
 	}

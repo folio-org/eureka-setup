@@ -20,9 +20,9 @@ import (
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -34,13 +34,13 @@ var reindexElasticsearchCmd = &cobra.Command{
 	Long:  `Reindex elasticsearch indices.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		r := NewRun(action.ReindexElasticsearch)
-		r.Partition(func(consortiumName string, tenantType tenanttype.TenantType) {
+		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 			r.ReindexElasticsearch(consortiumName, tenantType)
 		})
 	},
 }
 
-func (r *Run) ReindexElasticsearch(consortiumName string, tenantType tenanttype.TenantType) {
+func (r *Run) ReindexElasticsearch(consortiumName string, tenantType constant.TenantType) {
 	vaultRootToken := r.GetVaultRootToken()
 
 	for _, value := range r.Config.ManagementStep.GetTenants(false, consortiumName, tenantType) {
@@ -52,11 +52,11 @@ func (r *Run) ReindexElasticsearch(consortiumName string, tenantType tenanttype.
 		}
 
 		tenantType := mapEntry["description"].(string)
-		if viper.IsSet(field.Consortiums) && tenantType != fmt.Sprintf("%s-%s", consortiumName, tenanttype.Central) {
+		if viper.IsSet(field.Consortiums) && tenantType != fmt.Sprintf("%s-%s", consortiumName, constant.Central) {
 			continue
 		}
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("REINDEXING ELASTICSEARCH FOR %s TENANT ", existingTenant))
+		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("REINDEXING ELASTICSEARCH FOR %s TENANT", existingTenant))
 		keycloakAccessToken := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
 		r.Config.SearchStep.ReindexInventoryRecords(existingTenant, keycloakAccessToken)
 		r.Config.SearchStep.ReindexInstanceRecords(existingTenant, keycloakAccessToken)

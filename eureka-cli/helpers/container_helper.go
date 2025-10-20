@@ -15,9 +15,9 @@ import (
 )
 
 func NewModuleNetworkConfig() *network.NetworkingConfig {
-	endpointConfig := map[string]*network.EndpointSettings{constant.DefaultNetworkID: {
-		NetworkID: constant.DefaultNetworkID,
-		Aliases:   []string{constant.DefaultNetworkAlias},
+	endpointConfig := map[string]*network.EndpointSettings{constant.NetworkID: {
+		NetworkID: constant.NetworkID,
+		Aliases:   []string{constant.NetworkAlias},
 	}}
 
 	return &network.NetworkingConfig{EndpointsConfig: endpointConfig}
@@ -26,7 +26,7 @@ func NewModuleNetworkConfig() *network.NetworkingConfig {
 func CreateExposedPorts(serverPort int) *nat.PortSet {
 	moduleExposedPorts := make(map[nat.Port]struct{})
 	moduleExposedPorts[nat.Port(strconv.Itoa(serverPort))] = struct{}{}
-	moduleExposedPorts[nat.Port(constant.DefaultDebugPort)] = struct{}{}
+	moduleExposedPorts[nat.Port(constant.DebugPort)] = struct{}{}
 
 	portSet := nat.PortSet(moduleExposedPorts)
 
@@ -40,18 +40,18 @@ func CreatePortBindings(hostServerPort int, hostServerDebugPort int, serverPort 
 	)
 
 	serverPortBinding = append(serverPortBinding, nat.PortBinding{
-		HostIP:   constant.DefaultHostIP,
+		HostIP:   constant.HostIP,
 		HostPort: strconv.Itoa(hostServerPort),
 	})
 
 	serverDebugPortBinding = append(serverDebugPortBinding, nat.PortBinding{
-		HostIP:   constant.DefaultHostIP,
+		HostIP:   constant.HostIP,
 		HostPort: strconv.Itoa(hostServerDebugPort),
 	})
 
 	portBindings := make(map[nat.Port][]nat.PortBinding)
 	portBindings[nat.Port(strconv.Itoa(serverPort))] = serverPortBinding
-	portBindings[nat.Port(constant.DefaultDebugPort)] = serverDebugPortBinding
+	portBindings[nat.Port(constant.DebugPort)] = serverDebugPortBinding
 
 	portMap := nat.PortMap(portBindings)
 
@@ -64,10 +64,10 @@ func CreateResources(isModule bool, resources map[string]any) *container.Resourc
 	}
 
 	return &container.Resources{
-		CPUCount:          GetIntOrDefault(resources, field.ModuleResourceCpuCountEntry, constant.DefaultModuleCPU),
-		MemoryReservation: ConvertMiBToBytes(GetIntOrDefault(resources, field.ModuleResourceMemoryReservationEntry, constant.DefaultModuleMemoryReservation)),
-		Memory:            ConvertMiBToBytes(GetIntOrDefault(resources, field.ModuleResourceMemoryEntry, constant.DefaultModuleMemory)),
-		MemorySwap:        ConvertMiBToBytes(GetIntOrDefault(resources, field.ModuleResourceMemorySwapEntry, constant.DefaultModuleSwap)),
+		CPUCount:          GetIntOrDefault(resources, field.ModuleResourceCpuCountEntry, constant.ModuleCPU),
+		MemoryReservation: ConvertMiBToBytes(GetIntOrDefault(resources, field.ModuleResourceMemoryReservationEntry, constant.ModuleMemoryReservation)),
+		Memory:            ConvertMiBToBytes(GetIntOrDefault(resources, field.ModuleResourceMemoryEntry, constant.ModuleMemory)),
+		MemorySwap:        ConvertMiBToBytes(GetIntOrDefault(resources, field.ModuleResourceMemorySwapEntry, constant.ModuleSwap)),
 		OomKillDisable:    BoolP(GetBoolOrDefault(resources, field.ModuleResourceOomKillDisableEntry, false)),
 	}
 }
@@ -75,29 +75,29 @@ func CreateResources(isModule bool, resources map[string]any) *container.Resourc
 func createDefaultResources(isModule bool) *container.Resources {
 	if isModule {
 		return &container.Resources{
-			CPUCount:          constant.DefaultModuleCPU,
-			MemoryReservation: ConvertMiBToBytes(constant.DefaultModuleMemoryReservation),
-			Memory:            ConvertMiBToBytes(constant.DefaultModuleMemory),
-			MemorySwap:        ConvertMiBToBytes(constant.DefaultModuleSwap),
+			CPUCount:          constant.ModuleCPU,
+			MemoryReservation: ConvertMiBToBytes(constant.ModuleMemoryReservation),
+			Memory:            ConvertMiBToBytes(constant.ModuleMemory),
+			MemorySwap:        ConvertMiBToBytes(constant.ModuleSwap),
 			OomKillDisable:    BoolP(false),
 		}
 	}
 
 	return &container.Resources{
-		CPUCount:          constant.DefaultSidecarCPU,
-		MemoryReservation: ConvertMiBToBytes(constant.DefaultSidecarMemoryReservation),
-		Memory:            ConvertMiBToBytes(constant.DefaultSidecarMemory),
-		MemorySwap:        ConvertMiBToBytes(constant.DefaultSidecarSwap),
+		CPUCount:          constant.SidecarCPU,
+		MemoryReservation: ConvertMiBToBytes(constant.SidecarMemoryReservation),
+		Memory:            ConvertMiBToBytes(constant.SidecarMemory),
+		MemorySwap:        ConvertMiBToBytes(constant.SidecarSwap),
 		OomKillDisable:    BoolP(false),
 	}
 }
 
 func AppendAdditionalRequiredContainers(action *action.Action, initialRequiredContainers []string) []string {
-	if IsModuleEnabled(constant.ModSearchModuleName) {
-		initialRequiredContainers = append(initialRequiredContainers, constant.ElasticsearchContainerName)
+	if IsModuleEnabled(constant.ModSearchModule) {
+		initialRequiredContainers = append(initialRequiredContainers, constant.ElasticsearchContainer)
 	}
-	if IsModuleEnabled(constant.ModDataExportWorkerModuleName) {
-		extraContainers := []string{constant.MinioContainerName, constant.CreateBucketsContainerName, constant.FtpServerContainerName}
+	if IsModuleEnabled(constant.ModDataExportWorkerModule) {
+		extraContainers := []string{constant.MinIOContainer, constant.CreateBucketsContainer, constant.FTPServerContainer}
 		initialRequiredContainers = append(initialRequiredContainers, extraContainers...)
 	}
 	if len(initialRequiredContainers) > 0 {

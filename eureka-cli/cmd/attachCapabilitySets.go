@@ -27,7 +27,6 @@ import (
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/tenanttype"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -39,7 +38,7 @@ var attachCapabilitySetsCmd = &cobra.Command{
 	Long:  `Attach capability sets to roles.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		r := NewRun(action.AttachCapabilitySets)
-		return r.PartitionErr(func(consortiumName string, tenantType tenanttype.TenantType) error {
+		return r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 			err := r.AttachCapabilitySets(consortiumName, tenantType, time.Duration(0*time.Second))
 			if err != nil {
 				return err
@@ -50,7 +49,7 @@ var attachCapabilitySetsCmd = &cobra.Command{
 	},
 }
 
-func (r *Run) AttachCapabilitySets(consortiumName string, tenantType tenanttype.TenantType, initialWaitDuration time.Duration) error {
+func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.TenantType, initialWaitDuration time.Duration) error {
 	vaultRootToken := r.GetVaultRootToken()
 
 	for _, value := range r.Config.ManagementStep.GetTenants(false, consortiumName, tenantType) {
@@ -79,7 +78,7 @@ func (r *Run) AttachCapabilitySets(consortiumName string, tenantType tenanttype.
 }
 
 func (r *Run) pollCapabilitySetsCreation(tenant string) error {
-	consumerGroup := fmt.Sprintf("%s-%s", viper.GetString(field.EnvironmentFolio), constant.ConsumerGroupSuffix)
+	consumerGroup := fmt.Sprintf("%s-%s", viper.GetString(field.EnvFolio), constant.ConsumerGroupSuffix)
 	pollWaitDuration := 30 * time.Second
 
 	var lag int
@@ -119,7 +118,7 @@ func (r *Run) getConsumerGroupLag(tenant string, consumerGroup string, initialLa
 		return 0, nil
 	}
 
-	lag, err = strconv.Atoi(helpers.GetKafkaConsumerLag(stdout))
+	lag, err = strconv.Atoi(helpers.GetKafkaConsumerLagFromLogLine(stdout))
 	if err != nil {
 		slog.Error(r.Config.Action.Name, "error", err.Error())
 

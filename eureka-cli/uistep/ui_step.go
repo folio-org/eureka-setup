@@ -42,9 +42,9 @@ func (us *UIStep) CloneAndUpdateUIRepository(updateCloned bool) (outputDir strin
 	branch := us.GetStripesBranch()
 	repository := us.GitClient.PlatformCompleteRepository(branch)
 
-	us.GitClient.GitClone(false, repository)
+	us.GitClient.Clone(false, repository)
 	if updateCloned {
-		us.GitClient.GitResetHardPullFromOrigin(repository)
+		us.GitClient.ResetHardPullFromOrigin(repository)
 	}
 
 	return repository.Dir
@@ -111,8 +111,8 @@ func (us *UIStep) DeployContainer(tenant string, imageName string, externalPort 
 		return err
 	}
 
-	slog.Info(us.Action.Name, "text", fmt.Sprintf("Connecting UI container for %s tenant to %s network", tenant, constant.DefaultNetworkID))
-	err = helpers.Exec(exec.Command("docker", "network", "connect", constant.DefaultNetworkID, containerName))
+	slog.Info(us.Action.Name, "text", fmt.Sprintf("Connecting UI container for %s tenant to %s network", tenant, constant.NetworkID))
+	err = helpers.Exec(exec.Command("docker", "network", "connect", constant.NetworkID, containerName))
 	if err != nil {
 		return err
 	}
