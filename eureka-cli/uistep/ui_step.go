@@ -37,23 +37,33 @@ func New(
 	}
 }
 
-func (us *UIStep) CloneAndUpdateUIRepository(updateCloned bool) (outputDir string) {
+func (us *UIStep) CloneAndUpdateUIRepository(updateCloned bool) (outputDir string, err error) {
 	slog.Info(us.Action.Name, "text", "CLONING & UPDATING PLATFORM COMPLETE UI REPOSITORY")
 	branch := us.GetStripesBranch()
-	repository := us.GitClient.PlatformCompleteRepository(branch)
+	repository, err := us.GitClient.PlatformCompleteRepository(branch)
+	if err != nil {
+		return "", err
+	}
 
-	us.GitClient.Clone(false, repository)
+	err = us.GitClient.Clone(repository)
+	if err != nil {
+		return "", err
+	}
+
 	if updateCloned {
 		us.GitClient.ResetHardPullFromOrigin(repository)
 	}
 
-	return repository.Dir
+	return repository.Dir, nil
 }
 
 func (us *UIStep) PrepareUIImage(rp *runparams.RunParams, tenant string) (finalImageName string, err error) {
 	imageName := fmt.Sprintf("platform-complete-ui-%s", tenant)
 	if rp.BuildImages {
-		outputDir := us.CloneAndUpdateUIRepository(rp.UpdateCloned)
+		outputDir, err := us.CloneAndUpdateUIRepository(rp.UpdateCloned)
+		if err != nil {
+			return "", err
+		}
 
 		return us.BuildImage(rp, outputDir, tenant)
 	}

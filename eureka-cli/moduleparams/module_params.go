@@ -25,13 +25,13 @@ func New(action *action.Action) *ModuleParams {
 	}
 }
 
-func (mp *ModuleParams) GetBackendModulesFromConfig(managementOnly bool, printOutput bool, backendModulesAnyMap map[string]any) map[string]models.BackendModule {
+func (mp *ModuleParams) GetBackendModulesFromConfig(managementOnly bool, printOutput bool, backendModulesAnyMap map[string]any) (map[string]models.BackendModule, error) {
 	if len(backendModulesAnyMap) == 0 {
 		if printOutput {
 			slog.Info(mp.Action.Name, "text", "No backend modules were found in config")
 		}
 
-		return make(map[string]models.BackendModule)
+		return make(map[string]models.BackendModule), nil
 	}
 
 	backendModulesMap := make(map[string]models.BackendModule)
@@ -41,16 +41,25 @@ func (mp *ModuleParams) GetBackendModulesFromConfig(managementOnly bool, printOu
 			continue
 		}
 
-		properties := mp.createBackendProperties(name, value)
-		backendModulesMap[name] = *mp.createBackendModule(properties)
+		properties, err := mp.createBackendProperties(name, value)
+		if err != nil {
+			return nil, err
+		}
+
+		backendModule, err := mp.createBackendModule(properties)
+		if err != nil {
+			return nil, err
+		}
+
+		backendModulesMap[name] = *backendModule
 
 		mp.printModuleInfo(name, properties, backendModulesMap, printOutput)
 	}
 
-	return backendModulesMap
+	return backendModulesMap, nil
 }
 
-func (mp *ModuleParams) createBackendProperties(name string, value any) models.BackendModuleProperties {
+func (mp *ModuleParams) createBackendProperties(name string, value any) (models.BackendModuleProperties, error) {
 	if value == nil {
 		return mp.createDefaultBackendProperties(name)
 	}
@@ -58,7 +67,7 @@ func (mp *ModuleParams) createBackendProperties(name string, value any) models.B
 	return mp.createConfigurableBackendProperties(value, name)
 }
 
-func (mp *ModuleParams) createBackendModule(properties models.BackendModuleProperties) *models.BackendModule {
+func (mp *ModuleParams) createBackendModule(properties models.BackendModuleProperties) (*models.BackendModule, error) {
 	if properties.DeploySidecar != nil && *properties.DeploySidecar {
 		return models.NewBackendModuleWithSidecar(mp.Action, properties)
 	}
@@ -72,6 +81,7 @@ func (mp *ModuleParams) printModuleInfo(name string, properties models.BackendMo
 	}
 
 	moduleInfo := name
+
 	if properties.Version != nil {
 		moduleInfo = fmt.Sprintf("%s with fixed version %s", name, *properties.Version)
 	}
@@ -92,23 +102,27 @@ func (mp *ModuleParams) IsEdgeModule(name string) bool {
 	return strings.HasPrefix(name, constant.EdgeModulePattern)
 }
 
-func (mp *ModuleParams) createDefaultBackendProperties(name string) (properties models.BackendModuleProperties) {
+func (mp *ModuleParams) createDefaultBackendProperties(name string) (properties models.BackendModuleProperties, err error) {
 	properties.DeployModule = true
 
 	if !mp.IsManagementModule(name) && !mp.IsEdgeModule(name) {
 		properties.DeploySidecar = helpers.BoolP(true)
 	}
 
-	properties.Port = mp.getDefaultPort()
+	properties.Port, err = mp.getDefaultPort()
+	if err != nil {
+		return models.BackendModuleProperties{}, err
+	}
+
 	properties.PortServer = mp.getDefaultPortServer()
 	properties.Env = make(map[string]any)
 	properties.Resources = make(map[string]any)
 	properties.Volumes = []string{}
 
-	return properties
+	return properties, nil
 }
 
-func (mp *ModuleParams) createConfigurableBackendProperties(value any, name string) (properties models.BackendModuleProperties) {
+func (mp *ModuleParams) createConfigurableBackendProperties(value any, name string) (properties models.BackendModuleProperties, err error) {
 	mapEntry := value.(map[string]any)
 
 	properties.DeployModule = helpers.GetAnyOrDefault(mapEntry, field.ModuleDeployModuleEntry, true).(bool)
@@ -124,19 +138,26 @@ func (mp *ModuleParams) createConfigurableBackendProperties(value any, name stri
 
 	if properties.LocalDescriptorPath != "" {
 		if _, err := os.Stat(properties.LocalDescriptorPath); os.IsNotExist(err) {
-			helpers.LogErrorPanic(mp.Action, fmt.Errorf("local-descriptor-path file does not exist: %s for module: %s", properties.LocalDescriptorPath, name))
-			return
+			err := fmt.Errorf("local-descriptor-path file does not exist: %s for module: %s", properties.LocalDescriptorPath, name)
+			return models.BackendModuleProperties{}, err
 		}
 	}
 
 	properties.Version = mp.getVersion(mapEntry)
-	properties.Port = mp.getPort(properties.DeployModule, mapEntry)
+	properties.Port, err = mp.getPort(properties.DeployModule, mapEntry)
+	if err != nil {
+		return models.BackendModuleProperties{}, err
+	}
+
 	properties.PortServer = mp.getPortServer(mapEntry)
 	properties.Env = helpers.GetAnyOrDefault(mapEntry, field.ModuleEnvEntry, make(map[string]any)).(map[string]any)
 	properties.Resources = helpers.GetAnyOrDefault(mapEntry, field.ModuleResourceEntry, make(map[string]any)).(map[string]any)
-	properties.Volumes = mp.getVolumes(mapEntry)
+	properties.Volumes, err = mp.getVolumes(mapEntry)
+	if err != nil {
+		return models.BackendModuleProperties{}, err
+	}
 
-	return properties
+	return properties, nil
 }
 
 func (mp *ModuleParams) getDeploySidecar(mapEntry map[string]any) *bool {
@@ -160,19 +181,25 @@ func (mp *ModuleParams) getVersion(mapEntry map[string]any) *string {
 	return helpers.StringP(mapEntry[field.ModuleVersionEntry].(string))
 }
 
-func (mp *ModuleParams) getPort(deployModule bool, mapEntry map[string]any) *int {
+func (mp *ModuleParams) getPort(deployModule bool, mapEntry map[string]any) (*int, error) {
 	if !deployModule {
-		return helpers.IntP(0)
+		return helpers.IntP(0), nil
 	}
+
 	if mapEntry[field.ModulePortEntry] == nil {
 		return mp.getDefaultPort()
 	}
 
-	return helpers.IntP(mapEntry[field.ModulePortEntry].(int))
+	return helpers.IntP(mapEntry[field.ModulePortEntry].(int)), nil
 }
 
-func (mp *ModuleParams) getDefaultPort() *int {
-	return helpers.IntP(helpers.SetFreePortFromRange(mp.Action))
+func (mp *ModuleParams) getDefaultPort() (*int, error) {
+	port, err := helpers.SetFreePortFromRange(mp.Action)
+	if err != nil {
+		return nil, err
+	}
+
+	return helpers.IntP(port), nil
 }
 
 func (mp *ModuleParams) getPortServer(mapEntry map[string]any) *int {
@@ -189,31 +216,33 @@ func (mp *ModuleParams) getDefaultPortServer() *int {
 	return helpers.IntP(defaultServerPort)
 }
 
-func (mp *ModuleParams) getVolumes(mapEntry map[string]any) []string {
+func (mp *ModuleParams) getVolumes(mapEntry map[string]any) ([]string, error) {
 	if mapEntry[field.ModuleVolumesEntry] == nil {
-		return []string{}
+		return []string{}, nil
 	}
 
 	var volumes []string
 	for _, value := range mapEntry[field.ModuleVolumesEntry].([]any) {
 		var volume = value.(string)
 		if runtime.GOOS == "windows" && strings.Contains(volume, "$EUREKA") {
-			homeConfigDir := helpers.GetHomeDirPath(mp.Action)
+			homeConfigDir, err := helpers.GetHomeDirPath(mp.Action)
+			if err != nil {
+				return nil, err
+			}
 
 			volume = strings.ReplaceAll(volume, "$EUREKA", homeConfigDir)
 		}
 
 		if _, err := os.Stat(volume); os.IsNotExist(err) {
 			if err != nil {
-				slog.Error(mp.Action.Name, "error", err)
-				panic(err)
+				return nil, err
 			}
 		}
 
 		volumes = append(volumes, volume)
 	}
 
-	return volumes
+	return volumes, nil
 }
 
 func (mp *ModuleParams) GetFrontendModulesFromConfig(printOutput bool, frontendModulesAnyMaps ...map[string]any) map[string]models.FrontendModule {

@@ -29,16 +29,31 @@ var updateKeycloakPublicClientsCmd = &cobra.Command{
 	Use:   "updateKeycloakPublicClients",
 	Short: "Update Keycloak public client params",
 	Long:  `Update Keycloak public client params for each UI container.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.UpdateKeycloakPublicClients).UpdateKeycloakPublicClients()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.UpdateKeycloakPublicClients)
+		if err != nil {
+			return err
+		}
+
+		err = r.UpdateKeycloakPublicClients()
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
-func (r *Run) UpdateKeycloakPublicClients() {
+func (r *Run) UpdateKeycloakPublicClients() error {
 	slog.Info(r.Config.Action.Name, "text", "UPDATING KEYCLOAK PUBLIC CLIENTS")
-	keycloakMasterAccessToken := r.Config.KeycloakStep.GetKeycloakMasterAccessToken()
+	keycloakMasterAccessToken, err := r.Config.KeycloakStep.GetKeycloakMasterAccessToken()
+	if err != nil {
+		return err
+	}
 
-	for _, value := range r.Config.ManagementStep.GetTenants(false, constant.NoneConsortium, constant.All) {
+	foundTenant, _ := r.Config.ManagementStep.GetTenants(constant.NoneConsortium, constant.All)
+
+	for _, value := range foundTenant {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
@@ -51,6 +66,8 @@ func (r *Run) UpdateKeycloakPublicClients() {
 		slog.Info(r.Config.Action.Name, "text", "Updating keycloak public client")
 		r.Config.KeycloakStep.UpdateKeycloakPublicClientParams(existingTenant, keycloakMasterAccessToken, rp.PlatformCompleteURL)
 	}
+
+	return nil
 }
 
 func init() {

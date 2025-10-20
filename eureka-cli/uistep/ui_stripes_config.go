@@ -29,13 +29,12 @@ func (us *UIStep) GetStripesBranch() plumbing.ReferenceName {
 	return constant.StripesBranch
 }
 
-func (us *UIStep) PrepareStripesConfigJS(rp *runparams.RunParams, configPath string, tenant string) {
+func (us *UIStep) PrepareStripesConfigJS(rp *runparams.RunParams, configPath string, tenant string) error {
 	stripesConfigJSFilePath := fmt.Sprintf("%s/stripes.config.js", configPath)
 
 	readFileBytes, err := os.ReadFile(stripesConfigJSFilePath)
 	if err != nil {
-		slog.Error(us.Action.Name, "error", err)
-		panic(err)
+		return err
 	}
 
 	replaceMap := map[string]string{
@@ -67,7 +66,8 @@ func (us *UIStep) PrepareStripesConfigJS(rp *runparams.RunParams, configPath str
 
 	err = os.WriteFile(stripesConfigJSFilePath, []byte(newReadFileStr), 0)
 	if err != nil {
-		slog.Error(us.Action.Name, "error", err)
-		panic(err)
+		return err
 	}
+
+	return nil
 }

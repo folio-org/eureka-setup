@@ -37,7 +37,7 @@ var attachCapabilitySetsCmd = &cobra.Command{
 	Short: "Attach capability sets",
 	Long:  `Attach capability sets to roles.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r := NewRun(action.AttachCapabilitySets)
+		r := New(action.AttachCapabilitySets)
 		return r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 			err := r.AttachCapabilitySets(consortiumName, tenantType, time.Duration(0*time.Second))
 			if err != nil {

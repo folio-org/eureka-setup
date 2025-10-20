@@ -35,7 +35,7 @@ var buildSystemCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		start := time.Now()
 
-		r := NewRun(action.BuildSystem)
+		r := New(action.BuildSystem)
 		r.CloneUpdateRepositories()
 		err := r.BuildSystem()
 		if err != nil {

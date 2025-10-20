@@ -14,12 +14,15 @@ type GitRepository struct {
 	Branch plumbing.ReferenceName
 }
 
-func NewRepository(action *action.Action, url, dir string, branch plumbing.ReferenceName) *GitRepository {
-	homeMiscDir := helpers.GetHomeMiscDir(action)
+func NewRepository(action *action.Action, url, dir string, branch plumbing.ReferenceName) (*GitRepository, error) {
+	homeMiscDir, err := helpers.GetHomeMiscDir(action)
+	if err != nil {
+		return nil, err
+	}
 
 	return &GitRepository{
 		URL:    url,
 		Dir:    filepath.Join(homeMiscDir, dir),
 		Branch: branch,
-	}
+	}, nil
 }

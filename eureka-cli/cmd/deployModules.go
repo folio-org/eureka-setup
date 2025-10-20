@@ -38,7 +38,7 @@ var deployModulesCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		startPort := viper.GetInt(field.ApplicationPortStart)
 		endPort := viper.GetInt(field.ApplicationPortEnd)
-		NewCustomRun(action.DeployModules, startPort, endPort).DeployModules()
+		NewCustom(action.DeployModules, startPort, endPort).DeployModules()
 	},
 }
 

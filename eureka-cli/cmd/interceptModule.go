@@ -39,7 +39,7 @@ var interceptModuleCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		startPort := viper.GetInt(field.ApplicationPortStart)
 		endPort := viper.GetInt(field.ApplicationPortEnd)
-		NewCustomRun(action.InterceptModule, startPort, endPort).InterceptModule()
+		NewCustom(action.InterceptModule, startPort, endPort).InterceptModule()
 	},
 }
 

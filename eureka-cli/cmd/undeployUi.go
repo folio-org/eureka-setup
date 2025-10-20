@@ -29,21 +29,38 @@ var undeployUiCmd = &cobra.Command{
 	Use:   "undeployUi",
 	Short: "Undeploy UI",
 	Long:  `Undeploy the UI containers.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.UndeployUi).UndeployUi()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.UndeployUi)
+		if err != nil {
+			return err
+		}
+
+		err = r.UndeployUi()
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
-func (r *Run) UndeployUi() {
+func (r *Run) UndeployUi() error {
 	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING UI CONTAINERS")
-	client := r.Config.DockerClient.Create()
+	client, err := r.Config.DockerClient.Create()
+	if err != nil {
+		return err
+	}
 	defer func() {
 		_ = client.Close()
 	}()
 
-	for _, value := range r.Config.ManagementStep.GetTenants(false, constant.NoneConsortium, constant.All) {
+	foundTenants, _ := r.Config.ManagementStep.GetTenants(constant.NoneConsortium, constant.All)
+
+	for _, value := range foundTenants {
 		r.Config.ModuleStep.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleUiContainerPattern, value.(map[string]any)["name"].(string)), false)
 	}
+
+	return nil
 }
 
 func init() {

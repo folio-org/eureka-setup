@@ -28,21 +28,39 @@ var undeployManagementCmd = &cobra.Command{
 	Use:   "undeployManagement",
 	Short: "Undeploy management",
 	Long:  `Undeploy all management modules.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		r := NewRun(action.UndeployManagement)
-		r.UndeployModules()
-		r.UndeployManagement()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.UndeployManagement)
+		if err != nil {
+			return err
+		}
+
+		err = r.UndeployModules()
+		if err != nil {
+			return err
+		}
+
+		err = r.UndeployManagement()
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
-func (r *Run) UndeployManagement() {
+func (r *Run) UndeployManagement() error {
 	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING MANAGEMENT MODULES")
-	client := r.Config.DockerClient.Create()
+	client, err := r.Config.DockerClient.Create()
+	if err != nil {
+		return err
+	}
 	defer func() {
 		_ = client.Close()
 	}()
 
 	r.Config.ModuleStep.UndeployModuleByNamePattern(client, constant.ManagementContainerPattern, true)
+
+	return nil
 }
 
 func init() {

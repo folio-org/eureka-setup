@@ -7,5 +7,6 @@ func TrimModuleName(name string) string {
 	if name[charIndex] == 45 {
 		name = name[:charIndex]
 	}
+
 	return name
 }

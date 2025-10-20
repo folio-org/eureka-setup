@@ -58,45 +58,42 @@ func (rs *RegistryStep) ExtractModuleNameAndVersion(registryModulesMap map[strin
 	}
 }
 
-func (rs *RegistryStep) GetAuthTokenIfPresent() string {
+func (rs *RegistryStep) GetAuthTokenIfPresent() (string, error) {
 	// If this env variable isn't set, then assume it is a public repository and no auth token is needed.
 	if os.Getenv(constant.ECRRepositoryEnv) == "" {
-		return ""
+		return "", nil
 	}
 
 	session, err := session.NewSession()
 	if err != nil {
-		slog.Error(rs.Action.Name, "error", err)
-		panic(err)
+		return "", err
 	}
 
 	authToken, err := ecr.New(session).GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	decodedBytes, err := base64.StdEncoding.DecodeString(*authToken.AuthorizationData[0].AuthorizationToken)
 	if err != nil {
-		slog.Error(rs.Action.Name, "error", err)
-		panic(err)
+		return "", err
 	}
 
 	authCreds := strings.Split(string(decodedBytes), ":")
 
 	jsonBytes, err := json.Marshal(map[string]string{"username": authCreds[0], "password": authCreds[1]})
 	if err != nil {
-		slog.Error(rs.Action.Name, "error", err)
-		panic(err)
+		return "", err
 	}
 
 	encodedAuth := base64.StdEncoding.EncodeToString(jsonBytes)
 
 	slog.Error(rs.Action.Name, "error", err)
 
-	return encodedAuth
+	return encodedAuth, nil
 }
 
-func (rs *RegistryStep) GetModules(installJsonURLs map[string]string, printOutput bool) map[string][]*models.RegistryModule {
+func (rs *RegistryStep) GetModules(installJsonURLs map[string]string, printOutput bool) (map[string][]*models.RegistryModule, error) {
 	registryModulesMap := make(map[string][]*models.RegistryModule)
 
 	for registryName, installJsonURL := range installJsonURLs {
@@ -104,8 +101,7 @@ func (rs *RegistryStep) GetModules(installJsonURLs map[string]string, printOutpu
 
 		installJsonResp, err := http.Get(installJsonURL)
 		if err != nil {
-			slog.Error(rs.Action.Name, "error", err)
-			panic(err)
+			return nil, err
 		}
 		defer func() {
 			_ = installJsonResp.Body.Close()
@@ -113,8 +109,7 @@ func (rs *RegistryStep) GetModules(installJsonURLs map[string]string, printOutpu
 
 		err = json.NewDecoder(installJsonResp.Body).Decode(&registryModules)
 		if err != nil {
-			slog.Error(rs.Action.Name, "error", err)
-			panic(err)
+			return nil, err
 		}
 
 		if registryName == constant.FolioRegistry {
@@ -128,7 +123,9 @@ func (rs *RegistryStep) GetModules(installJsonURLs map[string]string, printOutpu
 					continue
 				}
 
-				registryModules = append(registryModules, &models.RegistryModule{Id: fmt.Sprintf("%s-%s", name, mapEntry[field.ModuleVersionEntry].(string)), Action: "enable"})
+				registryModule := &models.RegistryModule{Id: fmt.Sprintf("%s-%s", name, mapEntry[field.ModuleVersionEntry].(string)), Action: "enable"}
+
+				registryModules = append(registryModules, registryModule)
 			}
 		}
 
@@ -152,7 +149,7 @@ func (rs *RegistryStep) GetModules(installJsonURLs map[string]string, printOutpu
 		registryModulesMap[registryName] = registryModules
 	}
 
-	return registryModulesMap
+	return registryModulesMap, nil
 }
 
 func (rs *RegistryStep) GetNamespace(version string) string {

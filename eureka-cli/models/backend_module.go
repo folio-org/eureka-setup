@@ -46,16 +46,28 @@ type BackendModuleProperties struct {
 	Volumes             []string
 }
 
-func NewBackendModuleWithSidecar(action *action.Action, properties BackendModuleProperties) *BackendModule {
+func NewBackendModuleWithSidecar(action *action.Action, properties BackendModuleProperties) (*BackendModule, error) {
 	exposedPorts := helpers.CreateExposedPorts(*properties.PortServer)
 
 	moduleServerPort := *properties.Port
 
 	var moduleDebugPort, sidecarServerPort, sidecarDebugPort = 0, 0, 0
+	var err error
 	if properties.DeployModule {
-		moduleDebugPort = helpers.SetFreePortFromRange(action)
-		sidecarServerPort = helpers.SetFreePortFromRange(action)
-		sidecarDebugPort = helpers.SetFreePortFromRange(action)
+		moduleDebugPort, err = helpers.SetFreePortFromRange(action)
+		if err != nil {
+			return nil, err
+		}
+
+		sidecarServerPort, err = helpers.SetFreePortFromRange(action)
+		if err != nil {
+			return nil, err
+		}
+
+		sidecarDebugPort, err = helpers.SetFreePortFromRange(action)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &BackendModule{
@@ -79,12 +91,15 @@ func NewBackendModuleWithSidecar(action *action.Action, properties BackendModule
 		SidecarExposedDebugPort:  sidecarDebugPort,
 		SidecarExposedPorts:      exposedPorts,
 		SidecarPortBindings:      helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, *properties.PortServer),
-	}
+	}, nil
 }
 
-func NewBackendModule(action *action.Action, properties BackendModuleProperties) *BackendModule {
+func NewBackendModule(action *action.Action, properties BackendModuleProperties) (*BackendModule, error) {
 	moduleServerPort := *properties.Port
-	moduleDebugPort := helpers.SetFreePortFromRange(action)
+	moduleDebugPort, err := helpers.SetFreePortFromRange(action)
+	if err != nil {
+		return nil, err
+	}
 
 	return &BackendModule{
 		DeployModule:            properties.DeployModule,
@@ -105,5 +120,5 @@ func NewBackendModule(action *action.Action, properties BackendModuleProperties)
 		DeploySidecar:           false,
 		SidecarExposedPorts:     nil,
 		SidecarPortBindings:     nil,
-	}
+	}, nil
 }

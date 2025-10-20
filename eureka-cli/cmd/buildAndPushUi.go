@@ -31,7 +31,12 @@ var buildAndPushUiCmd = &cobra.Command{
 	Short: "Build and push UI",
 	Long:  `Build and push UI image to DockerHub.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return NewRun(action.BuildAndPushUi).BuildAndPushUi()
+		r, err := New(action.BuildAndPushUi)
+		if err != nil {
+			return err
+		}
+
+		return r.BuildAndPushUi()
 	},
 }
 

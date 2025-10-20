@@ -37,22 +37,35 @@ var listModuleVersionsCmd = &cobra.Command{
 	Use:   "listModuleVersions",
 	Short: "List module versions",
 	Long:  `List module versions using the registry URL from config.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.ListModuleVersions).ListModuleVersions()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.ListModuleVersions)
+		if err != nil {
+			return err
+		}
+
+		err = r.ListModuleVersions()
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
-func (r *Run) ListModuleVersions() {
+func (r *Run) ListModuleVersions() error {
 	registryURL := viper.GetString(field.RegistryURL)
 	if rp.ID != "" {
-		r.getModuleDescriptorById(registryURL)
-		return
+		return r.getModuleDescriptorById(registryURL)
 	}
-	r.listModuleVersionsSortedDescendingOrder(registryURL)
+
+	return r.listModuleVersionsSortedDescendingOrder(registryURL)
 }
 
-func (r *Run) getModuleDescriptorById(registryURL string) {
-	resp := r.Config.HTTPClient.DoGetReturnResponse(fmt.Sprintf("%s/_/proxy/modules/%s", registryURL, rp.ID), true, map[string]string{})
+func (r *Run) getModuleDescriptorById(registryURL string) error {
+	resp, err := r.Config.HTTPClient.DoGetReturnResponse(fmt.Sprintf("%s/_/proxy/modules/%s", registryURL, rp.ID), map[string]string{})
+	if err != nil {
+		return err
+	}
 	defer func() {
 		_ = resp.Body.Close()
 	}()
@@ -60,22 +73,25 @@ func (r *Run) getModuleDescriptorById(registryURL string) {
 	if !rp.EnableDebug {
 		respBytes, err := httputil.DumpResponse(resp, true)
 		if err != nil {
-			slog.Error(r.Config.Action.Name, "error", err)
-			return
+			return err
 		}
 
 		idx := strings.Index(string(respBytes), constant.NewLinePattern)
 		if idx == -1 {
-			slog.Error(r.Config.Action.Name, "error", "response does not contain an empty line")
-			return
+			return fmt.Errorf("response does not contain an empty line using %s id", rp.ID)
 		}
 
 		fmt.Println(string([]byte(respBytes[idx:])))
 	}
+
+	return nil
 }
 
-func (r *Run) listModuleVersionsSortedDescendingOrder(registryURL string) {
-	resp := r.Config.HTTPClient.DoGetDecodeReturnAny(fmt.Sprintf("%s/_/proxy/modules", registryURL), true, map[string]string{})
+func (r *Run) listModuleVersionsSortedDescendingOrder(registryURL string) error {
+	resp, err := r.Config.HTTPClient.DoGetDecodeReturnAny(fmt.Sprintf("%s/_/proxy/modules", registryURL), map[string]string{})
+	if err != nil {
+		return err
+	}
 
 	var versions []string
 
@@ -99,6 +115,8 @@ func (r *Run) listModuleVersionsSortedDescendingOrder(registryURL string) {
 		}
 		fmt.Println(version)
 	}
+
+	return nil
 }
 
 func init() {

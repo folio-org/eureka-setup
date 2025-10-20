@@ -15,17 +15,16 @@ import (
 	"github.com/spf13/viper"
 )
 
-func GetGatewayURL(action *action.Action) string {
-	protoAndBaseURL := GetGatewayProtoAndBaseURL(action)
+func GetGatewayURL(actionName string) (string, error) {
+	protoAndBaseURL := GetGatewayProtoAndBaseURL(actionName)
 	if protoAndBaseURL == "" {
-		LogErrorPanic(action, fmt.Errorf("cannot construct getaway url for %s platform", runtime.GOOS))
-		return ""
+		return "", fmt.Errorf("cannot construct getaway url for %s platform", runtime.GOOS)
 	}
 
-	return protoAndBaseURL + ":%s%s"
+	return protoAndBaseURL + ":%s%s", nil
 }
 
-func GetGatewayProtoAndBaseURL(action *action.Action) string {
+func GetGatewayProtoAndBaseURL(action string) string {
 	if viper.IsSet(field.ApplicationGatewayHostname) {
 		return viper.GetString(field.ApplicationGatewayHostname)
 	} else if HostnameExists(action, constant.DockerHostname) {
@@ -37,15 +36,15 @@ func GetGatewayProtoAndBaseURL(action *action.Action) string {
 	return ""
 }
 
-func SetFreePortFromRange(action *action.Action) int {
+func SetFreePortFromRange(action *action.Action) (int, error) {
 	for port := action.StartPort; port <= action.EndPort; port++ {
 		if !slices.Contains(action.ReservedPorts, port) && IsPortFree(action, action.StartPort, action.EndPort, port) {
 			action.ReservedPorts = append(action.ReservedPorts, port)
-			return port
+			return port, nil
 		}
 	}
-	LogErrorPanic(action, fmt.Errorf("cannot find free TCP ports in range %d-%d", action.StartPort, action.EndPort))
-	return 0
+
+	return 0, fmt.Errorf("cannot find free TCP ports in range %d-%d", action.StartPort, action.EndPort)
 }
 
 func IsPortFree(action *action.Action, portStart, portEnd int, port int) bool {
@@ -57,14 +56,16 @@ func IsPortFree(action *action.Action, portStart, portEnd int, port int) bool {
 	defer func() {
 		_ = tcpListen.Close()
 	}()
+
 	return true
 }
 
-func HostnameExists(action *action.Action, hostname string) bool {
+func HostnameExists(actionName string, hostname string) bool {
 	_, err := net.LookupHost(hostname)
 	if err != nil {
-		slog.Debug(action.Name, "text", fmt.Sprintf("host %s is unreachable: %s", hostname, err.Error()))
+		slog.Debug(actionName, "text", fmt.Sprintf("host %s is unreachable: %s", hostname, err.Error()))
 	}
+
 	return err == nil
 }
 
@@ -72,14 +73,15 @@ func ConstructURL(url string, schemaAndBaseURL string) string {
 	if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
 		return url
 	}
+
 	return fmt.Sprintf("%s:%s", schemaAndBaseURL, url)
 }
 
-func ExtractPortFromURL(action *action.Action, url string) int {
+func ExtractPortFromURL(url string) (int, error) {
 	sidecarServer, err := GetPortFromURL(url)
 	if err != nil {
-		slog.Error(action.Name, "error", err)
-		panic(err)
+		return 0, err
 	}
-	return sidecarServer
+
+	return sidecarServer, nil
 }

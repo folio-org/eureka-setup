@@ -31,7 +31,7 @@ var detachCapabilitySetsCmd = &cobra.Command{
 	Short: "Detach capability sets",
 	Long:  `Detach all capability sets from roles.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		r := NewRun(action.DetachCapabilitySets)
+		r := New(action.DetachCapabilitySets)
 		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 			r.DetachCapabilitySets(consortiumName, tenantType)
 		})

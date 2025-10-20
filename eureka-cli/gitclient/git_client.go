@@ -22,7 +22,7 @@ func New(action *action.Action) *GitClient {
 	}
 }
 
-func (gc *GitClient) KeycloakRepository() *GitRepository {
+func (gc *GitClient) KeycloakRepository() (*GitRepository, error) {
 	var (
 		url                           = constant.FolioKongRepositoryURL
 		dir                           = constant.FolioKongOutputDir
@@ -31,7 +31,7 @@ func (gc *GitClient) KeycloakRepository() *GitRepository {
 	return NewRepository(gc.Action, url, dir, branch)
 }
 
-func (gc *GitClient) KongRepository() *GitRepository {
+func (gc *GitClient) KongRepository() (*GitRepository, error) {
 	var (
 		url                           = constant.FolioKeycloakRepositoryURL
 		dir                           = constant.FolioKeycloakOutputDir
@@ -40,42 +40,36 @@ func (gc *GitClient) KongRepository() *GitRepository {
 	return NewRepository(gc.Action, url, dir, branch)
 }
 
-func (gc *GitClient) PlatformCompleteRepository(branch plumbing.ReferenceName) *GitRepository {
+func (gc *GitClient) PlatformCompleteRepository(branch plumbing.ReferenceName) (*GitRepository, error) {
 	return NewRepository(gc.Action, constant.PlatformCompleteRepositoryURL, constant.PlatformCompleteOutputDir, branch)
 }
 
-func (rc *GitClient) Clone(panicIfExists bool, repository *GitRepository) {
+func (rc *GitClient) Clone(repository *GitRepository) error {
 	targetRepository, err := git.PlainClone(repository.Dir, false, &git.CloneOptions{
 		URL:           repository.URL,
 		ReferenceName: repository.Branch,
 		Progress:      os.Stdout,
 	})
 	if err != nil {
-		if panicIfExists {
-			slog.Error(rc.Action.Name, "error", err)
-			panic(err)
-		}
-		slog.Info(rc.Action.Name, "text", fmt.Sprintf("Cloning repository, url: %s, clone message: %s", repository.URL, err.Error()))
-
-		return
+		return fmt.Errorf("cloning %s repository, message %v", repository.URL, err)
 	}
 
 	ref, err := targetRepository.Head()
 	if err != nil {
-		slog.Error(rc.Action.Name, "error", err)
-		panic(err)
+		return err
 	}
 
 	slog.Info(rc.Action.Name, "text", fmt.Sprintf("Ref: %s", ref))
+
+	return nil
 }
 
-func (rc *GitClient) ResetHardPullFromOrigin(repository *GitRepository) {
+func (rc *GitClient) ResetHardPullFromOrigin(repository *GitRepository) error {
 	slog.Info(rc.Action.Name, "text", fmt.Sprintf("Updating repository, url: %s, branch: %s", repository.URL, repository.Branch))
 
 	targetRepository, err := git.PlainOpen(repository.Dir)
 	if err != nil {
-		slog.Error(rc.Action.Name, "error", err)
-		panic(err)
+		return err
 	}
 
 	if err = targetRepository.Fetch(&git.FetchOptions{
@@ -87,28 +81,28 @@ func (rc *GitClient) ResetHardPullFromOrigin(repository *GitRepository) {
 
 	worktree, err := targetRepository.Worktree()
 	if err != nil {
-		slog.Error(rc.Action.Name, "error", err)
-		panic(err)
+		return err
 	}
 
-	rc.printStatus(worktree, "Before Clean & Reset")
+	if err = rc.printStatus(worktree, "Before Clean & Reset"); err != nil {
+		return err
+	}
 
 	if err = worktree.Clean(&git.CleanOptions{Dir: true}); err != nil {
-		slog.Error(rc.Action.Name, "error", err)
-		panic(err)
+		return err
 	}
 
 	if err = worktree.Reset(&git.ResetOptions{Mode: git.HardReset}); err != nil {
-		slog.Error(rc.Action.Name, "error", err)
-		panic(err)
+		return err
 	}
 
-	rc.printStatus(worktree, "After Clean & Reset")
+	if err = rc.printStatus(worktree, "After Clean & Reset"); err != nil {
+		return err
+	}
 
 	ref, err := targetRepository.Head()
 	if err != nil {
-		slog.Error(rc.Action.Name, "error", err)
-		panic(err)
+		return err
 	}
 
 	if err = worktree.Pull(&git.PullOptions{
@@ -119,23 +113,25 @@ func (rc *GitClient) ResetHardPullFromOrigin(repository *GitRepository) {
 	}); err != nil {
 		if strings.Contains(err.Error(), "already up-to-date") {
 			slog.Info(rc.Action.Name, "text", fmt.Sprintf("Updating repository, url: %s, pull message: %s", repository.URL, err.Error()))
-			return
+			return nil
 		}
 
-		slog.Error(rc.Action.Name, "error", err)
-		panic(err)
+		return err
 	}
+
+	return nil
 }
 
-func (rc *GitClient) printStatus(wt *git.Worktree, message string) {
+func (rc *GitClient) printStatus(wt *git.Worktree, message string) error {
 	status, err := wt.Status()
 	if err != nil {
-		slog.Error(rc.Action.Name, "error", err)
-		panic(err)
+		return err
 	}
 
 	if status != nil && status.String() != "" {
 		fmt.Println(message + ":")
 		fmt.Println(status.String())
 	}
+
+	return nil
 }

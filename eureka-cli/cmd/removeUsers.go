@@ -30,18 +30,29 @@ var removeUsersCmd = &cobra.Command{
 	Use:   "removeUsers",
 	Short: "Create users",
 	Long:  `Create all users.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		r := NewRun(action.RemoveUsers)
-		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
-			r.RemoveUsers(consortiumName, tenantType)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.RemoveUsers)
+		if err != nil {
+			return err
+		}
+
+		err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+			return r.RemoveUsers(consortiumName, tenantType)
 		})
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
-func (r *Run) RemoveUsers(consortiumName string, tenantType constant.TenantType) {
+func (r *Run) RemoveUsers(consortiumName string, tenantType constant.TenantType) error {
 	vaultRootToken := r.GetVaultRootToken()
 
-	for _, value := range r.Config.ManagementStep.GetTenants(false, consortiumName, tenantType) {
+	foundTenants, _ := r.Config.ManagementStep.GetTenants(consortiumName, tenantType)
+
+	for _, value := range foundTenants {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
@@ -50,9 +61,15 @@ func (r *Run) RemoveUsers(consortiumName string, tenantType constant.TenantType)
 		}
 
 		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("REMOVING USERS FOR %s TENANT", existingTenant))
-		keycloakAccessToken := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
-		r.Config.ManagementStep.RemoveUsers(false, existingTenant, keycloakAccessToken)
+		keycloakAccessToken, err := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		if err != nil {
+			return err
+		}
+
+		_ = r.Config.KeycloakStep.RemoveUsers(existingTenant, keycloakAccessToken)
 	}
+
+	return nil
 }
 
 func init() {

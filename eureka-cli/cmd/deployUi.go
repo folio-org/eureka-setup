@@ -30,7 +30,7 @@ var deployUiCmd = &cobra.Command{
 	Short: "Deploy UI",
 	Long:  `Deploy the UI container.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return NewRun(action.DeployUi).DeployUi()
+		return New(action.DeployUi).DeployUi()
 	},
 }
 

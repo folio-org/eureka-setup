@@ -12,6 +12,7 @@ func Exec(c *exec.Cmd) error {
 	if err := c.Run(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -27,6 +28,7 @@ func ExecReturnOutput(c *exec.Cmd) (stdout bytes.Buffer, stderr bytes.Buffer, er
 	if err := c.Run(); err != nil {
 		return stdout, stderr, err
 	}
+
 	return stdout, stderr, nil
 }
 
@@ -36,5 +38,6 @@ func ExecFromDir(c *exec.Cmd, workDir string) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }

@@ -35,7 +35,7 @@ var getEdgeApiKeyCmd = &cobra.Command{
 	Short: "Get Edge API key",
 	Long:  `Get Edge API key for a tenant`,
 	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.GetEdgeApiKey).GetEdgeApiKey()
+		New(action.GetEdgeApiKey).GetEdgeApiKey()
 	},
 }
 

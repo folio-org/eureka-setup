@@ -30,18 +30,26 @@ var removeRolesCmd = &cobra.Command{
 	Use:   "removeRoles",
 	Short: "Remove roles",
 	Long:  `Remove all roles.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		r := NewRun(action.RemoveRoles)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.RemoveRoles)
+		if err != nil {
+			return err
+		}
+
 		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 			r.RemoveRoles(consortiumName, tenantType)
 		})
+
+		return nil
 	},
 }
 
-func (r *Run) RemoveRoles(consortiumName string, tenantType constant.TenantType) {
+func (r *Run) RemoveRoles(consortiumName string, tenantType constant.TenantType) error {
 	vaultRootToken := r.GetVaultRootToken()
 
-	for _, value := range r.Config.ManagementStep.GetTenants(false, consortiumName, tenantType) {
+	foundTenants, _ := r.Config.ManagementStep.GetTenants(consortiumName, tenantType)
+
+	for _, value := range foundTenants {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
@@ -50,9 +58,15 @@ func (r *Run) RemoveRoles(consortiumName string, tenantType constant.TenantType)
 		}
 
 		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("REMOVING ROLES FOR %s TENANT", existingTenant))
-		keycloakAccessToken := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
-		r.Config.ManagementStep.RemoveRoles(false, existingTenant, keycloakAccessToken)
+		keycloakAccessToken, err := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		if err != nil {
+			return err
+		}
+
+		_ = r.Config.KeycloakStep.RemoveRoles(existingTenant, keycloakAccessToken)
 	}
+
+	return nil
 }
 
 func init() {

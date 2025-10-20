@@ -13,11 +13,10 @@ import (
 	"github.com/folio-org/eureka-cli/constant"
 )
 
-func ReadJsonFromFile(action *action.Action, filePath string, data any) {
+func ReadJsonFromFile(action *action.Action, filePath string, data any) error {
 	jsonFile, err := os.OpenFile(filePath, os.O_RDONLY, 0644)
 	if err != nil {
-		slog.Error(action.Name, "error", err)
-		panic(err)
+		return err
 	}
 	defer func() {
 		_ = jsonFile.Close()
@@ -28,17 +27,17 @@ func ReadJsonFromFile(action *action.Action, filePath string, data any) {
 		if err := decoder.Decode(&data); err == io.EOF {
 			break
 		} else if err != nil {
-			slog.Error(action.Name, "error", err)
-			panic(err)
+			return err
 		}
 	}
+
+	return nil
 }
 
-func WriteJsonToFile(action *action.Action, filePath string, packageJson any) {
+func WriteJsonToFile(action *action.Action, filePath string, packageJson any) error {
 	jsonFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
-		slog.Error(action.Name, "error", err)
-		panic(err)
+		return err
 	}
 	defer func() {
 		_ = jsonFile.Close()
@@ -49,33 +48,38 @@ func WriteJsonToFile(action *action.Action, filePath string, packageJson any) {
 	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", "  ")
 
-	if err = encoder.Encode(packageJson); err != nil {
-		slog.Error(action.Name, "error", err)
-		panic(err)
+	err = encoder.Encode(packageJson)
+	if err != nil {
+		return err
 	}
 
-	_ = writer.Flush()
+	err = writer.Flush()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func CheckIsRegularFile(action *action.Action, fileName string) {
+func CheckIsRegularFile(action *action.Action, fileName string) error {
 	fileStat, err := os.Stat(fileName)
 	if err != nil {
-		slog.Error(action.Name, "error", err)
-		panic(err)
+		return err
 	}
 
 	if !fileStat.Mode().IsRegular() {
-		LogErrorPanic(action, fmt.Errorf("%s is not a regular file", fileName))
+		return fmt.Errorf("%s is not a regular file", fileName)
 	}
+
+	return nil
 }
 
-func CopySingleFile(action *action.Action, srcPath string, dstPath string) {
+func CopySingleFile(action *action.Action, srcPath string, dstPath string) error {
 	CheckIsRegularFile(action, srcPath)
 
 	src, err := os.Open(srcPath)
 	if err != nil {
-		slog.Error(action.Name, "error", err)
-		panic(err)
+		return err
 	}
 	defer func() {
 		_ = src.Close()
@@ -83,8 +87,7 @@ func CopySingleFile(action *action.Action, srcPath string, dstPath string) {
 
 	dst, err := os.Create(dstPath)
 	if err != nil {
-		slog.Error(action.Name, "error", err)
-		panic(err)
+		return err
 	}
 	defer func() {
 		_ = dst.Close()
@@ -92,38 +95,42 @@ func CopySingleFile(action *action.Action, srcPath string, dstPath string) {
 
 	_, err = io.Copy(dst, src)
 	if err != nil {
-		slog.Error(action.Name, "error", err)
-		panic(err)
+		return err
 	}
 
 	slog.Info(action.Name, "text", fmt.Sprintf("Copied a single file from %s to %s", filepath.FromSlash(srcPath), filepath.FromSlash(dstPath)))
+
+	return nil
 }
 
-func GetCurrentWorkDirPath(action *action.Action) string {
+func GetCurrentWorkDirPath(action *action.Action) (string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
-		slog.Error(action.Name, "error", err)
-		panic(err)
+		return "", err
 	}
-	return cwd
+
+	return cwd, nil
 }
 
-func GetHomeDirPath(action *action.Action) string {
+func GetHomeMiscDir(action *action.Action) (string, error) {
+	homeDir, err := GetHomeDirPath(action)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(homeDir, constant.DockerComposeWorkDir), nil
+}
+
+func GetHomeDirPath(action *action.Action) (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		slog.Error(action.Name, "error", err)
-		panic(err)
+		return "", err
 	}
 
 	homeDir := filepath.Join(home, constant.ConfigDir)
-
 	if err = os.MkdirAll(homeDir, 0644); err != nil {
-		slog.Error(action.Name, "error", err)
-		panic(err)
+		return "", err
 	}
-	return homeDir
-}
 
-func GetHomeMiscDir(action *action.Action) string {
-	return filepath.Join(GetHomeDirPath(action), constant.DockerComposeWorkDir)
+	return homeDir, nil
 }

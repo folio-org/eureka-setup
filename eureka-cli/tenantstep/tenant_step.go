@@ -8,7 +8,6 @@ import (
 	"github.com/folio-org/eureka-cli/consortiumstep"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
-	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/runparams"
 	"github.com/spf13/viper"
 )
@@ -25,25 +24,23 @@ func New(action *action.Action, consortiumStep *consortiumstep.ConsortiumStep) *
 	}
 }
 
-func (ts *TenantStep) GetTenantParameters(consortiumName string, tenants map[string]any) string {
+func (ts *TenantStep) GetTenantParameters(consortiumName string, tenants map[string]any) (string, error) {
 	if consortiumName == constant.NoneConsortium {
-		return "loadReference=true,loadSample=true"
+		return "loadReference=true,loadSample=true", nil
 	}
 
 	centralTenant := ts.ConsortiumStep.GetConsortiumCentralTenant(consortiumName, tenants)
 	if centralTenant == "" {
-		helpers.LogErrorPanic(ts.Action, fmt.Errorf("%s consortium does not contain a central tenant", consortiumName))
-		return ""
+		return "", fmt.Errorf("%s consortium does not contain a central tenant", consortiumName)
 	}
 
-	return fmt.Sprintf("loadReference=true,loadSample=true,centralTenantId=%s", centralTenant)
+	return fmt.Sprintf("loadReference=true,loadSample=true,centralTenantId=%s", centralTenant), nil
 }
 
-func (ts *TenantStep) SetDefaultConfigTenantParams(rp *runparams.RunParams, tenant string) {
+func (ts *TenantStep) SetDefaultConfigTenantParams(rp *runparams.RunParams, tenant string) error {
 	tenants := viper.GetStringMap(field.Tenants)
 	if tenants == nil || tenants[tenant] == nil {
-		helpers.LogDebug(ts.Action, fmt.Errorf("found not tenant in the config or by %s tenant", tenant))
-		return
+		return fmt.Errorf("found not tenant in the config or by %s tenant", tenant)
 	}
 
 	var tenantMap = tenants[tenant].(map[string]any)
@@ -59,4 +56,6 @@ func (ts *TenantStep) SetDefaultConfigTenantParams(rp *runparams.RunParams, tena
 
 	preparedParams := []any{tenant, rp.SingleTenant, rp.EnableECSRequests, rp.PlatformCompleteURL}
 	slog.Info(ts.Action.Name, "text", fmt.Sprintf("Setting default tenant config params, tenant: %s, singleTenant: %t, enableECSRequests: %t, platformCompleteURL: %s", preparedParams...))
+
+	return nil
 }

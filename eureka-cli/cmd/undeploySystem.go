@@ -30,7 +30,12 @@ var undeploySystemCmd = &cobra.Command{
 	Short: "Undeploy system",
 	Long:  `Undeploy all system containers.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return NewRun(action.UndeploySystem).UndeploySystem()
+		r, err := New(action.UndeploySystem)
+		if err != nil {
+			return err
+		}
+
+		return r.UndeploySystem()
 	},
 }
 

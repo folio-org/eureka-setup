@@ -32,18 +32,26 @@ var reindexElasticsearchCmd = &cobra.Command{
 	Use:   "reindexElasticsearch",
 	Short: "Reindex elasticsearch",
 	Long:  `Reindex elasticsearch indices.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		r := NewRun(action.ReindexElasticsearch)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.ReindexElasticsearch)
+		if err != nil {
+			return err
+		}
+
 		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 			r.ReindexElasticsearch(consortiumName, tenantType)
 		})
+
+		return nil
 	},
 }
 
-func (r *Run) ReindexElasticsearch(consortiumName string, tenantType constant.TenantType) {
+func (r *Run) ReindexElasticsearch(consortiumName string, tenantType constant.TenantType) error {
 	vaultRootToken := r.GetVaultRootToken()
 
-	for _, value := range r.Config.ManagementStep.GetTenants(false, consortiumName, tenantType) {
+	foundTenants, _ := r.Config.ManagementStep.GetTenants(consortiumName, tenantType)
+
+	for _, value := range foundTenants {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
@@ -57,10 +65,23 @@ func (r *Run) ReindexElasticsearch(consortiumName string, tenantType constant.Te
 		}
 
 		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("REINDEXING ELASTICSEARCH FOR %s TENANT", existingTenant))
-		keycloakAccessToken := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
-		r.Config.SearchStep.ReindexInventoryRecords(existingTenant, keycloakAccessToken)
-		r.Config.SearchStep.ReindexInstanceRecords(existingTenant, keycloakAccessToken)
+		keycloakAccessToken, err := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		if err != nil {
+			return err
+		}
+
+		err = r.Config.SearchStep.ReindexInventoryRecords(existingTenant, keycloakAccessToken)
+		if err != nil {
+			return err
+		}
+
+		err = r.Config.SearchStep.ReindexInstanceRecords(existingTenant, keycloakAccessToken)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func init() {

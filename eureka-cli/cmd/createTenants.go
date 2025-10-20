@@ -28,7 +28,7 @@ var createTenantsCmd = &cobra.Command{
 	Short: "Create tenants",
 	Long:  `Create all tenants.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.CreateTenants).CreateTenants()
+		New(action.CreateTenants).CreateTenants()
 	},
 }
 

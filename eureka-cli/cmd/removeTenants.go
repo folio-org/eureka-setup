@@ -28,17 +28,23 @@ var removeTenantsCmd = &cobra.Command{
 	Use:   "removeTenants",
 	Short: "Remove tenants",
 	Long:  `Remove all tenants.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		r := NewRun(action.RemoveTenants)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.RemoveTenants)
+		if err != nil {
+			return err
+		}
+
 		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 			r.RemoveTenants(consortiumName, tenantType)
 		})
+
+		return nil
 	},
 }
 
 func (r *Run) RemoveTenants(consortiumName string, tenantType constant.TenantType) {
 	slog.Info(r.Config.Action.Name, "text", "REMOVING TENANTS")
-	r.Config.ManagementStep.RemoveTenants(false, consortiumName, tenantType)
+	_ = r.Config.ManagementStep.RemoveTenants(false, consortiumName, tenantType)
 }
 
 func init() {

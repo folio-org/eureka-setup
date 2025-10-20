@@ -10,34 +10,48 @@ import (
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/httpclient"
+	"github.com/folio-org/eureka-cli/managementstep"
 	"github.com/folio-org/eureka-cli/vaultclient"
 )
 
 type KeycloakStep struct {
-	Action      *action.Action
-	HTTPClient  *httpclient.HTTPClient
-	VaultClient *vaultclient.VaultClient
+	Action         *action.Action
+	HTTPClient     *httpclient.HTTPClient
+	VaultClient    *vaultclient.VaultClient
+	ManagementStep *managementstep.ManagementStep
 }
 
-func New(action *action.Action, httpClient *httpclient.HTTPClient, vaultClient *vaultclient.VaultClient) *KeycloakStep {
+func New(
+	action *action.Action,
+	httpClient *httpclient.HTTPClient,
+	vaultClient *vaultclient.VaultClient,
+	managementStep *managementstep.ManagementStep,
+) *KeycloakStep {
 	return &KeycloakStep{
-		Action:      action,
-		HTTPClient:  httpClient,
-		VaultClient: vaultClient,
+		Action:         action,
+		HTTPClient:     httpClient,
+		VaultClient:    vaultClient,
+		ManagementStep: managementStep,
 	}
 }
 
-func (ks *KeycloakStep) GetKeycloakAccessToken(vaultRootToken string, tenant string) string {
-	client := ks.VaultClient.Create()
+func (ks *KeycloakStep) GetKeycloakAccessToken(vaultRootToken string, tenant string) (string, error) {
+	client, err := ks.VaultClient.Create()
+	if err != nil {
+		return "", err
+	}
 
-	secretMap := ks.VaultClient.GetSecretKey(client, vaultRootToken, fmt.Sprintf("folio/%s", tenant))
+	secretMap, err := ks.VaultClient.GetSecretKey(client, vaultRootToken, fmt.Sprintf("folio/%s", tenant))
+	if err != nil {
+		return "", err
+	}
 
 	clientID := helpers.GetConfigEnv("KC_SERVICE_CLIENT_ID")
 	clientSecret := secretMap[clientID].(string)
 	systemUser := fmt.Sprintf("%s-system-user", tenant)
 	systemUserPassword := secretMap[systemUser].(string)
 	requestURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", constant.KeycloakHTTP, tenant)
-	headers := map[string]string{constant.ContentTypeHeader: constant.FormURLEncodedContentType}
+	headers := map[string]string{constant.ContentTypeHeader: constant.ApplicationFormURLEncoded}
 
 	formData := url.Values{}
 	formData.Set("grant_type", "password")
@@ -46,20 +60,23 @@ func (ks *KeycloakStep) GetKeycloakAccessToken(vaultRootToken string, tenant str
 	formData.Set("username", systemUser)
 	formData.Set("password", systemUserPassword)
 
-	tokensMap := ks.HTTPClient.DoPostFormDataReturnMapStringAny(requestURL, formData, headers)
-	if tokensMap["access_token"] == nil {
-		helpers.LogErrorPanic(ks.Action, fmt.Errorf("access token not found from %s", requestURL))
-		return ""
+	tokensMap, err := ks.HTTPClient.DoPostFormDataReturnMapStringAny(requestURL, formData, headers)
+	if err != nil {
+		return "", err
 	}
 
-	return tokensMap["access_token"].(string)
+	if tokensMap["access_token"] == nil {
+		return "", fmt.Errorf("access token not found from %s", requestURL)
+	}
+
+	return tokensMap["access_token"].(string), nil
 }
 
-func (ks *KeycloakStep) GetKeycloakMasterAccessToken() string {
+func (ks *KeycloakStep) GetKeycloakMasterAccessToken() (string, error) {
 	requestURL := fmt.Sprintf("%s/realms/master/protocol/openid-connect/token", constant.KeycloakHTTP)
 
 	headers := map[string]string{
-		constant.ContentTypeHeader: constant.FormURLEncodedContentType,
+		constant.ContentTypeHeader: constant.ApplicationFormURLEncoded,
 	}
 
 	formData := url.Values{}
@@ -68,27 +85,35 @@ func (ks *KeycloakStep) GetKeycloakMasterAccessToken() string {
 	formData.Set("username", constant.KeycloakAdminUsername)
 	formData.Set("password", constant.KeycloakAdminPassword)
 
-	tokensMap := ks.HTTPClient.DoPostFormDataReturnMapStringAny(requestURL, formData, headers)
-	if tokensMap["access_token"] == nil {
-		helpers.LogErrorPanic(ks.Action, fmt.Errorf("access token not found from %s", requestURL))
-		return ""
+	tokensMap, err := ks.HTTPClient.DoPostFormDataReturnMapStringAny(requestURL, formData, headers)
+	if err != nil {
+		return "", err
 	}
 
-	return tokensMap["access_token"].(string)
+	if tokensMap["access_token"] == nil {
+		return "", fmt.Errorf("access token not found from %s", requestURL)
+	}
+
+	return tokensMap["access_token"].(string), nil
 }
 
-func (ks *KeycloakStep) UpdateKeycloakPublicClientParams(tenant string, accessToken string, url string) {
+func (ks *KeycloakStep) UpdateKeycloakPublicClientParams(tenant string, accessToken string, url string) error {
 	headers := map[string]string{
-		constant.ContentTypeHeader:   constant.JsonContentType,
+		constant.ContentTypeHeader:   constant.ApplicationJSON,
 		constant.AuthorizationHeader: fmt.Sprintf("Bearer %s", accessToken),
 	}
 
 	clientID := fmt.Sprintf("%s%s", tenant, helpers.GetConfigEnv("KC_LOGIN_CLIENT_SUFFIX"))
 	getRequestURL := fmt.Sprintf("%s/admin/realms/%s/clients?clientId=%s", constant.KeycloakHTTP, tenant, clientID)
-	foundClients := ks.HTTPClient.DoGetDecodeReturnAny(getRequestURL, true, headers).([]any)
+	foundClientsResp, err := ks.HTTPClient.DoGetDecodeReturnAny(getRequestURL, headers)
+	if err != nil {
+		return err
+	}
+
+	foundClients := foundClientsResp.([]any)
+
 	if len(foundClients) != 1 {
-		helpers.LogErrorPanic(ks.Action, fmt.Errorf("number of found clients by %s client id is not 1", clientID))
-		return
+		return fmt.Errorf("number of found clients by %s client id is not 1", clientID)
 	}
 
 	clientUUID := foundClients[0].(map[string]any)["id"].(string)
@@ -106,12 +131,13 @@ func (ks *KeycloakStep) UpdateKeycloakPublicClientParams(tenant string, accessTo
 		},
 	})
 	if err != nil {
-		slog.Error(ks.Action.Name, "error", err)
-		panic(err)
+		return err
 	}
 
 	putRequestURL := fmt.Sprintf("%s/admin/realms/%s/clients/%s", constant.KeycloakHTTP, tenant, clientUUID)
 	ks.HTTPClient.DoPutReturnNoContent(putRequestURL, clientParamsBytes, headers)
 
 	slog.Info(ks.Action.Name, "text", fmt.Sprintf("Updated keycloak public %s client in %s realm", clientID, tenant))
+
+	return nil
 }

@@ -38,7 +38,7 @@ var checkPortsCmd = &cobra.Command{
 	Short: "Check ports",
 	Long:  `Check container ports.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return NewRun(action.CheckPorts).CheckPorts()
+		return New(action.CheckPorts).CheckPorts()
 	},
 }
 

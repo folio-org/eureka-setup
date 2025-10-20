@@ -18,7 +18,6 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	"os"
 	"time"
 
 	"github.com/folio-org/eureka-cli/action"
@@ -33,10 +32,14 @@ var undeployApplicationCmd = &cobra.Command{
 	Use:   "undeployApplication",
 	Short: "Undeploy application",
 	Long:  `Undeploy platform application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		start := time.Now()
 
-		r := NewRun(action.UndeployApplication)
+		r, err := New(action.UndeployApplication)
+		if err != nil {
+			return err
+		}
+
 		if len(viper.GetStringMap(field.ApplicationGatewayDependencies)) > 0 {
 			r.UndeployChildApplication()
 		} else {
@@ -44,22 +47,36 @@ var undeployApplicationCmd = &cobra.Command{
 		}
 
 		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Elapsed, duration %.1f", time.Since(start).Minutes()))
+
+		return err
 	},
 }
 
-func (r *Run) UndeployApplication() {
-	r.UndeployUi()
-	r.UndeployModules()
-	r.UndeployManagement()
-
-	err := r.UndeploySystem()
+func (r *Run) UndeployApplication() error {
+	err := r.UndeployUi()
 	if err != nil {
-		slog.Error(r.Config.Action.Name, "error", err.Error())
-		os.Exit(1)
+		return err
 	}
+
+	err = r.UndeployModules()
+	if err != nil {
+		return err
+	}
+
+	err = r.UndeployManagement()
+	if err != nil {
+		return err
+	}
+
+	err = r.UndeploySystem()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (r *Run) UndeployChildApplication() {
+func (r *Run) UndeployChildApplication() error {
 	r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 		r.RemoveTenantEntitlements(consortiumName, tenantType)
 	})
@@ -68,18 +85,21 @@ func (r *Run) UndeployChildApplication() {
 
 	err := r.UndeployAdditionalSystem()
 	if err != nil {
-		slog.Error(r.Config.Action.Name, "error", err.Error())
-		os.Exit(1)
+		return err
 	}
-	r.Partition(func(consortiumName string, tenantType constant.TenantType) {
+
+	r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 		r.DetachCapabilitySets(consortiumName, tenantType)
 
 		err := r.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second)
 		if err != nil {
-			slog.Error(r.Config.Action.Name, "error", err.Error())
-			os.Exit(1)
+			return err
 		}
+
+		return nil
 	})
+
+	return nil
 }
 
 func init() {

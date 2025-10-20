@@ -29,7 +29,14 @@ var listSystemCmd = &cobra.Command{
 	Short: "List system containers",
 	Long:  `List all system containers.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return NewRun(action.ListSystem).ListSystem()
+		r, err := New(action.ListSystem)
+		if err != nil {
+			return err
+		}
+
+		r.ListSystem()
+
+		return nil
 	},
 }
 

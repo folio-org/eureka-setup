@@ -46,7 +46,8 @@ func New(action *action.Action) *RunConfig {
 	registryStep := registrystep.New(action, httpClient)
 	userStep := userstep.New(action, httpClient)
 	consortiumStep := consortiumstep.New(action, httpClient, userStep)
-	tenantstep := tenantstep.New(action, consortiumStep)
+	tenantStep := tenantstep.New(action, consortiumStep)
+	managementStep := managementstep.New(action, httpClient, tenantStep)
 
 	return &RunConfig{
 		Action:         action,
@@ -54,15 +55,15 @@ func New(action *action.Action) *RunConfig {
 		HTTPClient:     httpClient,
 		DockerClient:   dockerClient,
 		VaultClient:    vaultClient,
-		KeycloakStep:   keycloakstep.New(action, httpClient, vaultClient),
+		KeycloakStep:   keycloakstep.New(action, httpClient, vaultClient, managementStep),
 		RegistryStep:   registryStep,
 		ModuleParams:   moduleparams.New(action),
 		ModuleStep:     modulestep.New(action, httpClient, dockerClient, registryStep),
-		ManagementStep: managementstep.New(action, httpClient, tenantstep),
-		TenantStep:     tenantstep,
+		ManagementStep: managementStep,
+		TenantStep:     tenantStep,
 		UserStep:       userStep,
 		ConsortiumStep: consortiumStep,
-		UIStep:         uistep.New(action, gitclient, dockerClient, tenantstep),
+		UIStep:         uistep.New(action, gitclient, dockerClient, tenantStep),
 		SearchStep:     searchstep.New(action, httpClient),
 	}
 }

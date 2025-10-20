@@ -39,20 +39,32 @@ type Run struct {
 	Config *runconfig.RunConfig
 }
 
-func NewRun(name string) *Run {
-	action := action.New(name)
+func New(name string) (*Run, error) {
+	gatewayURL, err := helpers.GetGatewayURL(name)
+	if err != nil {
+		return nil, err
+	}
+
+	action := action.New(name, gatewayURL)
+	runConfig := runconfig.New(action)
 
 	return &Run{
-		Config: runconfig.New(action),
-	}
+		Config: runConfig,
+	}, nil
 }
 
-func NewCustomRun(name string, startPort, endPort int) *Run {
-	action := action.NewCustom(name, startPort, endPort)
+func NewCustom(name string, startPort, endPort int) (*Run, error) {
+	gatewayURL, err := helpers.GetGatewayURL(name)
+	if err != nil {
+		return nil, err
+	}
+
+	action := action.NewCustom(name, gatewayURL, startPort, endPort)
+	runConfig := runconfig.New(action)
 
 	return &Run{
-		Config: runconfig.New(action),
-	}
+		Config: runConfig,
+	}, nil
 }
 
 func (r *Run) Partition(callback func(string, constant.TenantType)) {
@@ -147,7 +159,9 @@ func getConfigFileByProfile(profile string) string {
 func createHomeDir(overwriteFiles bool, embeddedFs embed.FS) {
 	action := &action.Action{Name: action.Root}
 
-	homeConfigDir := helpers.GetHomeDirPath(action)
+	homeConfigDir, err := helpers.GetHomeDirPath(action)
+	cobra.CheckErr(err)
+
 	if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
 		if overwriteFiles {
 			fmt.Printf("Overwriting files in %s home directory\n\n", homeConfigDir)
@@ -156,7 +170,7 @@ func createHomeDir(overwriteFiles bool, embeddedFs embed.FS) {
 		}
 	}
 
-	err := fs.WalkDir(embeddedFs, ".", func(path string, d fs.DirEntry, err error) error {
+	err = fs.WalkDir(embeddedFs, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

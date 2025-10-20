@@ -28,19 +28,25 @@ var removeTenantEntitlementsCmd = &cobra.Command{
 	Use:   "removeTenantEntitlements",
 	Short: "Remove tenant entitlements",
 	Long:  `Remove all tenant entitlements.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		r := NewRun(action.RemoveTenantEntitlements)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.RemoveTenantEntitlements)
+		if err != nil {
+			return err
+		}
+
 		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 			r.RemoveUsers(consortiumName, tenantType)
 			r.RemoveRoles(consortiumName, tenantType)
 			r.RemoveTenantEntitlements(consortiumName, tenantType)
 		})
+
+		return nil
 	},
 }
 
 func (r *Run) RemoveTenantEntitlements(consortiumName string, tenantType constant.TenantType) {
 	slog.Info(r.Config.Action.Name, "text", "REMOVING TENANT ENTITLEMENTS")
-	r.Config.ManagementStep.RemoveTenantEntitlements(false, rp.PurgeSchemas, consortiumName, tenantType)
+	_ = r.Config.ManagementStep.RemoveTenantEntitlements(rp.PurgeSchemas, consortiumName, tenantType)
 }
 
 func init() {

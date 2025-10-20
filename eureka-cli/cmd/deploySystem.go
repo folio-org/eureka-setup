@@ -32,7 +32,7 @@ var deploySystemCmd = &cobra.Command{
 	Short: "Deploy system",
 	Long:  `Deploy all system containers.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return NewRun(action.DeploySystem).DeploySystem()
+		return New(action.DeploySystem).DeploySystem()
 	},
 }
 

@@ -37,7 +37,7 @@ var deployApplicationCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 
-		r := NewRun(action.DeployApplication)
+		r := New(action.DeployApplication)
 		if len(viper.GetStringMap(field.ApplicationGatewayDependencies)) > 0 {
 			r.DeployChildApplication()
 		} else {

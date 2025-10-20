@@ -35,7 +35,17 @@ var listModulesCmd = &cobra.Command{
 	Short: "List modules",
 	Long:  `List all modules.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return NewRun(action.ListModules).ListModules()
+		r, err := New(action.ListModules)
+		if err != nil {
+			return err
+		}
+
+		err = r.ListModules()
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 

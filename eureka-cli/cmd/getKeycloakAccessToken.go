@@ -30,7 +30,7 @@ var getKeycloakAccessTokenCmd = &cobra.Command{
 	Short: "Get keycloak access token",
 	Long:  `Get a keycloak master access token.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		r := NewRun(action.GetKeycloakAccessToken)
+		r := New(action.GetKeycloakAccessToken)
 		vaultRootToken := r.GetVaultRootToken()
 		r.GetKeycloakAccessToken(vaultRootToken)
 	},

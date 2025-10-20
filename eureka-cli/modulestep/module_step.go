@@ -86,12 +86,12 @@ func (ms *ModuleStep) GetVaultRootToken(client *client.Client) string {
 	}
 }
 
-func (ms *ModuleStep) PerformModuleHealthCheck(waitMutex *sync.WaitGroup, moduleName string, port int) {
+func (ms *ModuleStep) PerformModuleHealthCheck(waitMutex *sync.WaitGroup, moduleName string, port int) error {
 	slog.Info(ms.Action.Name, "text", fmt.Sprintf("Waiting for module container %s on port %d to initialize", moduleName, port))
 
 	healthCheckWait := 10 * time.Second
 
-	requestURL := fmt.Sprintf(helpers.GetGatewayURL(ms.Action), port, "/admin/health")
+	requestURL := fmt.Sprintf(ms.Action.GatewayURL, port, "/admin/health")
 	healthCheckAttempts := constant.ModuleHealthCheckMaxRetries
 	for {
 		time.Sleep(healthCheckWait)
@@ -108,16 +108,17 @@ func (ms *ModuleStep) PerformModuleHealthCheck(waitMutex *sync.WaitGroup, module
 			slog.Info(ms.Action.Name, "text", fmt.Sprintf("Module container %s is unhealthy, out of attempts", moduleName))
 			waitMutex.Done()
 
-			helpers.LogErrorPanic(ms.Action, fmt.Errorf("module container %s did not initialize, cannot continue", moduleName))
-			return
+			return fmt.Errorf("module container %s did not initialize, cannot continue", moduleName)
 		}
 
 		slog.Info(ms.Action.Name, "text", fmt.Sprintf("Module container %s is unhealthy, %d/%d attempts left", moduleName, healthCheckAttempts, constant.ModuleHealthCheckMaxRetries))
 	}
+
+	return nil
 }
 
 func (ms *ModuleStep) checkContainerStatusCode(requestURL string) bool {
-	response := ms.HTTPClient.DoGetReturnResponse(requestURL, false, map[string]string{})
+	response, _ := ms.HTTPClient.DoGetReturnResponse(requestURL, map[string]string{})
 	if response == nil {
 		return false
 	}
@@ -196,32 +197,34 @@ func (ms *ModuleStep) GetModuleImageVersion(backendModule models.BackendModule, 
 	return *registryModule.Version
 }
 
-func (ms *ModuleStep) GetSidecarImage(registryModules []*models.RegistryModule) (string, bool) {
+func (ms *ModuleStep) GetSidecarImage(registryModules []*models.RegistryModule) (string, bool, error) {
 	sidecarModule := viper.GetStringMap(field.SidecarModule)
-	sidecarImageVersion := ms.getSidecarImageVersion(registryModules, sidecarModule[field.SidecarModuleVersionEntry])
+	sidecarImageVersion, err := ms.getSidecarImageVersion(registryModules, sidecarModule[field.SidecarModuleVersionEntry])
+	if err != nil {
+		return "", false, err
+	}
 
 	localImage := sidecarModule[field.SidecarModuleLocalImageEntry]
 	if localImage != nil && localImage.(string) != "" {
-		return fmt.Sprintf("%s:%s", localImage.(string), sidecarImageVersion), false
+		return fmt.Sprintf("%s:%s", localImage.(string), sidecarImageVersion), false, nil
 	}
 
 	namespace := ms.RegistryStep.GetNamespace(sidecarImageVersion)
 	image := sidecarModule[field.SidecarModuleImageEntry]
-	return fmt.Sprintf("%s/%s", namespace, fmt.Sprintf("%s:%s", image.(string), sidecarImageVersion)), true
+	return fmt.Sprintf("%s/%s", namespace, fmt.Sprintf("%s:%s", image.(string), sidecarImageVersion)), true, nil
 }
 
-func (ms *ModuleStep) getSidecarImageVersion(registryModules []*models.RegistryModule, sidecarConfigVersion any) string {
+func (ms *ModuleStep) getSidecarImageVersion(registryModules []*models.RegistryModule, sidecarConfigVersion any) (string, error) {
 	ok, sidecarRegistryVersion := ms.findSidecarRegistryVersion(registryModules)
 	if !ok && sidecarConfigVersion == nil {
-		helpers.LogErrorPanic(ms.Action, fmt.Errorf("%s sidecar version is not found in registry or in the current config", sidecarConfigVersion))
-		return ""
+		return "", fmt.Errorf("%s sidecar version is not found in registry or in the current config", sidecarConfigVersion)
 	}
 
 	if sidecarConfigVersion != nil {
-		return sidecarConfigVersion.(string)
+		return sidecarConfigVersion.(string), nil
 	}
 
-	return sidecarRegistryVersion
+	return sidecarRegistryVersion, nil
 }
 
 func (ms *ModuleStep) findSidecarRegistryVersion(registryModules []*models.RegistryModule) (bool, string) {
@@ -300,13 +303,15 @@ func (ms *ModuleStep) getContainerName(myContainer *models.Container) string {
 	return fmt.Sprintf("eureka-%s-%s", viper.GetString(field.ProfileName), myContainer.Name)
 }
 
-func (ms *ModuleStep) PullModule(client *client.Client, imageName string) {
-	registryAuthToken := ms.RegistryStep.GetAuthTokenIfPresent()
+func (ms *ModuleStep) PullModule(client *client.Client, imageName string) error {
+	registryAuthToken, err := ms.RegistryStep.GetAuthTokenIfPresent()
+	if err != nil {
+		return err
+	}
 
 	reader, err := client.ImagePull(context.Background(), imageName, image.PullOptions{RegistryAuth: registryAuthToken})
 	if err != nil {
-		slog.Error(ms.Action.Name, "error", err)
-		panic(err)
+		return err
 	}
 	defer func() {
 		_ = reader.Close()
@@ -319,15 +324,15 @@ func (ms *ModuleStep) PullModule(client *client.Client, imageName string) {
 		if err := decoder.Decode(&event); err == io.EOF {
 			break
 		} else if err != nil {
-			slog.Error(ms.Action.Name, "error", err)
-			panic(err)
+			return err
 		}
 
 		if event.Error != "" {
-			helpers.LogErrorPanic(ms.Action, fmt.Errorf("pulling module container image %+v", event.Error))
-			return
+			return fmt.Errorf("pulling module container image %+v", event.Error)
 		}
 	}
+
+	return nil
 }
 
 func (ms *ModuleStep) GetDeployedModules(client *client.Client, filters filters.Args) []container.Summary {

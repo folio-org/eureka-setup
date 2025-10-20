@@ -62,8 +62,8 @@ const (
 	Charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 	// HTTP Headers
-	JsonContentType           = "application/json"
-	FormURLEncodedContentType = "application/x-www-form-urlencoded"
+	ApplicationJSON           = "application/json"
+	ApplicationFormURLEncoded = "application/x-www-form-urlencoded"
 	ContentTypeHeader         = "Content-Type"
 	AuthorizationHeader       = "Authorization"
 	OkapiTenantHeader         = "X-Okapi-Tenant"

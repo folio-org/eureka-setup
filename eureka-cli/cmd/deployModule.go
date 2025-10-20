@@ -26,7 +26,7 @@ var deployModuleCmd = &cobra.Command{
 	Short: "Deploy module",
 	Long:  `Deploy a single module.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.DeployModule).DeployModule()
+		New(action.DeployModule).DeployModule()
 	},
 }
 

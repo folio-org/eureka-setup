@@ -29,7 +29,7 @@ var getVaultRootTokenCmd = &cobra.Command{
 	Short: "Get vault root token",
 	Long:  `Get vault root token from the server.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		vaultRootToken := NewRun(action.GetVaultRootToken).GetVaultRootToken()
+		vaultRootToken := New(action.GetVaultRootToken).GetVaultRootToken()
 		fmt.Println(vaultRootToken)
 	},
 }

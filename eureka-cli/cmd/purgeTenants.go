@@ -37,8 +37,11 @@ var purgeTenantsCmd = &cobra.Command{
 	Use:   "purgeTenants",
 	Short: "Purge tenants",
 	Long:  `Purge tenants and their entitlements.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		run := NewRun(action.PurgeTenants)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		run, err := New(action.PurgeTenants)
+		if err != nil {
+			return err
+		}
 
 		slog.Info(run.Config.Action.Name, slog.String("text", "PURGING TENANTS"), slog.String("Using Kong Gateway", withKongGateway))
 
@@ -57,7 +60,7 @@ var purgeTenantsCmd = &cobra.Command{
 					os.Exit(1)
 				}
 
-				run.Config.HTTPClient.DoDeleteWithBody(fmt.Sprintf("%s%s", requestURL, "?purge=true"), bytes, false, map[string]string{})
+				_ = run.Config.HTTPClient.DoDeleteWithBody(fmt.Sprintf("%s%s", requestURL, "?purge=true"), bytes, map[string]string{})
 
 				slog.Info(run.Config.Action.Name, "text", fmt.Sprintf("Purged %s tenant entitlement with %s applications", key, value))
 			}
@@ -71,10 +74,12 @@ var purgeTenantsCmd = &cobra.Command{
 				os.Exit(1)
 			}
 
-			run.Config.HTTPClient.DoDelete(fmt.Sprintf("%s%s", requestURL, "?purgeKafkaTopics=true"), true, map[string]string{})
+			_ = run.Config.HTTPClient.DoDelete(fmt.Sprintf("%s%s", requestURL, "?purgeKafkaTopics=true"), map[string]string{})
 
 			slog.Info(run.Config.Action.Name, "text", fmt.Sprintf("Purged %s tenant", tenantId))
 		}
+
+		return nil
 	},
 }
 

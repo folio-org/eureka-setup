@@ -29,8 +29,15 @@ var updateModuleDiscoveryCmd = &cobra.Command{
 	Use:   "updateModuleDiscovery",
 	Short: "Update module discovery",
 	Long:  `Update module discovery to point to a different sidecar URL.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.UpdateModuleDiscovery).UpdateModuleDiscovery(rp.SidecarURL)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.UpdateModuleDiscovery)
+		if err != nil {
+			return err
+		}
+
+		r.UpdateModuleDiscovery(rp.SidecarURL)
+
+		return nil
 	},
 }
 

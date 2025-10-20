@@ -31,23 +31,38 @@ var undeployModulesCmd = &cobra.Command{
 	Use:   "undeployModules",
 	Short: "Undeploy modules",
 	Long:  `Undeploy multiple modules.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.UndeployModules).UndeployModules()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.UndeployModules)
+		if err != nil {
+			return err
+		}
+
+		err = r.UndeployModules()
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
-func (r *Run) UndeployModules() {
+func (r *Run) UndeployModules() error {
 	slog.Info(r.Config.Action.Name, "text", "REMOVING APPLICATIONS")
 	applicationId := fmt.Sprintf("%s-%s", viper.GetString(field.ApplicationName), viper.GetString(field.ApplicationVersion))
-	r.Config.ManagementStep.RemoveApplication(false, applicationId)
+	r.Config.ManagementStep.RemoveApplication(applicationId)
 
 	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING MODULES")
-	client := r.Config.DockerClient.Create()
+	client, err := r.Config.DockerClient.Create()
+	if err != nil {
+		return err
+	}
 	defer func() {
 		_ = client.Close()
 	}()
 
 	r.Config.ModuleStep.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.ProfileContainerPattern, viper.GetString(field.ProfileName)), true)
+
+	return nil
 }
 
 func init() {

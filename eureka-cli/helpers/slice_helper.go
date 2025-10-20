@@ -5,5 +5,6 @@ func ConvertMapKeysToSlice(inputMap map[string]any) []string {
 	for key := range inputMap {
 		keys = append(keys, key)
 	}
+
 	return keys
 }

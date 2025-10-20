@@ -23,15 +23,15 @@ func New(action *action.Action) *DockerClient {
 	}
 }
 
-func (dc *DockerClient) Create() *client.Client {
+func (dc *DockerClient) Create() (*client.Client, error) {
 	newClient, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		slog.Error(dc.Action.Name, "error", err)
-		panic(err)
+		return nil, err
 	}
+
 	newClient.NegotiateAPIVersion(context.Background())
 
-	return newClient
+	return newClient, nil
 }
 
 func (dc *DockerClient) PushImage(namespace string, imageName string) error {
@@ -56,10 +56,9 @@ func (dc *DockerClient) PushImage(namespace string, imageName string) error {
 func (dc *DockerClient) ForcePullImage(imageName string) (finalImageName string, err error) {
 	slog.Info(dc.Action.Name, "text", "PULLING PLATFORM COMPLETE UI IMAGE FROM DOCKER HUB")
 	if !viper.IsSet(field.NamespacesPlatformCompleteUI) {
-		helpers.LogErrorPanic(dc.Action, fmt.Errorf("cannot run %s image, key %s is not set in current config file", imageName, field.NamespacesPlatformCompleteUI))
-
-		return "", nil
+		return "", fmt.Errorf("cannot run %s image, key %s is not set in current config file", imageName, field.NamespacesPlatformCompleteUI)
 	}
+
 	finalImageName = fmt.Sprintf("%s/%s", viper.GetString(field.NamespacesPlatformCompleteUI), imageName)
 
 	slog.Info(dc.Action.Name, "text", "Removing old platform complete UI image")

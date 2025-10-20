@@ -32,7 +32,7 @@ var createConsortiumsCmd = &cobra.Command{
 	Short: "Create consortiums",
 	Long:  `Create consortiums with multiple tenants.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		NewRun(action.CreateConsortiums).CreateConsortium()
+		New(action.CreateConsortiums).CreateConsortium()
 	},
 }
 
@@ -50,7 +50,7 @@ func (r *Run) CreateConsortium() {
 	for consortium, properties := range consortiums {
 		mapEntry := properties.(map[string]any)
 
-		if !helpers.GetBoolKey(mapEntry, field.ConsortiumCreateConsortiumEntry) {
+		if !helpers.GetBool(mapEntry, field.ConsortiumCreateConsortiumEntry) {
 			slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("IGNORING CREATION OF %s CONSORTIUM", consortium))
 			continue
 		}
@@ -72,7 +72,7 @@ func (r *Run) CreateConsortium() {
 		adminUsername := r.Config.ConsortiumStep.GetAdminUsername(centralTenant, consortiumUsers)
 		r.Config.ConsortiumStep.CreateConsortiumTenants(centralTenant, keycloakAccessToken, consortiumId, consortiumTenants, adminUsername)
 
-		if !helpers.GetBoolKey(mapEntry, field.ConsortiumEnableCentralOrderingEntry) {
+		if !helpers.GetBool(mapEntry, field.ConsortiumEnableCentralOrderingEntry) {
 			slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("IGNORING ENABLEMENT OF CENTRAL ORDERING FOR %s TENANT IN %s CONSORTIUM", centralTenant, consortium))
 			continue
 		}

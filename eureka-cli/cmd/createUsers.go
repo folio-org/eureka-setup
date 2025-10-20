@@ -31,7 +31,7 @@ var createUsersCmd = &cobra.Command{
 	Short: "Create users",
 	Long:  `Create all users.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		r := NewRun(action.CreateUsers)
+		r := New(action.CreateUsers)
 		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
 			r.CreateUsers(consortiumName, tenantType)
 		})
