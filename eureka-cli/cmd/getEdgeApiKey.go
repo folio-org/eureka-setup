@@ -55,7 +55,7 @@ func (r *Run) GetEdgeApiKey() error {
 		return err
 	}
 
-	apiKeyBytes, err := json.Marshal(map[string]any{
+	bb, err := json.Marshal(map[string]any{
 		"s": randomStr,
 		"t": rp.Tenant,
 		"u": rp.User,
@@ -64,7 +64,7 @@ func (r *Run) GetEdgeApiKey() error {
 		return err
 	}
 
-	apiKey := base64.URLEncoding.EncodeToString(apiKeyBytes)
+	apiKey := base64.URLEncoding.EncodeToString(bb)
 
 	fmt.Println(apiKey)
 

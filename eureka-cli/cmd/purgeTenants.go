@@ -52,12 +52,12 @@ var purgeTenantsCmd = &cobra.Command{
 					return err
 				}
 
-				bytes, err := json.Marshal(map[string]any{"tenantId": key, "applications": value})
+				bb, err := json.Marshal(map[string]any{"tenantId": key, "applications": value})
 				if err != nil {
 					return err
 				}
 
-				_ = run.Config.HTTPClient.DeleteWithBody(fmt.Sprintf("%s%s", requestURL, "?purge=true"), bytes, map[string]string{})
+				_ = run.Config.HTTPClient.DeleteWithBody(fmt.Sprintf("%s%s", requestURL, "?purge=true"), bb, map[string]string{})
 
 				slog.Info(run.Config.Action.Name, "text", "Purged tenant entitlement with applications", "tenant", key, "applications", value)
 			}

@@ -52,10 +52,14 @@ func (r *Run) UndeployUi() error {
 	}
 	defer r.Config.DockerClient.Close(client)
 
-	foundTenants, _ := r.Config.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
+	tt, err := r.Config.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
+	if err != nil {
+		return err
+	}
 
-	for _, value := range foundTenants {
-		err = r.Config.ModuleSvc.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleUiContainerPattern, value.(map[string]any)["name"].(string)), false)
+	for _, value := range tt {
+		pattern := fmt.Sprintf(constant.SingleUiContainerPattern, value.(map[string]any)["name"].(string))
+		err = r.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
 		if err != nil {
 			return err
 		}

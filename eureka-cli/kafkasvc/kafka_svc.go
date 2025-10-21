@@ -28,7 +28,6 @@ func (ks *KafkaSvc) CheckReadiness() error {
 	kafkaCmd := fmt.Sprintf("timeout 10s kafka-broker-api-versions.sh --bootstrap-server %s", constant.KafkaTCP)
 
 	stdout, stderr, err := helpers.ExecReturnOutput(exec.Command("docker", "exec", "-i", "kafka-tools", "bash", "-c", kafkaCmd))
-
 	if err != nil || stderr.Len() > 0 {
 		return fmt.Errorf("kafka readiness check failed: %v", err)
 	}
@@ -71,7 +70,6 @@ func (ks *KafkaSvc) GetConsumerGroupLag(tenant string, consumerGroup string, ini
 	lag, err = strconv.Atoi(helpers.GetKafkaConsumerLagFromLogLine(stdout))
 	if err != nil {
 		slog.Error(ks.Action.Name, "error", err)
-
 		return initialLag, nil
 	}
 

@@ -55,9 +55,12 @@ func (r *Run) ReindexIndices(consortiumName string, tenantType constant.TenantTy
 		return err
 	}
 
-	foundTenants, _ := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
+	tt, err := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
+	if err != nil {
+		return err
+	}
 
-	for _, value := range foundTenants {
+	for _, value := range tt {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)

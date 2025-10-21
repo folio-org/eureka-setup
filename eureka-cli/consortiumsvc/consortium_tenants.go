@@ -41,46 +41,46 @@ func (c ConsortiumTenants) String() string {
 }
 
 func (cs *ConsortiumSvc) GetSortedConsortiumTenants(consortiumName string, tenants map[string]any) ConsortiumTenants {
-	var consortiumTenants ConsortiumTenants
+	var tt ConsortiumTenants
 	for tenant, properties := range tenants {
 		if !cs.isValidConsortium(consortiumName, properties) {
 			continue
 		}
 
 		if properties == nil {
-			consortiumTenants = append(consortiumTenants, &ConsortiumTenant{Tenant: tenant, IsCentral: 0})
+			tt = append(tt, &ConsortiumTenant{Tenant: tenant, IsCentral: 0})
 			continue
 		}
 
 		isCentral := cs.getSortableIsCentral(properties.(map[string]any))
-		consortiumTenants = append(consortiumTenants, &ConsortiumTenant{
+		tt = append(tt, &ConsortiumTenant{
 			Tenant:    tenant,
 			IsCentral: isCentral,
 		})
 	}
 
-	sort.Slice(consortiumTenants, func(i, j int) bool {
-		return consortiumTenants[i].IsCentral > consortiumTenants[j].IsCentral
+	sort.Slice(tt, func(i, j int) bool {
+		return tt[i].IsCentral > tt[j].IsCentral
 	})
 
-	return consortiumTenants
+	return tt
 }
 
 func (cs *ConsortiumSvc) GetConsortiumUsers(consortiumName string, users map[string]any) map[string]any {
-	consortiumUsers := make(map[string]any)
+	uu := make(map[string]any)
 	for username, properties := range users {
 		if !cs.isValidConsortium(consortiumName, properties) {
 			continue
 		}
 
-		consortiumUsers[username] = properties
+		uu[username] = properties
 	}
 
-	return consortiumUsers
+	return uu
 }
 
-func (cs *ConsortiumSvc) GetAdminUsername(centralTenant string, consortiumUsers map[string]any) string {
-	for username, properties := range consortiumUsers {
+func (cs *ConsortiumSvc) GetAdminUsername(centralTenant string, uu map[string]any) string {
+	for username, properties := range uu {
 		tenant := properties.(map[string]any)[field.UsersTenantEntry]
 		if tenant != nil && tenant.(string) == centralTenant {
 			return username
@@ -98,7 +98,7 @@ func (cs *ConsortiumSvc) CreateConsortiumTenants(centralTenant string, accessTok
 	}
 
 	for _, consortiumTenant := range consortiumTenants {
-		b, err := json.Marshal(map[string]any{
+		bb, err := json.Marshal(map[string]any{
 			"id":        consortiumTenant.Tenant,
 			"code":      consortiumTenant.Tenant[0:3],
 			"name":      consortiumTenant.Tenant,
@@ -130,7 +130,7 @@ func (cs *ConsortiumSvc) CreateConsortiumTenants(centralTenant string, accessTok
 
 		slog.Info(cs.Action.Name, "text", "Trying to create consortium tenant for consortium", "tenant", consortiumTenant.Tenant, "consortium", consortiumID)
 
-		err = cs.HTTPClient.PostReturnNoContent(cs.Action.CreateURL(constant.KongPort, requestURL), b, headers)
+		err = cs.HTTPClient.PostReturnNoContent(cs.Action.CreateURL(constant.KongPort, requestURL), bb, headers)
 		if err != nil {
 			return err
 		}
@@ -153,16 +153,16 @@ func (cs *ConsortiumSvc) getConsortiumTenantByIDAndName(centralTenant string, ac
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	foundConsortiumTenantsMap, err := cs.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
+	tt, err := cs.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 	if err != nil {
 		return nil, err
 	}
 
-	if foundConsortiumTenantsMap["tenants"] == nil || len(foundConsortiumTenantsMap["tenants"].([]any)) == 0 {
+	if tt["tenants"] == nil || len(tt["tenants"].([]any)) == 0 {
 		return nil, nil
 	}
 
-	for _, value := range foundConsortiumTenantsMap["tenants"].([]any) {
+	for _, value := range tt["tenants"].([]any) {
 		existingTenant := value.(map[string]any)["name"]
 		if existingTenant != nil && existingTenant.(string) == tenant {
 			return existingTenant, nil
@@ -175,12 +175,12 @@ func (cs *ConsortiumSvc) getConsortiumTenantByIDAndName(centralTenant string, ac
 func (cs *ConsortiumSvc) checkConsortiumTenantStatus(centralTenant string, consortiumID string, tenant string, headers map[string]string) error {
 	requestURL := fmt.Sprintf("/consortia/%s/tenants/%s", consortiumID, tenant)
 
-	foundConsortiumTenantMap, err := cs.HTTPClient.GetDecodeReturnMapStringAny(cs.Action.CreateURL(constant.KongPort, requestURL), headers)
+	tt, err := cs.HTTPClient.GetDecodeReturnMapStringAny(cs.Action.CreateURL(constant.KongPort, requestURL), headers)
 	if err != nil {
 		return err
 	}
 
-	if foundConsortiumTenantMap == nil {
+	if tt == nil {
 		return nil
 	}
 
@@ -193,7 +193,7 @@ func (cs *ConsortiumSvc) checkConsortiumTenantStatus(centralTenant string, conso
 		WaitConsortiumTenant time.Duration = 10 * time.Second
 	)
 
-	switch foundConsortiumTenantMap["setupStatus"] {
+	switch tt["setupStatus"] {
 	case IN_PROGRESS:
 		slog.Info(cs.Action.Name, "text", "Waiting for consortium tenant creation", "tenant", tenant)
 		time.Sleep(WaitConsortiumTenant)
@@ -206,7 +206,7 @@ func (cs *ConsortiumSvc) checkConsortiumTenantStatus(centralTenant string, conso
 	case COMPLETED_WITH_ERRORS:
 		return fmt.Errorf("%s consortium tenant not is created", tenant)
 	case COMPLETED:
-		slog.Info(cs.Action.Name, "text", "Created consortium tenant for consortium", "tenant", tenant, "isCentral", foundConsortiumTenantMap["isCentral"], "consortium", consortiumID)
+		slog.Info(cs.Action.Name, "text", "Created consortium tenant for consortium", "tenant", tenant, "isCentral", tt["isCentral"], "consortium", consortiumID)
 		return nil
 	}
 

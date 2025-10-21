@@ -28,7 +28,7 @@ func (cs *ConsortiumSvc) EnableCentralOrdering(centralTenant string, accessToken
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	b, err := json.Marshal(map[string]any{
+	bb, err := json.Marshal(map[string]any{
 		"key":   centralOrderingLookupKey,
 		"value": "true",
 	})
@@ -36,7 +36,7 @@ func (cs *ConsortiumSvc) EnableCentralOrdering(centralTenant string, accessToken
 		return err
 	}
 
-	err = cs.HTTPClient.PostReturnNoContent(cs.Action.CreateURL(constant.KongPort, "/orders-storage/settings"), b, headers)
+	err = cs.HTTPClient.PostReturnNoContent(cs.Action.CreateURL(constant.KongPort, "/orders-storage/settings"), bb, headers)
 	if err != nil {
 		return err
 	}
@@ -55,17 +55,17 @@ func (cs *ConsortiumSvc) getEnableCentralOrderingByKey(centralTenant string, acc
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	foundSettingsMap, err := cs.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
+	ss1, err := cs.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 	if err != nil {
 		return false, err
 	}
 
-	if foundSettingsMap["settings"] == nil || len(foundSettingsMap["settings"].([]any)) == 0 {
+	if ss1["settings"] == nil || len(ss1["settings"].([]any)) == 0 {
 		return false, nil
 	}
 
-	settings := foundSettingsMap["settings"].([]any)[0]
-	value := settings.(map[string]any)["value"].(string)
+	ss2 := ss1["settings"].([]any)[0]
+	value := ss2.(map[string]any)["value"].(string)
 
 	enableCentralOrdering, err := strconv.ParseBool(value)
 	if err != nil {

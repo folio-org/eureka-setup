@@ -19,25 +19,25 @@ func (ks *KeycloakSvc) GetUsers(tenant string, accessToken string) ([]any, error
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	foundUsersMap, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
+	uu, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 	if err != nil {
 		return nil, err
 	}
 
-	if foundUsersMap["users"] == nil || len(foundUsersMap["users"].([]any)) == 0 {
+	if uu["users"] == nil || len(uu["users"].([]any)) == 0 {
 		return nil, nil
 	}
 
-	return foundUsersMap["users"].([]any), nil
+	return uu["users"].([]any), nil
 }
 
 func (ks *KeycloakSvc) CreateUsers(existingTenant string, accessToken string) error {
 	postUserRequestURL := ks.Action.CreateURL(constant.KongPort, "/users-keycloak/users")
 	postUserPasswordRequestURL := ks.Action.CreateURL(constant.KongPort, "/authn/credentials")
 	postUserRoleRequestURL := ks.Action.CreateURL(constant.KongPort, "/roles/users")
-	usersMap := viper.GetStringMap(field.Users)
+	uu1 := viper.GetStringMap(field.Users)
 
-	for username, value := range usersMap {
+	for username, value := range uu1 {
 		mapEntry := value.(map[string]any)
 
 		tenant := mapEntry["tenant"].(string)
@@ -50,7 +50,7 @@ func (ks *KeycloakSvc) CreateUsers(existingTenant string, accessToken string) er
 		lastName := mapEntry["last-name"].(string)
 		userRoles := mapEntry["roles"].([]any)
 
-		userBytes, err := json.Marshal(map[string]any{
+		bb1, err := json.Marshal(map[string]any{
 			"username": username,
 			"active":   true,
 			"type":     "staff",
@@ -77,16 +77,16 @@ func (ks *KeycloakSvc) CreateUsers(existingTenant string, accessToken string) er
 			constant.AuthorizationHeader: fmt.Sprintf("Bearer %s", accessToken),
 		}
 
-		createdUserMap, err := ks.HTTPClient.PostReturnMapStringAny(postUserRequestURL, userBytes, okapiBasedHeaders)
+		uu2, err := ks.HTTPClient.PostReturnMapStringAny(postUserRequestURL, bb1, okapiBasedHeaders)
 		if err != nil {
 			return err
 		}
 
-		userID := createdUserMap["id"].(string)
+		userID := uu2["id"].(string)
 
 		slog.Info(ks.Action.Name, "text", "Created user with password in tenant", "username", username, "password", password, "tenant", tenant)
 
-		userPasswordBytes, err := json.Marshal(map[string]any{
+		bb2, err := json.Marshal(map[string]any{
 			"userId":   userID,
 			"username": username,
 			"password": password,
@@ -95,7 +95,7 @@ func (ks *KeycloakSvc) CreateUsers(existingTenant string, accessToken string) er
 			return err
 		}
 
-		err = ks.HTTPClient.PostReturnNoContent(postUserPasswordRequestURL, userPasswordBytes, nonOkapiBasedHeaders)
+		err = ks.HTTPClient.PostReturnNoContent(postUserPasswordRequestURL, bb2, nonOkapiBasedHeaders)
 		if err != nil {
 			return err
 		}
@@ -120,7 +120,7 @@ func (ks *KeycloakSvc) CreateUsers(existingTenant string, accessToken string) er
 			roleIDs = append(roleIDs, roleID)
 		}
 
-		userRoleBytes, err := json.Marshal(map[string]any{
+		bb3, err := json.Marshal(map[string]any{
 			"userId":  userID,
 			"roleIds": roleIDs,
 		})
@@ -128,7 +128,7 @@ func (ks *KeycloakSvc) CreateUsers(existingTenant string, accessToken string) er
 			return err
 		}
 
-		err = ks.HTTPClient.PostReturnNoContent(postUserRoleRequestURL, userRoleBytes, okapiBasedHeaders)
+		err = ks.HTTPClient.PostReturnNoContent(postUserRoleRequestURL, bb3, okapiBasedHeaders)
 		if err != nil {
 			return err
 		}
@@ -146,12 +146,12 @@ func (ks *KeycloakSvc) RemoveUsers(tenant string, accessToken string) error {
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	foundUsers, err := ks.GetUsers(tenant, accessToken)
+	uu, err := ks.GetUsers(tenant, accessToken)
 	if err != nil {
 		return err
 	}
 
-	for _, value := range foundUsers {
+	for _, value := range uu {
 		mapEntry := value.(map[string]any)
 
 		username := mapEntry["username"].(string)
@@ -162,7 +162,10 @@ func (ks *KeycloakSvc) RemoveUsers(tenant string, accessToken string) error {
 
 		requestURL := ks.Action.CreateURL(constant.KongPort, fmt.Sprintf("/users-keycloak/users/%s", mapEntry["id"].(string)))
 
-		_ = ks.HTTPClient.Delete(requestURL, headers)
+		err = ks.HTTPClient.Delete(requestURL, headers)
+		if err != nil {
+			return err
+		}
 
 		slog.Info(ks.Action.Name, "text", "Removed user in tenant", "username", username, "tenant", tenant)
 	}

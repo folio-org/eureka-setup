@@ -64,7 +64,10 @@ func New(
 }
 
 func (ms *ModuleSvc) GetVaultRootToken(client *client.Client) (string, error) {
-	logStream, err := client.ContainerLogs(context.Background(), constant.VaultContainer, container.LogsOptions{ShowStdout: true, ShowStderr: true})
+	logStream, err := client.ContainerLogs(context.Background(), constant.VaultContainer, container.LogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+	})
 	if err != nil {
 		return "", err
 	}
@@ -148,7 +151,7 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 	deployedModules := make(map[string]int)
 	networkConfig := helpers.NewModuleNetworkConfig()
 
-	var sidecarWg sync.WaitGroup
+	var sidecarWG sync.WaitGroup
 	sidecarErrCh := make(chan error, 10)
 
 	for registryName, registryModules := range containers.RegistryModules {
@@ -180,9 +183,9 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 			deployedModules[registryModule.Name] = backendModule.ModuleExposedServerPort
 
 			if backendModule.DeploySidecar && sidecarImage != "" {
-				sidecarWg.Add(1)
+				sidecarWG.Add(1)
 
-				go ms.deploySidecarAsync(&sidecarWg, sidecarErrCh, &SidecarRequest{
+				go ms.deploySidecarAsync(&sidecarWG, sidecarErrCh, &SidecarRequest{
 					Client:           client,
 					Containers:       containers,
 					RegistryModule:   registryModule,
@@ -196,7 +199,7 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 	}
 
 	go func() {
-		sidecarWg.Wait()
+		sidecarWG.Wait()
 		close(sidecarErrCh)
 	}()
 
@@ -264,6 +267,7 @@ func (ms *ModuleSvc) GetSidecarImage(registryModules []*models.RegistryModule) (
 
 	namespace := ms.RegistrySvc.GetNamespace(sidecarImageVersion)
 	image := sidecarModule[field.SidecarModuleImageEntry]
+
 	return fmt.Sprintf("%s/%s", namespace, fmt.Sprintf("%s:%s", image.(string), sidecarImageVersion)), true, nil
 }
 
@@ -365,7 +369,9 @@ func (ms *ModuleSvc) PullModule(client *client.Client, imageName string) error {
 		return err
 	}
 
-	reader, err := client.ImagePull(context.Background(), imageName, image.PullOptions{RegistryAuth: registryAuthToken})
+	reader, err := client.ImagePull(context.Background(), imageName, image.PullOptions{
+		RegistryAuth: registryAuthToken,
+	})
 	if err != nil {
 		return err
 	}
@@ -390,7 +396,10 @@ func (ms *ModuleSvc) PullModule(client *client.Client, imageName string) error {
 }
 
 func (ms *ModuleSvc) GetDeployedModules(client *client.Client, filters filters.Args) ([]container.Summary, error) {
-	deployedModules, err := client.ContainerList(context.Background(), container.ListOptions{All: true, Filters: filters})
+	deployedModules, err := client.ContainerList(context.Background(), container.ListOptions{
+		All:     true,
+		Filters: filters,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -398,14 +407,17 @@ func (ms *ModuleSvc) GetDeployedModules(client *client.Client, filters filters.A
 	return deployedModules, nil
 }
 
-func (ms *ModuleSvc) UndeployModuleByNamePattern(client *client.Client, value string, removeAsync bool) error {
-	deployedModules, err := ms.GetDeployedModules(client, filters.NewArgs(filters.KeyValuePair{Key: "name", Value: value}))
+func (ms *ModuleSvc) UndeployModuleByNamePattern(client *client.Client, pattern string) error {
+	deployedModules, err := ms.GetDeployedModules(client, filters.NewArgs(filters.KeyValuePair{
+		Key:   "name",
+		Value: pattern,
+	}))
 	if err != nil {
 		return err
 	}
 
 	for _, deployedModule := range deployedModules {
-		err = ms.undeployModule(client, deployedModule, removeAsync)
+		err = ms.undeployModule(client, deployedModule)
 		if err != nil {
 			return err
 		}
@@ -414,32 +426,28 @@ func (ms *ModuleSvc) UndeployModuleByNamePattern(client *client.Client, value st
 	return nil
 }
 
-func (ms *ModuleSvc) undeployModule(client *client.Client, deployedModule container.Summary, removeAsync bool) error {
+func (ms *ModuleSvc) undeployModule(client *client.Client, deployedModule container.Summary) error {
 	err := client.NetworkDisconnect(context.Background(), constant.NetworkID, deployedModule.ID, false)
 	if err != nil {
 		slog.Warn(ms.Action.Name, "text", "Module network is disconnected with warnings", "moduleId", deployedModule.ID, "error", err.Error())
 	}
 
-	err = client.ContainerStop(context.Background(), deployedModule.ID, container.StopOptions{Signal: "9"})
+	err = client.ContainerStop(context.Background(), deployedModule.ID, container.StopOptions{
+		Signal: "9",
+	})
 	if err != nil {
 		return err
 	}
 
-	var callback = func() {
-		err = client.ContainerRemove(context.Background(), deployedModule.ID, container.RemoveOptions{Force: true, RemoveVolumes: true})
-		if err != nil {
-			slog.Error(ms.Action.Name, "error", err, "module", deployedModule.ID, "operation", "container remove")
-		}
-	}
-
-	if removeAsync {
-		go callback()
-	} else {
-		callback()
+	err = client.ContainerRemove(context.Background(), deployedModule.ID, container.RemoveOptions{
+		Force:         true,
+		RemoveVolumes: true,
+	})
+	if err != nil {
+		slog.Error(ms.Action.Name, "error", err, "module", deployedModule.ID, "operation", "container remove")
 	}
 
 	containerName := strings.ReplaceAll(deployedModule.Names[0], "/", "")
-
 	slog.Info(ms.Action.Name, "text", "Undeployed module", "module", containerName)
 
 	return nil

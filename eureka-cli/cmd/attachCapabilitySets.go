@@ -51,9 +51,12 @@ func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.Te
 		return err
 	}
 
-	foundTenants, _ := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
+	tt, err := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
+	if err != nil {
+		return err
+	}
 
-	for _, value := range foundTenants {
+	for _, value := range tt {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)

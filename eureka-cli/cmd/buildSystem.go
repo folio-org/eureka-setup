@@ -68,13 +68,13 @@ func (r *Run) CloneUpdateRepositories() error {
 
 	repositories := []*gitclient.GitRepository{kongRepository, keycloakRepository}
 
-	slog.Info(r.Config.Action.Name, "text", "Cloning repositories")
+	slog.Info(r.Config.Action.Name, "text", "Cloning repositories", "repositories", repositories)
 	for _, repository := range repositories {
 		_ = r.Config.GitClient.Clone(repository)
 	}
 
 	if rp.UpdateCloned {
-		slog.Info(r.Config.Action.Name, "text", "Updating repositories")
+		slog.Info(r.Config.Action.Name, "text", "Updating repositories", "repositories", repositories)
 		for _, repository := range repositories {
 			err = r.Config.GitClient.ResetHardPullFromOrigin(repository)
 			if err != nil {

@@ -35,16 +35,19 @@ var removeTenantsCmd = &cobra.Command{
 		}
 
 		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
-			r.RemoveTenants(consortiumName, tenantType)
+			_ = r.RemoveUsers(consortiumName, tenantType)
+			_ = r.RemoveRoles(consortiumName, tenantType)
+			_ = r.RemoveTenantEntitlements(consortiumName, tenantType)
+			_ = r.RemoveTenants(consortiumName, tenantType)
 		})
 
 		return nil
 	},
 }
 
-func (r *Run) RemoveTenants(consortiumName string, tenantType constant.TenantType) {
+func (r *Run) RemoveTenants(consortiumName string, tenantType constant.TenantType) error {
 	slog.Info(r.Config.Action.Name, "text", "REMOVING TENANTS")
-	_ = r.Config.ManagementSvc.RemoveTenants(consortiumName, tenantType)
+	return r.Config.ManagementSvc.RemoveTenants(consortiumName, tenantType)
 }
 
 func init() {

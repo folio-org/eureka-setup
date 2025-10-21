@@ -24,24 +24,31 @@ func New(action *action.Action) *GitClient {
 
 func (gc *GitClient) KeycloakRepository() (*GitRepository, error) {
 	var (
+		label                         = constant.FolioKongLabel
 		url                           = constant.FolioKongRepositoryURL
 		dir                           = constant.FolioKongOutputDir
 		branch plumbing.ReferenceName = constant.FolioKongBranch
 	)
-	return NewRepository(gc.Action, url, dir, branch)
+	return NewRepository(gc.Action, label, url, dir, branch)
 }
 
 func (gc *GitClient) KongRepository() (*GitRepository, error) {
 	var (
+		label                         = constant.FolioKeycloakLabel
 		url                           = constant.FolioKeycloakRepositoryURL
 		dir                           = constant.FolioKeycloakOutputDir
 		branch plumbing.ReferenceName = constant.FolioKeycloakBranch
 	)
-	return NewRepository(gc.Action, url, dir, branch)
+	return NewRepository(gc.Action, label, url, dir, branch)
 }
 
 func (gc *GitClient) PlatformCompleteRepository(branch plumbing.ReferenceName) (*GitRepository, error) {
-	return NewRepository(gc.Action, constant.PlatformCompleteRepositoryURL, constant.PlatformCompleteOutputDir, branch)
+	var (
+		label = constant.PlatformCompleteLabel
+		url   = constant.PlatformCompleteRepositoryURL
+		dir   = constant.PlatformCompleteOutputDir
+	)
+	return NewRepository(gc.Action, label, url, dir, branch)
 }
 
 func (rc *GitClient) Clone(repository *GitRepository) error {
@@ -51,7 +58,7 @@ func (rc *GitClient) Clone(repository *GitRepository) error {
 		Progress:      os.Stdout,
 	})
 	if err != nil {
-		return fmt.Errorf("cloning %s repository with error %w", repository.URL, err)
+		return fmt.Errorf("cloning %s repository with error %w", repository.Label, err)
 	}
 
 	ref, err := targetRepository.Head()
@@ -65,7 +72,7 @@ func (rc *GitClient) Clone(repository *GitRepository) error {
 }
 
 func (rc *GitClient) ResetHardPullFromOrigin(repository *GitRepository) error {
-	slog.Info(rc.Action.Name, "text", "Updating repository", "url", repository.URL, "branch", repository.Branch)
+	slog.Info(rc.Action.Name, "text", "Updating repository", "label", repository.Label, "branch", repository.Branch)
 
 	targetRepository, err := git.PlainOpen(repository.Dir)
 	if err != nil {
@@ -76,7 +83,7 @@ func (rc *GitClient) ResetHardPullFromOrigin(repository *GitRepository) error {
 		Force:    true,
 		Progress: os.Stdout,
 	}); err != nil {
-		slog.Info(rc.Action.Name, "text", "Updating repository fetch message", "url", repository.URL, "message", err.Error())
+		slog.Warn(rc.Action.Name, "text", "Updating repository fetch message", "label", repository.Label, "message", err.Error())
 	}
 
 	worktree, err := targetRepository.Worktree()
@@ -108,7 +115,7 @@ func (rc *GitClient) ResetHardPullFromOrigin(repository *GitRepository) error {
 		Progress:      os.Stdout,
 	}); err != nil {
 		if strings.Contains(err.Error(), "already up-to-date") {
-			slog.Info(rc.Action.Name, "text", "Updating repository pull message", "url", repository.URL, "message", err.Error())
+			slog.Info(rc.Action.Name, "text", "Updating repository pull message", "label", repository.Label, "message", err.Error())
 			return nil
 		}
 

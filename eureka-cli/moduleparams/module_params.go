@@ -25,8 +25,8 @@ func New(action *action.Action) *ModuleParams {
 	}
 }
 
-func (mp *ModuleParams) GetBackendModulesFromConfig(managementOnly bool, printOutput bool, backendModulesAnyMap map[string]any) (map[string]models.BackendModule, error) {
-	if len(backendModulesAnyMap) == 0 {
+func (mp *ModuleParams) GetBackendModulesFromConfig(managementOnly bool, printOutput bool, bb1 map[string]any) (map[string]models.BackendModule, error) {
+	if len(bb1) == 0 {
 		if printOutput {
 			slog.Info(mp.Action.Name, "text", "No backend modules were read")
 		}
@@ -34,9 +34,9 @@ func (mp *ModuleParams) GetBackendModulesFromConfig(managementOnly bool, printOu
 		return make(map[string]models.BackendModule), nil
 	}
 
-	backendModulesMap := make(map[string]models.BackendModule)
+	bb2 := make(map[string]models.BackendModule)
 
-	for name, value := range backendModulesAnyMap {
+	for name, value := range bb1 {
 		if managementOnly && !mp.IsManagementModule(name) || !managementOnly && mp.IsManagementModule(name) {
 			continue
 		}
@@ -51,12 +51,12 @@ func (mp *ModuleParams) GetBackendModulesFromConfig(managementOnly bool, printOu
 			return nil, err
 		}
 
-		backendModulesMap[name] = *backendModule
+		bb2[name] = *backendModule
 
-		mp.printModuleInfo(name, properties, backendModulesMap, printOutput)
+		mp.printModuleInfo(name, properties, bb2, printOutput)
 	}
 
-	return backendModulesMap, nil
+	return bb2, nil
 }
 
 func (mp *ModuleParams) createBackendProperties(name string, value any) (models.BackendModuleProperties, error) {
@@ -75,7 +75,7 @@ func (mp *ModuleParams) createBackendModule(properties models.BackendModulePrope
 	return models.NewBackendModule(mp.Action, properties)
 }
 
-func (mp *ModuleParams) printModuleInfo(name string, properties models.BackendModuleProperties, backendModulesMap map[string]models.BackendModule, printOutput bool) {
+func (mp *ModuleParams) printModuleInfo(name string, properties models.BackendModuleProperties, bb map[string]models.BackendModule, printOutput bool) {
 	if !printOutput {
 		return
 	}
@@ -86,10 +86,10 @@ func (mp *ModuleParams) printModuleInfo(name string, properties models.BackendMo
 		moduleInfo = fmt.Sprintf("%s with fixed version %s", name, *properties.Version)
 	}
 
-	moduleServerPort := backendModulesMap[name].ModuleExposedServerPort
-	moduleDebugPort := backendModulesMap[name].ModuleExposedDebugPort
-	sidecarServerPort := backendModulesMap[name].SidecarExposedServerPort
-	sidecarDebugPort := backendModulesMap[name].SidecarExposedDebugPort
+	moduleServerPort := bb[name].ModuleExposedServerPort
+	moduleDebugPort := bb[name].ModuleExposedDebugPort
+	sidecarServerPort := bb[name].SidecarExposedServerPort
+	sidecarDebugPort := bb[name].SidecarExposedDebugPort
 
 	slog.Info(mp.Action.Name, "text", "Read backend module with port reserve", "module", moduleInfo, "port1", moduleServerPort, "port2", moduleDebugPort, "port3", sidecarServerPort, "port4", sidecarDebugPort)
 }
@@ -224,6 +224,7 @@ func (mp *ModuleParams) getVolumes(mapEntry map[string]any) ([]string, error) {
 	var volumes []string
 	for _, value := range mapEntry[field.ModuleVolumesEntry].([]any) {
 		var volume = value.(string)
+		// Windows paths are hard to set, this is why we have this to automatically resolve path location
 		if runtime.GOOS == "windows" && strings.Contains(volume, "$EUREKA") {
 			homeConfigDir, err := helpers.GetHomeDirPath(mp.Action)
 			if err != nil {
@@ -245,8 +246,8 @@ func (mp *ModuleParams) getVolumes(mapEntry map[string]any) ([]string, error) {
 	return volumes, nil
 }
 
-func (mp *ModuleParams) GetFrontendModulesFromConfig(printOutput bool, frontendModulesAnyMaps ...map[string]any) map[string]models.FrontendModule {
-	if len(frontendModulesAnyMaps) == 0 {
+func (mp *ModuleParams) GetFrontendModulesFromConfig(printOutput bool, ff1 ...map[string]any) map[string]models.FrontendModule {
+	if len(ff1) == 0 {
 		if printOutput {
 			slog.Info(mp.Action.Name, "text", "No frontend modules were read")
 		}
@@ -254,10 +255,10 @@ func (mp *ModuleParams) GetFrontendModulesFromConfig(printOutput bool, frontendM
 		return make(map[string]models.FrontendModule)
 	}
 
-	frontendModulesMap := make(map[string]models.FrontendModule)
+	ff2 := make(map[string]models.FrontendModule)
 
-	for _, frontendModulesAnyMap := range frontendModulesAnyMaps {
-		for name, value := range frontendModulesAnyMap {
+	for _, ff3 := range ff1 {
+		for name, value := range ff3 {
 			var (
 				deployModule = true
 				version      *string
@@ -275,7 +276,7 @@ func (mp *ModuleParams) GetFrontendModulesFromConfig(printOutput bool, frontendM
 				}
 			}
 
-			frontendModulesMap[name] = *models.NewFrontendModule(deployModule, name, version)
+			ff2[name] = *models.NewFrontendModule(deployModule, name, version)
 
 			moduleInfo := name
 			if version != nil {
@@ -286,5 +287,5 @@ func (mp *ModuleParams) GetFrontendModulesFromConfig(printOutput bool, frontendM
 		}
 	}
 
-	return frontendModulesMap
+	return ff2
 }

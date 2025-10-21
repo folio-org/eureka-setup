@@ -34,13 +34,13 @@ func New(action *action.Action, httpClient *httpclient.HTTPClient) *RegistrySvc 
 	}
 }
 
-func (rs *RegistrySvc) ExtractModuleNameAndVersion(registryModulesMap map[string][]*models.RegistryModule, printOutput bool) {
-	for registryName, registryModules := range registryModulesMap {
+func (rs *RegistrySvc) ExtractModuleNameAndVersion(rr1 map[string][]*models.RegistryModule, printOutput bool) {
+	for registryName, rr2 := range rr1 {
 		if printOutput {
 			slog.Info(rs.Action.Name, "text", "Extracting registry module names and versions", "registry", registryName)
 		}
 
-		for moduleIndex, module := range registryModules {
+		for moduleIndex, module := range rr2 {
 			if module.ID == "okapi" {
 				continue
 			}
@@ -54,7 +54,7 @@ func (rs *RegistrySvc) ExtractModuleNameAndVersion(registryModulesMap map[string
 				module.SidecarName = fmt.Sprintf("%s-sc", module.Name)
 			}
 
-			registryModules[moduleIndex] = module
+			rr2[moduleIndex] = module
 		}
 	}
 }
@@ -81,12 +81,15 @@ func (rs *RegistrySvc) GetAuthTokenIfPresent() (string, error) {
 
 	authCreds := strings.Split(string(decodedBytes), ":")
 
-	jsonBytes, err := json.Marshal(map[string]string{"username": authCreds[0], "password": authCreds[1]})
+	bb, err := json.Marshal(map[string]string{
+		"username": authCreds[0],
+		"password": authCreds[1],
+	})
 	if err != nil {
 		return "", err
 	}
 
-	encodedAuth := base64.StdEncoding.EncodeToString(jsonBytes)
+	encodedAuth := base64.StdEncoding.EncodeToString(bb)
 
 	slog.Error(rs.Action.Name, "error", err)
 
@@ -94,7 +97,7 @@ func (rs *RegistrySvc) GetAuthTokenIfPresent() (string, error) {
 }
 
 func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, printOutput bool) (map[string][]*models.RegistryModule, error) {
-	registryModulesMap := make(map[string][]*models.RegistryModule)
+	rr1 := make(map[string][]*models.RegistryModule)
 
 	for registryName, installJsonURL := range installJsonURLs {
 		installJsonResp, err := rs.HTTPClient.GetReturnResponse(installJsonURL, map[string]string{})
@@ -103,8 +106,8 @@ func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, printOutput
 		}
 		defer helpers.CloseReader(installJsonResp.Body)
 
-		var registryModules []*models.RegistryModule
-		err = json.NewDecoder(installJsonResp.Body).Decode(&registryModules)
+		var rr2 []*models.RegistryModule
+		err = json.NewDecoder(installJsonResp.Body).Decode(&rr2)
 		if err != nil && !errors.Is(err, io.EOF) {
 			return nil, err
 		}
@@ -125,31 +128,31 @@ func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, printOutput
 					Action: "enable",
 				}
 
-				registryModules = append(registryModules, registryModule)
+				rr2 = append(rr2, registryModule)
 			}
 		}
 
-		if len(registryModules) > 0 {
+		if len(rr2) > 0 {
 			if printOutput {
-				slog.Info(rs.Action.Name, "text", "Read registry with modules", "registry", registryName, "moduleCount", len(registryModules))
+				slog.Info(rs.Action.Name, "text", "Read registry with modules", "registry", registryName, "moduleCount", len(rr2))
 			}
 
-			sort.Slice(registryModules, func(i, j int) bool {
-				switch strings.Compare(registryModules[i].ID, registryModules[j].ID) {
+			sort.Slice(rr2, func(i, j int) bool {
+				switch strings.Compare(rr2[i].ID, rr2[j].ID) {
 				case -1:
 					return true
 				case 1:
 					return false
 				}
 
-				return registryModules[i].ID > registryModules[j].ID
+				return rr2[i].ID > rr2[j].ID
 			})
 		}
 
-		registryModulesMap[registryName] = registryModules
+		rr1[registryName] = rr2
 	}
 
-	return registryModulesMap, nil
+	return rr1, nil
 }
 
 func (rs *RegistrySvc) GetNamespace(version string) string {

@@ -51,9 +51,12 @@ func (r *Run) UpdateKeycloakPublicClients() error {
 		return err
 	}
 
-	foundTenant, _ := r.Config.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
+	tt, err := r.Config.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
+	if err != nil {
+		return err
+	}
 
-	for _, value := range foundTenant {
+	for _, value := range tt {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)

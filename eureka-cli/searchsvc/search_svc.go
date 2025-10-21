@@ -36,24 +36,24 @@ func (ss *SearchSvc) ReindexInventoryRecords(tenant string, accessToken string) 
 			return err
 		}
 
-		reindexJobMap, err := ss.HTTPClient.PostReturnMapStringAny(ss.Action.CreateURL(constant.KongPort, "/search/index/inventory/reindex"), b, headers)
+		jj, err := ss.HTTPClient.PostReturnMapStringAny(ss.Action.CreateURL(constant.KongPort, "/search/index/inventory/reindex"), b, headers)
 		if err != nil {
 			slog.Warn(ss.Action.Name, "text", err)
 			continue
 		}
 
-		if reindexJobMap["errors"] != nil {
-			errorType := reindexJobMap["errors"].([]any)[0].(map[string]any)["type"]
+		if jj["errors"] != nil {
+			errorType := jj["errors"].([]any)[0].(map[string]any)["type"]
 			slog.Warn(ss.Action.Name, "text", "Failed to reindex inventory records with error type", "tenant", tenant, "record", record, "errorType", errorType)
 			continue
 		}
-		if len(reindexJobMap) == 0 {
+		if len(jj) == 0 {
 			slog.Warn(ss.Action.Name, "text", "Failed to reindex inventory records with no response", "tenant", tenant, "record", record)
 			continue
 		}
 
-		jobID := reindexJobMap["id"]
-		jobStatus := reindexJobMap["jobStatus"]
+		jobID := jj["id"]
+		jobStatus := jj["jobStatus"]
 
 		slog.Info(ss.Action.Name, "text", "Reindexed inventory records", "tenant", tenant, "record", record, "jobId", jobID, "jobStatus", jobStatus)
 	}
@@ -68,12 +68,12 @@ func (ss *SearchSvc) ReindexInstanceRecords(tenant string, accessToken string) e
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	bytes, err := json.Marshal(map[string]any{})
+	b, err := json.Marshal(map[string]any{})
 	if err != nil {
 		return err
 	}
 
-	err = ss.HTTPClient.PostReturnNoContent(ss.Action.CreateURL(constant.KongPort, "/search/index/instance-records/reindex/full"), bytes, headers)
+	err = ss.HTTPClient.PostReturnNoContent(ss.Action.CreateURL(constant.KongPort, "/search/index/instance-records/reindex/full"), b, headers)
 	if err != nil {
 		return err
 	}

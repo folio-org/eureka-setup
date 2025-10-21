@@ -82,12 +82,16 @@ func (r *Run) InterceptModule() error {
 	defer r.Config.DockerClient.Close(client)
 
 	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING DEFAULT MODULE AND SIDECAR PAIR")
-	err = r.Config.ModuleSvc.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, viper.GetString(field.ProfileName), myModule.ModuleName), false)
+	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, viper.GetString(field.ProfileName), myModule.ModuleName)
+	err = r.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
 	if err != nil {
 		return err
 	}
 
-	registryHosts := map[string]string{constant.FolioRegistry: "", constant.EurekaRegistry: ""}
+	registryHosts := map[string]string{
+		constant.FolioRegistry:  "",
+		constant.EurekaRegistry: "",
+	}
 	myModule.Containers = models.NewCoreAndBusinessContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, globalEnv, globalSidecarEnv)
 
 	err = r.UpdateModuleDiscovery(*myModule.SidecarUrl)
@@ -122,12 +126,12 @@ func (r *Run) deployDefaultModuleAndSidecar(myModule *models.InterceptModule, cl
 	}
 
 	slog.Info(r.Config.Action.Name, "text", "WAITING FOR MODULE TO INITIALIZE")
-	var wg sync.WaitGroup
+	var deployModuleWG sync.WaitGroup
 	errCh := make(chan error, 1)
 
-	wg.Add(1)
-	go r.Config.ModuleSvc.PerformModuleReadinessCheck(&wg, errCh, myModule.ModuleName, myModule.BackendModule.ModuleExposedServerPort)
-	wg.Wait()
+	deployModuleWG.Add(1)
+	go r.Config.ModuleSvc.PerformModuleReadinessCheck(&deployModuleWG, errCh, myModule.ModuleName, myModule.BackendModule.ModuleExposedServerPort)
+	deployModuleWG.Wait()
 	close(errCh)
 
 	select {
@@ -182,7 +186,6 @@ func (r *Run) prepareContainerNetwork(myModule *models.InterceptModule, moduleAn
 	if err != nil {
 		return err
 	}
-
 	sidecarDebugPort, err := helpers.SetFreePortFromRange(r.Config.Action)
 	if err != nil {
 		return err

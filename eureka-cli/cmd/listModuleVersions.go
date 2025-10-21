@@ -93,7 +93,6 @@ func (r *Run) listModuleVersionsSortedDescendingOrder(registryURL string) error 
 	}
 
 	var versions []string
-
 	for _, value := range resp.([]any) {
 		mapEntry := value.(map[string]any)
 

@@ -60,12 +60,12 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 		dependencies = applicationMap["dependencies"].(map[string]any)
 	}
 
-	for registryName, registryModules := range extract.RegistryModules {
-		if len(registryModules) > 0 {
+	for registryName, rr := range extract.RegistryModules {
+		if len(rr) > 0 {
 			slog.Info(ms.Action.Name, "text", "Including modules to application", "registry", registryName, "application", applicationID)
 		}
 
-		for _, module := range registryModules {
+		for _, module := range rr {
 			if strings.Contains(module.Name, constant.ManagementModulePattern) {
 				continue
 			}
@@ -157,7 +157,7 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 		}
 	}
 
-	applicationBytes, err := json.Marshal(map[string]any{
+	bb1, err := json.Marshal(map[string]any{
 		"id":                  applicationID,
 		"name":                applicationName,
 		"version":             applicationVersion,
@@ -173,7 +173,7 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 		return err
 	}
 
-	err = ms.HTTPClient.PostReturnNoContent(ms.Action.CreateURL(constant.KongPort, "/applications?check=true"), applicationBytes, map[string]string{})
+	err = ms.HTTPClient.PostReturnNoContent(ms.Action.CreateURL(constant.KongPort, "/applications?check=true"), bb1, map[string]string{})
 	if err != nil {
 		return err
 	}
@@ -181,12 +181,14 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 	slog.Info(ms.Action.Name, "text", "Created application", "application", applicationID)
 
 	if len(discoveryModules) > 0 {
-		applicationDiscoveryBytes, err := json.Marshal(map[string]any{"discovery": discoveryModules})
+		bb2, err := json.Marshal(map[string]any{
+			"discovery": discoveryModules,
+		})
 		if err != nil {
 			return err
 		}
 
-		err = ms.HTTPClient.PostReturnNoContent(ms.Action.CreateURL(constant.KongPort, "/modules/discovery"), applicationDiscoveryBytes, map[string]string{})
+		err = ms.HTTPClient.PostReturnNoContent(ms.Action.CreateURL(constant.KongPort, "/modules/discovery"), bb2, map[string]string{})
 		if err != nil {
 			return err
 		}
@@ -221,7 +223,7 @@ func (ms *ManagementSvc) UpdateModuleDiscovery(id string, sidecarURL string, res
 		}
 	}
 
-	b, err := json.Marshal(map[string]any{
+	bb, err := json.Marshal(map[string]any{
 		"id":       id,
 		"name":     name,
 		"version":  helpers.GetModuleVersionFromID(id),
@@ -233,7 +235,7 @@ func (ms *ManagementSvc) UpdateModuleDiscovery(id string, sidecarURL string, res
 
 	requestURL := ms.Action.CreateURL(constant.KongPort, fmt.Sprintf("/modules/%s/discovery", id))
 
-	err = ms.HTTPClient.PutReturnNoContent(requestURL, b, map[string]string{})
+	err = ms.HTTPClient.PutReturnNoContent(requestURL, bb, map[string]string{})
 	if err != nil {
 		return err
 	}

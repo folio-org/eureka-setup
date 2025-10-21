@@ -55,7 +55,12 @@ const (
 	FolioKeycloakRepositoryURL    = "https://github.com/folio-org/folio-keycloak"
 	PlatformCompleteRepositoryURL = "https://github.com/folio-org/platform-complete.git"
 
-	// Folio source Git output directory names
+	// Folio source Git repository labels
+	FolioKongLabel        = "folio-kong"
+	FolioKeycloakLabel    = "folio-keycloak"
+	PlatformCompleteLabel = "platform-complete"
+
+	// Folio source Git local repository output directories
 	FolioKongOutputDir        = "folio-kong"
 	FolioKeycloakOutputDir    = "folio-keycloak"
 	PlatformCompleteOutputDir = "platform-complete"

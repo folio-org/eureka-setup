@@ -85,7 +85,10 @@ func (r *Run) DeployModules() error {
 	defer r.Config.DockerClient.Close(client)
 
 	slog.Info(r.Config.Action.Name, "text", "CREATING APPLICATIONS")
-	registryURLs := map[string]string{constant.FolioRegistry: registryURL, constant.EurekaRegistry: registryURL}
+	registryURLs := map[string]string{
+		constant.FolioRegistry:  registryURL,
+		constant.EurekaRegistry: registryURL,
+	}
 	registerModuleExtract := models.NewRegistryModuleExtract(registryURLs, registryModules, backendModulesMap, frontendModulesMap)
 	err = r.Config.ManagementSvc.CreateApplications(registerModuleExtract)
 	if err != nil {
@@ -93,7 +96,10 @@ func (r *Run) DeployModules() error {
 	}
 
 	slog.Info(r.Config.Action.Name, "text", "PULLING SIDECAR IMAGE")
-	registryHosts := map[string]string{constant.FolioRegistry: "", constant.EurekaRegistry: ""}
+	registryHosts := map[string]string{
+		constant.FolioRegistry:  "",
+		constant.EurekaRegistry: "",
+	}
 	containers := models.NewCoreAndBusinessContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, env, sidecarEnv)
 	sidecarImage, pullSidecarImage, err := r.Config.ModuleSvc.GetSidecarImage(containers.RegistryModules[constant.EurekaRegistry])
 	if err != nil {

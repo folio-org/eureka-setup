@@ -61,7 +61,9 @@ func (r *Run) DeployManagement() error {
 	}
 
 	slog.Info(r.Config.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
-	instalJsonURLs := map[string]string{constant.EurekaRegistry: viper.GetString(field.InstallEureka)}
+	instalJsonURLs := map[string]string{
+		constant.EurekaRegistry: viper.GetString(field.InstallEureka),
+	}
 	registryModules, err := r.Config.RegistrySvc.GetModules(instalJsonURLs, true)
 	if err != nil {
 		return err
@@ -77,7 +79,9 @@ func (r *Run) DeployManagement() error {
 	defer r.Config.DockerClient.Close(client)
 
 	slog.Info(r.Config.Action.Name, "text", "DEPLOYING MANAGEMENT MODULES")
-	registryHosts := map[string]string{constant.EurekaRegistry: ""}
+	registryHosts := map[string]string{
+		constant.EurekaRegistry: "",
+	}
 	containers := models.NewManagementContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, env)
 	deployedModules, err := r.Config.ModuleSvc.DeployModules(client, containers, "", nil)
 	if err != nil {

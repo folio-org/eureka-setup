@@ -38,20 +38,20 @@ func (ts *TenantSvc) GetTenantParameters(consortiumName string, tenants map[stri
 }
 
 func (ts *TenantSvc) SetDefaultConfigTenantParams(rp *runparams.RunParams, tenant string) error {
-	tenants := viper.GetStringMap(field.Tenants)
-	if tenants == nil || tenants[tenant] == nil {
+	tt1 := viper.GetStringMap(field.Tenants)
+	if tt1 == nil || tt1[tenant] == nil {
 		return fmt.Errorf("found not tenant in the config or by %s tenant", tenant)
 	}
 
-	var tenantMap = tenants[tenant].(map[string]any)
-	if tenantMap[field.TenantsSingleTenantEntry] != nil {
-		rp.SingleTenant = tenantMap[field.TenantsSingleTenantEntry].(bool)
+	var tt2 = tt1[tenant].(map[string]any)
+	if tt2[field.TenantsSingleTenantEntry] != nil {
+		rp.SingleTenant = tt2[field.TenantsSingleTenantEntry].(bool)
 	}
-	if tenantMap[field.TenantsEnableEcsRequestEntry] != nil {
-		rp.EnableECSRequests = tenantMap[field.TenantsEnableEcsRequestEntry].(bool)
+	if tt2[field.TenantsEnableEcsRequestEntry] != nil {
+		rp.EnableECSRequests = tt2[field.TenantsEnableEcsRequestEntry].(bool)
 	}
-	if tenantMap[field.TenantsPlatformCompleteURLEntry] != nil {
-		rp.PlatformCompleteURL = tenantMap[field.TenantsPlatformCompleteURLEntry].(string)
+	if tt2[field.TenantsPlatformCompleteURLEntry] != nil {
+		rp.PlatformCompleteURL = tt2[field.TenantsPlatformCompleteURLEntry].(string)
 	}
 
 	slog.Info(ts.Action.Name, "text", "Setting default tenant config params", "tenant", tenant, "singleTenant", rp.SingleTenant, "enableECSRequests", rp.EnableECSRequests, "platformCompleteURL", rp.PlatformCompleteURL)

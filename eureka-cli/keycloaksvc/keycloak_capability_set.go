@@ -14,7 +14,7 @@ import (
 )
 
 func (ks *KeycloakSvc) GetCapabilitySets(headers map[string]string) ([]any, error) {
-	var foundCapabilitySets []any
+	var cc1 []any
 
 	applications, err := ks.ManagementSvc.GetApplications()
 	if err != nil {
@@ -26,34 +26,34 @@ func (ks *KeycloakSvc) GetCapabilitySets(headers map[string]string) ([]any, erro
 
 		requestURL := ks.Action.CreateURL(constant.KongPort, fmt.Sprintf("/capability-sets?offset=0&limit=10000&query=applicationId==%s", applicationID))
 
-		foundCapabilitySetsMap, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
+		cc2, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 		if err != nil {
 			return nil, err
 		}
 
-		if foundCapabilitySetsMap["capabilitySets"] == nil || len(foundCapabilitySetsMap["capabilitySets"].([]any)) == 0 {
+		if cc2["capabilitySets"] == nil || len(cc2["capabilitySets"].([]any)) == 0 {
 			return nil, nil
 		}
 
-		foundCapabilitySets = append(foundCapabilitySets, foundCapabilitySetsMap["capabilitySets"].([]any)...)
+		cc1 = append(cc1, cc2["capabilitySets"].([]any)...)
 	}
 
-	return foundCapabilitySets, nil
+	return cc1, nil
 }
 
-func (ks *KeycloakSvc) GetCapabilitySetsByName(headers map[string]string, capabilitySetName string) ([]any, error) {
-	requestURL := ks.Action.CreateURL(constant.KongPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", capabilitySetName))
+func (ks *KeycloakSvc) GetCapabilitySetsByName(headers map[string]string, cc1 string) ([]any, error) {
+	requestURL := ks.Action.CreateURL(constant.KongPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", cc1))
 
-	foundCapabilitySetsMap, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
+	cc2, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 	if err != nil {
 		return nil, err
 	}
 
-	if foundCapabilitySetsMap["capabilitySets"] == nil || len(foundCapabilitySetsMap["capabilitySets"].([]any)) == 0 {
+	if cc2["capabilitySets"] == nil || len(cc2["capabilitySets"].([]any)) == 0 {
 		return nil, nil
 	}
 
-	return foundCapabilitySetsMap["capabilitySets"].([]any), nil
+	return cc2["capabilitySets"].([]any), nil
 }
 
 func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenant string, accessToken string) error {
@@ -66,49 +66,49 @@ func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenant string, accessToken st
 	}
 
 	caser := cases.Lower(language.English)
-	rolesMap := viper.GetStringMap(field.Roles)
+	rr1 := viper.GetStringMap(field.Roles)
 
-	foundRoles, err := ks.GetRoles(headers)
+	rr2, err := ks.GetRoles(headers)
 	if err != nil {
 		return err
 	}
 
-	if len(foundRoles) == 0 {
+	if len(rr2) == 0 {
 		slog.Info(ks.Action.Name, "text", "Cannot attach capability sets, found no roles in tenant", "tenant", tenant)
 		return nil
 	}
 
-	for _, roleValue := range foundRoles {
+	for _, roleValue := range rr2 {
 		mapEntry := roleValue.(map[string]any)
 
 		roleName := caser.String(mapEntry["name"].(string))
-		if rolesMap[roleName] == nil {
+		if rr1[roleName] == nil {
 			continue
 		}
 
-		rolesMapConfig := rolesMap[roleName].(map[string]any)
+		rolesMapConfig := rr1[roleName].(map[string]any)
 		if tenant != rolesMapConfig[field.RolesTenantEntry].(string) {
 			continue
 		}
 
-		capabilitySetIDs, err := ks.populateCapabilitySets(headers, rolesMapConfig[field.RolesCapabilitySetsEntry].([]any))
+		cc, err := ks.populateCapabilitySets(headers, rolesMapConfig[field.RolesCapabilitySetsEntry].([]any))
 		if err != nil {
 			return err
 		}
 
-		if len(capabilitySetIDs) == 0 {
+		if len(cc) == 0 {
 			slog.Info(ks.Action.Name, "text", "No capability sets were attached to role in tenant", "role", roleName, "tenant", tenant)
 			continue
 		}
 
 		batchSize := 250
-		for lowerBound := 0; lowerBound < len(capabilitySetIDs); lowerBound += batchSize {
-			upperBound := min(lowerBound+batchSize, len(capabilitySetIDs))
-			batchCapabilitySetIDs := capabilitySetIDs[lowerBound:upperBound]
+		for lowerBound := 0; lowerBound < len(cc); lowerBound += batchSize {
+			upperBound := min(lowerBound+batchSize, len(cc))
+			batchCapabilitySetIDs := cc[lowerBound:upperBound]
 
-			slog.Info(ks.Action.Name, "text", "Attaching capability sets to role in tenant", "rangeStart", lowerBound, "rangeEnd", upperBound, "total", len(capabilitySetIDs), "role", roleName, "tenant", tenant)
+			slog.Info(ks.Action.Name, "text", "Attaching capability sets to role in tenant", "rangeStart", lowerBound, "rangeEnd", upperBound, "total", len(cc), "role", roleName, "tenant", tenant)
 
-			b, err := json.Marshal(map[string]any{
+			bb, err := json.Marshal(map[string]any{
 				"roleId":           mapEntry["id"].(string),
 				"capabilitySetIds": batchCapabilitySetIDs,
 			})
@@ -116,50 +116,51 @@ func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenant string, accessToken st
 				return err
 			}
 
-			err = ks.HTTPClient.PostRetryReturnNoContent(requestURL, b, headers)
+			err = ks.HTTPClient.PostRetryReturnNoContent(requestURL, bb, headers)
 			if err != nil {
 				return err
 			}
 		}
 
-		slog.Info(ks.Action.Name, "text", "Attached capability sets to role in tenant", "count", len(capabilitySetIDs), "role", roleName, "tenant", tenant)
+		slog.Info(ks.Action.Name, "text", "Attached capability sets to role in tenant", "count", len(cc), "role", roleName, "tenant", tenant)
 	}
 
 	return nil
 }
 
-func (ks *KeycloakSvc) populateCapabilitySets(headers map[string]string, capabilitySetNames []any) ([]string, error) {
-	var capabilitySets = []string{}
-	if len(capabilitySetNames) == 0 {
-		return capabilitySets, nil
+func (ks *KeycloakSvc) populateCapabilitySets(headers map[string]string, cc1 []any) ([]string, error) {
+	if len(cc1) == 0 {
+		return []string{}, nil
 	}
 
-	if len(capabilitySetNames) == 1 && !slices.Contains(capabilitySetNames, "all") {
-		for _, capabilitySetName := range capabilitySetNames {
-			foundCapabilitySets, err := ks.GetCapabilitySetsByName(headers, capabilitySetName.(string))
+	if len(cc1) == 1 && !slices.Contains(cc1, "all") {
+		var cc2 = []string{}
+		for _, capabilitySetName := range cc1 {
+			cc3, err := ks.GetCapabilitySetsByName(headers, capabilitySetName.(string))
 			if err != nil {
 				return nil, err
 			}
 
-			for _, value := range foundCapabilitySets {
-				capabilitySets = append(capabilitySets, value.(map[string]any)["id"].(string))
+			for _, value := range cc3 {
+				cc2 = append(cc2, value.(map[string]any)["id"].(string))
 			}
 
 		}
 
-		return capabilitySets, nil
+		return cc2, nil
 	}
 
-	foundCapabilitySets, err := ks.GetCapabilitySets(headers)
+	var cc2 = []string{}
+	cc3, err := ks.GetCapabilitySets(headers)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, value := range foundCapabilitySets {
-		capabilitySets = append(capabilitySets, value.(map[string]any)["id"].(string))
+	for _, value := range cc3 {
+		cc2 = append(cc2, value.(map[string]any)["id"].(string))
 	}
 
-	return capabilitySets, nil
+	return cc2, nil
 }
 
 func (ks *KeycloakSvc) DetachCapabilitySetsFromRoles(tenant string, accessToken string) error {
@@ -170,29 +171,32 @@ func (ks *KeycloakSvc) DetachCapabilitySetsFromRoles(tenant string, accessToken 
 	}
 
 	caser := cases.Lower(language.English)
-	rolesMap := viper.GetStringMap(field.Roles)
+	rr1 := viper.GetStringMap(field.Roles)
 
-	foundRoles, err := ks.GetRoles(headers)
+	rr2, err := ks.GetRoles(headers)
 	if err != nil {
 		return err
 	}
 
-	if len(foundRoles) == 0 {
+	if len(rr2) == 0 {
 		slog.Info(ks.Action.Name, "text", "Cannot detach capability sets, found no roles in tenant", "tenant", tenant)
 		return nil
 	}
 
-	for _, value := range foundRoles {
+	for _, value := range rr2 {
 		mapEntry := value.(map[string]any)
 
 		roleName := caser.String(mapEntry["name"].(string))
-		if rolesMap[roleName] == nil {
+		if rr1[roleName] == nil {
 			continue
 		}
 
 		requestURL := ks.Action.CreateURL(constant.KongPort, fmt.Sprintf("/roles/%s/capability-sets", mapEntry["id"].(string)))
 
-		_ = ks.HTTPClient.Delete(requestURL, headers)
+		err = ks.HTTPClient.Delete(requestURL, headers)
+		if err != nil {
+			return err
+		}
 
 		slog.Info(ks.Action.Name, "text", "Detached capability sets from role in tenant", "role", roleName, "tenant", tenant)
 	}

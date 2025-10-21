@@ -25,9 +25,12 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)
 
-	foundTenants, _ := ms.GetTenants(consortiumName, tenantType)
+	tt, err := ms.GetTenants(consortiumName, tenantType)
+	if err != nil {
+		return nil
+	}
 
-	for _, value := range foundTenants {
+	for _, value := range tt {
 		mapEntry := value.(map[string]any)
 
 		tenant := mapEntry["name"].(string)
@@ -38,7 +41,7 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 
 		applications := []string{fmt.Sprintf("%s-%s", applicationName, applicationVersion)}
 
-		b, err := json.Marshal(map[string]any{
+		bb, err := json.Marshal(map[string]any{
 			"tenantId":     mapEntry["id"].(string),
 			"applications": applications,
 		})
@@ -46,7 +49,7 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 			return err
 		}
 
-		err = ms.HTTPClient.PostReturnNoContent(requestURL, b, map[string]string{})
+		err = ms.HTTPClient.PostReturnNoContent(requestURL, bb, map[string]string{})
 		if err != nil {
 			return err
 		}
@@ -63,12 +66,12 @@ func (ms *ManagementSvc) RemoveTenantEntitlements(purgeSchemas bool, consortiumN
 	applicationName := applicationMap["name"].(string)
 	applicationVersion := applicationMap["version"].(string)
 
-	foundTenants, err := ms.GetTenants(consortiumName, tenantType)
+	tt, err := ms.GetTenants(consortiumName, tenantType)
 	if err != nil {
 		return err
 	}
 
-	for _, value := range foundTenants {
+	for _, value := range tt {
 		mapEntry := value.(map[string]any)
 
 		tenant := mapEntry["name"].(string)
@@ -82,7 +85,7 @@ func (ms *ManagementSvc) RemoveTenantEntitlements(purgeSchemas bool, consortiumN
 		var applications []string
 		applications = append(applications, fmt.Sprintf("%s-%s", applicationName, applicationVersion))
 
-		b, err := json.Marshal(map[string]any{
+		bb, err := json.Marshal(map[string]any{
 			"tenantId":     tenantID,
 			"applications": applications,
 		})
@@ -90,7 +93,7 @@ func (ms *ManagementSvc) RemoveTenantEntitlements(purgeSchemas bool, consortiumN
 			return err
 		}
 
-		err = ms.HTTPClient.DeleteWithBody(requestURL, b, map[string]string{})
+		err = ms.HTTPClient.DeleteWithBody(requestURL, bb, map[string]string{})
 		if err != nil {
 			return err
 		}

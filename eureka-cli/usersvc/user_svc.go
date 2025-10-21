@@ -29,14 +29,14 @@ func (us *UserSvc) GetUser(tenant string, accessToken string, username string) (
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	data, err := us.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
+	uu, err := us.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 	if err != nil {
 		return nil, err
 	}
 
-	if data["users"] == nil || len(data["users"].([]any)) == 0 {
+	if uu["users"] == nil || len(uu["users"].([]any)) == 0 {
 		return nil, nil
 	}
 
-	return data["users"].([]any)[0], nil
+	return uu["users"].([]any)[0], nil
 }

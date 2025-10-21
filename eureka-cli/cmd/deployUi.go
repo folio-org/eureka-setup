@@ -47,9 +47,12 @@ var deployUiCmd = &cobra.Command{
 func (r *Run) DeployUi() error {
 	slog.Info(r.Config.Action.Name, "text", "DEPLOYING UI")
 
-	foundTenants, _ := r.Config.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
+	tt, err := r.Config.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
+	if err != nil {
+		return err
+	}
 
-	for _, value := range foundTenants {
+	for _, value := range tt {
 		existingTenant := value.(map[string]any)["name"].(string)
 		if !helpers.HasTenant(existingTenant) || !helpers.IsUIEnabled(existingTenant) {
 			continue

@@ -13,7 +13,8 @@ import (
 
 func (cs *ConsortiumSvc) GetConsortiumCentralTenant(consortiumName string, tenants map[string]any) string {
 	for tenant, properties := range tenants {
-		if properties == nil || !cs.isValidConsortium(consortiumName, properties) || cs.getSortableIsCentral(properties.(map[string]any)) == 0 {
+		if properties == nil || !cs.isValidConsortium(consortiumName, properties) ||
+			cs.getSortableIsCentral(properties.(map[string]any)) == 0 {
 			continue
 		}
 
@@ -36,13 +37,13 @@ func (cs *ConsortiumSvc) isValidConsortium(consortiumName string, properties any
 }
 
 func (cs *ConsortiumSvc) CreateConsortium(centralTenant string, accessToken string, consortiumName string) (string, error) {
-	consortiumMap, err := cs.GetConsortiumByName(centralTenant, accessToken, consortiumName)
+	cc, err := cs.GetConsortiumByName(centralTenant, accessToken, consortiumName)
 	if err != nil {
 		return "", err
 	}
 
-	if consortiumMap != nil {
-		consortiumID := consortiumMap.(map[string]any)["id"].(string)
+	if cc != nil {
+		consortiumID := cc.(map[string]any)["id"].(string)
 
 		slog.Info(cs.Action.Name, "text", "Consortium is already created", "consortium", consortiumName)
 
@@ -51,7 +52,7 @@ func (cs *ConsortiumSvc) CreateConsortium(centralTenant string, accessToken stri
 
 	consortiumID := uuid.New()
 
-	b, err := json.Marshal(map[string]any{
+	bb, err := json.Marshal(map[string]any{
 		"id":   consortiumID,
 		"name": consortiumName,
 	})
@@ -65,7 +66,7 @@ func (cs *ConsortiumSvc) CreateConsortium(centralTenant string, accessToken stri
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	err = cs.HTTPClient.PostReturnNoContent(cs.Action.CreateURL(constant.KongPort, "/consortia"), b, headers)
+	err = cs.HTTPClient.PostReturnNoContent(cs.Action.CreateURL(constant.KongPort, "/consortia"), bb, headers)
 	if err != nil {
 		return "", err
 	}
@@ -84,14 +85,14 @@ func (cs *ConsortiumSvc) GetConsortiumByName(centralTenant string, accessToken s
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	foundConsortiumsMap, err := cs.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
+	cc, err := cs.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 	if err != nil {
 		return nil, err
 	}
 
-	if foundConsortiumsMap["consortia"] == nil || len(foundConsortiumsMap["consortia"].([]any)) == 0 {
-		return nil, err
+	if cc["consortia"] == nil || len(cc["consortia"].([]any)) == 0 {
+		return nil, nil
 	}
 
-	return foundConsortiumsMap["consortia"].([]any)[0], nil
+	return cc["consortia"].([]any)[0], nil
 }
