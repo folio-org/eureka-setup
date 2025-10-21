@@ -82,7 +82,10 @@ func (r *Run) InterceptModule() error {
 	defer r.Config.DockerClient.Close(client)
 
 	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING DEFAULT MODULE AND SIDECAR PAIR")
-	r.Config.ModuleStep.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, viper.GetString(field.ProfileName), myModule.ModuleName), false)
+	err = r.Config.ModuleStep.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, viper.GetString(field.ProfileName), myModule.ModuleName), false)
+	if err != nil {
+		return err
+	}
 
 	registryHosts := map[string]string{constant.FolioRegistry: "", constant.EurekaRegistry: ""}
 	myModule.Containers = models.NewCoreAndBusinessContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, globalEnv, globalSidecarEnv)
@@ -257,7 +260,7 @@ func init() {
 	interceptModuleCmd.PersistentFlags().BoolVarP(&rp.Restore, "restore", "r", false, "Restore module & sidecar")
 	interceptModuleCmd.PersistentFlags().BoolVarP(&rp.DefaultGateway, "defaultGateway", "g", false, "Use default gateway in URLs, .e.g http://host.docker.internal:{{port}} will be set automatically")
 	if err := interceptModuleCmd.MarkPersistentFlagRequired("id"); err != nil {
-		slog.Error(err.Error())
+		slog.Error("failed to mark id flag as required", "error", err)
 		os.Exit(1)
 	}
 }

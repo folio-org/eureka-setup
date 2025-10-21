@@ -3,9 +3,10 @@ package registrystep
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
-	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -59,7 +60,6 @@ func (rs *RegistryStep) ExtractModuleNameAndVersion(registryModulesMap map[strin
 }
 
 func (rs *RegistryStep) GetAuthTokenIfPresent() (string, error) {
-	// If this env variable isn't set, then assume it is a public repository and no auth token is needed.
 	if os.Getenv(constant.ECRRepositoryEnv) == "" {
 		return "", nil
 	}
@@ -97,18 +97,15 @@ func (rs *RegistryStep) GetModules(installJsonURLs map[string]string, printOutpu
 	registryModulesMap := make(map[string][]*models.RegistryModule)
 
 	for registryName, installJsonURL := range installJsonURLs {
-		var registryModules []*models.RegistryModule
-
-		installJsonResp, err := http.Get(installJsonURL)
+		installJsonResp, err := rs.HTTPClient.GetReturnResponse(installJsonURL, map[string]string{})
 		if err != nil {
 			return nil, err
 		}
-		defer func() {
-			_ = installJsonResp.Body.Close()
-		}()
+		defer helpers.CloseReader(installJsonResp.Body)
 
+		var registryModules []*models.RegistryModule
 		err = json.NewDecoder(installJsonResp.Body).Decode(&registryModules)
-		if err != nil {
+		if err != nil && !errors.Is(err, io.EOF) {
 			return nil, err
 		}
 
@@ -153,7 +150,6 @@ func (rs *RegistryStep) GetModules(installJsonURLs map[string]string, printOutpu
 }
 
 func (rs *RegistryStep) GetNamespace(version string) string {
-	// AWS ECR Folio registry should be considered a secret because it has an account id in it so we put it in the env.
 	namespace := os.Getenv(constant.ECRRepositoryEnv)
 	if namespace != "" {
 		slog.Info(rs.Action.Name, "text", fmt.Sprintf("Using AWS ECR registry namespace: %s", namespace))

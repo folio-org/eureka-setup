@@ -48,7 +48,7 @@ var attachCapabilitySetsCmd = &cobra.Command{
 	},
 }
 
-func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.TenantType, initialWaitDuration time.Duration) error {
+func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.TenantType, initialWait time.Duration) error {
 	vaultRootToken, err := r.GetVaultRootToken()
 	if err != nil {
 		return err
@@ -63,8 +63,8 @@ func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.Te
 		if !helpers.HasTenant(existingTenant) {
 			continue
 		}
-		if initialWaitDuration > 0 {
-			time.Sleep(initialWaitDuration)
+		if initialWait > 0 {
+			time.Sleep(initialWait)
 		}
 
 		slog.Info(r.Config.Action.Name, "text", "POLLING FOR CAPABILITY SETS CREATION")
@@ -90,7 +90,6 @@ func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.Te
 
 func (r *Run) pollCapabilitySetsCreation(tenant string) error {
 	consumerGroup := fmt.Sprintf("%s-%s", viper.GetString(field.EnvFolio), constant.ConsumerGroupSuffix)
-	pollWaitDuration := 30 * time.Second
 
 	var lag int
 	for {
@@ -103,10 +102,10 @@ func (r *Run) pollCapabilitySetsCreation(tenant string) error {
 			break
 		}
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("waiting for %.1f sec for %s consumer group to process, lag: %d", pollWaitDuration.Seconds(), consumerGroup, lag))
-		time.Sleep(pollWaitDuration)
+		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Waiting for %.1f sec for %s consumer group to process, lag: %d", constant.AttachCapabilitySetsPollWait.Seconds(), consumerGroup, lag))
+		time.Sleep(constant.AttachCapabilitySetsPollWait)
 	}
-	slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("consumer group %s has no new message to process", consumerGroup))
+	slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Consumer group %s has no new message to process", consumerGroup))
 
 	return nil
 }
@@ -120,7 +119,7 @@ func (r *Run) getConsumerGroupLag(tenant string, consumerGroup string, initialLa
 
 	if stderr.Len() > 0 {
 		if strings.Contains(stderr.String(), constant.ErrNoActiveMembers) || strings.Contains(stderr.String(), constant.ErrRebalancing) {
-			time.Sleep(30 * time.Second)
+			time.Sleep(constant.AttachCapabilitySetsRebalanceWait)
 			return initialLag, nil
 		}
 
@@ -129,7 +128,7 @@ func (r *Run) getConsumerGroupLag(tenant string, consumerGroup string, initialLa
 
 	lag, err = strconv.Atoi(helpers.GetKafkaConsumerLagFromLogLine(stdout))
 	if err != nil {
-		slog.Error(r.Config.Action.Name, "error", err.Error())
+		slog.Error(r.Config.Action.Name, "error", err)
 
 		return initialLag, nil
 	}

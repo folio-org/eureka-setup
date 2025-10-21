@@ -78,7 +78,7 @@ func (r *Run) DeploySystem() error {
 	}
 
 	slog.Info(r.Config.Action.Name, "text", "WAITING FOR SYSTEM CONTAINERS TO BECOME READY")
-	time.Sleep(15 * time.Second)
+	time.Sleep(constant.DeploySystemWait)
 	slog.Info(r.Config.Action.Name, "text", "All system containers are ready")
 
 	return nil

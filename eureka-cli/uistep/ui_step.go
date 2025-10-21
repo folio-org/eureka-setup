@@ -51,7 +51,10 @@ func (us *UIStep) CloneAndUpdateUIRepository(updateCloned bool) (outputDir strin
 	}
 
 	if updateCloned {
-		us.GitClient.ResetHardPullFromOrigin(repository)
+		err = us.GitClient.ResetHardPullFromOrigin(repository)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return repository.Dir, nil
@@ -81,11 +84,21 @@ func (us *UIStep) BuildImage(rp *runparams.RunParams, outputDir string, tenant s
 
 	slog.Info(us.Action.Name, "text", "Copying UI configs")
 	configName := "stripes.config.js"
-	helpers.CopySingleFile(us.Action, filepath.Join(outputDir, "eureka-tpl", configName), filepath.Join(outputDir, configName))
+	err = helpers.CopySingleFile(us.Action, filepath.Join(outputDir, "eureka-tpl", configName), filepath.Join(outputDir, configName))
+	if err != nil {
+		return "", err
+	}
 
 	slog.Info(us.Action.Name, "text", "PreparingUI configs")
-	us.PrepareStripesConfigJS(rp, outputDir, tenant)
-	us.PreparePackageJSON(outputDir, tenant)
+	err = us.PrepareStripesConfigJS(rp, outputDir, tenant)
+	if err != nil {
+		return "", err
+	}
+
+	err = us.PreparePackageJSON(outputDir, tenant)
+	if err != nil {
+		return "", err
+	}
 
 	slog.Info(us.Action.Name, "text", "Building UI from a Dockerfile")
 	err = helpers.ExecFromDir(exec.Command("docker", "build", "--tag", finalImageName,

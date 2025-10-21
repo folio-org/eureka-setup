@@ -2,7 +2,9 @@ package managementstep
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -10,6 +12,7 @@ import (
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/httpclient"
 	"github.com/folio-org/eureka-cli/models"
 	"github.com/spf13/viper"
 )
@@ -17,21 +20,18 @@ import (
 func (ms *ManagementStep) GetApplications() (models.Applications, error) {
 	requestURL := ms.Action.CreateURL(constant.KongPort, "/applications")
 
-	response, err := ms.HTTPClient.GetReturnResponse(requestURL, map[string]string{})
+	resp, err := ms.HTTPClient.GetReturnResponse(requestURL, map[string]string{})
 	if err != nil {
 		return models.Applications{}, err
 	}
-	defer func() {
-		_ = response.Body.Close()
-	}()
-	if response == nil {
+	defer httpclient.CloseResponse(resp)
+	if resp == nil {
 		return models.Applications{}, nil
 	}
 
 	var applications models.Applications
-
-	err = json.NewDecoder(response.Body).Decode(&applications)
-	if err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&applications)
+	if err != nil && !errors.Is(err, io.EOF) {
 		return models.Applications{}, err
 	}
 
@@ -62,7 +62,7 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 
 	for registryName, registryModules := range extract.RegistryModules {
 		if len(registryModules) > 0 {
-			slog.Info(ms.Action.Name, "text", fmt.Sprintf("Adding %s modules to %s application", registryName, applicationId))
+			slog.Info(ms.Action.Name, "text", fmt.Sprintf("Including %s modules to %s application", registryName, applicationId))
 		}
 
 		for _, module := range registryModules {
@@ -94,7 +94,11 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 					slog.Info(ms.Action.Name, "text", fmt.Sprintf("Fetching local module descriptor for %s from file path", module.Id))
 
 					var descriptor map[string]any
-					helpers.ReadJsonFromFile(ms.Action, backendModule.LocalDescriptorPath, &descriptor)
+					err := helpers.ReadJsonFromFile(ms.Action, backendModule.LocalDescriptorPath, &descriptor)
+					if err != nil {
+						return err
+					}
+
 					extract.ModuleDescriptorsMap[module.Id] = descriptor
 
 					slog.Info(ms.Action.Name, "text", fmt.Sprintf("Successfully loaded descriptor for %s from local file", module.Id))
@@ -123,7 +127,12 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 
 				sidecarUrl := fmt.Sprintf("http://%s.eureka:%s", module.SidecarName, serverPort)
 
-				discoveryModules = append(discoveryModules, map[string]string{"id": module.Id, "name": module.Name, "version": *module.Version, "location": sidecarUrl})
+				discoveryModules = append(discoveryModules, map[string]string{
+					"id":       module.Id,
+					"name":     module.Name,
+					"version":  *module.Version,
+					"location": sidecarUrl,
+				})
 			} else if okFrontend {
 				frontendModule := map[string]string{"id": module.Id, "name": module.Name, "version": *module.Version}
 				if applicationFetchDescriptors {
@@ -210,7 +219,10 @@ func (ms *ManagementStep) UpdateModuleDiscovery(id string, sidecarUrl string, re
 
 	requestURL := ms.Action.CreateURL(constant.KongPort, fmt.Sprintf("/modules/%s/discovery", id))
 
-	ms.HTTPClient.PutReturnNoContent(requestURL, applicationDiscoveryBytes, map[string]string{})
+	err = ms.HTTPClient.PutReturnNoContent(requestURL, applicationDiscoveryBytes, map[string]string{})
+	if err != nil {
+		return err
+	}
 
 	slog.Info(ms.Action.Name, "text", fmt.Sprintf("Updated application module discovery for %s module with %s sidecar URL", name, sidecarUrl))
 

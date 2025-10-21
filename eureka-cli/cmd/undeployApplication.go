@@ -76,10 +76,13 @@ func (r *Run) UndeployApplication() error {
 }
 
 func (r *Run) UndeployChildApplication() error {
-	r.Partition(func(consortiumName string, tenantType constant.TenantType) {
-		r.RemoveTenantEntitlements(consortiumName, tenantType)
+	err := r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+		return r.RemoveTenantEntitlements(consortiumName, tenantType)
 	})
-	err := r.UndeployModules()
+	if err != nil {
+		return err
+	}
+	err = r.UndeployModules()
 	if err != nil {
 		return err
 	}

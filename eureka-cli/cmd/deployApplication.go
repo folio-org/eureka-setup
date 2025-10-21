@@ -74,7 +74,6 @@ func (r *Run) DeployApplication() error {
 		return err
 	}
 	err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
-		waitDuration := 10 * time.Second
 		err = r.CreateTenantEntitlements(consortiumName, tenantType)
 		if err != nil {
 			return err
@@ -87,13 +86,13 @@ func (r *Run) DeployApplication() error {
 		if err != nil {
 			return err
 		}
-		err := r.AttachCapabilitySets(consortiumName, tenantType, waitDuration)
+		err := r.AttachCapabilitySets(consortiumName, tenantType, constant.DeployApplicationPartitionWait)
 		if err != nil {
 			return err
 		}
 		if consortiumName != constant.NoneConsortium {
-			slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("waiting for %.1f duration", waitDuration.Seconds()))
-			time.Sleep(waitDuration)
+			slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("waiting for %.1f duration", constant.DeployApplicationPartitionWait.Seconds()))
+			time.Sleep(constant.DeployApplicationPartitionWait)
 		}
 
 		return nil

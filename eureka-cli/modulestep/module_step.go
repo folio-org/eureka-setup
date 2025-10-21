@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -67,9 +68,7 @@ func (ms *ModuleStep) GetVaultRootToken(client *client.Client) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer func() {
-		_ = logStream.Close()
-	}()
+	defer helpers.CloseReader(logStream)
 
 	buffer := make([]byte, 8)
 	for {
@@ -104,7 +103,7 @@ func (ms *ModuleStep) PerformModuleReadinessCheck(wg *sync.WaitGroup, errCh chan
 	requestURL := ms.Action.CreateURL(strconv.Itoa(port), "/admin/health")
 	retries := constant.ModuleReadinessMaxRetries
 	for {
-		time.Sleep(10 * time.Second)
+		time.Sleep(constant.ModuleReadinessCheckWait)
 
 		ready, err := ms.checkContainerStatusCode(requestURL)
 		if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
@@ -119,9 +118,7 @@ func (ms *ModuleStep) PerformModuleReadinessCheck(wg *sync.WaitGroup, errCh chan
 		retries--
 
 		if retries == 0 {
-			slog.Info(ms.Action.Name, "text", fmt.Sprintf("Module %s is unready, out of retries", moduleName))
-
-			err := fmt.Errorf("module %s is unready, cannot continue", moduleName)
+			err := fmt.Errorf("module %s is unready and out of retries", moduleName)
 			slog.Error(ms.Action.Name, "error", err)
 			select {
 			case errCh <- err:
@@ -135,18 +132,16 @@ func (ms *ModuleStep) PerformModuleReadinessCheck(wg *sync.WaitGroup, errCh chan
 }
 
 func (ms *ModuleStep) checkContainerStatusCode(requestURL string) (bool, error) {
-	response, err := ms.HTTPClient.GetReturnResponse(requestURL, map[string]string{})
+	resp, err := ms.HTTPClient.GetReturnResponse(requestURL, map[string]string{})
 	if err != nil {
 		return false, err
 	}
-	if response == nil {
+	if resp == nil {
 		return false, nil
 	}
-	defer func() {
-		_ = response.Body.Close()
-	}()
+	defer httpclient.CloseResponse(resp)
 
-	return response.StatusCode == http.StatusOK, nil
+	return resp.StatusCode == http.StatusOK, nil
 }
 
 func (ms *ModuleStep) DeployModules(client *client.Client, containers *models.Containers, sidecarImage string, sidecarResources *container.Resources) (map[string]int, error) {
@@ -343,7 +338,7 @@ func (ms *ModuleStep) DeployModule(client *client.Client, myContainer *models.Co
 	}
 
 	if len(cr.Warnings) > 0 {
-		slog.Warn(ms.Action.Name, "text", fmt.Sprintf("caught %s module creation warnings %s", containerName, cr.Warnings))
+		slog.Warn(ms.Action.Name, "text", fmt.Sprintf("caught %s module creation with warning %s", containerName, cr.Warnings))
 	}
 
 	err = client.ContainerStart(context.Background(), cr.ID, container.StartOptions{})
@@ -374,15 +369,13 @@ func (ms *ModuleStep) PullModule(client *client.Client, imageName string) error 
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = reader.Close()
-	}()
+	defer helpers.CloseReader(reader)
 
 	decoder := json.NewDecoder(reader)
 
 	var event *models.Event
 	for {
-		if err := decoder.Decode(&event); err == io.EOF {
+		if err := decoder.Decode(&event); errors.Is(err, io.EOF) {
 			break
 		} else if err != nil {
 			return err
@@ -424,7 +417,7 @@ func (ms *ModuleStep) UndeployModuleByNamePattern(client *client.Client, value s
 func (ms *ModuleStep) undeployModule(client *client.Client, deployedModule container.Summary, removeAsync bool) error {
 	err := client.NetworkDisconnect(context.Background(), constant.NetworkID, deployedModule.ID, false)
 	if err != nil {
-		slog.Warn(ms.Action.Name, "text", fmt.Sprintf("module %s network is disconnected", err.Error()))
+		slog.Warn(ms.Action.Name, "text", fmt.Sprintf("module %s network is disconnected with warnings %s", deployedModule.ID, err.Error()))
 	}
 
 	err = client.ContainerStop(context.Background(), deployedModule.ID, container.StopOptions{Signal: "9"})
@@ -435,7 +428,7 @@ func (ms *ModuleStep) undeployModule(client *client.Client, deployedModule conta
 	var callback = func() {
 		err = client.ContainerRemove(context.Background(), deployedModule.ID, container.RemoveOptions{Force: true, RemoveVolumes: true})
 		if err != nil {
-			slog.Error(ms.Action.Name, "error", fmt.Sprintf("failed to remove %s module with error %v", deployedModule.ID, err))
+			slog.Error(ms.Action.Name, "error", err, "module", deployedModule.ID, "operation", "container remove")
 		}
 	}
 

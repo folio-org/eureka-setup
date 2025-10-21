@@ -68,7 +68,7 @@ func init() {
 	rootCmd.AddCommand(undeployModuleCmd)
 	undeployModuleCmd.PersistentFlags().StringVarP(&rp.ModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders (required)")
 	if err := undeployModuleCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
-		slog.Error(err.Error())
+		slog.Error("failed to mark moduleName flag as required", "error", err)
 		os.Exit(1)
 	}
 }

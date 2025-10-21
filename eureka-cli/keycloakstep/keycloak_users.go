@@ -31,7 +31,7 @@ func (ks *KeycloakStep) GetUsers(tenant string, accessToken string) ([]any, erro
 	return foundUsersMap["users"].([]any), nil
 }
 
-func (ks *KeycloakStep) CreateUsers(panicOnError bool, existingTenant string, accessToken string) error {
+func (ks *KeycloakStep) CreateUsers(existingTenant string, accessToken string) error {
 	postUserRequestURL := ks.Action.CreateURL(constant.KongPort, "/users-keycloak/users")
 	postUserPasswordRequestURL := ks.Action.CreateURL(constant.KongPort, "/authn/credentials")
 	postUserRoleRequestURL := ks.Action.CreateURL(constant.KongPort, "/roles/users")
@@ -121,7 +121,10 @@ func (ks *KeycloakStep) CreateUsers(panicOnError bool, existingTenant string, ac
 			return err
 		}
 
-		ks.HTTPClient.PostReturnNoContent(postUserRoleRequestURL, userRoleBytes, okapiBasedHeaders)
+		err = ks.HTTPClient.PostReturnNoContent(postUserRoleRequestURL, userRoleBytes, okapiBasedHeaders)
+		if err != nil {
+			return err
+		}
 
 		slog.Info(ks.Action.Name, "text", fmt.Sprintf("Attached %d roles to %s user in %s tenant (realm)", len(roleIds), username, tenant))
 	}

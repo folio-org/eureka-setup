@@ -2,6 +2,7 @@ package httpclient
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 )
@@ -15,7 +16,7 @@ func (hc *HTTPClient) GetDecodeReturnString(url string, headers map[string]strin
 	if err != nil {
 		return "", err
 	}
-	defer closeResponse(resp)
+	defer CloseResponse(resp)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -30,10 +31,11 @@ func (hc *HTTPClient) GetDecodeReturnAny(url string, headers map[string]string) 
 	if err != nil {
 		return nil, err
 	}
-	defer closeResponse(resp)
+	defer CloseResponse(resp)
 
 	var respMap any
-	if err := json.NewDecoder(resp.Body).Decode(&respMap); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&respMap)
+	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
 	}
 
@@ -45,10 +47,11 @@ func (hc *HTTPClient) GetDecodeReturnMapStringAny(url string, headers map[string
 	if err != nil {
 		return nil, err
 	}
-	defer closeResponse(resp)
+	defer CloseResponse(resp)
 
 	var respMap map[string]any
-	if err := json.NewDecoder(resp.Body).Decode(&respMap); err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&respMap)
+	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err
 	}
 

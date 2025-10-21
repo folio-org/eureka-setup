@@ -135,7 +135,10 @@ func (ks *KeycloakStep) UpdateKeycloakPublicClientParams(tenant string, accessTo
 	}
 
 	putRequestURL := fmt.Sprintf("%s/admin/realms/%s/clients/%s", constant.KeycloakHTTP, tenant, clientUUID)
-	ks.HTTPClient.PutReturnNoContent(putRequestURL, clientParamsBytes, headers)
+	err = ks.HTTPClient.PutReturnNoContent(putRequestURL, clientParamsBytes, headers)
+	if err != nil {
+		return err
+	}
 
 	slog.Info(ks.Action.Name, "text", fmt.Sprintf("Updated keycloak public %s client in %s realm", clientID, tenant))
 

@@ -36,11 +36,9 @@ var removeRolesCmd = &cobra.Command{
 			return err
 		}
 
-		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
-			r.RemoveRoles(consortiumName, tenantType)
+		return r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+			return r.RemoveRoles(consortiumName, tenantType)
 		})
-
-		return nil
 	},
 }
 

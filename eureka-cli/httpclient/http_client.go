@@ -86,18 +86,18 @@ func (hc *HTTPClient) doRequest(method, url string, body []byte, headers map[str
 	}
 
 	if err := hc.ValidateResponse(resp); err != nil {
-		closeResponse(resp)
+		CloseResponse(resp)
 		return nil, err
 	}
 
 	if err := helpers.DumpResponse(hc.Action, resp, false); err != nil {
-		closeResponse(resp)
+		CloseResponse(resp)
 		return nil, err
 	}
 
 	return resp, nil
 }
 
-func closeResponse(resp *http.Response) {
+func CloseResponse(resp *http.Response) {
 	_ = resp.Body.Close()
 }

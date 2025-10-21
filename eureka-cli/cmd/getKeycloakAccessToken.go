@@ -64,7 +64,7 @@ func init() {
 	rootCmd.AddCommand(getKeycloakAccessTokenCmd)
 	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&rp.Tenant, "tenant", "t", "", "Tenant (required)")
 	if err := getKeycloakAccessTokenCmd.MarkPersistentFlagRequired("tenant"); err != nil {
-		slog.Error(err.Error())
+		slog.Error("failed to mark tenant flag as required", "error", err)
 		os.Exit(1)
 	}
 }

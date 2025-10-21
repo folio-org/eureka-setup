@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
@@ -66,7 +67,7 @@ func (r *Run) DeployAdditionalSystem() error {
 	}
 
 	slog.Info(r.Config.Action.Name, "text", "WAITING FOR ADDITIONAL SYSTEM CONTAINERS TO BECOME READY")
-	time.Sleep(15 * time.Second)
+	time.Sleep(constant.DeployAdditionalSystemWait)
 	slog.Info(r.Config.Action.Name, "text", "All additional system containers are ready")
 
 	return nil

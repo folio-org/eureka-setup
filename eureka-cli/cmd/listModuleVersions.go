@@ -27,6 +27,7 @@ import (
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/httpclient"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/mod/semver"
@@ -66,9 +67,7 @@ func (r *Run) getModuleDescriptorById(registryURL string) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
+	defer httpclient.CloseResponse(resp)
 
 	if !rp.EnableDebug {
 		respBytes, err := httputil.DumpResponse(resp, true)
@@ -125,7 +124,7 @@ func init() {
 	listModuleVersionsCmd.PersistentFlags().StringVarP(&rp.ID, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021")
 	listModuleVersionsCmd.PersistentFlags().IntVarP(&rp.Lines, "lines", "L", 5, "Number of lines, e.g. 5")
 	if err := listModuleVersionsCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
-		slog.Error(err.Error())
+		slog.Error("failed to mark moduleName flag as required", "error", err)
 		os.Exit(1)
 	}
 }

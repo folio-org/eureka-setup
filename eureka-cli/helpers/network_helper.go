@@ -53,9 +53,7 @@ func IsPortFree(action *action.Action, portStart, portEnd int, port int) bool {
 		slog.Debug(action.Name, "text", fmt.Sprintf("TCP %d port is reserved or already bound in range %d-%d", port, portStart, portEnd))
 		return false
 	}
-	defer func() {
-		_ = tcpListen.Close()
-	}()
+	defer CloseListener(tcpListen)
 
 	return true
 }
@@ -63,7 +61,7 @@ func IsPortFree(action *action.Action, portStart, portEnd int, port int) bool {
 func HostnameExists(actionName string, hostname string) bool {
 	_, err := net.LookupHost(hostname)
 	if err != nil {
-		slog.Debug(actionName, "text", fmt.Sprintf("host %s is unreachable: %s", hostname, err.Error()))
+		slog.Debug(actionName, "text", fmt.Sprintf("host %s is unreachable with error %s", hostname, err.Error()))
 	}
 
 	return err == nil
@@ -84,4 +82,8 @@ func ExtractPortFromURL(url string) (int, error) {
 	}
 
 	return sidecarServer, nil
+}
+
+func CloseListener(listener net.Listener) {
+	_ = listener.Close()
 }

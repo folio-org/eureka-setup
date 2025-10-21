@@ -50,7 +50,7 @@ func init() {
 	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&rp.SidecarURL, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
 	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&rp.Restore, "restore", "r", false, "Restore sidecar URL")
 	if err := updateModuleDiscoveryCmd.MarkPersistentFlagRequired("id"); err != nil {
-		slog.Error(err.Error())
+		slog.Error("failed to mark id flag as required", "error", err)
 		os.Exit(1)
 	}
 }

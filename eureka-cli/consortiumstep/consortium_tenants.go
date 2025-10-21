@@ -132,7 +132,10 @@ func (cs *ConsortiumStep) CreateConsortiumTenants(centralTenant string, accessTo
 			return err
 		}
 
-		cs.checkConsortiumTenantStatus(centralTenant, consortiumId, consortiumTenant.Tenant, headers)
+		err = cs.checkConsortiumTenantStatus(centralTenant, consortiumId, consortiumTenant.Tenant, headers)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -191,7 +194,10 @@ func (cs *ConsortiumStep) checkConsortiumTenantStatus(centralTenant string, cons
 	case IN_PROGRESS:
 		slog.Info(cs.Action.Name, "text", fmt.Sprintf("waiting for %s consortium tenant creation", tenant))
 		time.Sleep(WaitConsortiumTenant)
-		cs.checkConsortiumTenantStatus(centralTenant, consortiumId, tenant, headers)
+		err = cs.checkConsortiumTenantStatus(centralTenant, consortiumId, tenant, headers)
+		if err != nil {
+			return err
+		}
 		return nil
 	case FAILED:
 	case COMPLETED_WITH_ERRORS:

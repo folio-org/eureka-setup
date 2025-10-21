@@ -44,6 +44,7 @@ func Execute(embedFS embed.FS) {
 
 	err := rootCmd.Execute()
 	if err != nil {
+		slog.Error("command execution failed", "error", err)
 		os.Exit(1)
 	}
 }
@@ -68,7 +69,7 @@ func init() {
 	if err := rootCmd.RegisterFlagCompletionFunc("profile", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return profiles, cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
-		slog.Error(err.Error())
+		slog.Error("failed to register profile flag completion function", "error", err)
 		os.Exit(1)
 	}
 	rootCmd.PersistentFlags().StringVarP(&rp.ConfigFile, "configFile", "c", "", "Use a specific config file")

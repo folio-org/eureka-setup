@@ -83,9 +83,9 @@ func (r *Run) DeployManagement() error {
 	if err != nil {
 		return err
 	}
-	time.Sleep(5 * time.Second)
+	time.Sleep(constant.DeployManagementWait)
 
-	slog.Info(r.Config.Action.Name, "text", "WAITING FOR MANAGEMENT MODULES TO INITIALIZE")
+	slog.Info(r.Config.Action.Name, "text", "WAITING FOR MANAGEMENT MODULES TO BECOME READY")
 	var wg sync.WaitGroup
 	errCh := make(chan error, len(deployedModules))
 
@@ -102,7 +102,7 @@ func (r *Run) DeployManagement() error {
 	default:
 	}
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(constant.DeployManagementWait)
 	slog.Info(r.Config.Action.Name, "text", "All management modules are ready")
 
 	return nil

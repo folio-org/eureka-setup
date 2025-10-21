@@ -9,7 +9,7 @@ func (hc *HTTPClient) PutReturnNoContent(url string, b []byte, headers map[strin
 	if err != nil {
 		return err
 	}
-	defer closeResponse(resp)
+	defer CloseResponse(resp)
 
 	return nil
 }

@@ -9,7 +9,7 @@ func (hc *HTTPClient) Delete(url string, headers map[string]string) error {
 	if err != nil {
 		return err
 	}
-	defer closeResponse(resp)
+	defer CloseResponse(resp)
 
 	return nil
 }
@@ -19,7 +19,7 @@ func (hc *HTTPClient) DeleteWithBody(url string, b []byte, headers map[string]st
 	if err != nil {
 		return err
 	}
-	defer closeResponse(resp)
+	defer CloseResponse(resp)
 
 	return nil
 }

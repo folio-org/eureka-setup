@@ -85,7 +85,7 @@ func init() {
 	if err := listModulesCmd.RegisterFlagCompletionFunc("moduleType", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return availableModuleTypes, cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
-		slog.Error(err.Error())
+		slog.Error("failed to register flag completion function", "error", err)
 		os.Exit(1)
 	}
 }

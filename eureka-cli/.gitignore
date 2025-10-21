@@ -4,7 +4,8 @@ tmp
 temp
 
 SETUP.md
-
-temp*.go
+eureka-cli*
+*temp*
+*demo*
 config.temp-*.yaml
 drop_sidecar_cache.sh

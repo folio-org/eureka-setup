@@ -69,7 +69,7 @@ func (r *Run) CreateUsers(consortiumName string, tenantType constant.TenantType)
 			return err
 		}
 
-		err = r.Config.KeycloakStep.CreateUsers(false, existingTenant, keycloakAccessToken)
+		err = r.Config.KeycloakStep.CreateUsers(existingTenant, keycloakAccessToken)
 		if err != nil {
 			return err
 		}

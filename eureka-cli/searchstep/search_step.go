@@ -44,18 +44,18 @@ func (ss *SearchStep) ReindexInventoryRecords(tenant string, accessToken string)
 
 		if reindexJobMap["errors"] != nil {
 			errorType := reindexJobMap["errors"].([]any)[0].(map[string]any)["type"]
-			slog.Warn(ss.Action.Name, "text", fmt.Sprintf("failed to reindex inventory records for %s tenant and %s record, error type: %s", tenant, record, errorType))
+			slog.Warn(ss.Action.Name, "text", fmt.Sprintf("failed to reindex inventory records for %s tenant and %s record with error type %s", tenant, record, errorType))
 			continue
 		}
 		if len(reindexJobMap) == 0 {
-			slog.Warn(ss.Action.Name, "text", fmt.Sprintf("failed to reindex inventory records for %s tenant and %s record, no response", tenant, record))
+			slog.Warn(ss.Action.Name, "text", fmt.Sprintf("failed to reindex inventory records for %s tenant and %s record with no response", tenant, record))
 			continue
 		}
 
 		jobId := reindexJobMap["id"]
 		jobStatus := reindexJobMap["jobStatus"]
 
-		slog.Info(ss.Action.Name, "text", fmt.Sprintf("reindexed inventory records for %s tenant and %s record, job id: %s, job status: %s", tenant, record, jobId, jobStatus))
+		slog.Info(ss.Action.Name, "text", fmt.Sprintf("reindexed inventory records for %s tenant and %s record with %s job id and %s status", tenant, record, jobId, jobStatus))
 	}
 
 	return nil
@@ -73,7 +73,10 @@ func (ss *SearchStep) ReindexInstanceRecords(tenant string, accessToken string) 
 		return err
 	}
 
-	ss.HTTPClient.PostReturnNoContent(ss.Action.CreateURL(constant.KongPort, "/search/index/instance-records/reindex/full"), bytes, headers)
+	err = ss.HTTPClient.PostReturnNoContent(ss.Action.CreateURL(constant.KongPort, "/search/index/instance-records/reindex/full"), bytes, headers)
+	if err != nil {
+		return err
+	}
 
 	slog.Info(ss.Action.Name, "text", fmt.Sprintf("Reindexed instance records for %s tenant", tenant))
 

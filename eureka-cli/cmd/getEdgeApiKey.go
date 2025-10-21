@@ -91,11 +91,11 @@ func init() {
 	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&rp.User, "user", "U", "", "User (required)")
 	getEdgeApiKeyCmd.PersistentFlags().IntVarP(&rp.Length, "length", "l", 17, "Salt length")
 	if err := getEdgeApiKeyCmd.MarkPersistentFlagRequired("tenant"); err != nil {
-		slog.Error(err.Error())
+		slog.Error("failed to mark tenant flag as required", "error", err)
 		os.Exit(1)
 	}
 	if err := getEdgeApiKeyCmd.MarkPersistentFlagRequired("user"); err != nil {
-		slog.Error(err.Error())
+		slog.Error("failed to mark user flag as required", "error", err)
 		os.Exit(1)
 	}
 }

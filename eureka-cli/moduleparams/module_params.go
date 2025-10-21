@@ -91,7 +91,7 @@ func (mp *ModuleParams) printModuleInfo(name string, properties models.BackendMo
 	sidecarServerPort := backendModulesMap[name].SidecarExposedServerPort
 	sidecarDebugPort := backendModulesMap[name].SidecarExposedDebugPort
 
-	slog.Info(mp.Action.Name, "text", fmt.Sprintf("Read %s backend module with reserved ports [ %d %d %d %d ]", moduleInfo, moduleServerPort, moduleDebugPort, sidecarServerPort, sidecarDebugPort))
+	slog.Info(mp.Action.Name, "text", fmt.Sprintf("Read %s backend module with port reserve [ %d %d %d %d ]", moduleInfo, moduleServerPort, moduleDebugPort, sidecarServerPort, sidecarDebugPort))
 }
 
 func (mp *ModuleParams) IsManagementModule(name string) bool {

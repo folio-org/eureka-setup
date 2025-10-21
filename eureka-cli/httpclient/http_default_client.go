@@ -5,6 +5,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/folio-org/eureka-cli/constant"
 )
 
 type LoggingRoundTripper struct {
@@ -29,26 +31,28 @@ func (l *LoggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, erro
 	return resp, nil
 }
 
+const ()
+
 func createCustomClient() *http.Client {
 	return &http.Client{
-		Timeout: 30 * time.Minute,
+		Timeout: constant.HTTPClientTimeout,
 		Transport: &LoggingRoundTripper{
 			logger: slog.Default(),
 			next: &http.Transport{
 				DialContext: (&net.Dialer{
-					Timeout:   5 * time.Minute,
-					KeepAlive: 90 * time.Second,
+					Timeout:   constant.HTTPClientDialTimeout,
+					KeepAlive: constant.HTTPClientKeepAlive,
 				}).DialContext,
-				MaxIdleConns:           50,
-				MaxIdleConnsPerHost:    10,
-				IdleConnTimeout:        120 * time.Second,
-				MaxResponseHeaderBytes: 16 << 20,
-				WriteBufferSize:        64 << 10,
-				ReadBufferSize:         64 << 10,
-				ResponseHeaderTimeout:  5 * time.Minute,
-				ExpectContinueTimeout:  10 * time.Second,
-				DisableCompression:     false,
-				ForceAttemptHTTP2:      false,
+				MaxIdleConns:           constant.HTTPClientMaxIdleConns,
+				MaxIdleConnsPerHost:    constant.HTTPClientMaxIdleConnsPerHost,
+				IdleConnTimeout:        constant.HTTPClientIdleConnTimeout,
+				MaxResponseHeaderBytes: constant.HTTPClientMaxResponseHeaderBytes,
+				WriteBufferSize:        constant.HTTPClientWriteBufferSize,
+				ReadBufferSize:         constant.HTTPClientReadBufferSize,
+				ResponseHeaderTimeout:  constant.HTTPClientResponseHeaderTimeout,
+				ExpectContinueTimeout:  constant.HTTPClientExpectContinueTimeout,
+				DisableCompression:     constant.HTTPClientDisableCompression,
+				ForceAttemptHTTP2:      constant.HTTPClientForceAttemptHTTP2,
 			},
 		},
 	}

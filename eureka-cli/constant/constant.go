@@ -9,10 +9,35 @@ const (
 	KeycloakAdminUsername = "admin"
 	KeycloakAdminPassword = "admin"
 
+	// Command wait durations
+	DeployApplicationPartitionWait    = 10 * time.Second
+	DeploySystemWait                  = 15 * time.Second
+	DeployAdditionalSystemWait        = 15 * time.Second
+	DeployManagementWait              = 5 * time.Second
+	DeployModulesWait                 = 5 * time.Second
+	ModuleReadinessCheckWait          = 10 * time.Second
+	AttachCapabilitySetsPollWait      = 30 * time.Second
+	AttachCapabilitySetsRebalanceWait = 30 * time.Second
+
 	// Vault client properties
 	VaultTimeout = 30 * time.Second
 
-	// HTTP client properties
+	// Default HTTP client properties
+	HTTPClientTimeout                = 30 * time.Minute
+	HTTPClientDialTimeout            = 5 * time.Minute
+	HTTPClientKeepAlive              = 90 * time.Second
+	HTTPClientMaxIdleConns           = 50
+	HTTPClientMaxIdleConnsPerHost    = 10
+	HTTPClientIdleConnTimeout        = 120 * time.Second
+	HTTPClientMaxResponseHeaderBytes = 16 << 20
+	HTTPClientWriteBufferSize        = 64 << 10
+	HTTPClientReadBufferSize         = 64 << 10
+	HTTPClientResponseHeaderTimeout  = 5 * time.Minute
+	HTTPClientExpectContinueTimeout  = 10 * time.Second
+	HTTPClientDisableCompression     = false
+	HTTPClientForceAttemptHTTP2      = false
+
+	// Retry HTTP client properties
 	RetryHTTPClientRetryMax     = 10
 	RetryHTTPClientRetryWaitMin = 3 * time.Second
 	RetryHTTPClientRetryWaitMax = 10 * time.Second

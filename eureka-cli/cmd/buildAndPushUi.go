@@ -77,11 +77,11 @@ func init() {
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&rp.EnableECSRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&rp.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
 	if err := buildAndPushUiCmd.MarkPersistentFlagRequired("namespace"); err != nil {
-		slog.Error(err.Error())
+		slog.Error("failed to mark namespace flag as required", "error", err)
 		os.Exit(1)
 	}
 	if err := buildAndPushUiCmd.MarkPersistentFlagRequired("tenant"); err != nil {
-		slog.Error(err.Error())
+		slog.Error("failed to mark tenant flag as required", "error", err)
 		os.Exit(1)
 	}
 }

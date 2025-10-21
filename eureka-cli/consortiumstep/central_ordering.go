@@ -33,7 +33,10 @@ func (cs *ConsortiumStep) EnableCentralOrdering(centralTenant string, accessToke
 		return err
 	}
 
-	cs.HTTPClient.PostReturnNoContent(cs.Action.CreateURL(constant.KongPort, "/orders-storage/settings"), b, headers)
+	err = cs.HTTPClient.PostReturnNoContent(cs.Action.CreateURL(constant.KongPort, "/orders-storage/settings"), b, headers)
+	if err != nil {
+		return err
+	}
 
 	slog.Info(cs.Action.Name, "text", fmt.Sprintf("Enabled central ordering for %s tenant", centralTenant))
 

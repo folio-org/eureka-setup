@@ -51,7 +51,7 @@ func (rc *GitClient) Clone(repository *GitRepository) error {
 		Progress:      os.Stdout,
 	})
 	if err != nil {
-		return fmt.Errorf("cloning %s repository, message %v", repository.URL, err)
+		return fmt.Errorf("cloning %s repository with error %w", repository.URL, err)
 	}
 
 	ref, err := targetRepository.Head()
@@ -83,19 +83,15 @@ func (rc *GitClient) ResetHardPullFromOrigin(repository *GitRepository) error {
 	if err != nil {
 		return err
 	}
-
 	if err = rc.printStatus(worktree, "Before Clean & Reset"); err != nil {
 		return err
 	}
-
 	if err = worktree.Clean(&git.CleanOptions{Dir: true}); err != nil {
 		return err
 	}
-
 	if err = worktree.Reset(&git.ResetOptions{Mode: git.HardReset}); err != nil {
 		return err
 	}
-
 	if err = rc.printStatus(worktree, "After Clean & Reset"); err != nil {
 		return err
 	}

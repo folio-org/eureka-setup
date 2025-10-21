@@ -115,9 +115,9 @@ func (r *Run) DeployModules() error {
 	if err != nil {
 		return err
 	}
-	time.Sleep(5 * time.Second)
+	time.Sleep(constant.DeployModulesWait)
 
-	slog.Info(r.Config.Action.Name, "text", "WAITING FOR MODULES TO INITIALIZE")
+	slog.Info(r.Config.Action.Name, "text", "WAITING FOR MODULES TO BECOME READY")
 	var wg sync.WaitGroup
 	errCh := make(chan error, len(deployedModules))
 
@@ -134,7 +134,8 @@ func (r *Run) DeployModules() error {
 	default:
 	}
 
-	slog.Info(r.Config.Action.Name, "text", "All core and business modules are ready")
+	time.Sleep(constant.DeployModulesWait)
+	slog.Info(r.Config.Action.Name, "text", "All modules are ready")
 
 	return nil
 }

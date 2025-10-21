@@ -62,7 +62,10 @@ func (cs *ConsortiumStep) CreateConsortium(centralTenant string, accessToken str
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	cs.HTTPClient.PostReturnNoContent(cs.Action.CreateURL(constant.KongPort, "/consortia"), b, headers)
+	err = cs.HTTPClient.PostReturnNoContent(cs.Action.CreateURL(constant.KongPort, "/consortia"), b, headers)
+	if err != nil {
+		return "", err
+	}
 
 	slog.Info(cs.Action.Name, "text", fmt.Sprintf("Created %s consortium", consortiumName))
 

@@ -65,7 +65,7 @@ func (ms *ManagementStep) CreateTenants() error {
 	return nil
 }
 
-func (ms *ManagementStep) RemoveTenants(panicOnError bool, consortiumName string, tenantType constant.TenantType) error {
+func (ms *ManagementStep) RemoveTenants(consortiumName string, tenantType constant.TenantType) error {
 	foundTenants, err := ms.GetTenants(consortiumName, tenantType)
 	if err != nil {
 		return err

@@ -3,6 +3,7 @@ package helpers
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -18,17 +19,11 @@ func ReadJsonFromFile(action *action.Action, filePath string, data any) error {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = jsonFile.Close()
-	}()
+	defer CloseFile(jsonFile)
 
-	decoder := json.NewDecoder(jsonFile)
-	for {
-		if err := decoder.Decode(&data); err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
+	err = json.NewDecoder(jsonFile).Decode(&data)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return err
 	}
 
 	return nil
@@ -39,9 +34,7 @@ func WriteJsonToFile(action *action.Action, filePath string, packageJson any) er
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = jsonFile.Close()
-	}()
+	defer CloseFile(jsonFile)
 
 	writer := bufio.NewWriter(jsonFile)
 	encoder := json.NewEncoder(writer)
@@ -75,23 +68,22 @@ func CheckIsRegularFile(action *action.Action, fileName string) error {
 }
 
 func CopySingleFile(action *action.Action, srcPath string, dstPath string) error {
-	CheckIsRegularFile(action, srcPath)
+	err := CheckIsRegularFile(action, srcPath)
+	if err != nil {
+		return err
+	}
 
 	src, err := os.Open(srcPath)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = src.Close()
-	}()
+	defer CloseFile(src)
 
 	dst, err := os.Create(dstPath)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_ = dst.Close()
-	}()
+	defer CloseFile(dst)
 
 	_, err = io.Copy(dst, src)
 	if err != nil {
@@ -133,4 +125,12 @@ func GetHomeDirPath(action *action.Action) (string, error) {
 	}
 
 	return homeDir, nil
+}
+
+func CloseFile(file *os.File) {
+	_ = file.Close()
+}
+
+func CloseReader(reader io.ReadCloser) {
+	_ = reader.Close()
 }

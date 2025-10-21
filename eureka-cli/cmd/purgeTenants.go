@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-	"os"
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/spf13/cobra"
@@ -50,14 +49,12 @@ var purgeTenantsCmd = &cobra.Command{
 			for key, value := range map[string][]string{tenantId: withApplicationNames} {
 				requestURL, err := url.JoinPath(withKongGateway, "/entitlements")
 				if err != nil {
-					slog.Error(run.Config.Action.Name, "error", err)
-					os.Exit(1)
+					return err
 				}
 
 				bytes, err := json.Marshal(map[string]any{"tenantId": key, "applications": value})
 				if err != nil {
-					slog.Error(run.Config.Action.Name, "error", err)
-					os.Exit(1)
+					return err
 				}
 
 				_ = run.Config.HTTPClient.DeleteWithBody(fmt.Sprintf("%s%s", requestURL, "?purge=true"), bytes, map[string]string{})
@@ -70,8 +67,7 @@ var purgeTenantsCmd = &cobra.Command{
 		for _, tenantId := range withTenantIds {
 			requestURL, err := url.JoinPath(withKongGateway, "/tenants", tenantId)
 			if err != nil {
-				slog.Error(run.Config.Action.Name, "error", err.Error())
-				os.Exit(1)
+				return err
 			}
 
 			_ = run.Config.HTTPClient.Delete(fmt.Sprintf("%s%s", requestURL, "?purgeKafkaTopics=true"), map[string]string{})
