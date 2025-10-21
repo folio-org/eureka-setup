@@ -32,29 +32,38 @@ jobs:
         run: docker compose -f ./eureka-cli/misc/docker-compose.yaml config
 
   docker-trivy:
-    name: Docker Security Scan
+    name: Docker Security Scan (Lightweight)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Check folio-netcat Dockerfile
-        uses: aquasecurity/trivy-action@master
+      # Fast Dockerfile-only scans for PR feedback
+      - name: Scan Dockerfiles for misconfigurations
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: 'config'
-          scan-ref: './eureka-cli/misc/folio-netcat/Dockerfile'
+          scan-ref: './eureka-cli/misc/'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
 
-      - name: Check folio-vault Dockerfile
-        uses: aquasecurity/trivy-action@master
+      # SARIF upload for tracking (non-blocking)
+      - name: Generate SARIF report
+        uses: aquasecurity/trivy-action@0.28.0
+        if: always() && github.actor != 'dependabot[bot]'
         with:
           scan-type: 'config'
-          scan-ref: './eureka-cli/misc/folio-vault/Dockerfile'
+          scan-ref: './eureka-cli/misc/'
+          format: 'sarif'
+          output: 'trivy-docker-config.sarif'
 
-      - name: Check folio-kafka-tools Dockerfile
-        uses: aquasecurity/trivy-action@master
+      - name: Upload Docker config scan to GitHub Security
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && github.actor != 'dependabot[bot]'
         with:
-          scan-type: 'config'
-          scan-ref: './eureka-cli/misc/folio-kafka-tools/Dockerfile'
+          sarif_file: 'trivy-docker-config.sarif'
+          category: 'docker-configs'
 
   go-lint:
     name: Go Lint
@@ -74,7 +83,7 @@ jobs:
           only-new-issues: true
 
   go-trivy:
-    name: Go Security Scan
+    name: Go Security Scan (Lightweight)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -83,35 +92,99 @@ jobs:
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
 
-      - name: Download Go dependencies
-        working-directory: ./eureka-cli
-        run: go mod download
-
-      - name: Run Trivy vulnerability scanner on Go dependencies
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: './eureka-cli'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v4
-        if: always() && github.actor != 'dependabot[bot]'
-        with:
-          sarif_file: 'trivy-results.sarif'
-
-      - name: Run Trivy vulnerability scanner (table output)
-        uses: aquasecurity/trivy-action@master
+      # Fast fail-first approach
+      - name: Quick scan for HIGH/CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: 'fs'
           scan-ref: './eureka-cli'
           format: 'table'
           severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+      # SARIF generation (only if quick scan passes)
+      - name: Generate detailed SARIF report
+        uses: aquasecurity/trivy-action@0.28.0
+        if: success() && github.actor != 'dependabot[bot]'
+        with:
+          scan-type: 'fs'
+          scan-ref: './eureka-cli'
+          format: 'sarif'
+          output: 'trivy-go-results.sarif'
+
+      - name: Upload Go dependency scan to GitHub Security
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && github.actor != 'dependabot[bot]'
+        with:
+          sarif_file: 'trivy-go-results.sarif'
+          category: 'go-dependencies'
+
+  unit-tests:
+    name: Unit Tests with Coverage
+    runs-on: ubuntu-latest
+    # Allow this job to fail without blocking downstream jobs during transition period
+    continue-on-error: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Go Environment
+        uses: ./.github/actions/setup-go
+
+      - name: Run unit tests with coverage
+        working-directory: ./eureka-cli
+        run: |
+          echo "🧪 Running unit tests for packages with comprehensive test coverage..."
+          echo "Packages: helpers, httpclient"
+          # Run tests only for packages with comprehensive test coverage
+          go test ./helpers/... ./httpclient/... -coverprofile=coverage.out -covermode=atomic
+
+      - name: Generate coverage report
+        working-directory: ./eureka-cli
+        run: |
+          echo "## Test Coverage Report (Helpers & HTTPClient)" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Coverage |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|----------|" >> $GITHUB_STEP_SUMMARY
+          go tool cover -func=coverage.out | grep -E "(helpers/|httpclient/)" | while read line; do
+            package=$(echo "$line" | awk '{print $1}' | sed 's/.*\///')
+            coverage=$(echo "$line" | awk '{print $3}')
+            echo "| $package | $coverage |" >> $GITHUB_STEP_SUMMARY
+          done
+          
+          total_coverage=$(go tool cover -func=coverage.out | grep "total:" | awk '{print $3}')
+          echo "| **Total (Helpers & HTTPClient)** | **$total_coverage** |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "ℹ️ Coverage calculated only for packages with comprehensive test suites." >> $GITHUB_STEP_SUMMARY
+
+      - name: Check coverage threshold
+        working-directory: ./eureka-cli
+        run: |
+          # Calculate total coverage percentage for tested packages only
+          COVERAGE=$(go tool cover -func=coverage.out | grep "total:" | awk '{print $3}' | sed 's/%//')
+          echo "Current test coverage (Helpers & HTTPClient): ${COVERAGE}%"
+          
+          # Check if coverage is below 80% using awk for floating point comparison
+          THRESHOLD_CHECK=$(echo "$COVERAGE" | awk '{if ($1 >= 80) print "PASS"; else print "FAIL"}')
+          
+          if [ "$THRESHOLD_CHECK" = "FAIL" ]; then
+            echo "❌ Test coverage ${COVERAGE}% is below the required 80% threshold for tested packages"
+            echo "Please add more tests to improve coverage in helpers/ and httpclient/ packages"
+            exit 1
+          else
+            echo "✅ Test coverage ${COVERAGE}% meets the required 80% threshold for tested packages"
+          fi
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          file: ./eureka-cli/coverage.out
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
 
   test:
     name: Test CLI Help Command (${{ matrix.os }}-${{ matrix.goarch }})
-    needs: [go-lint, docker-lint, docker-trivy, go-trivy]
+    needs: [go-lint, docker-lint, docker-trivy, go-trivy, unit-tests]
     strategy:
       matrix:
         include:

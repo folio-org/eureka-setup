@@ -1,3 +1,8 @@
+# IDE workspace configurations
 .vscode
 .idea
+
+# Temporary folders
+log
 tmp
+temp

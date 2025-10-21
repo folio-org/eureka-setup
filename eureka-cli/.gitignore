@@ -1,11 +1,21 @@
+# Default binary folder 
 bin
+
+# Temporary folders
 log
 tmp
 temp
 
+# Repository management commands
 SETUP.md
-eureka-cli*
-*temp*
-*demo*
+
+# Temporary config files
 config.temp-*.yaml
+
+# Throwaway shell scripts
 drop_sidecar_cache.sh
+
+# AI generate output
+demo
+eureka-cli*
+*.out
