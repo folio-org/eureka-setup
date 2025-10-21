@@ -52,10 +52,10 @@ func (ss *SearchSvc) ReindexInventoryRecords(tenant string, accessToken string) 
 			continue
 		}
 
-		jobId := reindexJobMap["id"]
+		jobID := reindexJobMap["id"]
 		jobStatus := reindexJobMap["jobStatus"]
 
-		slog.Info(ss.Action.Name, "text", "Reindexed inventory records", "tenant", tenant, "record", record, "jobId", jobId, "jobStatus", jobStatus)
+		slog.Info(ss.Action.Name, "text", "Reindexed inventory records", "tenant", tenant, "record", record, "jobId", jobID, "jobStatus", jobStatus)
 	}
 
 	return nil

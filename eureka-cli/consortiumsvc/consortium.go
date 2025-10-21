@@ -42,16 +42,19 @@ func (cs *ConsortiumSvc) CreateConsortium(centralTenant string, accessToken stri
 	}
 
 	if consortiumMap != nil {
-		consortiumId := consortiumMap.(map[string]any)["id"].(string)
+		consortiumID := consortiumMap.(map[string]any)["id"].(string)
 
 		slog.Info(cs.Action.Name, "text", "Consortium is already created", "consortium", consortiumName)
 
-		return consortiumId, nil
+		return consortiumID, nil
 	}
 
-	consortiumId := uuid.New()
+	consortiumID := uuid.New()
 
-	b, err := json.Marshal(map[string]any{"id": consortiumId, "name": consortiumName})
+	b, err := json.Marshal(map[string]any{
+		"id":   consortiumID,
+		"name": consortiumName,
+	})
 	if err != nil {
 		return "", err
 	}
@@ -69,7 +72,7 @@ func (cs *ConsortiumSvc) CreateConsortium(centralTenant string, accessToken stri
 
 	slog.Info(cs.Action.Name, "text", "Created consortium", "consortium", consortiumName)
 
-	return consortiumId.String(), nil
+	return consortiumID.String(), nil
 }
 
 func (cs *ConsortiumSvc) GetConsortiumByName(centralTenant string, accessToken string, consortiumName string) (any, error) {

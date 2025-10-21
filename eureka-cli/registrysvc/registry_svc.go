@@ -41,12 +41,12 @@ func (rs *RegistrySvc) ExtractModuleNameAndVersion(registryModulesMap map[string
 		}
 
 		for moduleIndex, module := range registryModules {
-			if module.Id == "okapi" {
+			if module.ID == "okapi" {
 				continue
 			}
 
-			module.Name = helpers.GetModuleNameFromID(module.Id)
-			module.Version = helpers.GetModuleVersionPFromID(module.Id)
+			module.Name = helpers.GetModuleNameFromID(module.ID)
+			module.Version = helpers.GetModuleVersionPFromID(module.ID)
 
 			if strings.HasPrefix(module.Name, "edge") {
 				module.SidecarName = module.Name
@@ -120,7 +120,10 @@ func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, printOutput
 					continue
 				}
 
-				registryModule := &models.RegistryModule{Id: fmt.Sprintf("%s-%s", name, mapEntry[field.ModuleVersionEntry].(string)), Action: "enable"}
+				registryModule := &models.RegistryModule{
+					ID:     fmt.Sprintf("%s-%s", name, mapEntry[field.ModuleVersionEntry].(string)),
+					Action: "enable",
+				}
 
 				registryModules = append(registryModules, registryModule)
 			}
@@ -132,14 +135,14 @@ func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, printOutput
 			}
 
 			sort.Slice(registryModules, func(i, j int) bool {
-				switch strings.Compare(registryModules[i].Id, registryModules[j].Id) {
+				switch strings.Compare(registryModules[i].ID, registryModules[j].ID) {
 				case -1:
 					return true
 				case 1:
 					return false
 				}
 
-				return registryModules[i].Id > registryModules[j].Id
+				return registryModules[i].ID > registryModules[j].ID
 			})
 		}
 

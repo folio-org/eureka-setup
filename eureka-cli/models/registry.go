@@ -1,7 +1,7 @@
 package models
 
 type RegistryModule struct {
-	Id          string  `json:"id"`
+	ID          string  `json:"id"`
 	Action      string  `json:"action"`
 	Name        string  `json:"-"`
 	SidecarName string  `json:"-"`

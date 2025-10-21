@@ -117,14 +117,14 @@ func (r *Run) DeployModules() error {
 	time.Sleep(constant.DeployModulesWait)
 
 	slog.Info(r.Config.Action.Name, "text", "WAITING FOR MODULES TO BECOME READY")
-	var wg sync.WaitGroup
+	var deployModulesWG sync.WaitGroup
 	errCh := make(chan error, len(deployedModules))
 
-	wg.Add(len(deployedModules))
+	deployModulesWG.Add(len(deployedModules))
 	for deployedModule := range deployedModules {
-		go r.Config.ModuleSvc.PerformModuleReadinessCheck(&wg, errCh, deployedModule, deployedModules[deployedModule])
+		go r.Config.ModuleSvc.PerformModuleReadinessCheck(&deployModulesWG, errCh, deployedModule, deployedModules[deployedModule])
 	}
-	wg.Wait()
+	deployModulesWG.Wait()
 	close(errCh)
 
 	select {

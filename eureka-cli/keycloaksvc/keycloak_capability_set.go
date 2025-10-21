@@ -22,9 +22,9 @@ func (ks *KeycloakSvc) GetCapabilitySets(headers map[string]string) ([]any, erro
 	}
 
 	for _, value := range applications.ApplicationDescriptors {
-		applicationId := value["id"].(string)
+		applicationID := value["id"].(string)
 
-		requestURL := ks.Action.CreateURL(constant.KongPort, fmt.Sprintf("/capability-sets?offset=0&limit=10000&query=applicationId==%s", applicationId))
+		requestURL := ks.Action.CreateURL(constant.KongPort, fmt.Sprintf("/capability-sets?offset=0&limit=10000&query=applicationId==%s", applicationID))
 
 		foundCapabilitySetsMap, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 		if err != nil {
@@ -91,24 +91,27 @@ func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenant string, accessToken st
 			continue
 		}
 
-		capabilitySetIds, err := ks.populateCapabilitySets(headers, rolesMapConfig[field.RolesCapabilitySetsEntry].([]any))
+		capabilitySetIDs, err := ks.populateCapabilitySets(headers, rolesMapConfig[field.RolesCapabilitySetsEntry].([]any))
 		if err != nil {
 			return err
 		}
 
-		if len(capabilitySetIds) == 0 {
+		if len(capabilitySetIDs) == 0 {
 			slog.Info(ks.Action.Name, "text", "No capability sets were attached to role in tenant", "role", roleName, "tenant", tenant)
 			continue
 		}
 
 		batchSize := 250
-		for lowerBound := 0; lowerBound < len(capabilitySetIds); lowerBound += batchSize {
-			upperBound := min(lowerBound+batchSize, len(capabilitySetIds))
-			batchCapabilitySetIds := capabilitySetIds[lowerBound:upperBound]
+		for lowerBound := 0; lowerBound < len(capabilitySetIDs); lowerBound += batchSize {
+			upperBound := min(lowerBound+batchSize, len(capabilitySetIDs))
+			batchCapabilitySetIDs := capabilitySetIDs[lowerBound:upperBound]
 
-			slog.Info(ks.Action.Name, "text", "Attaching capability sets to role in tenant", "rangeStart", lowerBound, "rangeEnd", upperBound, "total", len(capabilitySetIds), "role", roleName, "tenant", tenant)
+			slog.Info(ks.Action.Name, "text", "Attaching capability sets to role in tenant", "rangeStart", lowerBound, "rangeEnd", upperBound, "total", len(capabilitySetIDs), "role", roleName, "tenant", tenant)
 
-			b, err := json.Marshal(map[string]any{"roleId": mapEntry["id"].(string), "capabilitySetIds": batchCapabilitySetIds})
+			b, err := json.Marshal(map[string]any{
+				"roleId":           mapEntry["id"].(string),
+				"capabilitySetIds": batchCapabilitySetIDs,
+			})
 			if err != nil {
 				return err
 			}
@@ -119,7 +122,7 @@ func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenant string, accessToken st
 			}
 		}
 
-		slog.Info(ks.Action.Name, "text", "Attached capability sets to role in tenant", "count", len(capabilitySetIds), "role", roleName, "tenant", tenant)
+		slog.Info(ks.Action.Name, "text", "Attached capability sets to role in tenant", "count", len(capabilitySetIDs), "role", roleName, "tenant", tenant)
 	}
 
 	return nil

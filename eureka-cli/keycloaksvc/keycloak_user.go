@@ -82,12 +82,12 @@ func (ks *KeycloakSvc) CreateUsers(existingTenant string, accessToken string) er
 			return err
 		}
 
-		userId := createdUserMap["id"].(string)
+		userID := createdUserMap["id"].(string)
 
 		slog.Info(ks.Action.Name, "text", "Created user with password in tenant", "username", username, "password", password, "tenant", tenant)
 
 		userPasswordBytes, err := json.Marshal(map[string]any{
-			"userId":   userId,
+			"userId":   userID,
 			"username": username,
 			"password": password,
 		})
@@ -102,27 +102,27 @@ func (ks *KeycloakSvc) CreateUsers(existingTenant string, accessToken string) er
 
 		slog.Info(ks.Action.Name, "text", "Attached password to user in tenant", "password", password, "username", username, "tenant", tenant)
 
-		var roleIds []string
+		var roleIDs []string
 		for _, userRole := range userRoles {
 			role, err := ks.GetRoleByName(userRole.(string), okapiBasedHeaders)
 			if err != nil {
 				return err
 			}
 
-			roleId := role["id"].(string)
+			roleID := role["id"].(string)
 			roleName := role["name"].(string)
 
-			if roleId == "" {
+			if roleID == "" {
 				slog.Warn(ks.Action.Name, "text", "Did not find role by name", "role", roleName)
 				continue
 			}
 
-			roleIds = append(roleIds, roleId)
+			roleIDs = append(roleIDs, roleID)
 		}
 
 		userRoleBytes, err := json.Marshal(map[string]any{
-			"userId":  userId,
-			"roleIds": roleIds,
+			"userId":  userID,
+			"roleIds": roleIDs,
 		})
 		if err != nil {
 			return err
@@ -133,7 +133,7 @@ func (ks *KeycloakSvc) CreateUsers(existingTenant string, accessToken string) er
 			return err
 		}
 
-		slog.Info(ks.Action.Name, "text", "Attached roles to user in tenant", "roleCount", len(roleIds), "username", username, "tenant", tenant)
+		slog.Info(ks.Action.Name, "text", "Attached roles to user in tenant", "roleCount", len(roleIDs), "username", username, "tenant", tenant)
 	}
 
 	return nil

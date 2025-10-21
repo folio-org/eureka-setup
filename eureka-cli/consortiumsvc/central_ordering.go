@@ -28,7 +28,10 @@ func (cs *ConsortiumSvc) EnableCentralOrdering(centralTenant string, accessToken
 		constant.OkapiTokenHeader:  accessToken,
 	}
 
-	b, err := json.Marshal(map[string]any{"key": centralOrderingLookupKey, "value": "true"})
+	b, err := json.Marshal(map[string]any{
+		"key":   centralOrderingLookupKey,
+		"value": "true",
+	})
 	if err != nil {
 		return err
 	}

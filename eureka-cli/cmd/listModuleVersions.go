@@ -56,13 +56,13 @@ var listModuleVersionsCmd = &cobra.Command{
 func (r *Run) ListModuleVersions() error {
 	registryURL := viper.GetString(field.RegistryURL)
 	if rp.ID != "" {
-		return r.getModuleDescriptorById(registryURL)
+		return r.getModuleDescriptorByID(registryURL)
 	}
 
 	return r.listModuleVersionsSortedDescendingOrder(registryURL)
 }
 
-func (r *Run) getModuleDescriptorById(registryURL string) error {
+func (r *Run) getModuleDescriptorByID(registryURL string) error {
 	resp, err := r.Config.HTTPClient.GetReturnResponse(fmt.Sprintf("%s/_/proxy/modules/%s", registryURL, rp.ID), map[string]string{})
 	if err != nil {
 		return err

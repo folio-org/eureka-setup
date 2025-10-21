@@ -27,7 +27,7 @@ import (
 
 var (
 	withKongGateway      string
-	withTenantIds        []string
+	withTenantIDs        []string
 	withApplicationNames []string
 )
 
@@ -45,8 +45,8 @@ var purgeTenantsCmd = &cobra.Command{
 		slog.Info(run.Config.Action.Name, slog.String("text", "PURGING TENANTS"), slog.String("Using Kong Gateway", withKongGateway))
 
 		slog.Info(run.Config.Action.Name, "text", "Purging tenant entitlements")
-		for _, tenantId := range withTenantIds {
-			for key, value := range map[string][]string{tenantId: withApplicationNames} {
+		for _, tenantID := range withTenantIDs {
+			for key, value := range map[string][]string{tenantID: withApplicationNames} {
 				requestURL, err := url.JoinPath(withKongGateway, "/entitlements")
 				if err != nil {
 					return err
@@ -64,15 +64,15 @@ var purgeTenantsCmd = &cobra.Command{
 		}
 
 		slog.Info(run.Config.Action.Name, "text", "Purging tenants")
-		for _, tenantId := range withTenantIds {
-			requestURL, err := url.JoinPath(withKongGateway, "/tenants", tenantId)
+		for _, tenantID := range withTenantIDs {
+			requestURL, err := url.JoinPath(withKongGateway, "/tenants", tenantID)
 			if err != nil {
 				return err
 			}
 
 			_ = run.Config.HTTPClient.Delete(fmt.Sprintf("%s%s", requestURL, "?purgeKafkaTopics=true"), map[string]string{})
 
-			slog.Info(run.Config.Action.Name, "text", "Purged tenant", "tenant", tenantId)
+			slog.Info(run.Config.Action.Name, "text", "Purged tenant", "tenant", tenantID)
 		}
 
 		return nil
@@ -82,6 +82,6 @@ var purgeTenantsCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(purgeTenantsCmd)
 	purgeTenantsCmd.PersistentFlags().StringVarP(&withKongGateway, "gateway", "", "http://localhost:8000", "Kong Gateway")
-	purgeTenantsCmd.PersistentFlags().StringSliceVarP(&withTenantIds, "ids", "", []string{}, "Tenant ids")
+	purgeTenantsCmd.PersistentFlags().StringSliceVarP(&withTenantIDs, "ids", "", []string{}, "Tenant ids")
 	purgeTenantsCmd.PersistentFlags().StringSliceVarP(&withApplicationNames, "apps", "", []string{"app-combined-1.0.0"}, "Application names")
 }

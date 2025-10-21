@@ -9,7 +9,7 @@ import (
 )
 
 type InterceptModule struct {
-	Id                string
+	ID                string
 	ModuleName        string
 	ModuleUrl         *string
 	SidecarUrl        *string
@@ -40,7 +40,7 @@ func NewInterceptModule(
 
 	id = strings.ReplaceAll(id, ":", "-")
 	return &InterceptModule{
-		Id:         id,
+		ID:         id,
 		ModuleName: helpers.GetModuleNameFromID(id),
 		ModuleUrl:  &moduleURLTemp,
 		SidecarUrl: &sidecarURLTemp,

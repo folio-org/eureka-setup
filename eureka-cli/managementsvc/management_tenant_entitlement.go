@@ -38,7 +38,10 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 
 		applications := []string{fmt.Sprintf("%s-%s", applicationName, applicationVersion)}
 
-		b, err := json.Marshal(map[string]any{"tenantId": mapEntry["id"].(string), "applications": applications})
+		b, err := json.Marshal(map[string]any{
+			"tenantId":     mapEntry["id"].(string),
+			"applications": applications,
+		})
 		if err != nil {
 			return err
 		}
@@ -74,12 +77,15 @@ func (ms *ManagementSvc) RemoveTenantEntitlements(purgeSchemas bool, consortiumN
 			continue
 		}
 
-		tenantId := mapEntry["id"].(string)
+		tenantID := mapEntry["id"].(string)
 
 		var applications []string
 		applications = append(applications, fmt.Sprintf("%s-%s", applicationName, applicationVersion))
 
-		b, err := json.Marshal(map[string]any{"tenantId": tenantId, "applications": applications})
+		b, err := json.Marshal(map[string]any{
+			"tenantId":     tenantID,
+			"applications": applications,
+		})
 		if err != nil {
 			return err
 		}

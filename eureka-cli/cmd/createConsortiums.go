@@ -81,14 +81,14 @@ func (r *Run) CreateConsortium() error {
 		}
 
 		slog.Info(r.Config.Action.Name, "text", "CREATING CONSORTIUM", "consortium", consortium)
-		consortiumId, err := r.Config.ConsortiumSvc.CreateConsortium(centralTenant, keycloakAccessToken, consortium)
+		consortiumID, err := r.Config.ConsortiumSvc.CreateConsortium(centralTenant, keycloakAccessToken, consortium)
 		if err != nil {
 			return err
 		}
 
 		slog.Info(r.Config.Action.Name, "text", "ADDING TENANTS TO CONSORTIUM", "tenants", consortiumTenants, "tenantCount", len(consortiumTenants), "consortium", consortium)
 		adminUsername := r.Config.ConsortiumSvc.GetAdminUsername(centralTenant, consortiumUsers)
-		err = r.Config.ConsortiumSvc.CreateConsortiumTenants(centralTenant, keycloakAccessToken, consortiumId, consortiumTenants, adminUsername)
+		err = r.Config.ConsortiumSvc.CreateConsortiumTenants(centralTenant, keycloakAccessToken, consortiumID, consortiumTenants, adminUsername)
 		if err != nil {
 			return err
 		}
