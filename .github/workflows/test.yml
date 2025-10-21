@@ -101,7 +101,7 @@ jobs:
           only-new-issues: true
 
   go-trivy:
-    name: Go Security Scan (Lightweight)
+    name: Go Security Scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -110,7 +110,11 @@ jobs:
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
 
-      # Fast fail-first approach
+      - name: Download Go dependencies
+        working-directory: ./eureka-cli
+        run: go mod download
+
+      # Fast fail-first approach for HIGH/CRITICAL vulnerabilities
       - name: Quick scan for HIGH/CRITICAL vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
@@ -120,22 +124,21 @@ jobs:
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
 
-      # SARIF generation (only if quick scan passes)
-      - name: Generate detailed SARIF report
+      # Generate SARIF report (maintaining master branch compatibility)
+      - name: Run Trivy vulnerability scanner on Go dependencies
         uses: aquasecurity/trivy-action@master
         if: success() && github.actor != 'dependabot[bot]'
         with:
           scan-type: 'fs'
           scan-ref: './eureka-cli'
           format: 'sarif'
-          output: 'trivy-go-results.sarif'
+          output: 'trivy-results.sarif'
 
-      - name: Upload Go dependency scan to GitHub Security
+      - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v4
         if: always() && github.actor != 'dependabot[bot]'
         with:
-          sarif_file: 'trivy-go-results.sarif'
-          category: 'go-dependencies'
+          sarif_file: 'trivy-results.sarif'
 
   unit-tests:
     name: Unit Tests with Coverage
@@ -195,7 +198,7 @@ jobs:
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
-          file: ./eureka-cli/coverage.out
+          files: ./eureka-cli/coverage.out
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
