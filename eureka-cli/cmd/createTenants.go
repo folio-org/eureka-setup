@@ -44,7 +44,7 @@ var createTenantsCmd = &cobra.Command{
 
 func (r *Run) CreateTenants() error {
 	slog.Info(r.Config.Action.Name, "text", "CREATING TENANTS")
-	return r.Config.ManagementStep.CreateTenants()
+	return r.Config.ManagementSvc.CreateTenants()
 }
 
 func init() {

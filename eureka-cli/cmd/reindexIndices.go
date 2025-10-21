@@ -27,19 +27,19 @@ import (
 	"github.com/spf13/viper"
 )
 
-// reindexElasticsearchCmd represents the reindexElasticsearch command
-var reindexElasticsearchCmd = &cobra.Command{
-	Use:   "reindexElasticsearch",
+// reindexIndicesCmd represents the reindexIndices command
+var reindexIndicesCmd = &cobra.Command{
+	Use:   "reindexIndices",
 	Short: "Reindex elasticsearch",
 	Long:  `Reindex elasticsearch indices.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.ReindexElasticsearch)
+		r, err := New(action.ReindexIndices)
 		if err != nil {
 			return err
 		}
 
 		err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
-			return r.ReindexElasticsearch(consortiumName, tenantType)
+			return r.ReindexIndices(consortiumName, tenantType)
 		})
 		if err != nil {
 			return err
@@ -49,13 +49,13 @@ var reindexElasticsearchCmd = &cobra.Command{
 	},
 }
 
-func (r *Run) ReindexElasticsearch(consortiumName string, tenantType constant.TenantType) error {
+func (r *Run) ReindexIndices(consortiumName string, tenantType constant.TenantType) error {
 	vaultRootToken, err := r.GetVaultRootToken()
 	if err != nil {
 		return err
 	}
 
-	foundTenants, _ := r.Config.ManagementStep.GetTenants(consortiumName, tenantType)
+	foundTenants, _ := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
 
 	for _, value := range foundTenants {
 		mapEntry := value.(map[string]any)
@@ -70,18 +70,18 @@ func (r *Run) ReindexElasticsearch(consortiumName string, tenantType constant.Te
 			continue
 		}
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("REINDEXING ELASTICSEARCH FOR %s TENANT", existingTenant))
-		keycloakAccessToken, err := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		slog.Info(r.Config.Action.Name, "text", "REINDEXING INDICES FOR TENANT", "tenant", existingTenant)
+		keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(vaultRootToken, existingTenant)
 		if err != nil {
 			return err
 		}
 
-		err = r.Config.SearchStep.ReindexInventoryRecords(existingTenant, keycloakAccessToken)
+		err = r.Config.SearchSvc.ReindexInventoryRecords(existingTenant, keycloakAccessToken)
 		if err != nil {
 			return err
 		}
 
-		err = r.Config.SearchStep.ReindexInstanceRecords(existingTenant, keycloakAccessToken)
+		err = r.Config.SearchSvc.ReindexInstanceRecords(existingTenant, keycloakAccessToken)
 		if err != nil {
 			return err
 		}
@@ -91,5 +91,5 @@ func (r *Run) ReindexElasticsearch(consortiumName string, tenantType constant.Te
 }
 
 func init() {
-	rootCmd.AddCommand(reindexElasticsearchCmd)
+	rootCmd.AddCommand(reindexIndicesCmd)
 }

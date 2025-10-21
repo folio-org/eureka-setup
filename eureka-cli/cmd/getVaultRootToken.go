@@ -52,7 +52,7 @@ func (r *Run) GetVaultRootToken() (string, error) {
 	}
 	defer r.Config.DockerClient.Close(client)
 
-	vaultRootToken, err := r.Config.ModuleStep.GetVaultRootToken(client)
+	vaultRootToken, err := r.Config.ModuleSvc.GetVaultRootToken(client)
 	if err != nil {
 		return "", err
 	}
@@ -66,7 +66,7 @@ func (r *Run) GetVaultRootTokenWithDockerClient() (string, *client.Client, error
 		return "", nil, err
 	}
 
-	vaultRootToken, err := r.Config.ModuleStep.GetVaultRootToken(client)
+	vaultRootToken, err := r.Config.ModuleSvc.GetVaultRootToken(client)
 	if err != nil {
 		return "", nil, err
 	}

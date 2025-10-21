@@ -64,42 +64,42 @@ func (r *Run) CreateConsortium() error {
 		mapEntry := properties.(map[string]any)
 
 		if !helpers.GetBool(mapEntry, field.ConsortiumCreateConsortiumEntry) {
-			slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("IGNORING CREATION OF %s CONSORTIUM", consortium))
+			slog.Info(r.Config.Action.Name, "text", "IGNORING CREATION OF CONSORTIUM", "consortium", consortium)
 			continue
 		}
 
-		centralTenant := r.Config.ConsortiumStep.GetConsortiumCentralTenant(consortium, tenants)
+		centralTenant := r.Config.ConsortiumSvc.GetConsortiumCentralTenant(consortium, tenants)
 		if centralTenant == "" {
 			return fmt.Errorf("%s consortium does not contain a central tenant", consortium)
 		}
 
-		consortiumTenants := r.Config.ConsortiumStep.GetSortedConsortiumTenants(consortium, tenants)
-		consortiumUsers := r.Config.ConsortiumStep.GetConsortiumUsers(consortium, users)
-		keycloakAccessToken, err := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, centralTenant)
+		consortiumTenants := r.Config.ConsortiumSvc.GetSortedConsortiumTenants(consortium, tenants)
+		consortiumUsers := r.Config.ConsortiumSvc.GetConsortiumUsers(consortium, users)
+		keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(vaultRootToken, centralTenant)
 		if err != nil {
 			return err
 		}
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("CREATING %s CONSORTIUM", consortium))
-		consortiumId, err := r.Config.ConsortiumStep.CreateConsortium(centralTenant, keycloakAccessToken, consortium)
+		slog.Info(r.Config.Action.Name, "text", "CREATING CONSORTIUM", "consortium", consortium)
+		consortiumId, err := r.Config.ConsortiumSvc.CreateConsortium(centralTenant, keycloakAccessToken, consortium)
 		if err != nil {
 			return err
 		}
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("ADDING %s (%d) TENANTS TO %s CONSORTIUM", consortiumTenants, len(consortiumTenants), consortium))
-		adminUsername := r.Config.ConsortiumStep.GetAdminUsername(centralTenant, consortiumUsers)
-		err = r.Config.ConsortiumStep.CreateConsortiumTenants(centralTenant, keycloakAccessToken, consortiumId, consortiumTenants, adminUsername)
+		slog.Info(r.Config.Action.Name, "text", "ADDING TENANTS TO CONSORTIUM", "tenants", consortiumTenants, "tenantCount", len(consortiumTenants), "consortium", consortium)
+		adminUsername := r.Config.ConsortiumSvc.GetAdminUsername(centralTenant, consortiumUsers)
+		err = r.Config.ConsortiumSvc.CreateConsortiumTenants(centralTenant, keycloakAccessToken, consortiumId, consortiumTenants, adminUsername)
 		if err != nil {
 			return err
 		}
 
 		if !helpers.GetBool(mapEntry, field.ConsortiumEnableCentralOrderingEntry) {
-			slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("IGNORING ENABLEMENT OF CENTRAL ORDERING FOR %s TENANT IN %s CONSORTIUM", centralTenant, consortium))
+			slog.Info(r.Config.Action.Name, "text", "IGNORING ENABLEMENT OF CENTRAL ORDERING FOR TENANT IN CONSORTIUM", "tenant", centralTenant, "consortium", consortium)
 			continue
 		}
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("ENABLING CENTRAL ORDERING FOR %s TENANT IN %s CONSORTIUM", centralTenant, consortium))
-		err = r.Config.ConsortiumStep.EnableCentralOrdering(centralTenant, keycloakAccessToken)
+		slog.Info(r.Config.Action.Name, "text", "ENABLING CENTRAL ORDERING FOR TENANT IN CONSORTIUM", "tenant", centralTenant, "consortium", consortium)
+		err = r.Config.ConsortiumSvc.EnableCentralOrdering(centralTenant, keycloakAccessToken)
 		if err != nil {
 			return err
 		}

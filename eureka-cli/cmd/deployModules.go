@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -71,13 +70,13 @@ func (r *Run) DeployModules() error {
 		constant.FolioRegistry:  viper.GetString(field.InstallFolio),
 		constant.EurekaRegistry: viper.GetString(field.InstallEureka),
 	}
-	registryModules, err := r.Config.RegistryStep.GetModules(instalJsonURLs, true)
+	registryModules, err := r.Config.RegistrySvc.GetModules(instalJsonURLs, true)
 	if err != nil {
 		return err
 	}
 
 	slog.Info(r.Config.Action.Name, "text", "EXTRACTING MODULE NAME AND VERSION")
-	r.Config.RegistryStep.ExtractModuleNameAndVersion(registryModules, true)
+	r.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules, true)
 
 	vaultRootToken, client, err := r.GetVaultRootTokenWithDockerClient()
 	if err != nil {
@@ -88,7 +87,7 @@ func (r *Run) DeployModules() error {
 	slog.Info(r.Config.Action.Name, "text", "CREATING APPLICATIONS")
 	registryURLs := map[string]string{constant.FolioRegistry: registryURL, constant.EurekaRegistry: registryURL}
 	registerModuleExtract := models.NewRegistryModuleExtract(registryURLs, registryModules, backendModulesMap, frontendModulesMap)
-	err = r.Config.ManagementStep.CreateApplications(registerModuleExtract)
+	err = r.Config.ManagementSvc.CreateApplications(registerModuleExtract)
 	if err != nil {
 		return err
 	}
@@ -96,22 +95,22 @@ func (r *Run) DeployModules() error {
 	slog.Info(r.Config.Action.Name, "text", "PULLING SIDECAR IMAGE")
 	registryHosts := map[string]string{constant.FolioRegistry: "", constant.EurekaRegistry: ""}
 	containers := models.NewCoreAndBusinessContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, env, sidecarEnv)
-	sidecarImage, pullSidecarImage, err := r.Config.ModuleStep.GetSidecarImage(containers.RegistryModules[constant.EurekaRegistry])
+	sidecarImage, pullSidecarImage, err := r.Config.ModuleSvc.GetSidecarImage(containers.RegistryModules[constant.EurekaRegistry])
 	if err != nil {
 		return err
 	}
 
-	slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Using sidecar image %s", sidecarImage))
+	slog.Info(r.Config.Action.Name, "text", "Using sidecar image", "image", sidecarImage)
 	sidecarResources := helpers.CreateResources(false, viper.GetStringMap(field.SidecarModuleResources))
 	if pullSidecarImage {
-		err = r.Config.ModuleStep.PullModule(client, sidecarImage)
+		err = r.Config.ModuleSvc.PullModule(client, sidecarImage)
 		if err != nil {
 			return err
 		}
 	}
 
 	slog.Info(r.Config.Action.Name, "text", "DEPLOYING MODULES")
-	deployedModules, err := r.Config.ModuleStep.DeployModules(client, containers, sidecarImage, sidecarResources)
+	deployedModules, err := r.Config.ModuleSvc.DeployModules(client, containers, sidecarImage, sidecarResources)
 	if err != nil {
 		return err
 	}
@@ -123,7 +122,7 @@ func (r *Run) DeployModules() error {
 
 	wg.Add(len(deployedModules))
 	for deployedModule := range deployedModules {
-		go r.Config.ModuleStep.PerformModuleReadinessCheck(&wg, errCh, deployedModule, deployedModules[deployedModule])
+		go r.Config.ModuleSvc.PerformModuleReadinessCheck(&wg, errCh, deployedModule, deployedModules[deployedModule])
 	}
 	wg.Wait()
 	close(errCh)
@@ -134,7 +133,6 @@ func (r *Run) DeployModules() error {
 	default:
 	}
 
-	time.Sleep(constant.DeployModulesWait)
 	slog.Info(r.Config.Action.Name, "text", "All modules are ready")
 
 	return nil

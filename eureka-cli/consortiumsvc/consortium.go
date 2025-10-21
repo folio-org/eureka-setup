@@ -1,4 +1,4 @@
-package consortiumstep
+package consortiumsvc
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (cs *ConsortiumStep) GetConsortiumCentralTenant(consortiumName string, tenants map[string]any) string {
+func (cs *ConsortiumSvc) GetConsortiumCentralTenant(consortiumName string, tenants map[string]any) string {
 	for tenant, properties := range tenants {
 		if properties == nil || !cs.isValidConsortium(consortiumName, properties) || cs.getSortableIsCentral(properties.(map[string]any)) == 0 {
 			continue
@@ -23,7 +23,7 @@ func (cs *ConsortiumStep) GetConsortiumCentralTenant(consortiumName string, tena
 	return ""
 }
 
-func (cs *ConsortiumStep) getSortableIsCentral(mapEntry map[string]any) int {
+func (cs *ConsortiumSvc) getSortableIsCentral(mapEntry map[string]any) int {
 	if helpers.GetBool(mapEntry, field.TenantsCentralTenantEntry) {
 		return 1
 	}
@@ -31,11 +31,11 @@ func (cs *ConsortiumStep) getSortableIsCentral(mapEntry map[string]any) int {
 	return 0
 }
 
-func (cs *ConsortiumStep) isValidConsortium(consortiumName string, properties any) bool {
+func (cs *ConsortiumSvc) isValidConsortium(consortiumName string, properties any) bool {
 	return properties.(map[string]any)[field.TenantsConsortiumEntry] == consortiumName
 }
 
-func (cs *ConsortiumStep) CreateConsortium(centralTenant string, accessToken string, consortiumName string) (string, error) {
+func (cs *ConsortiumSvc) CreateConsortium(centralTenant string, accessToken string, consortiumName string) (string, error) {
 	consortiumMap, err := cs.GetConsortiumByName(centralTenant, accessToken, consortiumName)
 	if err != nil {
 		return "", err
@@ -44,7 +44,7 @@ func (cs *ConsortiumStep) CreateConsortium(centralTenant string, accessToken str
 	if consortiumMap != nil {
 		consortiumId := consortiumMap.(map[string]any)["id"].(string)
 
-		slog.Info(cs.Action.Name, "text", fmt.Sprintf("Consortium %s is already created", consortiumName))
+		slog.Info(cs.Action.Name, "text", "Consortium is already created", "consortium", consortiumName)
 
 		return consortiumId, nil
 	}
@@ -67,12 +67,12 @@ func (cs *ConsortiumStep) CreateConsortium(centralTenant string, accessToken str
 		return "", err
 	}
 
-	slog.Info(cs.Action.Name, "text", fmt.Sprintf("Created %s consortium", consortiumName))
+	slog.Info(cs.Action.Name, "text", "Created consortium", "consortium", consortiumName)
 
 	return consortiumId.String(), nil
 }
 
-func (cs *ConsortiumStep) GetConsortiumByName(centralTenant string, accessToken string, consortiumName string) (any, error) {
+func (cs *ConsortiumSvc) GetConsortiumByName(centralTenant string, accessToken string, consortiumName string) (any, error) {
 	requestURL := cs.Action.CreateURL(constant.KongPort, fmt.Sprintf("/consortia?query=name==%s", consortiumName))
 
 	headers := map[string]string{

@@ -13,11 +13,12 @@ const (
 	DeployApplicationPartitionWait    = 10 * time.Second
 	DeploySystemWait                  = 15 * time.Second
 	DeployAdditionalSystemWait        = 15 * time.Second
-	DeployManagementWait              = 5 * time.Second
-	DeployModulesWait                 = 5 * time.Second
+	DeployManagementWait              = 10 * time.Second
+	DeployModulesWait                 = 10 * time.Second
 	ModuleReadinessCheckWait          = 10 * time.Second
 	AttachCapabilitySetsPollWait      = 30 * time.Second
 	AttachCapabilitySetsRebalanceWait = 30 * time.Second
+	AttachCapabilitySetsTimeoutWait   = 30 * time.Second
 
 	// Vault client properties
 	VaultTimeout = 30 * time.Second
@@ -171,6 +172,7 @@ const (
 	ConsumerGroupSuffix = "mod-roles-keycloak-capability-group"
 	ErrNoActiveMembers  = "Consumer group 'folio-mod-roles-keycloak-capability-group' has no active members."
 	ErrRebalancing      = "Consumer group 'folio-mod-roles-keycloak-capability-group' is rebalancing."
+	ErrTimeoutException = "TimeoutException"
 
 	// Profile names
 	CombinedProfile  = "combined"

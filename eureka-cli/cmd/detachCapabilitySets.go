@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/action"
@@ -53,7 +52,7 @@ func (r *Run) DetachCapabilitySets(consortiumName string, tenantType constant.Te
 		return err
 	}
 
-	foundTenants, _ := r.Config.ManagementStep.GetTenants(consortiumName, tenantType)
+	foundTenants, _ := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
 
 	for _, value := range foundTenants {
 		mapEntry := value.(map[string]any)
@@ -63,13 +62,13 @@ func (r *Run) DetachCapabilitySets(consortiumName string, tenantType constant.Te
 			continue
 		}
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("DETACHING CAPABILITY SETS FROM ROLES FOR %s TENANT", existingTenant))
-		keycloakAccessToken, err := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		slog.Info(r.Config.Action.Name, "text", "DETACHING CAPABILITY SETS FROM ROLES FOR TENANT", "tenant", existingTenant)
+		keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(vaultRootToken, existingTenant)
 		if err != nil {
 			return err
 		}
 
-		_ = r.Config.KeycloakStep.DetachCapabilitySetsFromRoles(existingTenant, keycloakAccessToken)
+		_ = r.Config.KeycloakSvc.DetachCapabilitySetsFromRoles(existingTenant, keycloakAccessToken)
 	}
 
 	return nil

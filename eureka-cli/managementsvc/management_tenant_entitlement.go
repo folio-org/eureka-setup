@@ -1,4 +1,4 @@
-package managementstep
+package managementsvc
 
 import (
 	"encoding/json"
@@ -12,10 +12,10 @@ import (
 	"github.com/spf13/viper"
 )
 
-func (ms *ManagementStep) CreateTenantEntitlement(consortiumName string, tenantType constant.TenantType) error {
+func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantType constant.TenantType) error {
 	tenants := viper.GetStringMap(field.Tenants)
 
-	tenantParameters, err := ms.TenantStep.GetTenantParameters(consortiumName, tenants)
+	tenantParameters, err := ms.TenantSvc.GetTenantParameters(consortiumName, tenants)
 	if err != nil {
 		return err
 	}
@@ -48,13 +48,13 @@ func (ms *ManagementStep) CreateTenantEntitlement(consortiumName string, tenantT
 			return err
 		}
 
-		slog.Info(ms.Action.Name, "text", fmt.Sprintf("Created tenant entitlement for %s tenant (realm)", tenant))
+		slog.Info(ms.Action.Name, "text", "Created tenant entitlement for tenant", "tenant", tenant)
 	}
 
 	return nil
 }
 
-func (ms *ManagementStep) RemoveTenantEntitlements(purgeSchemas bool, consortiumName string, tenantType constant.TenantType) error {
+func (ms *ManagementSvc) RemoveTenantEntitlements(purgeSchemas bool, consortiumName string, tenantType constant.TenantType) error {
 	requestURL := ms.Action.CreateURL(constant.KongPort, fmt.Sprintf("/entitlements?purge=%t&ignoreErrors=false", purgeSchemas))
 	applicationMap := viper.GetStringMap(field.Application)
 	applicationName := applicationMap["name"].(string)
@@ -89,7 +89,7 @@ func (ms *ManagementStep) RemoveTenantEntitlements(purgeSchemas bool, consortium
 			return err
 		}
 
-		slog.Info(ms.Action.Name, "text", fmt.Sprintf("Removed tenant entitlement for %s tenant (realm)", tenant))
+		slog.Info(ms.Action.Name, "text", "Removed tenant entitlement for tenant", "tenant", tenant)
 	}
 
 	return nil

@@ -1,35 +1,35 @@
-package tenantstep
+package tenantsvc
 
 import (
 	"fmt"
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/consortiumstep"
+	"github.com/folio-org/eureka-cli/consortiumsvc"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/runparams"
 	"github.com/spf13/viper"
 )
 
-type TenantStep struct {
-	Action         *action.Action
-	ConsortiumStep *consortiumstep.ConsortiumStep
+type TenantSvc struct {
+	Action        *action.Action
+	ConsortiumSvc *consortiumsvc.ConsortiumSvc
 }
 
-func New(action *action.Action, consortiumStep *consortiumstep.ConsortiumStep) *TenantStep {
-	return &TenantStep{
-		Action:         action,
-		ConsortiumStep: consortiumStep,
+func New(action *action.Action, consortiumSvc *consortiumsvc.ConsortiumSvc) *TenantSvc {
+	return &TenantSvc{
+		Action:        action,
+		ConsortiumSvc: consortiumSvc,
 	}
 }
 
-func (ts *TenantStep) GetTenantParameters(consortiumName string, tenants map[string]any) (string, error) {
+func (ts *TenantSvc) GetTenantParameters(consortiumName string, tenants map[string]any) (string, error) {
 	if consortiumName == constant.NoneConsortium {
 		return "loadReference=true,loadSample=true", nil
 	}
 
-	centralTenant := ts.ConsortiumStep.GetConsortiumCentralTenant(consortiumName, tenants)
+	centralTenant := ts.ConsortiumSvc.GetConsortiumCentralTenant(consortiumName, tenants)
 	if centralTenant == "" {
 		return "", fmt.Errorf("%s consortium does not contain a central tenant", consortiumName)
 	}
@@ -37,7 +37,7 @@ func (ts *TenantStep) GetTenantParameters(consortiumName string, tenants map[str
 	return fmt.Sprintf("loadReference=true,loadSample=true,centralTenantId=%s", centralTenant), nil
 }
 
-func (ts *TenantStep) SetDefaultConfigTenantParams(rp *runparams.RunParams, tenant string) error {
+func (ts *TenantSvc) SetDefaultConfigTenantParams(rp *runparams.RunParams, tenant string) error {
 	tenants := viper.GetStringMap(field.Tenants)
 	if tenants == nil || tenants[tenant] == nil {
 		return fmt.Errorf("found not tenant in the config or by %s tenant", tenant)
@@ -54,8 +54,7 @@ func (ts *TenantStep) SetDefaultConfigTenantParams(rp *runparams.RunParams, tena
 		rp.PlatformCompleteURL = tenantMap[field.TenantsPlatformCompleteURLEntry].(string)
 	}
 
-	preparedParams := []any{tenant, rp.SingleTenant, rp.EnableECSRequests, rp.PlatformCompleteURL}
-	slog.Info(ts.Action.Name, "text", fmt.Sprintf("Setting default tenant config params, tenant: %s, singleTenant: %t, enableECSRequests: %t, platformCompleteURL: %s", preparedParams...))
+	slog.Info(ts.Action.Name, "text", "Setting default tenant config params", "tenant", tenant, "singleTenant", rp.SingleTenant, "enableECSRequests", rp.EnableECSRequests, "platformCompleteURL", rp.PlatformCompleteURL)
 
 	return nil
 }

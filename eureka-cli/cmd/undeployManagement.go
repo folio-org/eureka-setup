@@ -55,7 +55,7 @@ func (r *Run) UndeployManagement() error {
 	}
 	defer r.Config.DockerClient.Close(client)
 
-	err = r.Config.ModuleStep.UndeployModuleByNamePattern(client, constant.ManagementContainerPattern, true)
+	err = r.Config.ModuleSvc.UndeployModuleByNamePattern(client, constant.ManagementContainerPattern, true)
 	if err != nil {
 		return err
 	}

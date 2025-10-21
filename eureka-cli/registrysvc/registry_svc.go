@@ -1,4 +1,4 @@
-package registrystep
+package registrysvc
 
 import (
 	"encoding/base64"
@@ -22,22 +22,22 @@ import (
 	"github.com/spf13/viper"
 )
 
-type RegistryStep struct {
+type RegistrySvc struct {
 	Action     *action.Action
 	HTTPClient *httpclient.HTTPClient
 }
 
-func New(action *action.Action, httpClient *httpclient.HTTPClient) *RegistryStep {
-	return &RegistryStep{
+func New(action *action.Action, httpClient *httpclient.HTTPClient) *RegistrySvc {
+	return &RegistrySvc{
 		Action:     action,
 		HTTPClient: httpClient,
 	}
 }
 
-func (rs *RegistryStep) ExtractModuleNameAndVersion(registryModulesMap map[string][]*models.RegistryModule, printOutput bool) {
+func (rs *RegistrySvc) ExtractModuleNameAndVersion(registryModulesMap map[string][]*models.RegistryModule, printOutput bool) {
 	for registryName, registryModules := range registryModulesMap {
 		if printOutput {
-			slog.Info(rs.Action.Name, "text", fmt.Sprintf("Extracting %s registry module names and versions", registryName))
+			slog.Info(rs.Action.Name, "text", "Extracting registry module names and versions", "registry", registryName)
 		}
 
 		for moduleIndex, module := range registryModules {
@@ -59,7 +59,7 @@ func (rs *RegistryStep) ExtractModuleNameAndVersion(registryModulesMap map[strin
 	}
 }
 
-func (rs *RegistryStep) GetAuthTokenIfPresent() (string, error) {
+func (rs *RegistrySvc) GetAuthTokenIfPresent() (string, error) {
 	if os.Getenv(constant.ECRRepositoryEnv) == "" {
 		return "", nil
 	}
@@ -93,7 +93,7 @@ func (rs *RegistryStep) GetAuthTokenIfPresent() (string, error) {
 	return encodedAuth, nil
 }
 
-func (rs *RegistryStep) GetModules(installJsonURLs map[string]string, printOutput bool) (map[string][]*models.RegistryModule, error) {
+func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, printOutput bool) (map[string][]*models.RegistryModule, error) {
 	registryModulesMap := make(map[string][]*models.RegistryModule)
 
 	for registryName, installJsonURL := range installJsonURLs {
@@ -128,7 +128,7 @@ func (rs *RegistryStep) GetModules(installJsonURLs map[string]string, printOutpu
 
 		if len(registryModules) > 0 {
 			if printOutput {
-				slog.Info(rs.Action.Name, "text", fmt.Sprintf("Read %s registry with %d modules", registryName, len(registryModules)))
+				slog.Info(rs.Action.Name, "text", "Read registry with modules", "registry", registryName, "moduleCount", len(registryModules))
 			}
 
 			sort.Slice(registryModules, func(i, j int) bool {
@@ -149,10 +149,10 @@ func (rs *RegistryStep) GetModules(installJsonURLs map[string]string, printOutpu
 	return registryModulesMap, nil
 }
 
-func (rs *RegistryStep) GetNamespace(version string) string {
+func (rs *RegistrySvc) GetNamespace(version string) string {
 	namespace := os.Getenv(constant.ECRRepositoryEnv)
 	if namespace != "" {
-		slog.Info(rs.Action.Name, "text", fmt.Sprintf("Using AWS ECR registry namespace: %s", namespace))
+		slog.Info(rs.Action.Name, "text", "Using AWS ECR registry namespace", "namespace", namespace)
 
 		return namespace
 	}

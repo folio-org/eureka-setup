@@ -1,8 +1,7 @@
-package searchstep
+package searchsvc
 
 import (
 	"encoding/json"
-	"fmt"
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/action"
@@ -10,19 +9,19 @@ import (
 	"github.com/folio-org/eureka-cli/httpclient"
 )
 
-type SearchStep struct {
+type SearchSvc struct {
 	Action     *action.Action
 	HTTPClient *httpclient.HTTPClient
 }
 
-func New(action *action.Action, httpClient *httpclient.HTTPClient) *SearchStep {
-	return &SearchStep{
+func New(action *action.Action, httpClient *httpclient.HTTPClient) *SearchSvc {
+	return &SearchSvc{
 		Action:     action,
 		HTTPClient: httpClient,
 	}
 }
 
-func (ss *SearchStep) ReindexInventoryRecords(tenant string, accessToken string) error {
+func (ss *SearchSvc) ReindexInventoryRecords(tenant string, accessToken string) error {
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.ApplicationJSON,
 		constant.OkapiTenantHeader: tenant,
@@ -39,29 +38,30 @@ func (ss *SearchStep) ReindexInventoryRecords(tenant string, accessToken string)
 
 		reindexJobMap, err := ss.HTTPClient.PostReturnMapStringAny(ss.Action.CreateURL(constant.KongPort, "/search/index/inventory/reindex"), b, headers)
 		if err != nil {
-			return err
+			slog.Warn(ss.Action.Name, "text", err)
+			continue
 		}
 
 		if reindexJobMap["errors"] != nil {
 			errorType := reindexJobMap["errors"].([]any)[0].(map[string]any)["type"]
-			slog.Warn(ss.Action.Name, "text", fmt.Sprintf("failed to reindex inventory records for %s tenant and %s record with error type %s", tenant, record, errorType))
+			slog.Warn(ss.Action.Name, "text", "Failed to reindex inventory records with error type", "tenant", tenant, "record", record, "errorType", errorType)
 			continue
 		}
 		if len(reindexJobMap) == 0 {
-			slog.Warn(ss.Action.Name, "text", fmt.Sprintf("failed to reindex inventory records for %s tenant and %s record with no response", tenant, record))
+			slog.Warn(ss.Action.Name, "text", "Failed to reindex inventory records with no response", "tenant", tenant, "record", record)
 			continue
 		}
 
 		jobId := reindexJobMap["id"]
 		jobStatus := reindexJobMap["jobStatus"]
 
-		slog.Info(ss.Action.Name, "text", fmt.Sprintf("reindexed inventory records for %s tenant and %s record with %s job id and %s status", tenant, record, jobId, jobStatus))
+		slog.Info(ss.Action.Name, "text", "Reindexed inventory records", "tenant", tenant, "record", record, "jobId", jobId, "jobStatus", jobStatus)
 	}
 
 	return nil
 }
 
-func (ss *SearchStep) ReindexInstanceRecords(tenant string, accessToken string) error {
+func (ss *SearchSvc) ReindexInstanceRecords(tenant string, accessToken string) error {
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.ApplicationJSON,
 		constant.OkapiTenantHeader: tenant,
@@ -78,7 +78,7 @@ func (ss *SearchStep) ReindexInstanceRecords(tenant string, accessToken string) 
 		return err
 	}
 
-	slog.Info(ss.Action.Name, "text", fmt.Sprintf("Reindexed instance records for %s tenant", tenant))
+	slog.Info(ss.Action.Name, "text", "Reindexed instance records for tenant", "tenant", tenant)
 
 	return nil
 }

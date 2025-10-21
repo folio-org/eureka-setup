@@ -1,4 +1,4 @@
-package consortiumstep
+package consortiumsvc
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 	"github.com/folio-org/eureka-cli/constant"
 )
 
-func (cs *ConsortiumStep) EnableCentralOrdering(centralTenant string, accessToken string) error {
+func (cs *ConsortiumSvc) EnableCentralOrdering(centralTenant string, accessToken string) error {
 	centralOrderingLookupKey := "ALLOW_ORDERING_WITH_AFFILIATED_LOCATIONS"
 
 	enableCentralOrdering, err := cs.getEnableCentralOrderingByKey(centralTenant, accessToken, centralOrderingLookupKey)
@@ -18,7 +18,7 @@ func (cs *ConsortiumStep) EnableCentralOrdering(centralTenant string, accessToke
 	}
 
 	if enableCentralOrdering {
-		slog.Info(cs.Action.Name, "text", fmt.Sprintf("central ordering for %s tenant is already enabled", centralTenant))
+		slog.Info(cs.Action.Name, "text", "Central ordering for tenant is already enabled", "tenant", centralTenant)
 		return nil
 	}
 
@@ -38,12 +38,12 @@ func (cs *ConsortiumStep) EnableCentralOrdering(centralTenant string, accessToke
 		return err
 	}
 
-	slog.Info(cs.Action.Name, "text", fmt.Sprintf("Enabled central ordering for %s tenant", centralTenant))
+	slog.Info(cs.Action.Name, "text", "Enabled central ordering for tenant", "tenant", centralTenant)
 
 	return nil
 }
 
-func (cs *ConsortiumStep) getEnableCentralOrderingByKey(centralTenant string, accessToken string, key string) (bool, error) {
+func (cs *ConsortiumSvc) getEnableCentralOrderingByKey(centralTenant string, accessToken string, key string) (bool, error) {
 	requestURL := cs.Action.CreateURL(constant.KongPort, fmt.Sprintf("/orders-storage/settings?query=key==%s", key))
 
 	headers := map[string]string{

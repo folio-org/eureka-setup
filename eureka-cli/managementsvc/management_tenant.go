@@ -1,4 +1,4 @@
-package managementstep
+package managementsvc
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func (ms *ManagementStep) GetTenants(consortiumName string, tenantType constant.TenantType) ([]any, error) {
+func (ms *ManagementSvc) GetTenants(consortiumName string, tenantType constant.TenantType) ([]any, error) {
 	requestURL := ms.Action.CreateURL(constant.KongPort, "/tenants")
 	if tenantType != constant.All {
 		requestURL += fmt.Sprintf("?query=description==%s-%s", consortiumName, tenantType)
@@ -30,7 +30,7 @@ func (ms *ManagementStep) GetTenants(consortiumName string, tenantType constant.
 	return foundTenantsMap["tenants"].([]any), nil
 }
 
-func (ms *ManagementStep) CreateTenants() error {
+func (ms *ManagementSvc) CreateTenants() error {
 	requestURL := ms.Action.CreateURL(constant.KongPort, "/tenants")
 	foundTenants := viper.GetStringMap(field.Tenants)
 
@@ -59,13 +59,13 @@ func (ms *ManagementStep) CreateTenants() error {
 			return err
 		}
 
-		slog.Info(ms.Action.Name, "text", fmt.Sprintf("Created %s tenant (realm) %s description", tenant, description))
+		slog.Info(ms.Action.Name, "text", "Created tenant with description", "tenant", tenant, "description", description)
 	}
 
 	return nil
 }
 
-func (ms *ManagementStep) RemoveTenants(consortiumName string, tenantType constant.TenantType) error {
+func (ms *ManagementSvc) RemoveTenants(consortiumName string, tenantType constant.TenantType) error {
 	foundTenants, err := ms.GetTenants(consortiumName, tenantType)
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func (ms *ManagementStep) RemoveTenants(consortiumName string, tenantType consta
 
 		_ = ms.HTTPClient.Delete(requestURL, map[string]string{})
 
-		slog.Info(ms.Action.Name, "text", fmt.Sprintf("Removed %s tenant (realm)", tenant))
+		slog.Info(ms.Action.Name, "text", "Removed tenant", "tenant", tenant)
 	}
 
 	return nil

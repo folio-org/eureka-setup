@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"fmt"
 	"log/slog"
 	"strconv"
 
@@ -101,7 +100,7 @@ func AppendAdditionalRequiredContainers(action *action.Action, initialRequiredCo
 		initialRequiredContainers = append(initialRequiredContainers, extraContainers...)
 	}
 	if len(initialRequiredContainers) > 0 {
-		slog.Info(action.Name, "text", fmt.Sprintf("Retrieved required containers: %s", initialRequiredContainers))
+		slog.Info(action.Name, "text", "Retrieved required containers", "containers", initialRequiredContainers)
 	}
 
 	return initialRequiredContainers

@@ -1,4 +1,4 @@
-package uistep
+package uisvc
 
 import (
 	"fmt"
@@ -12,32 +12,32 @@ import (
 	"github.com/folio-org/eureka-cli/gitclient"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/runparams"
-	"github.com/folio-org/eureka-cli/tenantstep"
+	"github.com/folio-org/eureka-cli/tenantsvc"
 )
 
-type UIStep struct {
+type UISvc struct {
 	Action       *action.Action
 	GitClient    *gitclient.GitClient
 	DockerClient *dockerclient.DockerClient
-	TenantStep   *tenantstep.TenantStep
+	TenantSvc    *tenantsvc.TenantSvc
 }
 
 func New(
 	action *action.Action,
 	gitClient *gitclient.GitClient,
 	dockerClient *dockerclient.DockerClient,
-	tenantStep *tenantstep.TenantStep,
-) *UIStep {
+	tenantSvc *tenantsvc.TenantSvc,
+) *UISvc {
 
-	return &UIStep{
+	return &UISvc{
 		Action:       action,
 		GitClient:    gitClient,
 		DockerClient: dockerClient,
-		TenantStep:   tenantStep,
+		TenantSvc:    tenantSvc,
 	}
 }
 
-func (us *UIStep) CloneAndUpdateUIRepository(updateCloned bool) (outputDir string, err error) {
+func (us *UISvc) CloneAndUpdateUIRepository(updateCloned bool) (outputDir string, err error) {
 	slog.Info(us.Action.Name, "text", "CLONING & UPDATING PLATFORM COMPLETE UI REPOSITORY")
 	branch := us.GetStripesBranch()
 	repository, err := us.GitClient.PlatformCompleteRepository(branch)
@@ -60,7 +60,7 @@ func (us *UIStep) CloneAndUpdateUIRepository(updateCloned bool) (outputDir strin
 	return repository.Dir, nil
 }
 
-func (us *UIStep) PrepareUIImage(rp *runparams.RunParams, tenant string) (finalImageName string, err error) {
+func (us *UISvc) PrepareUIImage(rp *runparams.RunParams, tenant string) (finalImageName string, err error) {
 	imageName := fmt.Sprintf("platform-complete-ui-%s", tenant)
 	if rp.BuildImages {
 		outputDir, err := us.CloneAndUpdateUIRepository(rp.UpdateCloned)
@@ -79,7 +79,7 @@ func (us *UIStep) PrepareUIImage(rp *runparams.RunParams, tenant string) (finalI
 	return finalImageName, nil
 }
 
-func (us *UIStep) BuildImage(rp *runparams.RunParams, outputDir string, tenant string) (finalImageName string, err error) {
+func (us *UISvc) BuildImage(rp *runparams.RunParams, outputDir string, tenant string) (finalImageName string, err error) {
 	finalImageName = fmt.Sprintf("platform-complete-ui-%s", tenant)
 
 	slog.Info(us.Action.Name, "text", "Copying UI configs")
@@ -116,8 +116,8 @@ func (us *UIStep) BuildImage(rp *runparams.RunParams, outputDir string, tenant s
 	return finalImageName, nil
 }
 
-func (us *UIStep) DeployContainer(tenant string, imageName string, externalPort int) error {
-	slog.Info(us.Action.Name, "text", fmt.Sprintf("Deploying UI container for %s tenant", tenant))
+func (us *UISvc) DeployContainer(tenant string, imageName string, externalPort int) error {
+	slog.Info(us.Action.Name, "text", "Deploying UI container for tenant", "tenant", tenant)
 	containerName := fmt.Sprintf("eureka-platform-complete-ui-%s", tenant)
 
 	err := helpers.Exec(exec.Command("docker", "run", "--name", containerName,
@@ -134,7 +134,7 @@ func (us *UIStep) DeployContainer(tenant string, imageName string, externalPort 
 		return err
 	}
 
-	slog.Info(us.Action.Name, "text", fmt.Sprintf("Connecting UI container for %s tenant to %s network", tenant, constant.NetworkID))
+	slog.Info(us.Action.Name, "text", "Connecting UI container for tenant to network", "tenant", tenant, "network", constant.NetworkID)
 	err = helpers.Exec(exec.Command("docker", "network", "connect", constant.NetworkID, containerName))
 	if err != nil {
 		return err

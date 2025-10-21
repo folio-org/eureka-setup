@@ -1,4 +1,4 @@
-package managementstep
+package managementsvc
 
 import (
 	"encoding/json"
@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func (ms *ManagementStep) GetApplications() (models.Applications, error) {
+func (ms *ManagementSvc) GetApplications() (models.Applications, error) {
 	requestURL := ms.Action.CreateURL(constant.KongPort, "/applications")
 
 	resp, err := ms.HTTPClient.GetReturnResponse(requestURL, map[string]string{})
@@ -38,7 +38,7 @@ func (ms *ManagementStep) GetApplications() (models.Applications, error) {
 	return applications, nil
 }
 
-func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtract) error {
+func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtract) error {
 	var (
 		backendModules            []map[string]string
 		frontendModules           []map[string]string
@@ -54,7 +54,7 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 	applicationPlatform := applicationMap["platform"].(string)
 	applicationFetchDescriptors := applicationMap["fetch-descriptors"].(bool)
 
-	applicationId := fmt.Sprintf("%s-%s", applicationName, applicationVersion)
+	applicationID := fmt.Sprintf("%s-%s", applicationName, applicationVersion)
 
 	if applicationMap["dependencies"] != nil {
 		dependencies = applicationMap["dependencies"].(map[string]any)
@@ -62,7 +62,7 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 
 	for registryName, registryModules := range extract.RegistryModules {
 		if len(registryModules) > 0 {
-			slog.Info(ms.Action.Name, "text", fmt.Sprintf("Including %s modules to %s application", registryName, applicationId))
+			slog.Info(ms.Action.Name, "text", "Including modules to application", "registry", registryName, "application", applicationID)
 		}
 
 		for _, module := range registryModules {
@@ -91,7 +91,7 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 
 			if applicationFetchDescriptors || isLocalModule {
 				if isLocalModule {
-					slog.Info(ms.Action.Name, "text", fmt.Sprintf("Fetching local module descriptor for %s from file path", module.Id))
+					slog.Info(ms.Action.Name, "text", "Fetching local module descriptor from file path", "module", module.Id)
 
 					var descriptor map[string]any
 					err := helpers.ReadJsonFromFile(ms.Action, backendModule.LocalDescriptorPath, &descriptor)
@@ -101,10 +101,10 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 
 					extract.ModuleDescriptorsMap[module.Id] = descriptor
 
-					slog.Info(ms.Action.Name, "text", fmt.Sprintf("Successfully loaded descriptor for %s from local file", module.Id))
+					slog.Info(ms.Action.Name, "text", "Successfully loaded descriptor from local file", "module", module.Id)
 				} else {
-					slog.Info(ms.Action.Name, "text", fmt.Sprintf("Fetching module descriptor for %s from %s", module.Id, moduleDescriptorUrl))
-					moduleDescriptorsMapResp, err := ms.HTTPClient.GetDecodeReturnAny(moduleDescriptorUrl, map[string]string{})
+					slog.Info(ms.Action.Name, "text", "Fetching module descriptor from URL", "module", module.Id, "url", moduleDescriptorUrl)
+					moduleDescriptorsMapResp, err := ms.HTTPClient.GetRetryDecodeReturnAny(moduleDescriptorUrl, map[string]string{})
 					if err != nil {
 						return err
 					}
@@ -115,7 +115,11 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 
 			if okBackend {
 				serverPort := strconv.Itoa(backendModule.ModuleServerPort)
-				backendModule := map[string]string{"id": module.Id, "name": module.Name, "version": *module.Version}
+				backendModule := map[string]string{
+					"id":      module.Id,
+					"name":    module.Name,
+					"version": *module.Version,
+				}
 
 				if applicationFetchDescriptors || isLocalModule {
 					backendModuleDescriptors = append(backendModuleDescriptors, extract.ModuleDescriptorsMap[module.Id])
@@ -134,7 +138,11 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 					"location": sidecarUrl,
 				})
 			} else if okFrontend {
-				frontendModule := map[string]string{"id": module.Id, "name": module.Name, "version": *module.Version}
+				frontendModule := map[string]string{
+					"id":      module.Id,
+					"name":    module.Name,
+					"version": *module.Version,
+				}
 				if applicationFetchDescriptors {
 					frontendModuleDescriptors = append(frontendModuleDescriptors, extract.ModuleDescriptorsMap[module.Id])
 				} else {
@@ -144,12 +152,12 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 				frontendModules = append(frontendModules, frontendModule)
 			}
 
-			slog.Info(ms.Action.Name, "text", fmt.Sprintf("Including %s:%s module into %s application", module.Name, *module.Version, applicationId))
+			slog.Info(ms.Action.Name, "text", "Including module into application", "module", module.Name, "version", *module.Version, "application", applicationID)
 		}
 	}
 
 	applicationBytes, err := json.Marshal(map[string]any{
-		"id":                  applicationId,
+		"id":                  applicationID,
 		"name":                applicationName,
 		"version":             applicationVersion,
 		"description":         "Default",
@@ -169,7 +177,7 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 		return err
 	}
 
-	slog.Info(ms.Action.Name, "text", fmt.Sprintf("Created %s application", applicationId))
+	slog.Info(ms.Action.Name, "text", "Created application", "application", applicationID)
 
 	if len(discoveryModules) > 0 {
 		applicationDiscoveryBytes, err := json.Marshal(map[string]any{"discovery": discoveryModules})
@@ -183,20 +191,18 @@ func (ms *ManagementStep) CreateApplications(extract *models.RegistryModuleExtra
 		}
 	}
 
-	slog.Info(ms.Action.Name, "text", fmt.Sprintf("Created %d entries of application module discovery", len(discoveryModules)))
+	slog.Info(ms.Action.Name, "text", "Created entries of application module discovery", "count", len(discoveryModules))
 
 	return nil
 }
 
-func (ms *ManagementStep) RemoveApplication(applicationId string) {
-	requestURL := ms.Action.CreateURL(constant.KongPort, fmt.Sprintf("/applications/%s", applicationId))
-
-	_ = ms.HTTPClient.Delete(requestURL, map[string]string{})
-
-	slog.Info(ms.Action.Name, "text", fmt.Sprintf("Removed %s application", applicationId))
+func (ms *ManagementSvc) RemoveApplication(applicationId string) {
+	url := ms.Action.CreateURL(constant.KongPort, fmt.Sprintf("/applications/%s", applicationId))
+	ms.HTTPClient.Delete(url, map[string]string{})
+	slog.Info(ms.Action.Name, "text", "Removed application", "application", applicationId)
 }
 
-func (ms *ManagementStep) UpdateModuleDiscovery(id string, sidecarUrl string, restore bool, portServer string) error {
+func (ms *ManagementSvc) UpdateModuleDiscovery(id string, sidecarUrl string, restore bool, portServer string) error {
 	id = strings.ReplaceAll(id, ":", "-")
 	name := helpers.GetModuleNameFromID(id)
 	if sidecarUrl == "" || restore {
@@ -224,7 +230,7 @@ func (ms *ManagementStep) UpdateModuleDiscovery(id string, sidecarUrl string, re
 		return err
 	}
 
-	slog.Info(ms.Action.Name, "text", fmt.Sprintf("Updated application module discovery for %s module with %s sidecar URL", name, sidecarUrl))
+	slog.Info(ms.Action.Name, "text", "Updated application module discovery with sidecar URL", "module", name, "sidecarUrl", sidecarUrl)
 
 	return nil
 }

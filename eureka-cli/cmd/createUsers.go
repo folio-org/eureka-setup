@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/action"
@@ -53,7 +52,7 @@ func (r *Run) CreateUsers(consortiumName string, tenantType constant.TenantType)
 		return err
 	}
 
-	foundTenants, _ := r.Config.ManagementStep.GetTenants(consortiumName, tenantType)
+	foundTenants, _ := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
 
 	for _, value := range foundTenants {
 		mapEntry := value.(map[string]any)
@@ -63,13 +62,13 @@ func (r *Run) CreateUsers(consortiumName string, tenantType constant.TenantType)
 			continue
 		}
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("CREATING USERS FOR %s TENANT", existingTenant))
-		keycloakAccessToken, err := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		slog.Info(r.Config.Action.Name, "text", "CREATING USERS FOR TENANT", "tenant", existingTenant)
+		keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(vaultRootToken, existingTenant)
 		if err != nil {
 			return err
 		}
 
-		err = r.Config.KeycloakStep.CreateUsers(existingTenant, keycloakAccessToken)
+		err = r.Config.KeycloakSvc.CreateUsers(existingTenant, keycloakAccessToken)
 		if err != nil {
 			return err
 		}

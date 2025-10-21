@@ -18,9 +18,6 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	"os/exec"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/folio-org/eureka-cli/action"
@@ -54,7 +51,7 @@ func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.Te
 		return err
 	}
 
-	foundTenants, _ := r.Config.ManagementStep.GetTenants(consortiumName, tenantType)
+	foundTenants, _ := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
 
 	for _, value := range foundTenants {
 		mapEntry := value.(map[string]any)
@@ -73,13 +70,13 @@ func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.Te
 			return err
 		}
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("ATTACHING CAPABILITY SETS TO ROLES FOR %s TENANT", existingTenant))
-		keycloakAccessToken, err := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		slog.Info(r.Config.Action.Name, "text", "ATTACHING CAPABILITY SETS TO ROLES FOR TENANT", "tenant", existingTenant)
+		keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(vaultRootToken, existingTenant)
 		if err != nil {
 			return err
 		}
 
-		err = r.Config.KeycloakStep.AttachCapabilitySetsToRoles(existingTenant, keycloakAccessToken)
+		err = r.Config.KeycloakSvc.AttachCapabilitySetsToRoles(existingTenant, keycloakAccessToken)
 		if err != nil {
 			return err
 		}
@@ -90,50 +87,40 @@ func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.Te
 
 func (r *Run) pollCapabilitySetsCreation(tenant string) error {
 	consumerGroup := fmt.Sprintf("%s-%s", viper.GetString(field.EnvFolio), constant.ConsumerGroupSuffix)
+	maxRetries := 10
+	retryCount := 0
+
+	slog.Info(r.Config.Action.Name, "text", "Checking Kafka readiness before polling consumer groups")
+	if err := r.Config.KafkaSvc.CheckReadiness(); err != nil {
+		slog.Info(r.Config.Action.Name, "text", "Kafka not fully ready, proceeding with polling", "error", err)
+	}
 
 	var lag int
 	for {
-		lag, err := r.getConsumerGroupLag(tenant, consumerGroup, lag)
+		lag, err := r.Config.KafkaSvc.GetConsumerGroupLag(tenant, consumerGroup, lag)
 		if err != nil {
-			return err
+			retryCount++
+			if retryCount >= maxRetries {
+				return fmt.Errorf("max retries (%d) exceeded while polling consumer group %s: %w", maxRetries, consumerGroup, err)
+			}
+
+			slog.Info(r.Config.Action.Name, "text", "Retry: Error polling consumer group, retrying", "retryCount", retryCount, "maxRetries", maxRetries, "waitSeconds", constant.AttachCapabilitySetsRebalanceWait.Seconds())
+			time.Sleep(constant.AttachCapabilitySetsRebalanceWait)
+			continue
 		}
 
+		retryCount = 0
 		if lag == 0 {
 			break
 		}
 
-		slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Waiting for %.1f sec for %s consumer group to process, lag: %d", constant.AttachCapabilitySetsPollWait.Seconds(), consumerGroup, lag))
+		slog.Info(r.Config.Action.Name, "text", "Waiting for consumer group to process", "waitSeconds", constant.AttachCapabilitySetsPollWait.Seconds(), "consumerGroup", consumerGroup, "lag", lag)
 		time.Sleep(constant.AttachCapabilitySetsPollWait)
 	}
-	slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Consumer group %s has no new message to process", consumerGroup))
+
+	slog.Info(r.Config.Action.Name, "text", "Consumer group has no new message to process", "consumerGroup", consumerGroup)
 
 	return nil
-}
-
-func (r *Run) getConsumerGroupLag(tenant string, consumerGroup string, initialLag int) (lag int, err error) {
-	stdout, stderr, err := helpers.ExecReturnOutput(exec.Command("docker", "exec", "-i", "kafka-tools", "bash", "-c",
-		fmt.Sprintf("kafka-consumer-groups.sh --bootstrap-server %s --describe --group %s | grep %s | awk '{print $6}'", constant.KafkaTCP, consumerGroup, tenant)))
-	if err != nil {
-		return initialLag, err
-	}
-
-	if stderr.Len() > 0 {
-		if strings.Contains(stderr.String(), constant.ErrNoActiveMembers) || strings.Contains(stderr.String(), constant.ErrRebalancing) {
-			time.Sleep(constant.AttachCapabilitySetsRebalanceWait)
-			return initialLag, nil
-		}
-
-		return 0, fmt.Errorf("failed to execute a container command, stderr: %+v", stderr.String())
-	}
-
-	lag, err = strconv.Atoi(helpers.GetKafkaConsumerLagFromLogLine(stdout))
-	if err != nil {
-		slog.Error(r.Config.Action.Name, "error", err)
-
-		return initialLag, nil
-	}
-
-	return lag, nil
 }
 
 func init() {

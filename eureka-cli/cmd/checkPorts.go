@@ -88,7 +88,7 @@ func (r *Run) getDeployedModules() ([]container.Summary, error) {
 	defer r.Config.DockerClient.Close(client)
 
 	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(constant.ProfileContainerPattern, viper.GetString(field.ProfileName))})
-	containers, err := r.Config.ModuleStep.GetDeployedModules(client, filters)
+	containers, err := r.Config.ModuleSvc.GetDeployedModules(client, filters)
 	if err != nil {
 		return nil, err
 	}

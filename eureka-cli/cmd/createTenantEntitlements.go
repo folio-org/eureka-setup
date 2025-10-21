@@ -47,7 +47,7 @@ var createTenantEntitlementsCmd = &cobra.Command{
 
 func (r *Run) CreateTenantEntitlements(consortiumName string, tenantType constant.TenantType) error {
 	slog.Info(r.Config.Action.Name, "text", "CREATING TENANT ENTITLEMENTS")
-	return r.Config.ManagementStep.CreateTenantEntitlement(consortiumName, tenantType)
+	return r.Config.ManagementSvc.CreateTenantEntitlement(consortiumName, tenantType)
 }
 
 func init() {

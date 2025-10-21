@@ -1,4 +1,4 @@
-package keycloakstep
+package keycloaksvc
 
 import (
 	"encoding/json"
@@ -10,32 +10,32 @@ import (
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/httpclient"
-	"github.com/folio-org/eureka-cli/managementstep"
+	managementsvc "github.com/folio-org/eureka-cli/managementsvc"
 	"github.com/folio-org/eureka-cli/vaultclient"
 )
 
-type KeycloakStep struct {
-	Action         *action.Action
-	HTTPClient     *httpclient.HTTPClient
-	VaultClient    *vaultclient.VaultClient
-	ManagementStep *managementstep.ManagementStep
+type KeycloakSvc struct {
+	Action        *action.Action
+	HTTPClient    *httpclient.HTTPClient
+	VaultClient   *vaultclient.VaultClient
+	ManagementSvc *managementsvc.ManagementSvc
 }
 
 func New(
 	action *action.Action,
 	httpClient *httpclient.HTTPClient,
 	vaultClient *vaultclient.VaultClient,
-	managementStep *managementstep.ManagementStep,
-) *KeycloakStep {
-	return &KeycloakStep{
-		Action:         action,
-		HTTPClient:     httpClient,
-		VaultClient:    vaultClient,
-		ManagementStep: managementStep,
+	managementSvc *managementsvc.ManagementSvc,
+) *KeycloakSvc {
+	return &KeycloakSvc{
+		Action:        action,
+		HTTPClient:    httpClient,
+		VaultClient:   vaultClient,
+		ManagementSvc: managementSvc,
 	}
 }
 
-func (ks *KeycloakStep) GetKeycloakAccessToken(vaultRootToken string, tenant string) (string, error) {
+func (ks *KeycloakSvc) GetKeycloakAccessToken(vaultRootToken string, tenant string) (string, error) {
 	client, err := ks.VaultClient.Create()
 	if err != nil {
 		return "", err
@@ -72,7 +72,7 @@ func (ks *KeycloakStep) GetKeycloakAccessToken(vaultRootToken string, tenant str
 	return tokensMap["access_token"].(string), nil
 }
 
-func (ks *KeycloakStep) GetKeycloakMasterAccessToken() (string, error) {
+func (ks *KeycloakSvc) GetKeycloakMasterAccessToken() (string, error) {
 	requestURL := fmt.Sprintf("%s/realms/master/protocol/openid-connect/token", constant.KeycloakHTTP)
 
 	headers := map[string]string{
@@ -97,7 +97,7 @@ func (ks *KeycloakStep) GetKeycloakMasterAccessToken() (string, error) {
 	return tokensMap["access_token"].(string), nil
 }
 
-func (ks *KeycloakStep) UpdateKeycloakPublicClientParams(tenant string, accessToken string, url string) error {
+func (ks *KeycloakSvc) UpdateKeycloakPublicClientParams(tenant string, accessToken string, url string) error {
 	headers := map[string]string{
 		constant.ContentTypeHeader:   constant.ApplicationJSON,
 		constant.AuthorizationHeader: fmt.Sprintf("Bearer %s", accessToken),
@@ -105,7 +105,7 @@ func (ks *KeycloakStep) UpdateKeycloakPublicClientParams(tenant string, accessTo
 
 	clientID := fmt.Sprintf("%s%s", tenant, helpers.GetConfigEnv("KC_LOGIN_CLIENT_SUFFIX"))
 	getRequestURL := fmt.Sprintf("%s/admin/realms/%s/clients?clientId=%s", constant.KeycloakHTTP, tenant, clientID)
-	foundClientsResp, err := ks.HTTPClient.GetDecodeReturnAny(getRequestURL, headers)
+	foundClientsResp, err := ks.HTTPClient.GetRetryDecodeReturnAny(getRequestURL, headers)
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func (ks *KeycloakStep) UpdateKeycloakPublicClientParams(tenant string, accessTo
 		return err
 	}
 
-	slog.Info(ks.Action.Name, "text", fmt.Sprintf("Updated keycloak public %s client in %s realm", clientID, tenant))
+	slog.Info(ks.Action.Name, "text", "Updated keycloak public client in realm", "client", clientID, "realm", tenant)
 
 	return nil
 }

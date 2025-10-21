@@ -47,7 +47,7 @@ var deployUiCmd = &cobra.Command{
 func (r *Run) DeployUi() error {
 	slog.Info(r.Config.Action.Name, "text", "DEPLOYING UI")
 
-	foundTenants, _ := r.Config.ManagementStep.GetTenants(constant.NoneConsortium, constant.All)
+	foundTenants, _ := r.Config.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
 
 	for _, value := range foundTenants {
 		existingTenant := value.(map[string]any)["name"].(string)
@@ -55,12 +55,12 @@ func (r *Run) DeployUi() error {
 			continue
 		}
 
-		err := r.Config.TenantStep.SetDefaultConfigTenantParams(&rp, existingTenant)
+		err := r.Config.TenantSvc.SetDefaultConfigTenantParams(&rp, existingTenant)
 		if err != nil {
 			return err
 		}
 
-		finalImageName, err := r.Config.UIStep.PrepareUIImage(&rp, existingTenant)
+		finalImageName, err := r.Config.UISvc.PrepareUIImage(&rp, existingTenant)
 		if err != nil {
 			return err
 		}
@@ -70,7 +70,7 @@ func (r *Run) DeployUi() error {
 			return err
 		}
 
-		err = r.Config.UIStep.DeployContainer(existingTenant, finalImageName, externalPort)
+		err = r.Config.UISvc.DeployContainer(existingTenant, finalImageName, externalPort)
 		if err != nil {
 			return err
 		}

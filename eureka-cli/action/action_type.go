@@ -26,7 +26,7 @@ const (
 	ListModuleVersions          = "List Module Versions"
 	ListSystem                  = "List System"
 	PurgeTenants                = "Purge Tenants"
-	ReindexElasticsearch        = "Reindex Elasticsearch"
+	ReindexIndices              = "Reindex Indices"
 	RemoveRoles                 = "Remove Roles"
 	RemoveTenantEntitlements    = "Remove Tenant Entitlements"
 	RemoveTenants               = "Remove Tenants"

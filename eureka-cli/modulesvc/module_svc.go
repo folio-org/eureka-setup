@@ -35,7 +35,7 @@ type ModuleSvc struct {
 	Action       *action.Action
 	HTTPClient   *httpclient.HTTPClient
 	DockerClient *dockerclient.DockerClient
-	RegistryStep *registrysvc.RegistrySvc
+	RegistrySvc  *registrysvc.RegistrySvc
 }
 
 type SidecarRequest struct {
@@ -52,14 +52,14 @@ func New(
 	action *action.Action,
 	httpClient *httpclient.HTTPClient,
 	dockerClient *dockerclient.DockerClient,
-	registryStep *registrysvc.RegistrySvc,
+	registrySvc *registrysvc.RegistrySvc,
 ) *ModuleSvc {
 
 	return &ModuleSvc{
 		Action:       action,
 		HTTPClient:   httpClient,
 		DockerClient: dockerClient,
-		RegistryStep: registryStep,
+		RegistrySvc:  registrySvc,
 	}
 }
 
@@ -98,7 +98,7 @@ func (ms *ModuleSvc) GetVaultRootToken(client *client.Client) (string, error) {
 func (ms *ModuleSvc) PerformModuleReadinessCheck(wg *sync.WaitGroup, errCh chan<- error, moduleName string, port int) {
 	defer wg.Done()
 
-	slog.Info(ms.Action.Name, "text", "Waiting module", "module", moduleName, "port", port)
+	slog.Info(ms.Action.Name, "text", "Waiting module on port", "module", moduleName, "port", port)
 
 	requestURL := ms.Action.CreateURL(strconv.Itoa(port), "/admin/health")
 	retries := constant.ModuleReadinessMaxRetries
@@ -262,7 +262,7 @@ func (ms *ModuleSvc) GetSidecarImage(registryModules []*models.RegistryModule) (
 		return fmt.Sprintf("%s:%s", localImage.(string), sidecarImageVersion), false, nil
 	}
 
-	namespace := ms.RegistryStep.GetNamespace(sidecarImageVersion)
+	namespace := ms.RegistrySvc.GetNamespace(sidecarImageVersion)
 	image := sidecarModule[field.SidecarModuleImageEntry]
 	return fmt.Sprintf("%s/%s", namespace, fmt.Sprintf("%s:%s", image.(string), sidecarImageVersion)), true, nil
 }
@@ -291,7 +291,7 @@ func (ms *ModuleSvc) findSidecarRegistryVersion(registryModules []*models.Regist
 }
 
 func (ms *ModuleSvc) GetModuleImage(moduleVersion string, registryModule *models.RegistryModule) string {
-	return fmt.Sprintf("%s/%s:%s", ms.RegistryStep.GetNamespace(moduleVersion), registryModule.Name, moduleVersion)
+	return fmt.Sprintf("%s/%s:%s", ms.RegistrySvc.GetNamespace(moduleVersion), registryModule.Name, moduleVersion)
 }
 
 func (ms *ModuleSvc) GetModuleEnv(myContainer *models.Containers, module *models.RegistryModule, backendModule models.BackendModule) []string {
@@ -360,7 +360,7 @@ func (ms *ModuleSvc) getContainerName(myContainer *models.Container) string {
 }
 
 func (ms *ModuleSvc) PullModule(client *client.Client, imageName string) error {
-	registryAuthToken, err := ms.RegistryStep.GetAuthTokenIfPresent()
+	registryAuthToken, err := ms.RegistrySvc.GetAuthTokenIfPresent()
 	if err != nil {
 		return err
 	}

@@ -43,18 +43,18 @@ var buildAndPushUiCmd = &cobra.Command{
 func (r *Run) BuildAndPushUi() error {
 	start := time.Now()
 
-	err := r.Config.TenantStep.SetDefaultConfigTenantParams(&rp, rp.Tenant)
+	err := r.Config.TenantSvc.SetDefaultConfigTenantParams(&rp, rp.Tenant)
 	if err != nil {
 		return err
 	}
 
 	slog.Info(r.Config.Action.Name, "text", "BUILDING AND PUSHING PLATFORM COMPLETE UI IMAGE TO DOCKER HUB")
-	outputDir, err := r.Config.UIStep.CloneAndUpdateUIRepository(rp.UpdateCloned)
+	outputDir, err := r.Config.UISvc.CloneAndUpdateUIRepository(rp.UpdateCloned)
 	if err != nil {
 		return err
 	}
 
-	imageName, err := r.Config.UIStep.BuildImage(&rp, outputDir, rp.Tenant)
+	imageName, err := r.Config.UISvc.BuildImage(&rp, outputDir, rp.Tenant)
 	if err != nil {
 		return err
 	}

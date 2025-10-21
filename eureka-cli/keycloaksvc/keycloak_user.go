@@ -1,4 +1,4 @@
-package keycloakstep
+package keycloaksvc
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func (ks *KeycloakStep) GetUsers(tenant string, accessToken string) ([]any, error) {
+func (ks *KeycloakSvc) GetUsers(tenant string, accessToken string) ([]any, error) {
 	requestURL := ks.Action.CreateURL(constant.KongPort, "/users?offset=0&limit=10000")
 
 	headers := map[string]string{
@@ -31,7 +31,7 @@ func (ks *KeycloakStep) GetUsers(tenant string, accessToken string) ([]any, erro
 	return foundUsersMap["users"].([]any), nil
 }
 
-func (ks *KeycloakStep) CreateUsers(existingTenant string, accessToken string) error {
+func (ks *KeycloakSvc) CreateUsers(existingTenant string, accessToken string) error {
 	postUserRequestURL := ks.Action.CreateURL(constant.KongPort, "/users-keycloak/users")
 	postUserPasswordRequestURL := ks.Action.CreateURL(constant.KongPort, "/authn/credentials")
 	postUserRoleRequestURL := ks.Action.CreateURL(constant.KongPort, "/roles/users")
@@ -84,9 +84,13 @@ func (ks *KeycloakStep) CreateUsers(existingTenant string, accessToken string) e
 
 		userId := createdUserMap["id"].(string)
 
-		slog.Info(ks.Action.Name, "text", fmt.Sprintf("Created %s user with password %s in %s tenant (realm)", username, password, tenant))
+		slog.Info(ks.Action.Name, "text", "Created user with password in tenant", "username", username, "password", password, "tenant", tenant)
 
-		userPasswordBytes, err := json.Marshal(map[string]any{"userId": userId, "username": username, "password": password})
+		userPasswordBytes, err := json.Marshal(map[string]any{
+			"userId":   userId,
+			"username": username,
+			"password": password,
+		})
 		if err != nil {
 			return err
 		}
@@ -96,7 +100,7 @@ func (ks *KeycloakStep) CreateUsers(existingTenant string, accessToken string) e
 			return err
 		}
 
-		slog.Info(ks.Action.Name, "text", fmt.Sprintf("Attached %s password to %s user in %s tenant (realm)", password, username, tenant))
+		slog.Info(ks.Action.Name, "text", "Attached password to user in tenant", "password", password, "username", username, "tenant", tenant)
 
 		var roleIds []string
 		for _, userRole := range userRoles {
@@ -109,14 +113,17 @@ func (ks *KeycloakStep) CreateUsers(existingTenant string, accessToken string) e
 			roleName := role["name"].(string)
 
 			if roleId == "" {
-				slog.Warn(ks.Action.Name, "text", fmt.Sprintf("did not find role %s by name", roleName))
+				slog.Warn(ks.Action.Name, "text", "Did not find role by name", "role", roleName)
 				continue
 			}
 
 			roleIds = append(roleIds, roleId)
 		}
 
-		userRoleBytes, err := json.Marshal(map[string]any{"userId": userId, "roleIds": roleIds})
+		userRoleBytes, err := json.Marshal(map[string]any{
+			"userId":  userId,
+			"roleIds": roleIds,
+		})
 		if err != nil {
 			return err
 		}
@@ -126,13 +133,13 @@ func (ks *KeycloakStep) CreateUsers(existingTenant string, accessToken string) e
 			return err
 		}
 
-		slog.Info(ks.Action.Name, "text", fmt.Sprintf("Attached %d roles to %s user in %s tenant (realm)", len(roleIds), username, tenant))
+		slog.Info(ks.Action.Name, "text", "Attached roles to user in tenant", "roleCount", len(roleIds), "username", username, "tenant", tenant)
 	}
 
 	return nil
 }
 
-func (ks *KeycloakStep) RemoveUsers(tenant string, accessToken string) error {
+func (ks *KeycloakSvc) RemoveUsers(tenant string, accessToken string) error {
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.ApplicationJSON,
 		constant.OkapiTenantHeader: tenant,
@@ -157,7 +164,7 @@ func (ks *KeycloakStep) RemoveUsers(tenant string, accessToken string) error {
 
 		_ = ks.HTTPClient.Delete(requestURL, headers)
 
-		slog.Info(ks.Action.Name, "text", fmt.Sprintf("Removed %s in %s tenant (realm)", username, tenant))
+		slog.Info(ks.Action.Name, "text", "Removed user in tenant", "username", username, "tenant", tenant)
 	}
 
 	return nil

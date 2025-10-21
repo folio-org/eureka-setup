@@ -46,7 +46,7 @@ var removeTenantEntitlementsCmd = &cobra.Command{
 
 func (r *Run) RemoveTenantEntitlements(consortiumName string, tenantType constant.TenantType) error {
 	slog.Info(r.Config.Action.Name, "text", "REMOVING TENANT ENTITLEMENTS")
-	return r.Config.ManagementStep.RemoveTenantEntitlements(rp.PurgeSchemas, consortiumName, tenantType)
+	return r.Config.ManagementSvc.RemoveTenantEntitlements(rp.PurgeSchemas, consortiumName, tenantType)
 }
 
 func init() {

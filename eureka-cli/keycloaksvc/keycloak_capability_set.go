@@ -1,4 +1,4 @@
-package keycloakstep
+package keycloaksvc
 
 import (
 	"encoding/json"
@@ -13,10 +13,10 @@ import (
 	"golang.org/x/text/language"
 )
 
-func (ks *KeycloakStep) GetCapabilitySets(headers map[string]string) ([]any, error) {
+func (ks *KeycloakSvc) GetCapabilitySets(headers map[string]string) ([]any, error) {
 	var foundCapabilitySets []any
 
-	applications, err := ks.ManagementStep.GetApplications()
+	applications, err := ks.ManagementSvc.GetApplications()
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func (ks *KeycloakStep) GetCapabilitySets(headers map[string]string) ([]any, err
 	return foundCapabilitySets, nil
 }
 
-func (ks *KeycloakStep) GetCapabilitySetsByName(headers map[string]string, capabilitySetName string) ([]any, error) {
+func (ks *KeycloakSvc) GetCapabilitySetsByName(headers map[string]string, capabilitySetName string) ([]any, error) {
 	requestURL := ks.Action.CreateURL(constant.KongPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", capabilitySetName))
 
 	foundCapabilitySetsMap, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
@@ -56,7 +56,7 @@ func (ks *KeycloakStep) GetCapabilitySetsByName(headers map[string]string, capab
 	return foundCapabilitySetsMap["capabilitySets"].([]any), nil
 }
 
-func (ks *KeycloakStep) AttachCapabilitySetsToRoles(tenant string, accessToken string) error {
+func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenant string, accessToken string) error {
 	requestURL := ks.Action.CreateURL(constant.KongPort, "/roles/capability-sets")
 
 	headers := map[string]string{
@@ -74,7 +74,7 @@ func (ks *KeycloakStep) AttachCapabilitySetsToRoles(tenant string, accessToken s
 	}
 
 	if len(foundRoles) == 0 {
-		slog.Info(ks.Action.Name, "text", fmt.Sprintf("Cannot attach capability sets, found no roles in %s tenant (realm)", tenant))
+		slog.Info(ks.Action.Name, "text", "Cannot attach capability sets, found no roles in tenant", "tenant", tenant)
 		return nil
 	}
 
@@ -97,7 +97,7 @@ func (ks *KeycloakStep) AttachCapabilitySetsToRoles(tenant string, accessToken s
 		}
 
 		if len(capabilitySetIds) == 0 {
-			slog.Info(ks.Action.Name, "text", fmt.Sprintf("No capability sets were attached to %s role in %s tenant (realm)", roleName, tenant))
+			slog.Info(ks.Action.Name, "text", "No capability sets were attached to role in tenant", "role", roleName, "tenant", tenant)
 			continue
 		}
 
@@ -106,26 +106,26 @@ func (ks *KeycloakStep) AttachCapabilitySetsToRoles(tenant string, accessToken s
 			upperBound := min(lowerBound+batchSize, len(capabilitySetIds))
 			batchCapabilitySetIds := capabilitySetIds[lowerBound:upperBound]
 
-			slog.Info(ks.Action.Name, "text", fmt.Sprintf("Attaching %d-%d (total: %d) capability sets to %s role in %s tenant (realm)", lowerBound, upperBound, len(capabilitySetIds), roleName, tenant))
+			slog.Info(ks.Action.Name, "text", "Attaching capability sets to role in tenant", "rangeStart", lowerBound, "rangeEnd", upperBound, "total", len(capabilitySetIds), "role", roleName, "tenant", tenant)
 
 			b, err := json.Marshal(map[string]any{"roleId": mapEntry["id"].(string), "capabilitySetIds": batchCapabilitySetIds})
 			if err != nil {
 				return err
 			}
 
-			err = ks.HTTPClient.RetryPostReturnNoContent(requestURL, b, headers)
+			err = ks.HTTPClient.PostRetryReturnNoContent(requestURL, b, headers)
 			if err != nil {
 				return err
 			}
 		}
 
-		slog.Info(ks.Action.Name, "text", fmt.Sprintf("Attached %d capability sets to %s role in %s tenant (realm)", len(capabilitySetIds), roleName, tenant))
+		slog.Info(ks.Action.Name, "text", "Attached capability sets to role in tenant", "count", len(capabilitySetIds), "role", roleName, "tenant", tenant)
 	}
 
 	return nil
 }
 
-func (ks *KeycloakStep) populateCapabilitySets(headers map[string]string, capabilitySetNames []any) ([]string, error) {
+func (ks *KeycloakSvc) populateCapabilitySets(headers map[string]string, capabilitySetNames []any) ([]string, error) {
 	var capabilitySets = []string{}
 	if len(capabilitySetNames) == 0 {
 		return capabilitySets, nil
@@ -159,7 +159,7 @@ func (ks *KeycloakStep) populateCapabilitySets(headers map[string]string, capabi
 	return capabilitySets, nil
 }
 
-func (ks *KeycloakStep) DetachCapabilitySetsFromRoles(tenant string, accessToken string) error {
+func (ks *KeycloakSvc) DetachCapabilitySetsFromRoles(tenant string, accessToken string) error {
 	headers := map[string]string{
 		constant.ContentTypeHeader: constant.ApplicationJSON,
 		constant.OkapiTenantHeader: tenant,
@@ -175,7 +175,7 @@ func (ks *KeycloakStep) DetachCapabilitySetsFromRoles(tenant string, accessToken
 	}
 
 	if len(foundRoles) == 0 {
-		slog.Info(ks.Action.Name, "text", fmt.Sprintf("Cannot detach capability sets, found no roles in %s tenant (realm)", tenant))
+		slog.Info(ks.Action.Name, "text", "Cannot detach capability sets, found no roles in tenant", "tenant", tenant)
 		return nil
 	}
 
@@ -191,7 +191,7 @@ func (ks *KeycloakStep) DetachCapabilitySetsFromRoles(tenant string, accessToken
 
 		_ = ks.HTTPClient.Delete(requestURL, headers)
 
-		slog.Info(ks.Action.Name, "text", fmt.Sprintf("Detached capability sets from %s role in %s tenant (realm)", roleName, tenant))
+		slog.Info(ks.Action.Name, "text", "Detached capability sets from role in tenant", "role", roleName, "tenant", tenant)
 	}
 
 	return nil

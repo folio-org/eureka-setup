@@ -44,7 +44,7 @@ var removeTenantsCmd = &cobra.Command{
 
 func (r *Run) RemoveTenants(consortiumName string, tenantType constant.TenantType) {
 	slog.Info(r.Config.Action.Name, "text", "REMOVING TENANTS")
-	_ = r.Config.ManagementStep.RemoveTenants(consortiumName, tenantType)
+	_ = r.Config.ManagementSvc.RemoveTenants(consortiumName, tenantType)
 }
 
 func init() {

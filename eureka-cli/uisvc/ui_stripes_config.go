@@ -1,4 +1,4 @@
-package uistep
+package uisvc
 
 import (
 	"fmt"
@@ -15,21 +15,21 @@ import (
 	"github.com/spf13/viper"
 )
 
-func (us *UIStep) GetStripesBranch() plumbing.ReferenceName {
+func (us *UISvc) GetStripesBranch() plumbing.ReferenceName {
 	if viper.IsSet(field.ApplicationStripesBranch) {
 		branchStr := viper.GetString(field.ApplicationStripesBranch)
 		stripesBranch := plumbing.ReferenceName(branchStr)
 
-		slog.Info(us.Action.Name, "text", fmt.Sprintf("Found stripes branch in config: %s", stripesBranch))
+		slog.Info(us.Action.Name, "text", "Found stripes branch in config", "branch", stripesBranch)
 
 		return stripesBranch
 	}
-	slog.Info(us.Action.Name, "text", fmt.Sprintf("No stripes branch is defined in config, using default branch: %s", constant.StripesBranch))
+	slog.Info(us.Action.Name, "text", "No stripes branch is defined in config, using default branch", "defaultBranch", constant.StripesBranch)
 
 	return constant.StripesBranch
 }
 
-func (us *UIStep) PrepareStripesConfigJS(rp *runparams.RunParams, configPath string, tenant string) error {
+func (us *UISvc) PrepareStripesConfigJS(rp *runparams.RunParams, configPath string, tenant string) error {
 	stripesConfigJSFilePath := fmt.Sprintf("%s/stripes.config.js", configPath)
 
 	readFileBytes, err := os.ReadFile(stripesConfigJSFilePath)
@@ -50,7 +50,7 @@ func (us *UIStep) PrepareStripesConfigJS(rp *runparams.RunParams, configPath str
 	var newReadFileStr = string(readFileBytes)
 	for key, value := range replaceMap {
 		if !strings.Contains(newReadFileStr, key) {
-			slog.Info(us.Action.Name, "text", fmt.Sprintf("Key not found in stripes.config.js: %s", key))
+			slog.Info(us.Action.Name, "text", "Key not found in stripes.config.js", "key", key)
 			continue
 		}
 

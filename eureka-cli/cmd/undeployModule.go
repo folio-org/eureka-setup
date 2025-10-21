@@ -56,7 +56,7 @@ func (r *Run) UndeployModule() error {
 	}
 	defer r.Config.DockerClient.Close(client)
 
-	err = r.Config.ModuleStep.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, viper.GetString(field.ProfileName), rp.ModuleName), true)
+	err = r.Config.ModuleSvc.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, viper.GetString(field.ProfileName), rp.ModuleName), true)
 	if err != nil {
 		return err
 	}

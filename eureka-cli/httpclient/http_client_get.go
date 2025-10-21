@@ -11,23 +11,8 @@ func (hc *HTTPClient) GetReturnResponse(url string, headers map[string]string) (
 	return hc.doRequest(http.MethodGet, url, nil, headers, false)
 }
 
-func (hc *HTTPClient) GetDecodeReturnString(url string, headers map[string]string) (string, error) {
-	resp, err := hc.doRequest(http.MethodGet, url, nil, headers, false)
-	if err != nil {
-		return "", err
-	}
-	defer CloseResponse(resp)
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	return string(body), nil
-}
-
-func (hc *HTTPClient) GetDecodeReturnAny(url string, headers map[string]string) (any, error) {
-	resp, err := hc.doRequest(http.MethodGet, url, nil, headers, false)
+func (hc *HTTPClient) GetRetryDecodeReturnAny(url string, headers map[string]string) (any, error) {
+	resp, err := hc.doRequest(http.MethodGet, url, nil, headers, true)
 	if err != nil {
 		return nil, err
 	}

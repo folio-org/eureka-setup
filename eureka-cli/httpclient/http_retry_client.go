@@ -20,7 +20,9 @@ func createRetryClient() *retryablehttp.Client {
 		if shouldRetry {
 			return true, checkErr
 		}
-		if resp != nil && (resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode == http.StatusServiceUnavailable) {
+		if resp != nil && (resp.StatusCode == http.StatusTooManyRequests ||
+			resp.StatusCode == http.StatusServiceUnavailable ||
+			resp.StatusCode == http.StatusNotFound) {
 			return true, nil
 		}
 

@@ -56,7 +56,7 @@ var interceptModuleCmd = &cobra.Command{
 func (r *Run) InterceptModule() error {
 	myModule := models.NewInterceptModule(r.Config.Action, rp.ID, rp.DefaultGateway, rp.ModuleURL, rp.SidecarURL, viper.GetInt(field.ApplicationPortStart), viper.GetInt(field.ApplicationPortEnd))
 
-	slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("INTERCEPTING %s MODULE", myModule.ModuleName))
+	slog.Info(r.Config.Action.Name, "text", "INTERCEPTING MODULE", "module", myModule.ModuleName)
 	globalEnv := helpers.GetConfigEnvVars(field.Env)
 	globalSidecarEnv := helpers.GetConfigEnvVars(field.SidecarModuleEnv)
 	backendModulesMap, err := r.Config.ModuleParams.GetBackendModulesFromConfig(false, false, viper.GetStringMap(field.BackendModules))
@@ -68,12 +68,12 @@ func (r *Run) InterceptModule() error {
 		constant.FolioRegistry:  viper.GetString(field.InstallFolio),
 		constant.EurekaRegistry: viper.GetString(field.InstallEureka),
 	}
-	registryModules, err := r.Config.RegistryStep.GetModules(instalJsonURLs, false)
+	registryModules, err := r.Config.RegistrySvc.GetModules(instalJsonURLs, false)
 	if err != nil {
 		return err
 	}
 
-	r.Config.RegistryStep.ExtractModuleNameAndVersion(registryModules, false)
+	r.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules, false)
 
 	vaultRootToken, client, err := r.GetVaultRootTokenWithDockerClient()
 	if err != nil {
@@ -82,7 +82,7 @@ func (r *Run) InterceptModule() error {
 	defer r.Config.DockerClient.Close(client)
 
 	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING DEFAULT MODULE AND SIDECAR PAIR")
-	err = r.Config.ModuleStep.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, viper.GetString(field.ProfileName), myModule.ModuleName), false)
+	err = r.Config.ModuleSvc.UndeployModuleByNamePattern(client, fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, viper.GetString(field.ProfileName), myModule.ModuleName), false)
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func (r *Run) deployDefaultModuleAndSidecar(myModule *models.InterceptModule, cl
 	errCh := make(chan error, 1)
 
 	wg.Add(1)
-	go r.Config.ModuleStep.PerformModuleReadinessCheck(&wg, errCh, myModule.ModuleName, myModule.BackendModule.ModuleExposedServerPort)
+	go r.Config.ModuleSvc.PerformModuleReadinessCheck(&wg, errCh, myModule.ModuleName, myModule.BackendModule.ModuleExposedServerPort)
 	wg.Wait()
 	close(errCh)
 
@@ -170,7 +170,7 @@ func (r *Run) prepareContainerNetwork(myModule *models.InterceptModule, moduleAn
 			return err
 		}
 
-		myModule.BackendModule, myModule.RegistryModule = r.Config.ModuleStep.GetBackendModule(myModule.Containers, myModule.ModuleName)
+		myModule.BackendModule, myModule.RegistryModule = r.Config.ModuleSvc.GetBackendModule(myModule.Containers, myModule.ModuleName)
 		myModule.BackendModule.ModulePortBindings = helpers.CreatePortBindings(moduleServerPort, moduleDebugPort, myModule.BackendModule.ModuleServerPort)
 		myModule.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, myModule.BackendModule.ModuleServerPort)
 		myModule.BackendModule.ModuleExposedServerPort = moduleServerPort
@@ -190,19 +190,19 @@ func (r *Run) prepareContainerNetwork(myModule *models.InterceptModule, moduleAn
 
 	myModule.SidecarServerPort = sidecarServerPort
 
-	myModule.BackendModule, myModule.RegistryModule = r.Config.ModuleStep.GetBackendModule(myModule.Containers, myModule.ModuleName)
+	myModule.BackendModule, myModule.RegistryModule = r.Config.ModuleSvc.GetBackendModule(myModule.Containers, myModule.ModuleName)
 	myModule.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, myModule.BackendModule.ModuleServerPort)
 
 	return nil
 }
 
 func (r *Run) deployModule(myModule *models.InterceptModule, client *client.Client) error {
-	moduleVersion := r.Config.ModuleStep.GetModuleImageVersion(*myModule.BackendModule, myModule.RegistryModule)
-	moduleImage := r.Config.ModuleStep.GetModuleImage(moduleVersion, myModule.RegistryModule)
-	moduleEnv := r.Config.ModuleStep.GetModuleEnv(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule)
+	moduleVersion := r.Config.ModuleSvc.GetModuleImageVersion(*myModule.BackendModule, myModule.RegistryModule)
+	moduleImage := r.Config.ModuleSvc.GetModuleImage(moduleVersion, myModule.RegistryModule)
+	moduleEnv := r.Config.ModuleSvc.GetModuleEnv(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule)
 	moduleContainer := models.NewModuleContainer(myModule.RegistryModule.Name, moduleImage, moduleEnv, *myModule.BackendModule, myModule.NetworkConfig)
 
-	err := r.Config.ModuleStep.DeployModule(client, moduleContainer)
+	err := r.Config.ModuleSvc.DeployModule(client, moduleContainer)
 	if err != nil {
 		return err
 	}
@@ -211,23 +211,23 @@ func (r *Run) deployModule(myModule *models.InterceptModule, client *client.Clie
 }
 
 func (r *Run) deploySidecar(printModuleEnv bool, myModule *models.InterceptModule, client *client.Client) error {
-	sidecarImage, pullSidecarImage, err := r.Config.ModuleStep.GetSidecarImage(myModule.Containers.RegistryModules[constant.EurekaRegistry])
+	sidecarImage, pullSidecarImage, err := r.Config.ModuleSvc.GetSidecarImage(myModule.Containers.RegistryModules[constant.EurekaRegistry])
 	if err != nil {
 		return err
 	}
 
 	sidecarResources := helpers.CreateResources(false, viper.GetStringMap(field.SidecarModuleResources))
-	sidecarEnv := r.Config.ModuleStep.GetSidecarEnv(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule, myModule.ModuleUrl, myModule.SidecarUrl)
+	sidecarEnv := r.Config.ModuleSvc.GetSidecarEnv(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule, myModule.ModuleUrl, myModule.SidecarUrl)
 	sidecarContainer := models.NewSidecarContainer(myModule.RegistryModule.SidecarName, sidecarImage, sidecarEnv, *myModule.BackendModule, myModule.NetworkConfig, sidecarResources)
 	sidecarContainer.PullImage = pullSidecarImage
 
-	err = r.Config.ModuleStep.DeployModule(client, sidecarContainer)
+	err = r.Config.ModuleSvc.DeployModule(client, sidecarContainer)
 	if err != nil {
 		return err
 	}
 
 	if printModuleEnv {
-		moduleEnv := r.Config.ModuleStep.GetModuleEnv(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule)
+		moduleEnv := r.Config.ModuleSvc.GetModuleEnv(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule)
 
 		if myModule.BackendModule.UseOkapiURL {
 			moduleOkapiEnv := []string{"OKAPI_HOST=localhost",

@@ -1,4 +1,4 @@
-package userstep
+package usersvc
 
 import (
 	"fmt"
@@ -8,19 +8,19 @@ import (
 	"github.com/folio-org/eureka-cli/httpclient"
 )
 
-type UserStep struct {
+type UserSvc struct {
 	Action     *action.Action
 	HTTPClient *httpclient.HTTPClient
 }
 
-func New(action *action.Action, httpClient *httpclient.HTTPClient) *UserStep {
-	return &UserStep{
+func New(action *action.Action, httpClient *httpclient.HTTPClient) *UserSvc {
+	return &UserSvc{
 		Action:     action,
 		HTTPClient: httpClient,
 	}
 }
 
-func (us *UserStep) GetUser(tenant string, accessToken string, username string) (any, error) {
+func (us *UserSvc) GetUser(tenant string, accessToken string, username string) (any, error) {
 	requestURL := us.Action.CreateURL(constant.KongPort, fmt.Sprintf("/users?query=username==%s", username))
 
 	headers := map[string]string{

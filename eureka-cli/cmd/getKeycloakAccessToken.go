@@ -50,7 +50,7 @@ var getKeycloakAccessTokenCmd = &cobra.Command{
 }
 
 func (r *Run) GetKeycloakAccessToken(vaultRootToken string) error {
-	keycloakAccessToken, err := r.Config.KeycloakStep.GetKeycloakAccessToken(vaultRootToken, rp.Tenant)
+	keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(vaultRootToken, rp.Tenant)
 	if err != nil {
 		return err
 	}

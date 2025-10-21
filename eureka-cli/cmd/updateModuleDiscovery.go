@@ -41,7 +41,7 @@ var updateModuleDiscoveryCmd = &cobra.Command{
 
 func (r *Run) UpdateModuleDiscovery(sidecarUrl string) error {
 	slog.Info(r.Config.Action.Name, "text", "UPDATING MODULE DISCOVERY URL")
-	return r.Config.ManagementStep.UpdateModuleDiscovery(rp.ID, sidecarUrl, rp.Restore, constant.ServerPort)
+	return r.Config.ManagementSvc.UpdateModuleDiscovery(rp.ID, sidecarUrl, rp.Restore, constant.ServerPort)
 }
 
 func init() {

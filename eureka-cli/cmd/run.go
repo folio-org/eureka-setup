@@ -71,7 +71,7 @@ func (r *Run) Partition(callback func(string, constant.TenantType)) {
 	if viper.IsSet(field.Consortiums) {
 		for consortiumName := range viper.GetStringMap(field.Consortiums) {
 			for _, tenantType := range constant.Get() {
-				slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Running sequentially for %s consortium and %s tenant type", consortiumName, tenantType))
+				slog.Info(r.Config.Action.Name, "text", "Running partition with consortium and tenant type", "consortium", consortiumName, "tenantType", tenantType)
 				callback(consortiumName, tenantType)
 			}
 		}
@@ -85,7 +85,7 @@ func (r *Run) PartitionErr(callback func(string, constant.TenantType) error) err
 	if viper.IsSet(field.Consortiums) {
 		for consortiumName := range viper.GetStringMap(field.Consortiums) {
 			for _, tenantType := range constant.Get() {
-				slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("Running sequentially for %s consortium and %s tenant type", consortiumName, tenantType))
+				slog.Info(r.Config.Action.Name, "text", "Running partition with consortium and tenant type", "consortium", consortiumName, "tenantType", tenantType)
 				err := callback(consortiumName, tenantType)
 				if err != nil {
 					return err

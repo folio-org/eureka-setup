@@ -50,7 +50,7 @@ func SetFreePortFromRange(action *action.Action) (int, error) {
 func IsPortFree(action *action.Action, portStart, portEnd int, port int) bool {
 	tcpListen, err := net.Listen("tcp", fmt.Sprintf(":%s", strconv.Itoa(port)))
 	if err != nil {
-		slog.Debug(action.Name, "text", fmt.Sprintf("TCP %d port is reserved or already bound in range %d-%d", port, portStart, portEnd))
+		slog.Debug(action.Name, "text", "TCP port is reserved or already bound in range", "port", port, "portStart", portStart, "portEnd", portEnd)
 		return false
 	}
 	defer CloseListener(tcpListen)
@@ -61,7 +61,7 @@ func IsPortFree(action *action.Action, portStart, portEnd int, port int) bool {
 func HostnameExists(actionName string, hostname string) bool {
 	_, err := net.LookupHost(hostname)
 	if err != nil {
-		slog.Debug(actionName, "text", fmt.Sprintf("host %s is unreachable with error %s", hostname, err.Error()))
+		slog.Debug(actionName, "text", "Host is unreachable with error", "hostname", hostname, "error", err.Error())
 	}
 
 	return err == nil

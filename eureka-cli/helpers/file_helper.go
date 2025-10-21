@@ -90,7 +90,7 @@ func CopySingleFile(action *action.Action, srcPath string, dstPath string) error
 		return err
 	}
 
-	slog.Info(action.Name, "text", fmt.Sprintf("Copied a single file from %s to %s", filepath.FromSlash(srcPath), filepath.FromSlash(dstPath)))
+	slog.Info(action.Name, "text", "Copied a single file", "srcPath", filepath.FromSlash(srcPath), "dstPath", filepath.FromSlash(dstPath))
 
 	return nil
 }

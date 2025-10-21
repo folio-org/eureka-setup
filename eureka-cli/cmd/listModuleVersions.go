@@ -87,7 +87,7 @@ func (r *Run) getModuleDescriptorById(registryURL string) error {
 }
 
 func (r *Run) listModuleVersionsSortedDescendingOrder(registryURL string) error {
-	resp, err := r.Config.HTTPClient.GetDecodeReturnAny(fmt.Sprintf("%s/_/proxy/modules", registryURL), map[string]string{})
+	resp, err := r.Config.HTTPClient.GetRetryDecodeReturnAny(fmt.Sprintf("%s/_/proxy/modules", registryURL), map[string]string{})
 	if err != nil {
 		return err
 	}

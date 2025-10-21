@@ -2,40 +2,42 @@ package runconfig
 
 import (
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/consortiumstep"
+	"github.com/folio-org/eureka-cli/consortiumsvc"
 	"github.com/folio-org/eureka-cli/dockerclient"
 	"github.com/folio-org/eureka-cli/gitclient"
 	"github.com/folio-org/eureka-cli/httpclient"
-	"github.com/folio-org/eureka-cli/keycloakstep"
-	"github.com/folio-org/eureka-cli/managementstep"
+	"github.com/folio-org/eureka-cli/kafkasvc"
+	"github.com/folio-org/eureka-cli/keycloaksvc"
+	"github.com/folio-org/eureka-cli/managementsvc"
 	"github.com/folio-org/eureka-cli/moduleparams"
-	"github.com/folio-org/eureka-cli/modulestep"
-	"github.com/folio-org/eureka-cli/registrystep"
-	"github.com/folio-org/eureka-cli/searchstep"
-	"github.com/folio-org/eureka-cli/tenantstep"
-	"github.com/folio-org/eureka-cli/uistep"
-	"github.com/folio-org/eureka-cli/userstep"
+	"github.com/folio-org/eureka-cli/modulesvc"
+	"github.com/folio-org/eureka-cli/registrysvc"
+	"github.com/folio-org/eureka-cli/searchsvc"
+	"github.com/folio-org/eureka-cli/tenantsvc"
+	"github.com/folio-org/eureka-cli/uisvc"
+	"github.com/folio-org/eureka-cli/usersvc"
 	"github.com/folio-org/eureka-cli/vaultclient"
 )
 
-// RunConfig is a central container of all dependencies
-// injected through composition and dependency injection
+// RunConfig is a central container of all dependencies (services)
+// manually injected through composition and dependency injection
 type RunConfig struct {
-	Action         *action.Action
-	GitClient      *gitclient.GitClient
-	HTTPClient     *httpclient.HTTPClient
-	DockerClient   *dockerclient.DockerClient
-	VaultClient    *vaultclient.VaultClient
-	KeycloakStep   *keycloakstep.KeycloakStep
-	RegistryStep   *registrystep.RegistryStep
-	ModuleParams   *moduleparams.ModuleParams
-	ModuleStep     *modulestep.ModuleStep
-	ManagementStep *managementstep.ManagementStep
-	TenantStep     *tenantstep.TenantStep
-	UserStep       *userstep.UserStep
-	ConsortiumStep *consortiumstep.ConsortiumStep
-	UIStep         *uistep.UIStep
-	SearchStep     *searchstep.SearchStep
+	Action        *action.Action
+	GitClient     *gitclient.GitClient
+	HTTPClient    *httpclient.HTTPClient
+	DockerClient  *dockerclient.DockerClient
+	VaultClient   *vaultclient.VaultClient
+	KafkaSvc      *kafkasvc.KafkaSvc
+	KeycloakSvc   *keycloaksvc.KeycloakSvc
+	RegistrySvc   *registrysvc.RegistrySvc
+	ModuleParams  *moduleparams.ModuleParams
+	ModuleSvc     *modulesvc.ModuleSvc
+	ManagementSvc *managementsvc.ManagementSvc
+	TenantSvc     *tenantsvc.TenantSvc
+	UserSvc       *usersvc.UserSvc
+	ConsortiumSvc *consortiumsvc.ConsortiumSvc
+	UISvc         *uisvc.UISvc
+	SearchSvc     *searchsvc.SearchSvc
 }
 
 func New(action *action.Action) *RunConfig {
@@ -43,27 +45,29 @@ func New(action *action.Action) *RunConfig {
 	httpClient := httpclient.New(action)
 	dockerClient := dockerclient.New(action)
 	vaultClient := vaultclient.New(action, httpClient)
-	registryStep := registrystep.New(action, httpClient)
-	userStep := userstep.New(action, httpClient)
-	consortiumStep := consortiumstep.New(action, httpClient, userStep)
-	tenantStep := tenantstep.New(action, consortiumStep)
-	managementStep := managementstep.New(action, httpClient, tenantStep)
+	kafkaSvc := kafkasvc.New(action)
+	registrySvc := registrysvc.New(action, httpClient)
+	userSvc := usersvc.New(action, httpClient)
+	consortiumSvc := consortiumsvc.New(action, httpClient, userSvc)
+	tenantSvc := tenantsvc.New(action, consortiumSvc)
+	managementSvc := managementsvc.New(action, httpClient, tenantSvc)
 
 	return &RunConfig{
-		Action:         action,
-		GitClient:      gitclient,
-		HTTPClient:     httpClient,
-		DockerClient:   dockerClient,
-		VaultClient:    vaultClient,
-		KeycloakStep:   keycloakstep.New(action, httpClient, vaultClient, managementStep),
-		RegistryStep:   registryStep,
-		ModuleParams:   moduleparams.New(action),
-		ModuleStep:     modulestep.New(action, httpClient, dockerClient, registryStep),
-		ManagementStep: managementStep,
-		TenantStep:     tenantStep,
-		UserStep:       userStep,
-		ConsortiumStep: consortiumStep,
-		UIStep:         uistep.New(action, gitclient, dockerClient, tenantStep),
-		SearchStep:     searchstep.New(action, httpClient),
+		Action:        action,
+		GitClient:     gitclient,
+		HTTPClient:    httpClient,
+		DockerClient:  dockerClient,
+		VaultClient:   vaultClient,
+		KafkaSvc:      kafkaSvc,
+		KeycloakSvc:   keycloaksvc.New(action, httpClient, vaultClient, managementSvc),
+		RegistrySvc:   registrySvc,
+		ModuleParams:  moduleparams.New(action),
+		ModuleSvc:     modulesvc.New(action, httpClient, dockerClient, registrySvc),
+		ManagementSvc: managementSvc,
+		TenantSvc:     tenantSvc,
+		UserSvc:       userSvc,
+		ConsortiumSvc: consortiumSvc,
+		UISvc:         uisvc.New(action, gitclient, dockerClient, tenantSvc),
+		SearchSvc:     searchsvc.New(action, httpClient),
 	}
 }

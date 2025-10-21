@@ -59,13 +59,13 @@ func (rc *GitClient) Clone(repository *GitRepository) error {
 		return err
 	}
 
-	slog.Info(rc.Action.Name, "text", fmt.Sprintf("Ref: %s", ref))
+	slog.Info(rc.Action.Name, "text", "Ref", "ref", ref)
 
 	return nil
 }
 
 func (rc *GitClient) ResetHardPullFromOrigin(repository *GitRepository) error {
-	slog.Info(rc.Action.Name, "text", fmt.Sprintf("Updating repository, url: %s, branch: %s", repository.URL, repository.Branch))
+	slog.Info(rc.Action.Name, "text", "Updating repository", "url", repository.URL, "branch", repository.Branch)
 
 	targetRepository, err := git.PlainOpen(repository.Dir)
 	if err != nil {
@@ -76,7 +76,7 @@ func (rc *GitClient) ResetHardPullFromOrigin(repository *GitRepository) error {
 		Force:    true,
 		Progress: os.Stdout,
 	}); err != nil {
-		slog.Info(rc.Action.Name, "text", fmt.Sprintf("Updating repository, url: %s, fetch message: %s", repository.URL, err.Error()))
+		slog.Info(rc.Action.Name, "text", "Updating repository fetch message", "url", repository.URL, "message", err.Error())
 	}
 
 	worktree, err := targetRepository.Worktree()
@@ -108,7 +108,7 @@ func (rc *GitClient) ResetHardPullFromOrigin(repository *GitRepository) error {
 		Progress:      os.Stdout,
 	}); err != nil {
 		if strings.Contains(err.Error(), "already up-to-date") {
-			slog.Info(rc.Action.Name, "text", fmt.Sprintf("Updating repository, url: %s, pull message: %s", repository.URL, err.Error()))
+			slog.Info(rc.Action.Name, "text", "Updating repository pull message", "url", repository.URL, "message", err.Error())
 			return nil
 		}
 

@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -91,7 +90,7 @@ func (r *Run) DeployApplication() error {
 			return err
 		}
 		if consortiumName != constant.NoneConsortium {
-			slog.Info(r.Config.Action.Name, "text", fmt.Sprintf("waiting for %.1f duration", constant.DeployApplicationPartitionWait.Seconds()))
+			slog.Info(r.Config.Action.Name, "text", "Waiting for duration", "duration_seconds", constant.DeployApplicationPartitionWait.Seconds())
 			time.Sleep(constant.DeployApplicationPartitionWait)
 		}
 
@@ -114,7 +113,7 @@ func (r *Run) DeployApplication() error {
 	}
 	if helpers.IsModuleEnabled(constant.ModSearchModule) {
 		err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
-			return r.ReindexElasticsearch(consortiumName, tenantType)
+			return r.ReindexIndices(consortiumName, tenantType)
 		})
 		if err != nil {
 			return err

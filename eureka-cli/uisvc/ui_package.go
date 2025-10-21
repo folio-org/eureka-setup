@@ -1,4 +1,4 @@
-package uistep
+package uisvc
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/folio-org/eureka-cli/helpers"
 )
 
-func (us *UIStep) PreparePackageJSON(configPath string, tenant string) error {
+func (us *UISvc) PreparePackageJSON(configPath string, tenant string) error {
 	var packageJSON struct {
 		Name            string            `json:"name"`
 		Version         string            `json:"version"`
@@ -41,7 +41,7 @@ func (us *UIStep) PreparePackageJSON(configPath string, tenant string) error {
 	}
 
 	if updates > 0 {
-		slog.Info(us.Action.Name, "text", fmt.Sprintf("Added %d extra modules to package.json", len(modules)))
+		slog.Info(us.Action.Name, "text", "Added extra modules to package.json", "moduleCount", len(modules))
 		err = helpers.WriteJsonToFile(us.Action, packageJSONPath, packageJSON)
 		if err != nil {
 			return err

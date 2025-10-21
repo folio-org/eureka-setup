@@ -62,13 +62,13 @@ func (r *Run) DeployManagement() error {
 
 	slog.Info(r.Config.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
 	instalJsonURLs := map[string]string{constant.EurekaRegistry: viper.GetString(field.InstallEureka)}
-	registryModules, err := r.Config.RegistryStep.GetModules(instalJsonURLs, true)
+	registryModules, err := r.Config.RegistrySvc.GetModules(instalJsonURLs, true)
 	if err != nil {
 		return err
 	}
 
 	slog.Info(r.Config.Action.Name, "text", "EXTRACTING MODULE NAME AND VERSION")
-	r.Config.RegistryStep.ExtractModuleNameAndVersion(registryModules, true)
+	r.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules, true)
 
 	vaultRootToken, client, err := r.GetVaultRootTokenWithDockerClient()
 	if err != nil {
@@ -79,7 +79,7 @@ func (r *Run) DeployManagement() error {
 	slog.Info(r.Config.Action.Name, "text", "DEPLOYING MANAGEMENT MODULES")
 	registryHosts := map[string]string{constant.EurekaRegistry: ""}
 	containers := models.NewManagementContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, env)
-	deployedModules, err := r.Config.ModuleStep.DeployModules(client, containers, "", nil)
+	deployedModules, err := r.Config.ModuleSvc.DeployModules(client, containers, "", nil)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func (r *Run) DeployManagement() error {
 
 	wg.Add(len(deployedModules))
 	for deployedModule := range deployedModules {
-		go r.Config.ModuleStep.PerformModuleReadinessCheck(&wg, errCh, deployedModule, deployedModules[deployedModule])
+		go r.Config.ModuleSvc.PerformModuleReadinessCheck(&wg, errCh, deployedModule, deployedModules[deployedModule])
 	}
 	wg.Wait()
 	close(errCh)
@@ -102,7 +102,6 @@ func (r *Run) DeployManagement() error {
 	default:
 	}
 
-	time.Sleep(constant.DeployManagementWait)
 	slog.Info(r.Config.Action.Name, "text", "All management modules are ready")
 
 	return nil
