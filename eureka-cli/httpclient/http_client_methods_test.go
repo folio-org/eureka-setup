@@ -21,7 +21,7 @@ func TestGetReturnResponse(t *testing.T) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"message": "success"}`))
+		_, _ = w.Write([]byte(`{"message": "success"}`))
 	}))
 	defer server.Close()
 
@@ -77,7 +77,7 @@ func TestGetDecodeReturnMapStringAny(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.statusCode)
-				w.Write([]byte(tt.responseBody))
+				_, _ = w.Write([]byte(tt.responseBody))
 			}))
 			defer server.Close()
 
@@ -142,7 +142,7 @@ func TestPostReturnMapStringAny(t *testing.T) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(responseBody))
+		_, _ = w.Write([]byte(responseBody))
 	}))
 	defer server.Close()
 
@@ -236,7 +236,7 @@ func TestHTTPClientErrorHandling(t *testing.T) {
 	// Test server that returns error status
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error": "internal server error"}`))
+		_, _ = w.Write([]byte(`{"error": "internal server error"}`))
 	}))
 	defer server.Close()
 
@@ -282,7 +282,7 @@ func TestHTTPClientWithCustomHeaders(t *testing.T) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"success": true}`))
+		_, _ = w.Write([]byte(`{"success": true}`))
 	}))
 	defer server.Close()
 

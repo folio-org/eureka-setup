@@ -395,21 +395,3 @@ func TestExtractPortFromURL(t *testing.T) {
 func containsPortPlaceholder(url string) bool {
 	return len(url) > 0 && (url[len(url)-2:] == "%s" || url[len(url)-3:] == ":%s")
 }
-
-func extractPortFromURL(url string) int {
-	// Simple extraction for test server URLs like "http://127.0.0.1:12345"
-	for i := len(url) - 1; i >= 0; i-- {
-		if url[i] == ':' {
-			port := 0
-			for j := i + 1; j < len(url); j++ {
-				if url[j] >= '0' && url[j] <= '9' {
-					port = port*10 + int(url[j]-'0')
-				} else {
-					break
-				}
-			}
-			return port
-		}
-	}
-	return 80 // Default fallback
-}

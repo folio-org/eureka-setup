@@ -51,12 +51,12 @@ func TestDumpRequestJSON(t *testing.T) {
 				}
 
 				// Restore stdout
-				w.Close()
+				_ = w.Close()
 				os.Stdout = old
 
 				// Read captured output
 				var output bytes.Buffer
-				io.Copy(&output, r)
+				_, _ = io.Copy(&output, r)
 			}()
 
 			DumpRequestJSON(tt.bodyBytes)
@@ -108,12 +108,12 @@ func TestDumpRequestFormData(t *testing.T) {
 				}
 
 				// Restore stdout
-				w.Close()
+				_ = w.Close()
 				os.Stdout = old
 
 				// Read captured output
 				var output bytes.Buffer
-				io.Copy(&output, r)
+				_, _ = io.Copy(&output, r)
 			}()
 
 			DumpRequestFormData(tt.formData)
@@ -190,12 +190,12 @@ func TestDumpRequest(t *testing.T) {
 				}
 
 				// Restore stdout
-				w.Close()
+				_ = w.Close()
 				os.Stdout = old
 
 				// Read captured output
 				var output bytes.Buffer
-				io.Copy(&output, r)
+				_, _ = io.Copy(&output, r)
 			}()
 
 			err = DumpRequest(testAction, req)
@@ -266,7 +266,7 @@ func TestDumpResponse(t *testing.T) {
 				}
 
 				w.WriteHeader(tt.statusCode)
-				w.Write([]byte(tt.body))
+				_, _ = w.Write([]byte(tt.body))
 			}))
 			defer server.Close()
 
@@ -275,7 +275,9 @@ func TestDumpResponse(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to make request: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() {
+				_ = resp.Body.Close()
+			}()
 
 			// Create action
 			testAction := &action.Action{Name: "test-action"}
@@ -291,12 +293,12 @@ func TestDumpResponse(t *testing.T) {
 				}
 
 				// Restore stdout
-				w.Close()
+				_ = w.Close()
 				os.Stdout = old
 
 				// Read captured output
 				var output bytes.Buffer
-				io.Copy(&output, r)
+				_, _ = io.Copy(&output, r)
 			}()
 
 			err = DumpResponse(testAction, resp, tt.forceDump)

@@ -59,7 +59,7 @@ func TestGetRetryDecodeReturnAny(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.statusCode)
-				w.Write([]byte(tt.responseBody))
+				_, _ = w.Write([]byte(tt.responseBody))
 			}))
 			defer server.Close()
 
@@ -172,7 +172,7 @@ func TestPostFormDataReturnMapStringAny(t *testing.T) {
 				contentType := r.Header.Get("Content-Type")
 				if !strings.Contains(contentType, "application/x-www-form-urlencoded") &&
 					!strings.Contains(contentType, "application/json") {
-					// Only check if we set specific headers
+					t.Logf("Unexpected content type: %s", contentType)
 				}
 
 				// Parse form data from body (since it's sent as body, not query params)
@@ -188,7 +188,7 @@ func TestPostFormDataReturnMapStringAny(t *testing.T) {
 				}
 
 				w.WriteHeader(tt.statusCode)
-				w.Write([]byte(tt.responseBody))
+				_, _ = w.Write([]byte(tt.responseBody))
 			}))
 			defer server.Close()
 
@@ -223,11 +223,11 @@ func TestRetryFunctionality(t *testing.T) {
 		if attempts < 3 {
 			// Return 503 to trigger retry
 			w.WriteHeader(http.StatusServiceUnavailable)
-			w.Write([]byte(`{"error": "service unavailable"}`))
+			_, _ = w.Write([]byte(`{"error": "service unavailable"}`))
 		} else {
 			// Success on third attempt
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"success": true}`))
+			_, _ = w.Write([]byte(`{"success": true}`))
 		}
 	}))
 	defer server.Close()
@@ -256,7 +256,7 @@ func TestLoggingRoundTripper(t *testing.T) {
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"logged": true}`))
+		_, _ = w.Write([]byte(`{"logged": true}`))
 	}))
 	defer server.Close()
 
@@ -280,7 +280,9 @@ func TestLoggingRoundTripper(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RoundTrip() failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("RoundTrip() status = %d, want %d", resp.StatusCode, http.StatusOK)
@@ -397,7 +399,7 @@ func TestDoRequestEdgeCases(t *testing.T) {
 	// Test with nil body
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"nil_body": true}`))
+		_, _ = w.Write([]byte(`{"nil_body": true}`))
 	}))
 	defer server.Close()
 

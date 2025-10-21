@@ -69,14 +69,14 @@ func TestExecIgnoreError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := exec.Command(tt.command, tt.args...)
-			
+
 			// This should not panic regardless of command success/failure
 			defer func() {
 				if r := recover(); r != nil {
 					t.Errorf("ExecIgnoreError panicked: %v", r)
 				}
 			}()
-			
+
 			ExecIgnoreError(cmd)
 		})
 	}
@@ -118,7 +118,7 @@ func TestExecReturnOutput(t *testing.T) {
 				if err != nil {
 					t.Errorf("Unexpected error: %v", err)
 				}
-				
+
 				if tt.expectedOutput != "" {
 					output := strings.TrimSpace(stdout.String())
 					if !strings.Contains(output, tt.expectedOutput) {
@@ -183,7 +183,7 @@ func TestExecFromDir(t *testing.T) {
 				if err != nil {
 					t.Errorf("Unexpected error: %v", err)
 				}
-				
+
 				// Verify the working directory was set
 				if cmd.Dir != tt.workDir {
 					t.Errorf("Working directory was not set correctly: got %q, want %q", cmd.Dir, tt.workDir)
@@ -262,13 +262,6 @@ func getPwdCommand() string {
 		return "cmd"
 	}
 	return "pwd"
-}
-
-func getPwdArgs() []string {
-	if runtime.GOOS == "windows" {
-		return []string{"/c", "cd"}
-	}
-	return []string{}
 }
 
 func getNonExistentCommand() string {

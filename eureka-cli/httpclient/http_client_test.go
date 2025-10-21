@@ -154,7 +154,7 @@ func TestValidateResponse(t *testing.T) {
 			// Create a test server with the desired status code
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(tt.statusCode)
-				w.Write([]byte("test response"))
+				_, _ = w.Write([]byte("test response"))
 			}))
 			defer server.Close()
 
@@ -169,7 +169,9 @@ func TestValidateResponse(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to execute request: %v", err)
 			}
-			defer resp.Body.Close()
+			defer func() {
+				_ = resp.Body.Close()
+			}()
 
 			// Test ValidateResponse
 			err = client.ValidateResponse(resp)
@@ -193,7 +195,7 @@ func TestCloseResponse(t *testing.T) {
 	// Create a test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("test response"))
+		_, _ = w.Write([]byte("test response"))
 	}))
 	defer server.Close()
 
