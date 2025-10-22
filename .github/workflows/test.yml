@@ -32,7 +32,7 @@ jobs:
         run: docker compose -f ./eureka-cli/misc/docker-compose.yaml config
 
   docker-trivy:
-    name: Docker Security Scan (Lightweight)
+    name: Docker Security Scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -137,7 +137,7 @@ jobs:
           sarif_file: 'trivy-results.sarif'
 
   unit-tests:
-    name: Unit Tests with Coverage (All Packages)
+    name: Unit Tests with Coverage
     runs-on: ubuntu-latest
     # Allow this job to fail without blocking downstream jobs during transition period
     continue-on-error: false
@@ -242,7 +242,7 @@ jobs:
           fail_ci_if_error: false
 
   test:
-    name: Test CLI Help Command (${{ matrix.os }}-${{ matrix.goarch }})
+    name: CLI Help Command (${{ matrix.os }}-${{ matrix.goarch }})
     needs: [go-lint, docker-lint, docker-trivy, go-trivy, unit-tests]
     strategy:
       matrix:
