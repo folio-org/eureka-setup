@@ -162,16 +162,31 @@ jobs:
           echo "| Package | Coverage | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|----------|---------|" >> $GITHUB_STEP_SUMMARY
           
-          # Generate coverage for all packages
-          go test ./... -cover 2>/dev/null | grep "coverage:" | while read line; do
-            # Extract package name and coverage
-            package=$(echo "$line" | awk '{print $1}' | sed 's/github.com\/folio-org\/eureka-cli\///' | sed 's/github.com\/folio-org\/eureka-cli/main/')
-            coverage=$(echo "$line" | awk '{print $4}')
+          # Create temporary file to store test output
+          go test ./... -cover 2>/dev/null > test_output.txt
+          
+          # Process the coverage output with more robust parsing
+          grep "coverage:" test_output.txt | while read -r line; do
+            # Extract package name - handle both "ok package" and "    package" formats
+            if [[ $line == ok* ]]; then
+              # Format: ok github.com/folio-org/eureka-cli/package [cached] coverage: X.X% of statements
+              package=$(echo "$line" | awk '{print $2}' | sed 's/github.com\/folio-org\/eureka-cli\///' | sed 's/github.com\/folio-org\/eureka-cli/main/')
+              coverage=$(echo "$line" | grep -o "coverage: [0-9.]*%" | cut -d' ' -f2)
+            else
+              # Format:     github.com/folio-org/eureka-cli/package coverage: X.X% of statements  
+              package=$(echo "$line" | awk '{print $1}' | sed 's/^[[:space:]]*//' | sed 's/github.com\/folio-org\/eureka-cli\///' | sed 's/github.com\/folio-org\/eureka-cli/main/')
+              coverage=$(echo "$line" | grep -o "coverage: [0-9.]*%" | cut -d' ' -f2)
+            fi
+            
+            # Skip if we couldn't extract coverage properly
+            if [[ -z "$coverage" ]]; then
+              continue
+            fi
             
             # Determine status based on coverage
             if [[ "$coverage" == "0.0%" ]]; then
               status="No tests"
-            elif [[ "$package" == "helpers" ]] || [[ "$package" == "httpclient" ]]; then
+            elif [[ "$package" == "helpers" ]] || [[ "$package" == "httpclient" ]] || [[ "$package" == "searchsvc" ]] || [[ "$package" == "tenantsvc" ]] || [[ "$package" == "uisvc" ]] || [[ "$package" == "usersvc" ]]; then
               status="Comprehensive"
             else
               status="Has tests"
@@ -179,6 +194,9 @@ jobs:
             
             echo "| $package | $coverage | $status |" >> $GITHUB_STEP_SUMMARY
           done
+          
+          # Clean up
+          rm -f test_output.txt
           
           total_coverage=$(go tool cover -func=coverage.out | grep "total:" | awk '{print $3}')
           echo "| **Total (All Packages)** | **$total_coverage** | **Overall** |" >> $GITHUB_STEP_SUMMARY
