@@ -136,8 +136,8 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
 
-  go-unit-tests:
-    name: Go Unit Tests with Coverage
+  go-test:
+    name: Go Test
     runs-on: ubuntu-latest
     # Allow this job to fail without blocking downstream jobs during transition period
     continue-on-error: false
@@ -148,10 +148,10 @@ jobs:
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
 
-      - name: Run unit tests with coverage
+      - name: Run tests with coverage
         working-directory: ./eureka-cli
         run: |
-          echo "Running unit tests for all packages..."
+          echo "Running tests for all packages..."
           # Run tests for all packages to get comprehensive coverage report
           go test ./... -coverprofile=coverage.out -covermode=atomic
 
@@ -243,7 +243,7 @@ jobs:
 
   build-and-run-cli:
     name: Build and Run CLI (${{ matrix.os }}-${{ matrix.goarch }})
-    needs: [docker-lint, docker-trivy, go-lint, go-trivy, go-unit-tests]
+    needs: [docker-lint, docker-trivy, go-lint, go-trivy, go-test]
     strategy:
       matrix:
         include:
