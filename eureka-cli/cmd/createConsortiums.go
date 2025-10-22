@@ -37,12 +37,7 @@ var createConsortiumsCmd = &cobra.Command{
 			return err
 		}
 
-		err = r.CreateConsortium()
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return r.CreateConsortium()
 	},
 }
 

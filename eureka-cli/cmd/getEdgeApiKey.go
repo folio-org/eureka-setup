@@ -40,12 +40,7 @@ var getEdgeApiKeyCmd = &cobra.Command{
 			return err
 		}
 
-		err = r.GetEdgeApiKey()
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return r.GetEdgeApiKey()
 	},
 }
 

@@ -34,14 +34,9 @@ var createTenantEntitlementsCmd = &cobra.Command{
 			return err
 		}
 
-		err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+		return r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 			return r.CreateTenantEntitlements(consortiumName, tenantType)
 		})
-		if err != nil {
-			return err
-		}
-
-		return nil
 	},
 }
 

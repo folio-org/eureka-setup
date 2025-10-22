@@ -43,12 +43,7 @@ var checkPortsCmd = &cobra.Command{
 			return err
 		}
 
-		err = r.CheckPorts()
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return r.CheckPorts()
 	},
 }
 

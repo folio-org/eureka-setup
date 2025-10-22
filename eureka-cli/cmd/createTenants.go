@@ -33,12 +33,7 @@ var createTenantsCmd = &cobra.Command{
 			return err
 		}
 
-		err = r.CreateTenants()
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return r.CreateTenants()
 	},
 }
 

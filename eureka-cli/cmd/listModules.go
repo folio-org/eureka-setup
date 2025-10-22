@@ -40,12 +40,7 @@ var listModulesCmd = &cobra.Command{
 			return err
 		}
 
-		err = r.ListModules()
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return r.ListModules()
 	},
 }
 

@@ -40,12 +40,7 @@ var getKeycloakAccessTokenCmd = &cobra.Command{
 			return err
 		}
 
-		err = r.GetKeycloakAccessToken(vaultRootToken)
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return r.GetKeycloakAccessToken(vaultRootToken)
 	},
 }
 

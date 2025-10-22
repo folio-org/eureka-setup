@@ -35,12 +35,7 @@ var updateKeycloakPublicClientsCmd = &cobra.Command{
 			return err
 		}
 
-		err = r.UpdateKeycloakPublicClients()
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return r.UpdateKeycloakPublicClients()
 	},
 }
 

@@ -35,12 +35,7 @@ var undeployUiCmd = &cobra.Command{
 			return err
 		}
 
-		err = r.UndeployUi()
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return r.UndeployUi()
 	},
 }
 

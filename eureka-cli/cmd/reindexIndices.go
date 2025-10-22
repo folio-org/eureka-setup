@@ -38,14 +38,9 @@ var reindexIndicesCmd = &cobra.Command{
 			return err
 		}
 
-		err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+		return r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 			return r.ReindexIndices(consortiumName, tenantType)
 		})
-		if err != nil {
-			return err
-		}
-
-		return nil
 	},
 }
 

@@ -42,12 +42,7 @@ var deployManagementCmd = &cobra.Command{
 			return err
 		}
 
-		err = r.DeployManagement()
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return r.DeployManagement()
 	},
 }
 

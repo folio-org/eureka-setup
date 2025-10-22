@@ -38,12 +38,7 @@ var undeployModuleCmd = &cobra.Command{
 			return err
 		}
 
-		err = r.UndeployModule()
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return r.UndeployModule()
 	},
 }
 

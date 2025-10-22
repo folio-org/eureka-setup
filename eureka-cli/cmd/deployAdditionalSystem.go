@@ -37,12 +37,7 @@ var deployAdditionalSystemCmd = &cobra.Command{
 			return err
 		}
 
-		err = r.DeployAdditionalSystem()
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return r.DeployAdditionalSystem()
 	},
 }
 
