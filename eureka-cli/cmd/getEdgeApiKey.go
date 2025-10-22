@@ -45,15 +45,15 @@ var getEdgeApiKeyCmd = &cobra.Command{
 }
 
 func (r *Run) GetEdgeApiKey() error {
-	randomStr, err := r.getRandomString(rp.Length)
+	randomStr, err := r.getRandomString(ap.Length)
 	if err != nil {
 		return err
 	}
 
 	bb, err := json.Marshal(map[string]any{
 		"s": randomStr,
-		"t": rp.Tenant,
-		"u": rp.User,
+		"t": ap.Tenant,
+		"u": ap.User,
 	})
 	if err != nil {
 		return err
@@ -82,9 +82,9 @@ func (r *Run) getRandomString(length int) (string, error) {
 
 func init() {
 	rootCmd.AddCommand(getEdgeApiKeyCmd)
-	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&rp.Tenant, "tenant", "t", "", "Tenant (required)")
-	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&rp.User, "user", "U", "", "User (required)")
-	getEdgeApiKeyCmd.PersistentFlags().IntVarP(&rp.Length, "length", "l", 17, "Salt length")
+	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&ap.Tenant, "tenant", "t", "", "Tenant (required)")
+	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&ap.User, "user", "U", "", "User (required)")
+	getEdgeApiKeyCmd.PersistentFlags().IntVarP(&ap.Length, "length", "l", 17, "Salt length")
 	if err := getEdgeApiKeyCmd.MarkPersistentFlagRequired("tenant"); err != nil {
 		slog.Error("failed to mark tenant flag as required", "error", err)
 		os.Exit(1)

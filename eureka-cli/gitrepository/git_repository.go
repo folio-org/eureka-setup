@@ -1,4 +1,4 @@
-package gitclient
+package gitrepository
 
 import (
 	"path/filepath"
@@ -19,7 +19,7 @@ func (gr *GitRepository) String() string {
 	return gr.Label
 }
 
-func NewRepository(action *action.Action, label, url, dir string, branch plumbing.ReferenceName) (*GitRepository, error) {
+func New(action *action.Action, label, url, dir string, branch plumbing.ReferenceName) (*GitRepository, error) {
 	homeMiscDir, err := helpers.GetHomeMiscDir(action)
 	if err != nil {
 		return nil, err

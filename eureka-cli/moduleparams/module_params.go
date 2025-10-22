@@ -25,11 +25,9 @@ func New(action *action.Action) *ModuleParams {
 	}
 }
 
-func (mp *ModuleParams) GetBackendModulesFromConfig(managementOnly bool, printOutput bool, bb1 map[string]any) (map[string]models.BackendModule, error) {
+func (mp *ModuleParams) GetBackendModulesFromConfig(managementOnly bool, bb1 map[string]any) (map[string]models.BackendModule, error) {
 	if len(bb1) == 0 {
-		if printOutput {
-			slog.Info(mp.Action.Name, "text", "No backend modules were read")
-		}
+		slog.Info(mp.Action.Name, "text", "No backend modules were read")
 
 		return make(map[string]models.BackendModule), nil
 	}
@@ -53,7 +51,7 @@ func (mp *ModuleParams) GetBackendModulesFromConfig(managementOnly bool, printOu
 
 		bb2[name] = *backendModule
 
-		mp.printModuleInfo(name, properties, bb2, printOutput)
+		mp.printModuleInfo(name, properties, bb2)
 	}
 
 	return bb2, nil
@@ -75,11 +73,7 @@ func (mp *ModuleParams) createBackendModule(properties models.BackendModulePrope
 	return models.NewBackendModule(mp.Action, properties)
 }
 
-func (mp *ModuleParams) printModuleInfo(name string, properties models.BackendModuleProperties, bb map[string]models.BackendModule, printOutput bool) {
-	if !printOutput {
-		return
-	}
-
+func (mp *ModuleParams) printModuleInfo(name string, properties models.BackendModuleProperties, bb map[string]models.BackendModule) {
 	moduleInfo := name
 
 	if properties.Version != nil {
@@ -246,11 +240,9 @@ func (mp *ModuleParams) getVolumes(mapEntry map[string]any) ([]string, error) {
 	return volumes, nil
 }
 
-func (mp *ModuleParams) GetFrontendModulesFromConfig(printOutput bool, ff1 ...map[string]any) map[string]models.FrontendModule {
+func (mp *ModuleParams) GetFrontendModulesFromConfig(ff1 ...map[string]any) map[string]models.FrontendModule {
 	if len(ff1) == 0 {
-		if printOutput {
-			slog.Info(mp.Action.Name, "text", "No frontend modules were read")
-		}
+		slog.Info(mp.Action.Name, "text", "No frontend modules were read")
 
 		return make(map[string]models.FrontendModule)
 	}

@@ -1,8 +1,8 @@
-package runparams
+package actionparams
 
-// RunParams is a central container of all parameters
+// ActionParams is a central container of all parameters
 // passed to the program by the user from the shell instance
-type RunParams struct {
+type ActionParams struct {
 	ConfigFile          string
 	Profile             string
 	OverwriteFiles      bool
@@ -29,6 +29,6 @@ type RunParams struct {
 	Lines               int
 }
 
-func New() *RunParams {
-	return &RunParams{}
+func New() *ActionParams {
+	return &ActionParams{}
 }

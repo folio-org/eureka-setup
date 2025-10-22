@@ -156,7 +156,7 @@ func (r *Run) DeployChildApplication() error {
 
 func init() {
 	rootCmd.AddCommand(deployApplicationCmd)
-	deployApplicationCmd.PersistentFlags().BoolVarP(&rp.BuildImages, "buildImages", "b", false, "Build Docker images")
-	deployApplicationCmd.PersistentFlags().BoolVarP(&rp.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
-	deployApplicationCmd.PersistentFlags().BoolVarP(&rp.OnlyRequired, "onlyRequired", "R", false, "Use only required system containers")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&ap.BuildImages, "buildImages", "b", false, "Build Docker images")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&ap.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&ap.OnlyRequired, "onlyRequired", "R", false, "Use only required system containers")
 }

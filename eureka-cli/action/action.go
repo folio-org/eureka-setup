@@ -2,6 +2,8 @@ package action
 
 import (
 	"fmt"
+
+	"github.com/folio-org/eureka-cli/actionparams"
 )
 
 // Action is a container that holds the state of the deployment
@@ -11,23 +13,25 @@ type Action struct {
 	StartPort     int
 	EndPort       int
 	ReservedPorts []int
+	Params        *actionparams.ActionParams
 }
 
-func New(name, gatewayURL string) *Action {
-	return newGeneric(name, gatewayURL, 30000, 30999)
+func New(name, gatewayURL string, runParams *actionparams.ActionParams) *Action {
+	return newGeneric(name, gatewayURL, 30000, 30999, runParams)
 }
 
-func NewCustom(name, gatewayURL string, startPort, endPort int) *Action {
-	return newGeneric(name, gatewayURL, startPort, endPort)
+func NewCustom(name, gatewayURL string, startPort, endPort int, runParams *actionparams.ActionParams) *Action {
+	return newGeneric(name, gatewayURL, startPort, endPort, runParams)
 }
 
-func newGeneric(name, gatewayURL string, startPort, endPort int) *Action {
+func newGeneric(name, gatewayURL string, startPort, endPort int, runParams *actionparams.ActionParams) *Action {
 	return &Action{
 		Name:          name,
 		GatewayURL:    gatewayURL,
 		StartPort:     startPort,
 		EndPort:       endPort,
 		ReservedPorts: []int{},
+		Params:        runParams,
 	}
 }
 

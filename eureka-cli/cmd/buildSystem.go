@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/gitclient"
+	"github.com/folio-org/eureka-cli/gitrepository"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
@@ -66,14 +66,14 @@ func (r *Run) CloneUpdateRepositories() error {
 		return err
 	}
 
-	repositories := []*gitclient.GitRepository{kongRepository, keycloakRepository}
+	repositories := []*gitrepository.GitRepository{kongRepository, keycloakRepository}
 
 	slog.Info(r.Config.Action.Name, "text", "Cloning repositories", "repositories", repositories)
 	for _, repository := range repositories {
 		_ = r.Config.GitClient.Clone(repository)
 	}
 
-	if rp.UpdateCloned {
+	if ap.UpdateCloned {
 		slog.Info(r.Config.Action.Name, "text", "Updating repositories", "repositories", repositories)
 		for _, repository := range repositories {
 			err = r.Config.GitClient.ResetHardPullFromOrigin(repository)
@@ -99,5 +99,5 @@ func (r *Run) BuildSystem() error {
 
 func init() {
 	rootCmd.AddCommand(buildSystemCmd)
-	buildSystemCmd.PersistentFlags().BoolVarP(&rp.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	buildSystemCmd.PersistentFlags().BoolVarP(&ap.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
 }

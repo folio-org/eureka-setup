@@ -34,12 +34,8 @@ func New(action *action.Action, httpClient *httpclient.HTTPClient) *RegistrySvc 
 	}
 }
 
-func (rs *RegistrySvc) ExtractModuleNameAndVersion(rr1 map[string][]*models.RegistryModule, printOutput bool) {
-	for registryName, rr2 := range rr1 {
-		if printOutput {
-			slog.Info(rs.Action.Name, "text", "Extracting registry module names and versions", "registry", registryName)
-		}
-
+func (rs *RegistrySvc) ExtractModuleNameAndVersion(rr1 map[string][]*models.RegistryModule) {
+	for _, rr2 := range rr1 {
 		for moduleIndex, module := range rr2 {
 			if module.ID == "okapi" {
 				continue

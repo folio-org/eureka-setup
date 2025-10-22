@@ -53,17 +53,17 @@ func (r *Run) DeployUi() error {
 			continue
 		}
 
-		err := r.Config.TenantSvc.SetDefaultConfigTenantParams(&rp, existingTenant)
+		err := r.Config.TenantSvc.SetDefaultConfigTenantParams(existingTenant)
 		if err != nil {
 			return err
 		}
 
-		finalImageName, err := r.Config.UISvc.PrepareUIImage(&rp, existingTenant)
+		finalImageName, err := r.Config.UISvc.PrepareUIImage(existingTenant)
 		if err != nil {
 			return err
 		}
 
-		externalPort, err := helpers.ExtractPortFromURL(rp.PlatformCompleteURL)
+		externalPort, err := helpers.ExtractPortFromURL(ap.PlatformCompleteURL)
 		if err != nil {
 			return err
 		}
@@ -79,8 +79,8 @@ func (r *Run) DeployUi() error {
 
 func init() {
 	rootCmd.AddCommand(deployUiCmd)
-	deployUiCmd.PersistentFlags().BoolVarP(&rp.BuildImages, "buildImages", "b", false, "Build Docker images")
-	deployUiCmd.PersistentFlags().BoolVarP(&rp.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
-	deployUiCmd.PersistentFlags().BoolVarP(&rp.SingleTenant, "singleTenant", "T", true, "Use for Single Tenant workflow")
-	deployUiCmd.PersistentFlags().BoolVarP(&rp.EnableECSRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
+	deployUiCmd.PersistentFlags().BoolVarP(&ap.BuildImages, "buildImages", "b", false, "Build Docker images")
+	deployUiCmd.PersistentFlags().BoolVarP(&ap.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	deployUiCmd.PersistentFlags().BoolVarP(&ap.SingleTenant, "singleTenant", "T", true, "Use for Single Tenant workflow")
+	deployUiCmd.PersistentFlags().BoolVarP(&ap.EnableECSRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
 }

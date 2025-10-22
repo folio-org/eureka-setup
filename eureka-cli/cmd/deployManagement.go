@@ -50,7 +50,7 @@ func (r *Run) DeployManagement() error {
 	env := helpers.GetConfigEnvVars(field.Env)
 
 	slog.Info(r.Config.Action.Name, "text", "READING BACKEND MODULES FROM CONFIG")
-	backendModulesMap, err := r.Config.ModuleParams.GetBackendModulesFromConfig(true, true, viper.GetStringMap(field.BackendModules))
+	backendModulesMap, err := r.Config.ModuleParams.GetBackendModulesFromConfig(true, viper.GetStringMap(field.BackendModules))
 	if err != nil {
 		return err
 	}
@@ -63,9 +63,7 @@ func (r *Run) DeployManagement() error {
 	if err != nil {
 		return err
 	}
-
-	slog.Info(r.Config.Action.Name, "text", "EXTRACTING MODULE NAME AND VERSION")
-	r.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules, true)
+	r.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules)
 
 	vaultRootToken, client, err := r.GetVaultRootTokenWithDockerClient()
 	if err != nil {
@@ -101,6 +99,7 @@ func (r *Run) DeployManagement() error {
 	default:
 	}
 
+	time.Sleep(constant.DeployManagementWait)
 	slog.Info(r.Config.Action.Name, "text", "All management modules are ready")
 
 	return nil

@@ -25,11 +25,11 @@ import (
 	"path/filepath"
 
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/actionparams"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/runconfig"
-	"github.com/folio-org/eureka-cli/runparams"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -45,11 +45,9 @@ func New(name string) (*Run, error) {
 		return nil, err
 	}
 
-	action := action.New(name, gatewayURL)
-	runConfig := runconfig.New(action)
-
+	action := action.New(name, gatewayURL, &ap)
 	return &Run{
-		Config: runConfig,
+		Config: runconfig.New(action),
 	}, nil
 }
 
@@ -59,11 +57,9 @@ func NewCustom(name string, startPort, endPort int) (*Run, error) {
 		return nil, err
 	}
 
-	action := action.NewCustom(name, gatewayURL, startPort, endPort)
-	runConfig := runconfig.New(action)
-
+	action := action.NewCustom(name, gatewayURL, startPort, endPort, &ap)
 	return &Run{
-		Config: runConfig,
+		Config: runconfig.New(action),
 	}, nil
 }
 
@@ -106,7 +102,7 @@ func (r *Run) PartitionErr(callback func(string, constant.TenantType) error) err
 
 func setDefaultLogger() {
 	logLevel := slog.LevelInfo
-	if rp.EnableDebug {
+	if ap.EnableDebug {
 		logLevel = slog.LevelDebug
 	}
 
@@ -122,7 +118,7 @@ func tryReadInConfig(afterReadCallback func(configErr error)) {
 	}
 }
 
-func setConfig(params *runparams.RunParams) {
+func setConfig(params *actionparams.ActionParams) {
 	if params.ConfigFile == "" {
 		setConfigNameByProfile(params.Profile)
 		return

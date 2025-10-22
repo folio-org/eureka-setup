@@ -47,7 +47,7 @@ func (r *Run) DeploySystem() error {
 		return err
 	}
 
-	if rp.BuildImages {
+	if ap.BuildImages {
 		err := r.BuildSystem()
 		if err != nil {
 			return err
@@ -55,7 +55,7 @@ func (r *Run) DeploySystem() error {
 	}
 
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}
-	if rp.OnlyRequired {
+	if ap.OnlyRequired {
 		initialRequiredContainers := constant.GetInitialRequiredContainers()
 		finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(r.Config.Action, initialRequiredContainers)
 		subCommand = append(subCommand, finalRequiredContainers...)
@@ -81,7 +81,7 @@ func (r *Run) DeploySystem() error {
 
 func init() {
 	rootCmd.AddCommand(deploySystemCmd)
-	deploySystemCmd.PersistentFlags().BoolVarP(&rp.BuildImages, "buildImages", "b", false, "Build Docker images")
-	deploySystemCmd.PersistentFlags().BoolVarP(&rp.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
-	deploySystemCmd.PersistentFlags().BoolVarP(&rp.OnlyRequired, "onlyRequired", "R", false, "Use only required system containers")
+	deploySystemCmd.PersistentFlags().BoolVarP(&ap.BuildImages, "buildImages", "b", false, "Build Docker images")
+	deploySystemCmd.PersistentFlags().BoolVarP(&ap.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	deploySystemCmd.PersistentFlags().BoolVarP(&ap.OnlyRequired, "onlyRequired", "R", false, "Use only required system containers")
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/runparams"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/spf13/viper"
 )
@@ -29,7 +28,7 @@ func (us *UISvc) GetStripesBranch() plumbing.ReferenceName {
 	return constant.StripesBranch
 }
 
-func (us *UISvc) PrepareStripesConfigJS(rp *runparams.RunParams, configPath string, tenant string) error {
+func (us *UISvc) PrepareStripesConfigJS(configPath string, tenant string) error {
 	stripesConfigJSFilePath := fmt.Sprintf("%s/stripes.config.js", configPath)
 
 	readFileBytes, err := os.ReadFile(stripesConfigJSFilePath)
@@ -39,12 +38,12 @@ func (us *UISvc) PrepareStripesConfigJS(rp *runparams.RunParams, configPath stri
 
 	replaceMap := map[string]string{
 		"${kongUrl}":           constant.KongExternalHTTP,
-		"${tenantUrl}":         rp.PlatformCompleteURL,
+		"${tenantUrl}":         us.Action.Params.PlatformCompleteURL,
 		"${keycloakUrl}":       constant.KeycloakExternalHTTP,
 		"${hasAllPerms}":       `false`,
-		"${isSingleTenant}":    strconv.FormatBool(rp.SingleTenant),
+		"${isSingleTenant}":    strconv.FormatBool(us.Action.Params.SingleTenant),
 		"${tenantOptions}":     fmt.Sprintf(`{%[1]s: {name: "%[1]s", clientId: "%[1]s%s"}}`, tenant, helpers.GetConfigEnv("KC_LOGIN_CLIENT_SUFFIX")),
-		"${enableEcsRequests}": strconv.FormatBool(rp.EnableECSRequests),
+		"${enableEcsRequests}": strconv.FormatBool(us.Action.Params.EnableECSRequests),
 	}
 
 	var newReadFileStr = string(readFileBytes)

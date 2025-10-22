@@ -52,13 +52,13 @@ func (r *Run) DeployModules() error {
 	sidecarEnv := helpers.GetConfigEnvVars(field.SidecarModuleEnv)
 
 	slog.Info(r.Config.Action.Name, "text", "READING BACKEND MODULES FROM CONFIG")
-	backendModulesMap, err := r.Config.ModuleParams.GetBackendModulesFromConfig(false, true, viper.GetStringMap(field.BackendModules))
+	backendModulesMap, err := r.Config.ModuleParams.GetBackendModulesFromConfig(false, viper.GetStringMap(field.BackendModules))
 	if err != nil {
 		return err
 	}
 
 	slog.Info(r.Config.Action.Name, "text", "READING FRONTEND MODULES FROM CONFIG")
-	frontendModulesMap := r.Config.ModuleParams.GetFrontendModulesFromConfig(true, viper.GetStringMap(field.FrontendModules), viper.GetStringMap(field.CustomFrontendModules))
+	frontendModulesMap := r.Config.ModuleParams.GetFrontendModulesFromConfig(viper.GetStringMap(field.FrontendModules), viper.GetStringMap(field.CustomFrontendModules))
 
 	slog.Info(r.Config.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
 	instalJsonURLs := map[string]string{
@@ -69,9 +69,7 @@ func (r *Run) DeployModules() error {
 	if err != nil {
 		return err
 	}
-
-	slog.Info(r.Config.Action.Name, "text", "EXTRACTING MODULE NAME AND VERSION")
-	r.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules, true)
+	r.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules)
 
 	vaultRootToken, client, err := r.GetVaultRootTokenWithDockerClient()
 	if err != nil {
@@ -134,6 +132,7 @@ func (r *Run) DeployModules() error {
 	default:
 	}
 
+	time.Sleep(constant.DeployModulesWait)
 	slog.Info(r.Config.Action.Name, "text", "All modules are ready")
 
 	return nil

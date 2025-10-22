@@ -45,7 +45,7 @@ var listModulesCmd = &cobra.Command{
 }
 
 func (r *Run) ListModules() error {
-	filter := fmt.Sprintf("name=%s", r.createFilter(rp.ModuleName, rp.ModuleType, rp.All))
+	filter := fmt.Sprintf("name=%s", r.createFilter(ap.ModuleName, ap.ModuleType, ap.All))
 	return helpers.Exec(exec.Command("docker", "container", "ls", "--all", "--filter", filter))
 }
 
@@ -74,9 +74,9 @@ func (r *Run) createFilter(moduleName string, moduleType string, all bool) strin
 func init() {
 	availableModuleTypes := []string{constant.ModuleType, constant.SidecarType, constant.ManagementType}
 	rootCmd.AddCommand(listModulesCmd)
-	listModulesCmd.Flags().BoolVarP(&rp.All, "all", "a", false, "All modules for all profiles")
-	listModulesCmd.Flags().StringVarP(&rp.ModuleName, "moduleName", "m", "", "By module name, e.g. mod-orders")
-	listModulesCmd.Flags().StringVarP(&rp.ModuleType, "moduleType", "M", "", fmt.Sprintf("By module type, options: %s", availableModuleTypes))
+	listModulesCmd.Flags().BoolVarP(&ap.All, "all", "a", false, "All modules for all profiles")
+	listModulesCmd.Flags().StringVarP(&ap.ModuleName, "moduleName", "m", "", "By module name, e.g. mod-orders")
+	listModulesCmd.Flags().StringVarP(&ap.ModuleType, "moduleType", "M", "", fmt.Sprintf("By module type, options: %s", availableModuleTypes))
 	if err := listModulesCmd.RegisterFlagCompletionFunc("moduleType", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return availableModuleTypes, cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {

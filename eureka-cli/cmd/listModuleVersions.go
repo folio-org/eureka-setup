@@ -55,7 +55,7 @@ var listModuleVersionsCmd = &cobra.Command{
 
 func (r *Run) ListModuleVersions() error {
 	registryURL := viper.GetString(field.RegistryURL)
-	if rp.ID != "" {
+	if ap.ID != "" {
 		return r.getModuleDescriptorByID(registryURL)
 	}
 
@@ -63,13 +63,13 @@ func (r *Run) ListModuleVersions() error {
 }
 
 func (r *Run) getModuleDescriptorByID(registryURL string) error {
-	resp, err := r.Config.HTTPClient.GetReturnResponse(fmt.Sprintf("%s/_/proxy/modules/%s", registryURL, rp.ID), map[string]string{})
+	resp, err := r.Config.HTTPClient.GetReturnResponse(fmt.Sprintf("%s/_/proxy/modules/%s", registryURL, ap.ID), map[string]string{})
 	if err != nil {
 		return err
 	}
 	defer httpclient.CloseResponse(resp)
 
-	if !rp.EnableDebug {
+	if !ap.EnableDebug {
 		respBytes, err := httputil.DumpResponse(resp, true)
 		if err != nil {
 			return err
@@ -77,7 +77,7 @@ func (r *Run) getModuleDescriptorByID(registryURL string) error {
 
 		idx := strings.Index(string(respBytes), constant.NewLinePattern)
 		if idx == -1 {
-			return fmt.Errorf("response does not contain an empty line using %s id", rp.ID)
+			return fmt.Errorf("response does not contain an empty line using %s id", ap.ID)
 		}
 
 		fmt.Println(string([]byte(respBytes[idx:])))
@@ -96,19 +96,19 @@ func (r *Run) listModuleVersionsSortedDescendingOrder(registryURL string) error 
 	for _, value := range resp.([]any) {
 		mapEntry := value.(map[string]any)
 
-		if helpers.MatchesModuleName(mapEntry["id"].(string), rp.ModuleName) {
+		if helpers.MatchesModuleName(mapEntry["id"].(string), ap.ModuleName) {
 			versions = append(versions, mapEntry["id"].(string))
 		}
 	}
 
 	sort.Slice(versions, func(i, j int) bool {
-		vi := "v" + strings.TrimPrefix(versions[i], rp.ModuleName+"-")
-		vj := "v" + strings.TrimPrefix(versions[j], rp.ModuleName+"-")
+		vi := "v" + strings.TrimPrefix(versions[i], ap.ModuleName+"-")
+		vj := "v" + strings.TrimPrefix(versions[j], ap.ModuleName+"-")
 		return semver.Compare(vi, vj) > 0
 	})
 
 	for idx, version := range versions {
-		if idx >= rp.Lines {
+		if idx >= ap.Lines {
 			break
 		}
 		fmt.Println(version)
@@ -119,9 +119,9 @@ func (r *Run) listModuleVersionsSortedDescendingOrder(registryURL string) error 
 
 func init() {
 	rootCmd.AddCommand(listModuleVersionsCmd)
-	listModuleVersionsCmd.PersistentFlags().StringVarP(&rp.ModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders (required)")
-	listModuleVersionsCmd.PersistentFlags().StringVarP(&rp.ID, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021")
-	listModuleVersionsCmd.PersistentFlags().IntVarP(&rp.Lines, "lines", "L", 5, "Number of lines, e.g. 5")
+	listModuleVersionsCmd.PersistentFlags().StringVarP(&ap.ModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders (required)")
+	listModuleVersionsCmd.PersistentFlags().StringVarP(&ap.ID, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021")
+	listModuleVersionsCmd.PersistentFlags().IntVarP(&ap.Lines, "lines", "L", 5, "Number of lines, e.g. 5")
 	if err := listModuleVersionsCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
 		slog.Error("failed to mark moduleName flag as required", "error", err)
 		os.Exit(1)

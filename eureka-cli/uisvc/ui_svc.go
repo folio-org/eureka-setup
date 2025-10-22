@@ -11,7 +11,6 @@ import (
 	"github.com/folio-org/eureka-cli/dockerclient"
 	"github.com/folio-org/eureka-cli/gitclient"
 	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/runparams"
 	"github.com/folio-org/eureka-cli/tenantsvc"
 )
 
@@ -60,15 +59,15 @@ func (us *UISvc) CloneAndUpdateUIRepository(updateCloned bool) (outputDir string
 	return repository.Dir, nil
 }
 
-func (us *UISvc) PrepareUIImage(rp *runparams.RunParams, tenant string) (finalImageName string, err error) {
+func (us *UISvc) PrepareUIImage(tenant string) (finalImageName string, err error) {
 	imageName := fmt.Sprintf("platform-complete-ui-%s", tenant)
-	if rp.BuildImages {
-		outputDir, err := us.CloneAndUpdateUIRepository(rp.UpdateCloned)
+	if us.Action.Params.BuildImages {
+		outputDir, err := us.CloneAndUpdateUIRepository(us.Action.Params.UpdateCloned)
 		if err != nil {
 			return "", err
 		}
 
-		return us.BuildImage(rp, outputDir, tenant)
+		return us.BuildImage(outputDir, tenant)
 	}
 
 	finalImageName, err = us.DockerClient.ForcePullImage(imageName)
@@ -79,7 +78,7 @@ func (us *UISvc) PrepareUIImage(rp *runparams.RunParams, tenant string) (finalIm
 	return finalImageName, nil
 }
 
-func (us *UISvc) BuildImage(rp *runparams.RunParams, outputDir string, tenant string) (finalImageName string, err error) {
+func (us *UISvc) BuildImage(outputDir string, tenant string) (finalImageName string, err error) {
 	finalImageName = fmt.Sprintf("platform-complete-ui-%s", tenant)
 
 	slog.Info(us.Action.Name, "text", "Copying UI configs")
@@ -90,7 +89,7 @@ func (us *UISvc) BuildImage(rp *runparams.RunParams, outputDir string, tenant st
 	}
 
 	slog.Info(us.Action.Name, "text", "PreparingUI configs")
-	err = us.PrepareStripesConfigJS(rp, outputDir, tenant)
+	err = us.PrepareStripesConfigJS(outputDir, tenant)
 	if err != nil {
 		return "", err
 	}

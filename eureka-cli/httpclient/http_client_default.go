@@ -23,10 +23,11 @@ func (l *LoggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, erro
 
 	if err != nil {
 		l.logger.Error("HTTP request failed", "error", err, "duration", duration)
+
 		return resp, err
 	}
 
-	l.logger.Debug("HTTP response", "status", resp.Status, "duration", duration)
+	l.logger.Debug("HTTP response", "method", req.Method, "status", resp.Status, "duration", duration)
 
 	return resp, nil
 }

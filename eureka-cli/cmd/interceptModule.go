@@ -49,12 +49,12 @@ var interceptModuleCmd = &cobra.Command{
 }
 
 func (r *Run) InterceptModule() error {
-	myModule := models.NewInterceptModule(r.Config.Action, rp.ID, rp.DefaultGateway, rp.ModuleURL, rp.SidecarURL, viper.GetInt(field.ApplicationPortStart), viper.GetInt(field.ApplicationPortEnd))
+	myModule := models.NewInterceptModule(r.Config.Action, ap.ID, ap.DefaultGateway, ap.ModuleURL, ap.SidecarURL, viper.GetInt(field.ApplicationPortStart), viper.GetInt(field.ApplicationPortEnd))
 
 	slog.Info(r.Config.Action.Name, "text", "INTERCEPTING MODULE", "module", myModule.ModuleName)
 	globalEnv := helpers.GetConfigEnvVars(field.Env)
 	globalSidecarEnv := helpers.GetConfigEnvVars(field.SidecarModuleEnv)
-	backendModulesMap, err := r.Config.ModuleParams.GetBackendModulesFromConfig(false, false, viper.GetStringMap(field.BackendModules))
+	backendModulesMap, err := r.Config.ModuleParams.GetBackendModulesFromConfig(false, viper.GetStringMap(field.BackendModules))
 	if err != nil {
 		return err
 	}
@@ -67,8 +67,7 @@ func (r *Run) InterceptModule() error {
 	if err != nil {
 		return err
 	}
-
-	r.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules, false)
+	r.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules)
 
 	vaultRootToken, client, err := r.GetVaultRootTokenWithDockerClient()
 	if err != nil {
@@ -94,11 +93,11 @@ func (r *Run) InterceptModule() error {
 		return err
 	}
 
-	if rp.Restore {
+	if ap.Restore {
 		return r.deployDefaultModuleAndSidecar(myModule, client)
 	}
 
-	return r.deployCustomSidecarForInterception(!rp.Restore, myModule, client)
+	return r.deployCustomSidecarForInterception(!ap.Restore, myModule, client)
 }
 
 func (r *Run) deployDefaultModuleAndSidecar(myModule *models.InterceptModule, client *client.Client) error {
@@ -252,11 +251,11 @@ func (r *Run) deploySidecar(printModuleEnv bool, myModule *models.InterceptModul
 
 func init() {
 	rootCmd.AddCommand(interceptModuleCmd)
-	interceptModuleCmd.PersistentFlags().StringVarP(&rp.ID, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
-	interceptModuleCmd.PersistentFlags().StringVarP(&rp.ModuleURL, "moduleUrl", "m", "", "Module URL, e.g. http://host.docker.internal:36002 or 36002 (if -g is used)")
-	interceptModuleCmd.PersistentFlags().StringVarP(&rp.SidecarURL, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002 or 37002 (if -g is used)")
-	interceptModuleCmd.PersistentFlags().BoolVarP(&rp.Restore, "restore", "r", false, "Restore module & sidecar")
-	interceptModuleCmd.PersistentFlags().BoolVarP(&rp.DefaultGateway, "defaultGateway", "g", false, "Use default gateway in URLs, .e.g http://host.docker.internal:{{port}} will be set automatically")
+	interceptModuleCmd.PersistentFlags().StringVarP(&ap.ID, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
+	interceptModuleCmd.PersistentFlags().StringVarP(&ap.ModuleURL, "moduleUrl", "m", "", "Module URL, e.g. http://host.docker.internal:36002 or 36002 (if -g is used)")
+	interceptModuleCmd.PersistentFlags().StringVarP(&ap.SidecarURL, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002 or 37002 (if -g is used)")
+	interceptModuleCmd.PersistentFlags().BoolVarP(&ap.Restore, "restore", "r", false, "Restore module & sidecar")
+	interceptModuleCmd.PersistentFlags().BoolVarP(&ap.DefaultGateway, "defaultGateway", "g", false, "Use default gateway in URLs, .e.g http://host.docker.internal:{{port}} will be set automatically")
 	if err := interceptModuleCmd.MarkPersistentFlagRequired("id"); err != nil {
 		slog.Error("failed to mark id flag as required", "error", err)
 		os.Exit(1)
