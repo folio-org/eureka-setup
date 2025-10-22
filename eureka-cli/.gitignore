@@ -18,4 +18,6 @@ drop_sidecar_cache.sh
 # AI generate output
 demo
 eureka-cli*
+*exe
 *.out
+*.html

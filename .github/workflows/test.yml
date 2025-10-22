@@ -38,7 +38,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      # Scan individual Dockerfiles to avoid Rego parsing issues
       - name: Scan folio-netcat Dockerfile
         uses: aquasecurity/trivy-action@master
         with:
@@ -66,7 +65,6 @@ jobs:
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
 
-      # Generate combined SARIF report for GitHub Security tab
       - name: Generate SARIF report for all Dockerfiles
         uses: aquasecurity/trivy-action@master
         if: always() && github.actor != 'dependabot[bot]'
@@ -114,7 +112,6 @@ jobs:
         working-directory: ./eureka-cli
         run: go mod download
 
-      # Fast fail-first approach for HIGH/CRITICAL vulnerabilities
       - name: Quick scan for HIGH/CRITICAL vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
@@ -124,7 +121,6 @@ jobs:
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
 
-      # Generate SARIF report (maintaining master branch compatibility)
       - name: Run Trivy vulnerability scanner on Go dependencies
         uses: aquasecurity/trivy-action@master
         if: success() && github.actor != 'dependabot[bot]'
@@ -141,7 +137,7 @@ jobs:
           sarif_file: 'trivy-results.sarif'
 
   unit-tests:
-    name: Unit Tests with Coverage
+    name: Unit Tests with Coverage (All Packages)
     runs-on: ubuntu-latest
     # Allow this job to fail without blocking downstream jobs during transition period
     continue-on-error: false
@@ -155,45 +151,69 @@ jobs:
       - name: Run unit tests with coverage
         working-directory: ./eureka-cli
         run: |
-          echo "🧪 Running unit tests for packages with comprehensive test coverage..."
-          echo "Packages: helpers, httpclient"
-          # Run tests only for packages with comprehensive test coverage
-          go test ./helpers/... ./httpclient/... -coverprofile=coverage.out -covermode=atomic
+          echo "Running unit tests for all packages..."
+          # Run tests for all packages to get comprehensive coverage report
+          go test ./... -coverprofile=coverage.out -covermode=atomic
 
       - name: Generate coverage report
         working-directory: ./eureka-cli
         run: |
-          echo "## Test Coverage Report (Helpers & HTTPClient)" >> $GITHUB_STEP_SUMMARY
-          echo "| Package | Coverage |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|----------|" >> $GITHUB_STEP_SUMMARY
-          go tool cover -func=coverage.out | grep -E "(helpers/|httpclient/)" | while read line; do
-            package=$(echo "$line" | awk '{print $1}' | sed 's/.*\///')
-            coverage=$(echo "$line" | awk '{print $3}')
-            echo "| $package | $coverage |" >> $GITHUB_STEP_SUMMARY
+          echo "## Test Coverage Report (All Packages)" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Coverage | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|----------|---------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Generate coverage for all packages
+          go test ./... -cover 2>/dev/null | grep "coverage:" | while read line; do
+            # Extract package name and coverage
+            package=$(echo "$line" | awk '{print $1}' | sed 's/github.com\/folio-org\/eureka-cli\///' | sed 's/github.com\/folio-org\/eureka-cli/main/')
+            coverage=$(echo "$line" | awk '{print $4}')
+            
+            # Determine status based on coverage
+            if [[ "$coverage" == "0.0%" ]]; then
+              status="No tests"
+            elif [[ "$package" == "helpers" ]] || [[ "$package" == "httpclient" ]]; then
+              status="Comprehensive"
+            else
+              status="Has tests"
+            fi
+            
+            echo "| $package | $coverage | $status |" >> $GITHUB_STEP_SUMMARY
           done
           
           total_coverage=$(go tool cover -func=coverage.out | grep "total:" | awk '{print $3}')
-          echo "| **Total (Helpers & HTTPClient)** | **$total_coverage** |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Total (All Packages)** | **$total_coverage** | **Overall** |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "ℹ️ Coverage calculated only for packages with comprehensive test suites." >> $GITHUB_STEP_SUMMARY
+          echo "**Legend:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Comprehensive: Packages with extensive test suites" >> $GITHUB_STEP_SUMMARY
+          echo "- Has tests: Packages with some test coverage" >> $GITHUB_STEP_SUMMARY  
+          echo "- No tests: Packages without test coverage (candidates for future testing)" >> $GITHUB_STEP_SUMMARY
 
       - name: Check coverage threshold
         working-directory: ./eureka-cli
         run: |
-          # Calculate total coverage percentage for tested packages only
-          COVERAGE=$(go tool cover -func=coverage.out | grep "total:" | awk '{print $3}' | sed 's/%//')
-          echo "Current test coverage (Helpers & HTTPClient): ${COVERAGE}%"
+          # Calculate coverage for well-tested packages only (helpers & httpclient)
+          helpers_coverage=$(go test ./helpers/... -cover 2>/dev/null | grep "coverage:" | awk '{print $4}' | sed 's/%//')
+          httpclient_coverage=$(go test ./httpclient/... -cover 2>/dev/null | grep "coverage:" | awk '{print $4}' | sed 's/%//')
           
-          # Check if coverage is below 80% using awk for floating point comparison
-          THRESHOLD_CHECK=$(echo "$COVERAGE" | awk '{if ($1 >= 80) print "PASS"; else print "FAIL"}')
+          echo "Coverage for well-tested packages:"
+          echo "- helpers: ${helpers_coverage}%"
+          echo "- httpclient: ${httpclient_coverage}%"
           
-          if [ "$THRESHOLD_CHECK" = "FAIL" ]; then
-            echo "❌ Test coverage ${COVERAGE}% is below the required 80% threshold for tested packages"
-            echo "Please add more tests to improve coverage in helpers/ and httpclient/ packages"
+          # Check if both packages meet the 80% threshold
+          helpers_check=$(echo "$helpers_coverage" | awk '{if ($1 >= 80) print "PASS"; else print "FAIL"}')
+          httpclient_check=$(echo "$httpclient_coverage" | awk '{if ($1 >= 80) print "PASS"; else print "FAIL"}')
+          
+          if [ "$helpers_check" = "FAIL" ]; then
+            echo "FAIL: Helpers package coverage ${helpers_coverage}% is below the required 80% threshold"
             exit 1
-          else
-            echo "✅ Test coverage ${COVERAGE}% meets the required 80% threshold for tested packages"
           fi
+          
+          if [ "$httpclient_check" = "FAIL" ]; then
+            echo "FAIL: HTTPClient package coverage ${httpclient_coverage}% is below the required 80% threshold"
+            exit 1
+          fi
+          
+          echo "PASS: All well-tested packages meet the 80% coverage threshold"
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5

@@ -42,37 +42,24 @@ var undeployApplicationCmd = &cobra.Command{
 
 		if len(viper.GetStringMap(field.ApplicationGatewayDependencies)) > 0 {
 			err = r.UndeployChildApplication()
+			if err != nil {
+				return err
+			}
 		} else {
-			err = r.UndeployApplication()
+			r.UndeployApplication()
 		}
-		if err != nil {
-			return err
-		}
+
 		helpers.LogCompletion(r.Config.Action.Name, start)
 
 		return nil
 	},
 }
 
-func (r *Run) UndeployApplication() error {
-	err := r.UndeployUi()
-	if err != nil {
-		return err
-	}
-	err = r.UndeployModules()
-	if err != nil {
-		return err
-	}
-	err = r.UndeployManagement()
-	if err != nil {
-		return err
-	}
-	err = r.UndeploySystem()
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (r *Run) UndeployApplication() {
+	_ = r.UndeployUi()
+	_ = r.UndeployModules()
+	_ = r.UndeployManagement()
+	_ = r.UndeploySystem()
 }
 
 func (r *Run) UndeployChildApplication() error {
