@@ -90,6 +90,7 @@ func DeployModules() {
 		go internal.PerformModuleHealthcheck(deployModulesCommand, withEnableDebug, &waitMutex, deployedModule, deployedModules[deployedModule])
 	}
 	waitMutex.Wait()
+	time.Sleep(15 * time.Second)
 	slog.Info(deployModulesCommand, internal.GetFuncName(), "All modules have initialized")
 }
 

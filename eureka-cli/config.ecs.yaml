@@ -220,6 +220,7 @@ backend-modules:
       KAFKA_SCHEDULED_JOB_TOPIC_PARTITIONS: "1"
       KAFKA_CAPABILITY_TOPIC_PARTITIONS: "1"
       KAFKA_SYS_USER_TOPIC_PARTITIONS: "1"
+      KAFKA_PRODUCER_TENANT_COLLECTION: "false"
     resources:
       cpus: 4
   mod-users-keycloak:

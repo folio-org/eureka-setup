@@ -70,7 +70,7 @@ func DeployManagement() {
 		go internal.PerformModuleHealthcheck(deployManagementCommand, withEnableDebug, &waitMutex, deployedModule, deployedModules[deployedModule])
 	}
 	waitMutex.Wait()
-	time.Sleep(5 * time.Second)
+	time.Sleep(15 * time.Second)
 	slog.Info(deployManagementCommand, internal.GetFuncName(), "All management modules have initialized")
 }
 
