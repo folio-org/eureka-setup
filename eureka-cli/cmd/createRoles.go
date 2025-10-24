@@ -16,42 +16,63 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
-
-const createRolesCommand string = "Create Roles"
 
 // createRolesCmd represents the createRoles command
 var createRolesCmd = &cobra.Command{
 	Use:   "createRoles",
 	Short: "Create roles",
 	Long:  `Create all roles.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		RunByConsortiumAndTenantType(createRolesCommand, func(consortium string, tenantType internal.TenantType) {
-			CreateRoles(consortium, tenantType)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.CreateRoles)
+		if err != nil {
+			return err
+		}
+
+		return r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+			return r.CreateRoles(consortiumName, tenantType)
 		})
 	},
 }
 
-func CreateRoles(consortium string, tenantType internal.TenantType) {
-	vaultRootToken := GetVaultRootToken()
+func (r *Run) CreateRoles(consortiumName string, tenantType constant.TenantType) error {
+	vaultRootToken, err := r.GetVaultRootToken()
+	if err != nil {
+		return err
+	}
 
-	for _, value := range internal.GetTenants(createRolesCommand, withEnableDebug, false, consortium, tenantType) {
+	tt, err := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
+	if err != nil {
+		return err
+	}
+
+	for _, value := range tt {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
-		if !internal.HasTenant(existingTenant) {
+		if !helpers.HasTenant(existingTenant) {
 			continue
 		}
 
-		slog.Info(createRolesCommand, internal.GetFuncName(), fmt.Sprintf("### CREATING ROLES FOR %s TENANT ###", existingTenant))
-		keycloakAccessToken := internal.GetKeycloakAccessToken(createRolesCommand, withEnableDebug, vaultRootToken, existingTenant)
-		internal.CreateRoles(createRolesCommand, withEnableDebug, false, existingTenant, keycloakAccessToken)
+		slog.Info(r.Config.Action.Name, "text", "CREATING ROLES FOR TENANT", "tenant", existingTenant)
+		keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		if err != nil {
+			return err
+		}
+
+		err = r.Config.KeycloakSvc.CreateRoles(existingTenant, keycloakAccessToken)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func init() {

@@ -20,58 +20,89 @@ import (
 	"sync"
 	"time"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/field"
+	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/models"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-const deployManagementCommand string = "Deploy Management"
-
 // deployManagementCmd represents the deployManagement command
 var deployManagementCmd = &cobra.Command{
 	Use:   "deployManagement",
-	Short: "Deploy mananagement",
+	Short: "Deploy management",
 	Long:  `Deploy all management modules.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		DeployManagement()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		startPort := viper.GetInt(field.ApplicationPortStart)
+		endPort := viper.GetInt(field.ApplicationPortEnd)
+		r, err := NewCustom(action.DeployManagement, startPort, endPort)
+		if err != nil {
+			return err
+		}
+
+		return r.DeployManagement()
 	},
 }
 
-func DeployManagement() {
-	internal.PortStartIndex = viper.GetInt(internal.ApplicationPortStartKey)
-	internal.PortEndIndex = viper.GetInt(internal.ApplicationPortEndKey)
-	internal.ReservedPorts = []int{}
-	environment := internal.GetEnvironmentFromConfig(deployManagementCommand, internal.EnvironmentKey)
+func (r *Run) DeployManagement() error {
+	env := helpers.GetConfigEnvVars(field.Env)
 
-	slog.Info(deployManagementCommand, internal.GetFuncName(), "### READING BACKEND MODULES FROM CONFIG ###")
-	backendModulesMap := internal.GetBackendModulesFromConfig(deployManagementCommand, true, true, viper.GetStringMap(internal.BackendModulesKey))
-
-	slog.Info(deployManagementCommand, internal.GetFuncName(), "### READING BACKEND MODULE REGISTRIES ###")
-	registryModules := internal.GetModulesFromRegistries(deployManagementCommand, map[string]string{internal.EurekaRegistry: viper.GetString(internal.InstallEurekaKey)}, true)
-
-	slog.Info(deployManagementCommand, internal.GetFuncName(), "### EXTRACTING MODULE NAME AND VERSION ###")
-	internal.ExtractModuleNameAndVersion(deployManagementCommand, withEnableDebug, registryModules, true)
-
-	vaultRootToken, client := GetVaultRootTokenWithDockerClient()
-	defer func() {
-		_ = client.Close()
-	}()
-
-	slog.Info(deployManagementCommand, internal.GetFuncName(), "### DEPLOYING MANAGEMENT MODULES ###")
-	registryHostnames := map[string]string{internal.EurekaRegistry: ""}
-	deployModulesDto := internal.NewDeployManagementModulesDto(vaultRootToken, registryHostnames, registryModules, backendModulesMap, environment)
-	deployedModules := internal.DeployModules(deployManagementCommand, client, deployModulesDto, "", nil)
-	time.Sleep(5 * time.Second)
-
-	slog.Info(deployManagementCommand, internal.GetFuncName(), "### WAITING FOR MANAGEMENT MODULES TO INITIALIZE ###")
-	var waitMutex sync.WaitGroup
-	waitMutex.Add(len(deployedModules))
-	for deployedModule := range deployedModules {
-		go internal.PerformModuleHealthcheck(deployManagementCommand, withEnableDebug, &waitMutex, deployedModule, deployedModules[deployedModule])
+	slog.Info(r.Config.Action.Name, "text", "READING BACKEND MODULES FROM CONFIG")
+	backendModulesMap, err := r.Config.ModuleParams.GetBackendModulesFromConfig(true, viper.GetStringMap(field.BackendModules))
+	if err != nil {
+		return err
 	}
-	waitMutex.Wait()
-	time.Sleep(15 * time.Second)
-	slog.Info(deployManagementCommand, internal.GetFuncName(), "All management modules have initialized")
+
+	slog.Info(r.Config.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
+	instalJsonURLs := map[string]string{
+		constant.EurekaRegistry: viper.GetString(field.InstallEureka),
+	}
+	registryModules, err := r.Config.RegistrySvc.GetModules(instalJsonURLs, true)
+	if err != nil {
+		return err
+	}
+	r.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules)
+
+	vaultRootToken, client, err := r.GetVaultRootTokenWithDockerClient()
+	if err != nil {
+		return err
+	}
+	defer r.Config.DockerClient.Close(client)
+
+	slog.Info(r.Config.Action.Name, "text", "DEPLOYING MANAGEMENT MODULES")
+	registryHosts := map[string]string{
+		constant.EurekaRegistry: "",
+	}
+	containers := models.NewManagementContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, env)
+	deployedModules, err := r.Config.ModuleSvc.DeployModules(client, containers, "", nil)
+	if err != nil {
+		return err
+	}
+	time.Sleep(constant.DeployManagementWait)
+
+	slog.Info(r.Config.Action.Name, "text", "WAITING FOR MANAGEMENT MODULES TO BECOME READY")
+	var deployManagementWG sync.WaitGroup
+	errCh := make(chan error, len(deployedModules))
+
+	deployManagementWG.Add(len(deployedModules))
+	for deployedModule := range deployedModules {
+		go r.Config.ModuleSvc.PerformModuleReadinessCheck(&deployManagementWG, errCh, deployedModule, deployedModules[deployedModule])
+	}
+	deployManagementWG.Wait()
+	close(errCh)
+
+	select {
+	case err := <-errCh:
+		return err
+	default:
+	}
+
+	time.Sleep(constant.DeployManagementWait)
+	slog.Info(r.Config.Action.Name, "text", "All management modules are ready")
+
+	return nil
 }
 
 func init() {

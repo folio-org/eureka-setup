@@ -16,42 +16,60 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
-
-const removeUsersCommand string = "Remove Users"
 
 // removeUsersCmd represents the removeUsers command
 var removeUsersCmd = &cobra.Command{
 	Use:   "removeUsers",
 	Short: "Create users",
 	Long:  `Create all users.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		RunByConsortiumAndTenantType(removeUsersCommand, func(consortium string, tenantType internal.TenantType) {
-			RemoveUsers(consortium, tenantType)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.RemoveUsers)
+		if err != nil {
+			return err
+		}
+
+		return r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+			return r.RemoveUsers(consortiumName, tenantType)
 		})
 	},
 }
 
-func RemoveUsers(consortium string, tenantType internal.TenantType) {
-	vaultRootToken := GetVaultRootToken()
+func (r *Run) RemoveUsers(consortiumName string, tenantType constant.TenantType) error {
+	vaultRootToken, err := r.GetVaultRootToken()
+	if err != nil {
+		return err
+	}
 
-	for _, value := range internal.GetTenants(removeUsersCommand, withEnableDebug, false, consortium, tenantType) {
+	tt, err := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
+	if err != nil {
+		return err
+	}
+
+	for _, value := range tt {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
-		if !internal.HasTenant(existingTenant) {
+		if !helpers.HasTenant(existingTenant) {
 			continue
 		}
 
-		slog.Info(removeUsersCommand, internal.GetFuncName(), fmt.Sprintf("### REMOVING USERS FOR %s TENANT ###", existingTenant))
-		keycloakAccessToken := internal.GetKeycloakAccessToken(removeUsersCommand, withEnableDebug, vaultRootToken, existingTenant)
-		internal.RemoveUsers(removeUsersCommand, withEnableDebug, false, existingTenant, keycloakAccessToken)
+		slog.Info(r.Config.Action.Name, "text", "REMOVING USERS FOR TENANT", "tenant", existingTenant)
+		keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		if err != nil {
+			return err
+		}
+
+		_ = r.Config.KeycloakSvc.RemoveUsers(existingTenant, keycloakAccessToken)
 	}
+
+	return nil
 }
 
 func init() {

@@ -16,42 +16,60 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
-
-const detachCapabilitySetsCommand string = "Detach Capability Sets"
 
 // detachCapabilitySetsCmd represents the detachCapabilitySets command
 var detachCapabilitySetsCmd = &cobra.Command{
 	Use:   "detachCapabilitySets",
 	Short: "Detach capability sets",
 	Long:  `Detach all capability sets from roles.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		RunByConsortiumAndTenantType(detachCapabilitySetsCommand, func(consortium string, tenantType internal.TenantType) {
-			DetachCapabilitySets(consortium, tenantType)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.DetachCapabilitySets)
+		if err != nil {
+			return err
+		}
+
+		return r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+			return r.DetachCapabilitySets(consortiumName, tenantType)
 		})
 	},
 }
 
-func DetachCapabilitySets(consortium string, tenantType internal.TenantType) {
-	vaultRootToken := GetVaultRootToken()
+func (r *Run) DetachCapabilitySets(consortiumName string, tenantType constant.TenantType) error {
+	vaultRootToken, err := r.GetVaultRootToken()
+	if err != nil {
+		return err
+	}
 
-	for _, value := range internal.GetTenants(detachCapabilitySetsCommand, withEnableDebug, false, consortium, tenantType) {
+	tt, err := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
+	if err != nil {
+		return err
+	}
+
+	for _, value := range tt {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
-		if !internal.HasTenant(existingTenant) {
+		if !helpers.HasTenant(existingTenant) {
 			continue
 		}
 
-		slog.Info(detachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("### DETACHING CAPABILITY SETS FROM ROLES FOR %s TENANT ###", existingTenant))
-		keycloakAccessToken := internal.GetKeycloakAccessToken(detachCapabilitySetsCommand, withEnableDebug, vaultRootToken, existingTenant)
-		internal.DetachCapabilitySetsFromRoles(detachCapabilitySetsCommand, withEnableDebug, false, existingTenant, keycloakAccessToken)
+		slog.Info(r.Config.Action.Name, "text", "DETACHING CAPABILITY SETS FROM ROLES FOR TENANT", "tenant", existingTenant)
+		keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		if err != nil {
+			return err
+		}
+
+		_ = r.Config.KeycloakSvc.DetachCapabilitySetsFromRoles(existingTenant, keycloakAccessToken)
 	}
+
+	return nil
 }
 
 func init() {

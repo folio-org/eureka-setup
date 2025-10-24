@@ -18,39 +18,60 @@ package cmd
 import (
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
-
-const updateKeycloakPublicClientsCommand string = "Update Keycloak Public Clients"
 
 // updateKeycloakPublicClientsCmd represents the updateKeycloakPublicClients command
 var updateKeycloakPublicClientsCmd = &cobra.Command{
 	Use:   "updateKeycloakPublicClients",
 	Short: "Update Keycloak public client params",
 	Long:  `Update Keycloak public client params for each UI container.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		UpdateKeycloakPublicClients()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.UpdateKeycloakPublicClients)
+		if err != nil {
+			return err
+		}
+
+		return r.UpdateKeycloakPublicClients()
 	},
 }
 
-func UpdateKeycloakPublicClients() {
-	slog.Info(updateKeycloakPublicClientsCommand, internal.GetFuncName(), "### UPDATING KEYCLOAK PUBLIC CLIENTS ###")
-	keycloakMasterAccessToken := internal.GetKeycloakMasterAccessToken(updateKeycloakPublicClientsCommand, withEnableDebug)
+func (r *Run) UpdateKeycloakPublicClients() error {
+	slog.Info(r.Config.Action.Name, "text", "UPDATING KEYCLOAK PUBLIC CLIENTS")
+	keycloakMasterAccessToken, err := r.Config.KeycloakSvc.GetKeycloakMasterAccessToken()
+	if err != nil {
+		return err
+	}
 
-	for _, value := range internal.GetTenants(updateKeycloakPublicClientsCommand, withEnableDebug, false, internal.NoneConsortium, internal.AllTenantTypes) {
+	tt, err := r.Config.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
+	if err != nil {
+		return err
+	}
+
+	for _, value := range tt {
 		mapEntry := value.(map[string]any)
 
 		existingTenant := mapEntry["name"].(string)
-		if !internal.HasTenant(existingTenant) || !internal.CanDeployUi(existingTenant) {
+		if !helpers.HasTenant(existingTenant) || !helpers.IsUIEnabled(existingTenant) {
 			continue
 		}
 
-		setCommandFlagsFromConfigFile(updateKeycloakPublicClientsCommand, existingTenant)
+		err = r.Config.TenantSvc.SetDefaultConfigTenantParams(existingTenant)
+		if err != nil {
+			return err
+		}
 
-		slog.Info(updateKeycloakPublicClientsCommand, internal.GetFuncName(), "Updating keycloak public client")
-		internal.UpdateKeycloakPublicClientParams(updateKeycloakPublicClientsCommand, withEnableDebug, existingTenant, keycloakMasterAccessToken, withPlatformCompleteUrl)
+		slog.Info(r.Config.Action.Name, "text", "Updating keycloak public client")
+		err = r.Config.KeycloakSvc.UpdateKeycloakPublicClientParams(existingTenant, keycloakMasterAccessToken, ap.PlatformCompleteURL)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func init() {

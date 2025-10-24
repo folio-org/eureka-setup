@@ -18,24 +18,28 @@ package cmd
 import (
 	"os/exec"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
-
-const listSystemCommand string = "List System"
 
 // listSystemCmd represents the listSystem command
 var listSystemCmd = &cobra.Command{
 	Use:   "listSystem",
 	Short: "List system containers",
 	Long:  `List all system containers.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		ListSystem()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.ListSystem)
+		if err != nil {
+			return err
+		}
+
+		return r.ListSystem()
 	},
 }
 
-func ListSystem() {
-	internal.RunCommand(listSystemCommand, exec.Command("docker", "compose", "--project-name", "eureka", "ps", "--all"))
+func (r *Run) ListSystem() error {
+	return helpers.Exec(exec.Command("docker", "compose", "--project-name", "eureka", "ps", "--all"))
 }
 
 func init() {

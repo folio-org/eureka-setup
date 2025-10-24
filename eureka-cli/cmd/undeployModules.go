@@ -19,35 +19,47 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/field"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
-
-const undeployModulesCommand = "Undeploy Modules"
 
 // undeployModulesCmd represents the undeployModules command
 var undeployModulesCmd = &cobra.Command{
 	Use:   "undeployModules",
 	Short: "Undeploy modules",
 	Long:  `Undeploy multiple modules.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		UndeployModules()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.UndeployModules)
+		if err != nil {
+			return err
+		}
+
+		return r.UndeployModules()
 	},
 }
 
-func UndeployModules() {
-	slog.Info(undeployModulesCommand, internal.GetFuncName(), "### REMOVING APPLICATIONS ###")
-	applicationId := fmt.Sprintf("%s-%s", viper.GetString(internal.ApplicationNameKey), viper.GetString(internal.ApplicationVersionKey))
-	internal.RemoveApplication(undeployModulesCommand, withEnableDebug, false, applicationId)
+func (r *Run) UndeployModules() error {
+	slog.Info(r.Config.Action.Name, "text", "REMOVING APPLICATIONS")
+	applicationID := fmt.Sprintf("%s-%s", viper.GetString(field.ApplicationName), viper.GetString(field.ApplicationVersion))
+	_ = r.Config.ManagementSvc.RemoveApplication(applicationID)
 
-	slog.Info(undeployModulesCommand, internal.GetFuncName(), "### UNDEPLOYING MODULES ###")
-	client := internal.CreateDockerClient(undeployModulesCommand)
-	defer func() {
-		_ = client.Close()
-	}()
+	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING MODULES")
+	client, err := r.Config.DockerClient.Create()
+	if err != nil {
+		return err
+	}
+	defer r.Config.DockerClient.Close(client)
 
-	internal.UndeployModuleByNamePattern(undeployModulesCommand, client, fmt.Sprintf(internal.ProfileContainerPattern, viper.GetString(internal.ProfileNameKey)), true)
+	pattern := fmt.Sprintf(constant.ProfileContainerPattern, viper.GetString(field.ProfileName))
+	err = r.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func init() {

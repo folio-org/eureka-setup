@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"github.com/folio-org/eureka-cli/action"
 	"github.com/spf13/cobra"
 )
 
@@ -24,14 +25,19 @@ var deployModuleCmd = &cobra.Command{
 	Use:   "deployModule",
 	Short: "Deploy module",
 	Long:  `Deploy a single module.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		DeployModule()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.DeployModule)
+		if err != nil {
+			return err
+		}
+
+		return r.DeployModule()
 	},
 }
 
 // TODO Add single module deployment
-func DeployModule() {
-
+func (r *Run) DeployModule() error {
+	return nil
 }
 
 func init() {
