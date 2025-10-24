@@ -39,13 +39,13 @@
     {
       "type": "MOSAIC",
       "method": "GET",
-      "pathPattern": "/mosaic/validate",
+      "pathPattern": "/orders/validate",
       "proxyPath": "/mosaic/validate"
     },
     {
       "type": "MOSAIC",
       "method": "POST",
-      "pathPattern": "/mosaic/orders",
+      "pathPattern": "/orders",
       "proxyPath": "/mosaic/orders"
     },
     {
@@ -69,6 +69,12 @@
     {
       "type": "COMMON",
       "method": "GET",
+      "pathPattern": "/finance/funds/:id/expense-classes",
+      "proxyPath": "/finance/funds/:id/expense-classes?offset=:offset&limit=:limit&query=:query"
+    },
+    {
+      "type": "COMMON",
+      "method": "GET",
       "pathPattern": "/finance/expense-classes",
       "proxyPath": "/finance/expense-classes?offset=:offset&limit=:limit&query=:query"
     },
@@ -81,13 +87,13 @@
     {
       "type": "COMMON",
       "method": "GET",
-      "pathPattern": "/acquisitions-units",
+      "pathPattern": "/orders/acquisitions-units",
       "proxyPath": "/acquisitions-units/units?offset=:offset&limit=:limit&query=:query"
     },
     {
       "type": "COMMON",
       "method": "GET",
-      "pathPattern": "/acquisition-methods",
+      "pathPattern": "/orders/acquisition-methods",
       "proxyPath": "/orders/acquisition-methods?offset=:offset&limit=:limit&query=:query"
     },
     {
@@ -99,7 +105,7 @@
     {
       "type": "COMMON",
       "method": "GET",
-      "pathPattern": "/addresses/billing-and-shipping",
+      "pathPattern": "/orders/addresses/billing-and-shipping",
       "proxyPath": "/configurations/entries?offset=:offset&limit=:limit&query=:query",
       "extraQuery": "configName==tenant.addresses"
     },
