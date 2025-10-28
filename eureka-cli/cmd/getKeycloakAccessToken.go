@@ -39,18 +39,18 @@ var getKeycloakAccessTokenCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		fmt.Println(r.RunConfig.Action.KeycloakAccessToken)
 
 		return r.GetKeycloakAccessToken()
 	},
 }
 
 func (r *Run) GetKeycloakAccessToken() error {
-	keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(actionParams.Tenant)
+	keycloakAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakAccessToken(actionParams.Tenant)
 	if err != nil {
 		return err
 	}
-	r.Config.Action.KeycloakAccessToken = keycloakAccessToken
-	fmt.Println(r.Config.Action.KeycloakAccessToken)
+	r.RunConfig.Action.KeycloakAccessToken = keycloakAccessToken
 
 	return nil
 }

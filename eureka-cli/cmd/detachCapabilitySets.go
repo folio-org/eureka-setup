@@ -35,19 +35,20 @@ var detachCapabilitySetsCmd = &cobra.Command{
 			return err
 		}
 
-		return r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+		return r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 			return r.DetachCapabilitySets(consortiumName, tenantType)
 		})
 	},
 }
 
 func (r *Run) DetachCapabilitySets(consortiumName string, tenantType constant.TenantType) error {
+	// TODO Abstract
 	err := r.GetVaultRootToken()
 	if err != nil {
 		return err
 	}
 
-	resp, err := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
+	resp, err := r.RunConfig.ManagementSvc.GetTenants(consortiumName, tenantType)
 	if err != nil {
 		return err
 	}
@@ -55,17 +56,18 @@ func (r *Run) DetachCapabilitySets(consortiumName string, tenantType constant.Te
 	for _, value := range resp {
 		mapEntry := value.(map[string]any)
 		configTenant := mapEntry["name"].(string)
-		if !helpers.HasTenant(configTenant, r.Config.Action.ConfigTenants) {
+		hasTenant := helpers.HasTenant(configTenant, r.RunConfig.Action.ConfigTenants)
+		if !hasTenant {
 			continue
 		}
 
-		slog.Info(r.Config.Action.Name, "text", "DETACHING CAPABILITY SETS FROM ROLES FOR TENANT", "tenant", configTenant)
-		keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
+		slog.Info(r.RunConfig.Action.Name, "text", "DETACHING CAPABILITY SETS FROM ROLES FOR TENANT", "tenant", configTenant)
+		keycloakAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakAccessToken(configTenant)
 		if err != nil {
 			return err
 		}
-		r.Config.Action.KeycloakAccessToken = keycloakAccessToken
-		_ = r.Config.KeycloakSvc.DetachCapabilitySetsFromRoles(configTenant)
+		r.RunConfig.Action.KeycloakAccessToken = keycloakAccessToken
+		_ = r.RunConfig.KeycloakSvc.DetachCapabilitySetsFromRoles(configTenant)
 	}
 
 	return nil

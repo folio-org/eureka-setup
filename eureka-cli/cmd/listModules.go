@@ -52,7 +52,7 @@ func (r *Run) createFilter(moduleName string, moduleType string, all bool) strin
 		return constant.AllContainerPattern
 	}
 
-	currentProfile := r.Config.Action.ConfigProfile
+	currentProfile := r.RunConfig.Action.ConfigProfile
 	if moduleName != "" {
 		return fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, currentProfile, moduleName)
 	}

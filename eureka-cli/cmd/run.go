@@ -36,7 +36,7 @@ import (
 
 // Run is a container that holds the RunConfig instance
 type Run struct {
-	Config *runconfig.RunConfig
+	RunConfig *runconfig.RunConfig
 }
 
 func New(name string) (*Run, error) {
@@ -46,49 +46,12 @@ func New(name string) (*Run, error) {
 	}
 
 	action := action.New(name, gatewayURLTemplate, &actionParams)
-	return &Run{Config: runconfig.New(action, logger)}, nil
+	return &Run{RunConfig: runconfig.New(action, logger)}, nil
 }
 
 func (r *Run) PingGateway() error {
-	gatewayURL := fmt.Sprintf(r.Config.Action.GatewayURLTemplate, constant.KongPort)
-	return r.Config.HTTPClient.Ping(gatewayURL)
-}
-
-func (r *Run) Partition(callback func(string, constant.TenantType)) {
-	if viper.IsSet(field.Consortiums) {
-		for consortiumName := range r.Config.Action.ConfigConsortiums {
-			for _, tenantType := range constant.GetTenantTypes() {
-				slog.Info(r.Config.Action.Name, "text", "Running partition with consortium and tenant type", "consortium", consortiumName, "tenantType", tenantType)
-				callback(consortiumName, tenantType)
-			}
-		}
-		return
-	}
-
-	callback(constant.NoneConsortium, constant.Default)
-}
-
-func (r *Run) PartitionErr(callback func(string, constant.TenantType) error) error {
-	if viper.IsSet(field.Consortiums) {
-		for consortiumName := range r.Config.Action.ConfigConsortiums {
-			for _, tenantType := range constant.GetTenantTypes() {
-				slog.Info(r.Config.Action.Name, "text", "Running partition with consortium and tenant type", "consortium", consortiumName, "tenantType", tenantType)
-				err := callback(consortiumName, tenantType)
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		return nil
-	}
-
-	err := callback(constant.NoneConsortium, constant.Default)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	gatewayURL := fmt.Sprintf(r.RunConfig.Action.GatewayURLTemplate, constant.KongPort)
+	return r.RunConfig.HTTPClient.Ping(gatewayURL)
 }
 
 func tryReadConfig(afterReadCallback func(configErr error)) {
@@ -191,5 +154,61 @@ func createHomeDir(overwriteFiles bool, embeddedFs *embed.FS) {
 	if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
 		fmt.Println()
 	}
+}
 
+func (r *Run) ConsortiumPartition(fn func(string, constant.TenantType)) {
+	if !action.IsSet(field.Consortiums) {
+		fn(constant.NoneConsortium, constant.Default)
+		return
+	}
+
+	for consortiumName := range r.RunConfig.Action.ConfigConsortiums {
+		for _, tenantType := range constant.GetTenantTypes() {
+			slog.Info(r.RunConfig.Action.Name, "text", "Running partition with consortium and tenant type", "consortium", consortiumName, "tenantType", tenantType)
+			fn(consortiumName, tenantType)
+		}
+	}
+}
+
+func (r *Run) ConsortiumPartitionErr(fn func(string, constant.TenantType) error) error {
+	if !action.IsSet(field.Consortiums) {
+		return fn(constant.NoneConsortium, constant.Default)
+	}
+
+	for consortiumName := range r.RunConfig.Action.ConfigConsortiums {
+		for _, tenantType := range constant.GetTenantTypes() {
+			slog.Info(r.RunConfig.Action.Name, "text", "Running partition with consortium and tenant type", "consortium", consortiumName, "tenantType", tenantType)
+
+			err := fn(consortiumName, tenantType)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (r *Run) TenantPartition(consortiumName string, tenantType constant.TenantType, fn func(string, constant.TenantType) error) error {
+	err := r.GetVaultRootToken()
+	if err != nil {
+		return err
+	}
+
+	resp, err := r.RunConfig.ManagementSvc.GetTenants(consortiumName, tenantType)
+	if err != nil {
+		return err
+	}
+
+	for _, value := range resp {
+		configTenant := value.(map[string]any)["name"].(string)
+		if helpers.HasTenant(configTenant, r.RunConfig.Action.ConfigTenants) {
+			err = fn(configTenant, tenantType)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

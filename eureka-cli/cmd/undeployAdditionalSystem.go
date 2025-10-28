@@ -40,11 +40,11 @@ var undeployAdditionalSystemCmd = &cobra.Command{
 }
 
 func (r *Run) UndeployAdditionalSystem() error {
-	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING ADDITIONAL SYSTEM CONTAINERS")
+	slog.Info(r.RunConfig.Action.Name, "text", "UNDEPLOYING ADDITIONAL SYSTEM CONTAINERS")
 
-	finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(r.Config.Action.Name, []string{}, r.Config.Action.ConfigBackendModules)
+	finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(r.RunConfig.Action.Name, []string{}, r.RunConfig.Action.ConfigBackendModules)
 	if len(finalRequiredContainers) == 0 {
-		slog.Info(r.Config.Action.Name, "text", "No additional system containers undeployed")
+		slog.Info(r.RunConfig.Action.Name, "text", "No additional system containers undeployed")
 		return nil
 	}
 

@@ -41,15 +41,15 @@ var undeployModuleCmd = &cobra.Command{
 }
 
 func (r *Run) UndeployModule() error {
-	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING MODULE")
-	client, err := r.Config.DockerClient.Create()
+	slog.Info(r.RunConfig.Action.Name, "text", "UNDEPLOYING MODULE")
+	client, err := r.RunConfig.DockerClient.Create()
 	if err != nil {
 		return err
 	}
-	defer r.Config.DockerClient.Close(client)
+	defer r.RunConfig.DockerClient.Close(client)
 
-	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, r.Config.Action.ConfigProfile, actionParams.ModuleName)
-	err = r.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
+	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, r.RunConfig.Action.ConfigProfile, actionParams.ModuleName)
+	err = r.RunConfig.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
 	if err != nil {
 		return err
 	}

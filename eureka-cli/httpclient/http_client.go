@@ -33,11 +33,7 @@ type HTTPClient struct {
 
 func New(action *action.Action, logger *slog.Logger) *HTTPClient {
 	customClient := createCustomClient(constant.HTTPClientTimeout)
-	return &HTTPClient{
-		Action:       action,
-		customClient: customClient,
-		retryClient:  createRetryClient(logger, customClient),
-	}
+	return &HTTPClient{Action: action, customClient: customClient, retryClient: createRetryClient(logger, customClient)}
 }
 
 func (hc *HTTPClient) Ping(url string) error {

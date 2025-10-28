@@ -18,7 +18,7 @@ import (
 	"golang.org/x/text/language"
 )
 
-// Action is a container that holds the state of the deployment
+// Action is a container that holds the state (context) of current deployment
 type Action struct {
 	Name                              string
 	GatewayURLTemplate                string

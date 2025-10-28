@@ -34,9 +34,7 @@ type GitClient struct {
 }
 
 func New(action *action.Action) *GitClient {
-	return &GitClient{
-		Action: action,
-	}
+	return &GitClient{Action: action}
 }
 
 func (gc *GitClient) KongRepository() (*gitrepository.GitRepository, error) {

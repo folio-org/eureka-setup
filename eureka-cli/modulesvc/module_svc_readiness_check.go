@@ -23,23 +23,21 @@ func (ms *ModuleSvc) CheckModuleReadiness(wg *sync.WaitGroup, errCh chan<- error
 	requestURL := ms.Action.GetRequestURL(strconv.Itoa(port), "/admin/health")
 	for retryCount := range constant.ModuleReadinessMaxRetries {
 		ready, _ := ms.checkContainerStatusCode(requestURL)
-		if !ready {
-			if retryCount == constant.ModuleReadinessMaxRetries {
-				select {
-				case errCh <- fmt.Errorf("module %s is unready and out of retries", moduleName):
-				default:
-				}
-				return
-			} else {
-				slog.Info(ms.Action.Name, "text", "Module is unready", "module", moduleName, "retryCount", retryCount, "maxRetries", constant.ModuleReadinessMaxRetries)
-				time.Sleep(constant.ModuleReadinessWait)
-			}
-		}
-
 		if ready {
 			slog.Info(ms.Action.Name, "text", "Module is ready", "module", moduleName)
 			return
 		}
+
+		if retryCount == constant.ModuleReadinessMaxRetries {
+			select {
+			case errCh <- fmt.Errorf("module %s is unready and out of retries", moduleName):
+			default:
+			}
+			return
+		}
+
+		slog.Info(ms.Action.Name, "text", "Module is unready", "module", moduleName, "retryCount", retryCount, "maxRetries", constant.ModuleReadinessMaxRetries)
+		time.Sleep(constant.ModuleReadinessWait)
 	}
 }
 

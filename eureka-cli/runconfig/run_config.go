@@ -39,7 +39,7 @@ type RunConfig struct {
 	AWSSvc        awssvc.AWSProcessor
 	KafkaSvc      kafkasvc.KafkaProcessor
 	KeycloakSvc   keycloaksvc.KeycloakProcessor
-	KongSvc       kongsvc.KongSvcProcessor
+	KongSvc       kongsvc.KongProcessor
 	RegistrySvc   registrysvc.RegistryProcessor
 	ModuleParams  moduleparams.ModuleParamsProcessor
 	ModuleEnv     moduleenv.ModuleEnvProcessor

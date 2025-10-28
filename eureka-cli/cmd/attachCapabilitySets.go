@@ -37,19 +37,20 @@ var attachCapabilitySetsCmd = &cobra.Command{
 			return err
 		}
 
-		return r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+		return r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 			return r.AttachCapabilitySets(consortiumName, tenantType, time.Duration(0*time.Second))
 		})
 	},
 }
 
 func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.TenantType, initialWait time.Duration) error {
+	// TODO Abstract
 	err := r.GetVaultRootToken()
 	if err != nil {
 		return err
 	}
 
-	resp, err := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
+	resp, err := r.RunConfig.ManagementSvc.GetTenants(consortiumName, tenantType)
 	if err != nil {
 		return err
 	}
@@ -57,27 +58,28 @@ func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.Te
 	for _, value := range resp {
 		mapEntry := value.(map[string]any)
 		configTenant := mapEntry["name"].(string)
-		if !helpers.HasTenant(configTenant, r.Config.Action.ConfigTenants) {
+		hasTenant := helpers.HasTenant(configTenant, r.RunConfig.Action.ConfigTenants)
+		if !hasTenant {
 			continue
 		}
 		if initialWait > 0 {
 			time.Sleep(initialWait)
 		}
 
-		slog.Info(r.Config.Action.Name, "text", "POLLING FOR CAPABILITY SETS CREATION")
+		slog.Info(r.RunConfig.Action.Name, "text", "POLLING FOR CAPABILITY SETS CREATION")
 		err := r.pollCapabilitySetsCreation(configTenant)
 		if err != nil {
 			return err
 		}
 
-		slog.Info(r.Config.Action.Name, "text", "ATTACHING CAPABILITY SETS TO ROLES FOR TENANT", "tenant", configTenant)
-		keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
+		slog.Info(r.RunConfig.Action.Name, "text", "ATTACHING CAPABILITY SETS TO ROLES FOR TENANT", "tenant", configTenant)
+		keycloakAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakAccessToken(configTenant)
 		if err != nil {
 			return err
 		}
-		r.Config.Action.KeycloakAccessToken = keycloakAccessToken
+		r.RunConfig.Action.KeycloakAccessToken = keycloakAccessToken
 
-		err = r.Config.KeycloakSvc.AttachCapabilitySetsToRoles(configTenant)
+		err = r.RunConfig.KeycloakSvc.AttachCapabilitySetsToRoles(configTenant)
 		if err != nil {
 			return err
 		}
@@ -87,23 +89,23 @@ func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.Te
 }
 
 func (r *Run) pollCapabilitySetsCreation(tenantName string) error {
-	consumerGroup := fmt.Sprintf("%s-%s", r.Config.Action.ConfigEnvFolio, constant.ConsumerGroupSuffix)
+	consumerGroup := fmt.Sprintf("%s-%s", r.RunConfig.Action.ConfigEnvFolio, constant.ConsumerGroupSuffix)
 	retryCount := 0
-	slog.Info(r.Config.Action.Name, "text", "Checking Kafka readiness before polling consumer groups")
-	if err := r.Config.KafkaSvc.CheckReadiness(); err != nil {
-		slog.Info(r.Config.Action.Name, "text", "Kafka not fully ready, proceeding with polling", "error", err)
+	slog.Info(r.RunConfig.Action.Name, "text", "Checking Kafka readiness before polling consumer groups")
+	if err := r.RunConfig.KafkaSvc.CheckReadiness(); err != nil {
+		slog.Info(r.RunConfig.Action.Name, "text", "Kafka not fully ready, proceeding with polling", "error", err)
 	}
 
 	var lag int
 	for {
-		lag, err := r.Config.KafkaSvc.GetConsumerGroupLag(tenantName, consumerGroup, lag)
+		lag, err := r.RunConfig.KafkaSvc.GetConsumerGroupLag(tenantName, consumerGroup, lag)
 		if err != nil {
 			retryCount++
 			if retryCount >= constant.ConsumerGroupRebalanceRetries {
 				return fmt.Errorf("max retries (%d) exceeded while polling consumer group %s: %w", constant.ConsumerGroupRebalanceRetries, consumerGroup, err)
 			}
 
-			slog.Info(r.Config.Action.Name, "text", "Retry: Error polling consumer group, retrying", "retryCount", retryCount, "maxRetries", constant.ConsumerGroupRebalanceRetries, "waitSeconds", constant.AttachCapabilitySetsRebalanceWait.Seconds())
+			slog.Info(r.RunConfig.Action.Name, "text", "Retry: Error polling consumer group, retrying", "retryCount", retryCount, "maxRetries", constant.ConsumerGroupRebalanceRetries, "waitSeconds", constant.AttachCapabilitySetsRebalanceWait.Seconds())
 			time.Sleep(constant.AttachCapabilitySetsRebalanceWait)
 			continue
 		}
@@ -112,10 +114,10 @@ func (r *Run) pollCapabilitySetsCreation(tenantName string) error {
 		if lag == 0 {
 			break
 		}
-		slog.Info(r.Config.Action.Name, "text", "Waiting for consumer group to process", "waitSeconds", constant.AttachCapabilitySetsPollWait.Seconds(), "consumerGroup", consumerGroup, "lag", lag)
+		slog.Info(r.RunConfig.Action.Name, "text", "Waiting for consumer group to process", "waitSeconds", constant.AttachCapabilitySetsPollWait.Seconds(), "consumerGroup", consumerGroup, "lag", lag)
 		time.Sleep(constant.AttachCapabilitySetsPollWait)
 	}
-	slog.Info(r.Config.Action.Name, "text", "Consumer group has no new message to process", "consumerGroup", consumerGroup)
+	slog.Info(r.RunConfig.Action.Name, "text", "Consumer group has no new message to process", "consumerGroup", consumerGroup)
 
 	return nil
 }

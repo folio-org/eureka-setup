@@ -11,7 +11,12 @@ import (
 	"github.com/folio-org/eureka-cli/models"
 )
 
-type KongSvcProcessor interface {
+type KongProcessor interface {
+	KongRouteReader
+	KongRouteReadinessChecker
+}
+
+type KongRouteReader interface {
 	CheckRouteExists(routeID string) (bool, *models.KongRoute, error)
 	ListAllRoutes() ([]models.KongRoute, error)
 	FindRouteByExpressions(expressions []string) ([]*models.KongRoute, error)
@@ -22,11 +27,8 @@ type KongSvc struct {
 	HTTPClient httpclient.HTTPClientGetManager
 }
 
-func New(action *action.Action, httpClient httpclient.HTTPClientGetManager) KongSvcProcessor {
-	return &KongSvc{
-		Action:     action,
-		HTTPClient: httpClient,
-	}
+func New(action *action.Action, httpClient httpclient.HTTPClientGetManager) KongProcessor {
+	return &KongSvc{Action: action, HTTPClient: httpClient}
 }
 
 func (ks *KongSvc) CheckRouteExists(routeID string) (bool, *models.KongRoute, error) {

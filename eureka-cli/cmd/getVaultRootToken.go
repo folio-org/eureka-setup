@@ -18,6 +18,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/spf13/cobra"
 )
@@ -37,24 +38,34 @@ var getVaultRootTokenCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		fmt.Println(r.RunConfig.Action.KeycloakAccessToken)
 
 		return nil
 	},
 }
 
 func (r *Run) GetVaultRootToken() error {
-	client, err := r.Config.DockerClient.Create()
+	client, err := r.RunConfig.DockerClient.Create()
 	if err != nil {
 		return err
 	}
-	defer r.Config.DockerClient.Close(client)
+	defer r.RunConfig.DockerClient.Close(client)
 
-	vaultRootToken, err := r.Config.ModuleSvc.GetVaultRootToken(client)
+	err = r.setVaultRootTokenIntoContext(client)
+	if err != nil {
+		return err
+
+	}
+
+	return nil
+}
+
+func (r *Run) setVaultRootTokenIntoContext(client *client.Client) error {
+	vaultRootToken, err := r.RunConfig.ModuleSvc.GetVaultRootToken(client)
 	if err != nil {
 		return err
 	}
-	r.Config.Action.VaultRootToken = vaultRootToken
-	fmt.Println(r.Config.Action.VaultRootToken)
+	r.RunConfig.Action.VaultRootToken = vaultRootToken
 
 	return nil
 }

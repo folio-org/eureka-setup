@@ -46,7 +46,7 @@ var checkPortsCmd = &cobra.Command{
 }
 
 func (r *Run) CheckPorts() error {
-	slog.Info(r.Config.Action.Name, "text", "CHECKING CONTAINER PORTS")
+	slog.Info(r.RunConfig.Action.Name, "text", "CHECKING CONTAINER PORTS")
 	err := r.deployNetcatContainer()
 	if err != nil {
 		return err
@@ -56,7 +56,6 @@ func (r *Run) CheckPorts() error {
 	if err != nil {
 		return err
 	}
-
 	r.runNetcat(modules)
 
 	return nil
@@ -65,7 +64,7 @@ func (r *Run) CheckPorts() error {
 func (r *Run) deployNetcatContainer() error {
 	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach", "netcat")
 
-	dir, err := helpers.GetHomeMiscDir(r.Config.Action.Name)
+	dir, err := helpers.GetHomeMiscDir(r.RunConfig.Action.Name)
 	if err != nil {
 		return err
 	}
@@ -74,17 +73,17 @@ func (r *Run) deployNetcatContainer() error {
 }
 
 func (r *Run) getDeployedModules() ([]container.Summary, error) {
-	client, err := r.Config.DockerClient.Create()
+	client, err := r.RunConfig.DockerClient.Create()
 	if err != nil {
 		return nil, err
 	}
-	defer r.Config.DockerClient.Close(client)
+	defer r.RunConfig.DockerClient.Close(client)
 
 	filters := filters.NewArgs(filters.KeyValuePair{
 		Key:   "name",
-		Value: fmt.Sprintf(constant.ProfileContainerPattern, r.Config.Action.ConfigProfile),
+		Value: fmt.Sprintf(constant.ProfileContainerPattern, r.RunConfig.Action.ConfigProfile),
 	})
-	containers, err := r.Config.ModuleSvc.GetDeployedModules(client, filters)
+	containers, err := r.RunConfig.ModuleSvc.GetDeployedModules(client, filters)
 	if err != nil {
 		return nil, err
 	}
@@ -93,10 +92,9 @@ func (r *Run) getDeployedModules() ([]container.Summary, error) {
 }
 
 func (r *Run) runNetcat(modules []container.Summary) {
-	slog.Info(r.Config.Action.Name, "text", "Running netcat -zv [container] [private port]")
+	slog.Info(r.RunConfig.Action.Name, "text", "Running netcat -zv [container] [private port]")
 	for _, module := range modules {
 		moduleName := fmt.Sprintf("%s.eureka", strings.ReplaceAll(module.Names[0], "/", ""))
-
 		for _, portPair := range module.Ports {
 			modulePrivatePort := strconv.Itoa(int(portPair.PrivatePort))
 			helpers.ExecIgnoreError(exec.Command("docker", "exec", "-i", "netcat", "nc", "-zv", moduleName, modulePrivatePort))

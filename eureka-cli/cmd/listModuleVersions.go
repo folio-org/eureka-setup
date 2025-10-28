@@ -60,7 +60,7 @@ func (r *Run) ListModuleVersions() error {
 }
 
 func (r *Run) getModuleDescriptorByID() error {
-	resp, err := r.Config.HTTPClient.GetReturnResponse(fmt.Sprintf("%s/_/proxy/modules/%s", r.Config.Action.ConfigRegistryURL, actionParams.ID), map[string]string{})
+	resp, err := r.RunConfig.HTTPClient.GetReturnResponse(fmt.Sprintf("%s/_/proxy/modules/%s", r.RunConfig.Action.ConfigRegistryURL, actionParams.ID), map[string]string{})
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func (r *Run) getModuleDescriptorByID() error {
 }
 
 func (r *Run) listModuleVersionsSortedDescendingOrder() error {
-	resp, err := r.Config.HTTPClient.GetRetryDecodeReturnAny(fmt.Sprintf("%s/_/proxy/modules", r.Config.Action.ConfigRegistryURL), map[string]string{})
+	resp, err := r.RunConfig.HTTPClient.GetRetryDecodeReturnAny(fmt.Sprintf("%s/_/proxy/modules", r.RunConfig.Action.ConfigRegistryURL), map[string]string{})
 	if err != nil {
 		return err
 	}

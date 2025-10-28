@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -44,48 +43,51 @@ var deployManagementCmd = &cobra.Command{
 }
 
 func (r *Run) DeployManagement() error {
-	env := action.GetConfigEnvVars(field.Env)
-
-	slog.Info(r.Config.Action.Name, "text", "READING BACKEND MODULES FROM CONFIG")
-	backendModules, err := r.Config.ModuleParams.ReadBackendModulesFromConfig(true)
+	slog.Info(r.RunConfig.Action.Name, "text", "READING BACKEND MODULES FROM CONFIG")
+	backendModules, err := r.RunConfig.ModuleParams.ReadBackendModulesFromConfig(true)
 	if err != nil {
 		return err
 	}
 
-	slog.Info(r.Config.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
+	slog.Info(r.RunConfig.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
 	instalJsonURLs := map[string]string{
-		constant.EurekaRegistry: r.Config.Action.ConfigEurekaRegistry,
+		constant.EurekaRegistry: r.RunConfig.Action.ConfigEurekaRegistry,
 	}
-	registryModules, err := r.Config.RegistrySvc.GetModules(instalJsonURLs, true)
+	registryModules, err := r.RunConfig.RegistrySvc.GetModules(instalJsonURLs, true)
 	if err != nil {
 		return err
 	}
-	r.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules)
+	r.RunConfig.RegistrySvc.ExtractModuleNameAndVersion(registryModules)
 
-	client, err := r.Config.DockerClient.Create()
+	client, err := r.RunConfig.DockerClient.Create()
 	if err != nil {
 		return err
 	}
-	defer r.Config.DockerClient.Close(client)
+	defer r.RunConfig.DockerClient.Close(client)
 
-	slog.Info(r.Config.Action.Name, "text", "DEPLOYING MANAGEMENT MODULES")
+	err = r.setVaultRootTokenIntoContext(client)
+	if err != nil {
+		return err
+	}
+
+	slog.Info(r.RunConfig.Action.Name, "text", "DEPLOYING MANAGEMENT MODULES")
 	registryHosts := map[string]string{
 		constant.EurekaRegistry: "",
 	}
-	containers := models.NewManagementContainers(r.Config.Action.VaultRootToken, registryHosts, registryModules, backendModules, env)
-	deployedModules, err := r.Config.ModuleSvc.DeployModules(client, containers, "", nil)
+	env := action.GetConfigEnvVars(field.Env)
+	containers := models.NewManagementContainers(r.RunConfig.Action.VaultRootToken, registryHosts, registryModules, backendModules, env)
+	deployedModules, err := r.RunConfig.ModuleSvc.DeployModules(client, containers, "", nil)
 	if err != nil {
 		return err
 	}
 	time.Sleep(constant.DeployManagementWait)
 
-	slog.Info(r.Config.Action.Name, "text", "WAITING FOR MANAGEMENT MODULES TO BECOME READY")
+	slog.Info(r.RunConfig.Action.Name, "text", "WAITING FOR MANAGEMENT MODULES TO BECOME READY")
 	var deployManagementWG sync.WaitGroup
 	errCh := make(chan error, len(deployedModules))
-
 	deployManagementWG.Add(len(deployedModules))
 	for deployedModule := range deployedModules {
-		go r.Config.ModuleSvc.CheckModuleReadiness(&deployManagementWG, errCh, deployedModule, deployedModules[deployedModule])
+		go r.RunConfig.ModuleSvc.CheckModuleReadiness(&deployManagementWG, errCh, deployedModule, deployedModules[deployedModule])
 	}
 	deployManagementWG.Wait()
 	close(errCh)
@@ -96,33 +98,9 @@ func (r *Run) DeployManagement() error {
 		}
 	}
 
-	slog.Info(r.Config.Action.Name, "text", "WAITING FOR KONG ROUTES TO BECOME READY")
-	expressions := []string{
-		`(http.path == "/applications" && http.method == "POST")`,
-		`(http.path ~ "^/modules/([^/]+)/discovery$" && http.method == "POST")`,
-		`(http.path == "/entitlements" && http.method == "POST")`,
-	}
-
-	for retryCount := range constant.KongRouteReadinessMaxRetries {
-		routes, err := r.Config.KongSvc.FindRouteByExpressions(expressions)
-		if err != nil {
-			if retryCount == constant.KongRouteReadinessMaxRetries {
-				return fmt.Errorf("cannot continue deployment with error: %v", err)
-			} else {
-				slog.Info(r.Config.Action.Name, "text", "Kong routes are unready", "retryCount", retryCount, "maxRetries", constant.KongRouteReadinessMaxRetries)
-				time.Sleep(5 * time.Second)
-			}
-		}
-
-		if len(routes) == len(expressions) {
-			for _, route := range routes {
-				slog.Info(r.Config.Action.Name, "text", "Kong routes are ready", "id", route.ID, "expression", route.Expression)
-			}
-			break
-		}
-	}
-
-	slog.Info(r.Config.Action.Name, "text", "All management modules are ready")
+	slog.Info(r.RunConfig.Action.Name, "text", "WAITING FOR KONG ROUTES TO BECOME READY")
+	r.RunConfig.KongSvc.CheckRouteReadiness()
+	slog.Info(r.RunConfig.Action.Name, "text", "All management modules are ready")
 
 	return nil
 }

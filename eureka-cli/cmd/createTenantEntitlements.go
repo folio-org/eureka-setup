@@ -34,15 +34,15 @@ var createTenantEntitlementsCmd = &cobra.Command{
 			return err
 		}
 
-		return r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+		return r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 			return r.CreateTenantEntitlements(consortiumName, tenantType)
 		})
 	},
 }
 
 func (r *Run) CreateTenantEntitlements(consortiumName string, tenantType constant.TenantType) error {
-	slog.Info(r.Config.Action.Name, "text", "CREATING TENANT ENTITLEMENTS")
-	return r.Config.ManagementSvc.CreateTenantEntitlement(consortiumName, tenantType)
+	slog.Info(r.RunConfig.Action.Name, "text", "CREATING TENANT ENTITLEMENTS")
+	return r.RunConfig.ManagementSvc.CreateTenantEntitlement(consortiumName, tenantType)
 }
 
 func init() {

@@ -39,7 +39,7 @@ var undeployApplicationCmd = &cobra.Command{
 			return err
 		}
 
-		if len(r.Config.Action.ConfigApplicationDependencies) > 0 {
+		if len(r.RunConfig.Action.ConfigApplicationDependencies) > 0 {
 			err = r.UndeployChildApplication()
 			if err != nil {
 				return err
@@ -48,7 +48,7 @@ var undeployApplicationCmd = &cobra.Command{
 			r.UndeployApplication()
 		}
 
-		helpers.LogCompletion(r.Config.Action.Name, start)
+		helpers.LogCompletion(r.RunConfig.Action.Name, start)
 
 		return nil
 	},
@@ -62,7 +62,7 @@ func (r *Run) UndeployApplication() {
 }
 
 func (r *Run) UndeployChildApplication() error {
-	err := r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+	err := r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 		return r.RemoveTenantEntitlements(consortiumName, tenantType)
 	})
 	if err != nil {
@@ -76,7 +76,7 @@ func (r *Run) UndeployChildApplication() error {
 	if err != nil {
 		return err
 	}
-	err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+	err = r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 		err := r.DetachCapabilitySets(consortiumName, tenantType)
 		if err != nil {
 			return err

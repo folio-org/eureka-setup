@@ -42,15 +42,15 @@ var deployAdditionalSystemCmd = &cobra.Command{
 }
 
 func (r *Run) DeployAdditionalSystem() error {
-	slog.Info(r.Config.Action.Name, "text", "DEPLOYING ADDITIONAL SYSTEM CONTAINERS")
+	slog.Info(r.RunConfig.Action.Name, "text", "DEPLOYING ADDITIONAL SYSTEM CONTAINERS")
 
-	finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(r.Config.Action.Name, []string{}, r.Config.Action.ConfigBackendModules)
+	finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(r.RunConfig.Action.Name, []string{}, r.RunConfig.Action.ConfigBackendModules)
 	if len(finalRequiredContainers) == 0 {
-		slog.Info(r.Config.Action.Name, "text", "No additional system containers deployed")
+		slog.Info(r.RunConfig.Action.Name, "text", "No additional system containers deployed")
 		return nil
 	}
 
-	dir, err := helpers.GetHomeMiscDir(r.Config.Action.Name)
+	dir, err := helpers.GetHomeMiscDir(r.RunConfig.Action.Name)
 	if err != nil {
 		return err
 	}
@@ -61,9 +61,9 @@ func (r *Run) DeployAdditionalSystem() error {
 		return err
 	}
 
-	slog.Info(r.Config.Action.Name, "text", "WAITING FOR ADDITIONAL SYSTEM CONTAINERS TO BECOME READY")
+	slog.Info(r.RunConfig.Action.Name, "text", "WAITING FOR ADDITIONAL SYSTEM CONTAINERS TO BECOME READY")
 	time.Sleep(constant.DeployAdditionalSystemWait)
-	slog.Info(r.Config.Action.Name, "text", "All additional system containers are ready")
+	slog.Info(r.RunConfig.Action.Name, "text", "All additional system containers are ready")
 
 	return nil
 }

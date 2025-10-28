@@ -28,9 +28,7 @@ type AWSSvc struct {
 }
 
 func New(action *action.Action) *AWSSvc {
-	return &AWSSvc{
-		Action: action,
-	}
+	return &AWSSvc{Action: action}
 }
 
 func (as *AWSSvc) GetAuthorizationToken() (string, error) {

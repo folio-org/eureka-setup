@@ -40,19 +40,19 @@ var undeployModulesCmd = &cobra.Command{
 }
 
 func (r *Run) UndeployModules() error {
-	slog.Info(r.Config.Action.Name, "text", "REMOVING APPLICATIONS")
-	applicationID := fmt.Sprintf("%s-%s", r.Config.Action.ConfigApplicationName, r.Config.Action.ConfigApplicationVersion)
-	_ = r.Config.ManagementSvc.RemoveApplication(applicationID)
+	slog.Info(r.RunConfig.Action.Name, "text", "REMOVING APPLICATIONS")
+	applicationID := fmt.Sprintf("%s-%s", r.RunConfig.Action.ConfigApplicationName, r.RunConfig.Action.ConfigApplicationVersion)
+	_ = r.RunConfig.ManagementSvc.RemoveApplication(applicationID)
 
-	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING MODULES")
-	client, err := r.Config.DockerClient.Create()
+	slog.Info(r.RunConfig.Action.Name, "text", "UNDEPLOYING MODULES")
+	client, err := r.RunConfig.DockerClient.Create()
 	if err != nil {
 		return err
 	}
-	defer r.Config.DockerClient.Close(client)
+	defer r.RunConfig.DockerClient.Close(client)
 
-	pattern := fmt.Sprintf(constant.ProfileContainerPattern, r.Config.Action.ConfigProfile)
-	err = r.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
+	pattern := fmt.Sprintf(constant.ProfileContainerPattern, r.RunConfig.Action.ConfigProfile)
+	err = r.RunConfig.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
 	if err != nil {
 		return err
 	}

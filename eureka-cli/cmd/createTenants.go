@@ -38,8 +38,8 @@ var createTenantsCmd = &cobra.Command{
 }
 
 func (r *Run) CreateTenants() error {
-	slog.Info(r.Config.Action.Name, "text", "CREATING TENANTS")
-	return r.Config.ManagementSvc.CreateTenants()
+	slog.Info(r.RunConfig.Action.Name, "text", "CREATING TENANTS")
+	return r.RunConfig.ManagementSvc.CreateTenants()
 }
 
 func init() {

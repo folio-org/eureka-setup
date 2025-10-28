@@ -40,32 +40,35 @@ var updateKeycloakPublicClientsCmd = &cobra.Command{
 }
 
 func (r *Run) UpdateKeycloakPublicClients() error {
-	slog.Info(r.Config.Action.Name, "text", "UPDATING KEYCLOAK PUBLIC CLIENTS")
-	keycloakMasterAccessToken, err := r.Config.KeycloakSvc.GetKeycloakMasterAccessToken()
+	// TODO Abstract
+	slog.Info(r.RunConfig.Action.Name, "text", "UPDATING KEYCLOAK PUBLIC CLIENTS")
+	keycloakMasterAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakMasterAccessToken()
 	if err != nil {
 		return err
 	}
-	r.Config.Action.KeycloakMasterAccessToken = keycloakMasterAccessToken
+	r.RunConfig.Action.KeycloakMasterAccessToken = keycloakMasterAccessToken
 
-	tt, err := r.Config.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
+	resp, err := r.RunConfig.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
 	if err != nil {
 		return err
 	}
 
-	for _, value := range tt {
+	for _, value := range resp {
 		mapEntry := value.(map[string]any)
 		configTenant := mapEntry["name"].(string)
-		if !helpers.HasTenant(configTenant, r.Config.Action.ConfigTenants) || !helpers.IsUIEnabled(configTenant, r.Config.Action.ConfigTenants) {
+		hasTenant := helpers.HasTenant(configTenant, r.RunConfig.Action.ConfigTenants)
+		isUIEnabled := helpers.IsUIEnabled(configTenant, r.RunConfig.Action.ConfigTenants)
+		if !hasTenant || !isUIEnabled {
 			continue
 		}
 
-		err = r.Config.TenantSvc.SetConfigTenantParams(configTenant)
+		err = r.RunConfig.TenantSvc.SetConfigTenantParams(configTenant)
 		if err != nil {
 			return err
 		}
 
-		slog.Info(r.Config.Action.Name, "text", "Updating keycloak public client")
-		err = r.Config.KeycloakSvc.UpdateKeycloakPublicClientParams(configTenant, actionParams.PlatformCompleteURL)
+		slog.Info(r.RunConfig.Action.Name, "text", "Updating keycloak public client")
+		err = r.RunConfig.KeycloakSvc.UpdateKeycloakPublicClientParams(configTenant, actionParams.PlatformCompleteURL)
 		if err != nil {
 			return err
 		}

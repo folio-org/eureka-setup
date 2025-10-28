@@ -40,7 +40,7 @@ var deployApplicationCmd = &cobra.Command{
 			return err
 		}
 
-		if len(r.Config.Action.ConfigApplicationDependencies) > 0 {
+		if len(r.RunConfig.Action.ConfigApplicationDependencies) > 0 {
 			err = r.DeployChildApplication()
 		} else {
 			err = r.DeployApplication()
@@ -48,7 +48,7 @@ var deployApplicationCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		helpers.LogCompletion(r.Config.Action.Name, start)
+		helpers.LogCompletion(r.RunConfig.Action.Name, start)
 
 		return nil
 	},
@@ -75,7 +75,7 @@ func (r *Run) DeployApplication() error {
 	if err != nil {
 		return err
 	}
-	err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+	err = r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 		err = r.CreateTenantEntitlements(consortiumName, tenantType)
 		if err != nil {
 			return err
@@ -93,7 +93,7 @@ func (r *Run) DeployApplication() error {
 			return err
 		}
 		if consortiumName != constant.NoneConsortium {
-			slog.Info(r.Config.Action.Name, "text", "Waiting for duration", "duration_seconds", constant.DeployApplicationPartitionWait.Seconds())
+			slog.Info(r.RunConfig.Action.Name, "text", "Waiting for duration", "duration_seconds", constant.DeployApplicationPartitionWait.Seconds())
 			time.Sleep(constant.DeployApplicationPartitionWait)
 		}
 
@@ -114,8 +114,8 @@ func (r *Run) DeployApplication() error {
 	if err != nil {
 		return err
 	}
-	if helpers.IsModuleEnabled(constant.ModSearchModule, r.Config.Action.ConfigBackendModules) {
-		err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+	if helpers.IsModuleEnabled(constant.ModSearchModule, r.RunConfig.Action.ConfigBackendModules) {
+		err = r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 			return r.ReindexIndices(consortiumName, tenantType)
 		})
 		if err != nil {
@@ -135,7 +135,7 @@ func (r *Run) DeployChildApplication() error {
 	if err != nil {
 		return err
 	}
-	err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+	err = r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 		err = r.CreateTenantEntitlements(consortiumName, tenantType)
 		if err != nil {
 			return err

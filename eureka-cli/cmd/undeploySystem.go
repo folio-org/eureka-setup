@@ -40,7 +40,7 @@ var undeploySystemCmd = &cobra.Command{
 }
 
 func (r *Run) UndeploySystem() error {
-	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING SYSTEM CONTAINERS")
+	slog.Info(r.RunConfig.Action.Name, "text", "UNDEPLOYING SYSTEM CONTAINERS")
 	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "down", "--volumes", "--remove-orphans")
 	return helpers.Exec(preparedCommand)
 }

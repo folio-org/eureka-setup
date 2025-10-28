@@ -34,7 +34,7 @@ var removeTenantsCmd = &cobra.Command{
 			return err
 		}
 
-		r.Partition(func(consortiumName string, tenantType constant.TenantType) {
+		r.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) {
 			_ = r.RemoveUsers(consortiumName, tenantType)
 			_ = r.RemoveRoles(consortiumName, tenantType)
 			_ = r.RemoveTenantEntitlements(consortiumName, tenantType)
@@ -46,8 +46,8 @@ var removeTenantsCmd = &cobra.Command{
 }
 
 func (r *Run) RemoveTenants(consortiumName string, tenantType constant.TenantType) error {
-	slog.Info(r.Config.Action.Name, "text", "REMOVING TENANTS")
-	return r.Config.ManagementSvc.RemoveTenants(consortiumName, tenantType)
+	slog.Info(r.RunConfig.Action.Name, "text", "REMOVING TENANTS")
+	return r.RunConfig.ManagementSvc.RemoveTenants(consortiumName, tenantType)
 }
 
 func init() {

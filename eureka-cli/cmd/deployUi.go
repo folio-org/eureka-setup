@@ -40,25 +40,28 @@ var deployUiCmd = &cobra.Command{
 }
 
 func (r *Run) DeployUi() error {
-	slog.Info(r.Config.Action.Name, "text", "DEPLOYING UI")
+	// TODO Abstract
+	slog.Info(r.RunConfig.Action.Name, "text", "DEPLOYING UI")
 
-	tt, err := r.Config.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
+	tt, err := r.RunConfig.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
 	if err != nil {
 		return err
 	}
 
 	for _, value := range tt {
 		configTenant := value.(map[string]any)["name"].(string)
-		if !helpers.HasTenant(configTenant, r.Config.Action.ConfigTenants) || !helpers.IsUIEnabled(configTenant, r.Config.Action.ConfigTenants) {
+		hasTenant := helpers.HasTenant(configTenant, r.RunConfig.Action.ConfigTenants)
+		isUIEnabled := helpers.IsUIEnabled(configTenant, r.RunConfig.Action.ConfigTenants)
+		if !hasTenant || !isUIEnabled {
 			continue
 		}
 
-		err := r.Config.TenantSvc.SetConfigTenantParams(configTenant)
+		err := r.RunConfig.TenantSvc.SetConfigTenantParams(configTenant)
 		if err != nil {
 			return err
 		}
 
-		finalImageName, err := r.Config.UISvc.PrepareImage(configTenant)
+		finalImageName, err := r.RunConfig.UISvc.PrepareImage(configTenant)
 		if err != nil {
 			return err
 		}
@@ -68,7 +71,7 @@ func (r *Run) DeployUi() error {
 			return err
 		}
 
-		err = r.Config.UISvc.DeployContainer(configTenant, finalImageName, externalPort)
+		err = r.RunConfig.UISvc.DeployContainer(configTenant, finalImageName, externalPort)
 		if err != nil {
 			return err
 		}

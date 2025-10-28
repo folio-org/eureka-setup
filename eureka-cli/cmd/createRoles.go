@@ -35,19 +35,20 @@ var createRolesCmd = &cobra.Command{
 			return err
 		}
 
-		return r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+		return r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 			return r.CreateRoles(consortiumName, tenantType)
 		})
 	},
 }
 
 func (r *Run) CreateRoles(consortiumName string, tenantType constant.TenantType) error {
+	// TODO Abstract
 	err := r.GetVaultRootToken()
 	if err != nil {
 		return err
 	}
 
-	resp, err := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
+	resp, err := r.RunConfig.ManagementSvc.GetTenants(consortiumName, tenantType)
 	if err != nil {
 		return err
 	}
@@ -55,18 +56,19 @@ func (r *Run) CreateRoles(consortiumName string, tenantType constant.TenantType)
 	for _, value := range resp {
 		mapEntry := value.(map[string]any)
 		configTenant := mapEntry["name"].(string)
-		if !helpers.HasTenant(configTenant, r.Config.Action.ConfigTenants) {
+		hasTenant := helpers.HasTenant(configTenant, r.RunConfig.Action.ConfigTenants)
+		if !hasTenant {
 			continue
 		}
 
-		slog.Info(r.Config.Action.Name, "text", "CREATING ROLES FOR TENANT", "tenant", configTenant)
-		keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
+		slog.Info(r.RunConfig.Action.Name, "text", "CREATING ROLES FOR TENANT", "tenant", configTenant)
+		keycloakAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakAccessToken(configTenant)
 		if err != nil {
 			return err
 		}
-		r.Config.Action.KeycloakAccessToken = keycloakAccessToken
+		r.RunConfig.Action.KeycloakAccessToken = keycloakAccessToken
 
-		err = r.Config.KeycloakSvc.CreateRoles(configTenant)
+		err = r.RunConfig.KeycloakSvc.CreateRoles(configTenant)
 		if err != nil {
 			return err
 		}

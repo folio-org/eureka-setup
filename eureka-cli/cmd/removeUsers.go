@@ -20,7 +20,6 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -35,40 +34,23 @@ var removeUsersCmd = &cobra.Command{
 			return err
 		}
 
-		return r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+		return r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 			return r.RemoveUsers(consortiumName, tenantType)
 		})
 	},
 }
 
 func (r *Run) RemoveUsers(consortiumName string, tenantType constant.TenantType) error {
-	err := r.GetVaultRootToken()
-	if err != nil {
-		return err
-	}
-
-	resp, err := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
-	if err != nil {
-		return err
-	}
-
-	for _, value := range resp {
-		mapEntry := value.(map[string]any)
-		configTenant := mapEntry["name"].(string)
-		if !helpers.HasTenant(configTenant, r.Config.Action.ConfigTenants) {
-			continue
-		}
-
-		slog.Info(r.Config.Action.Name, "text", "REMOVING USERS FOR TENANT", "tenant", configTenant)
-		keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
+	return r.TenantPartition(consortiumName, tenantType, func(configTenant string, tenantType constant.TenantType) error {
+		slog.Info(r.RunConfig.Action.Name, "text", "REMOVING USERS FOR TENANT", "tenant", configTenant)
+		keycloakAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakAccessToken(configTenant)
 		if err != nil {
 			return err
 		}
-		r.Config.Action.KeycloakAccessToken = keycloakAccessToken
-		_ = r.Config.KeycloakSvc.RemoveUsers(configTenant)
-	}
+		r.RunConfig.Action.KeycloakAccessToken = keycloakAccessToken
 
-	return nil
+		return r.RunConfig.KeycloakSvc.RemoveUsers(configTenant)
+	})
 }
 
 func init() {

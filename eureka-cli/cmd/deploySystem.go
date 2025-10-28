@@ -57,12 +57,12 @@ func (r *Run) DeploySystem() error {
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}
 	if actionParams.OnlyRequired {
 		initialRequiredContainers := constant.GetInitialRequiredContainers()
-		finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(r.Config.Action.Name, initialRequiredContainers, r.Config.Action.ConfigBackendModules)
+		finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(r.RunConfig.Action.Name, initialRequiredContainers, r.RunConfig.Action.ConfigBackendModules)
 		subCommand = append(subCommand, finalRequiredContainers...)
 	}
 
-	slog.Info(r.Config.Action.Name, "text", "DEPLOYING SYSTEM CONTAINERS")
-	dir, err := helpers.GetHomeMiscDir(r.Config.Action.Name)
+	slog.Info(r.RunConfig.Action.Name, "text", "DEPLOYING SYSTEM CONTAINERS")
+	dir, err := helpers.GetHomeMiscDir(r.RunConfig.Action.Name)
 	if err != nil {
 		return err
 	}
@@ -72,9 +72,9 @@ func (r *Run) DeploySystem() error {
 		return err
 	}
 
-	slog.Info(r.Config.Action.Name, "text", "WAITING FOR SYSTEM CONTAINERS TO BECOME READY")
+	slog.Info(r.RunConfig.Action.Name, "text", "WAITING FOR SYSTEM CONTAINERS TO BECOME READY")
 	time.Sleep(constant.DeploySystemWait)
-	slog.Info(r.Config.Action.Name, "text", "All system containers are ready")
+	slog.Info(r.RunConfig.Action.Name, "text", "All system containers are ready")
 
 	return nil
 }

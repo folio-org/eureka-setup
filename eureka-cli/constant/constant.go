@@ -18,8 +18,8 @@ const (
 
 	// Readiness retries
 	ModuleReadinessMaxRetries     = 50
-	KongRouteReadinessMaxRetries  = 20
-	ConsumerGroupRebalanceRetries = 20
+	KongRouteReadinessMaxRetries  = 30
+	ConsumerGroupRebalanceRetries = 30
 
 	// Vault client properties
 	VaultTimeout = 30 * time.Second
@@ -41,8 +41,8 @@ const (
 	HTTPClientForceAttemptHTTP2      = false
 
 	// Retry HTTP client properties
-	RetryHTTPClientRetryMax     = 10
-	RetryHTTPClientRetryWaitMin = 3 * time.Second
+	RetryHTTPClientRetryMax     = 30
+	RetryHTTPClientRetryWaitMin = 5 * time.Second
 	RetryHTTPClientRetryWaitMax = 10 * time.Second
 
 	// Container types

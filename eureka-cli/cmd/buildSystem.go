@@ -47,36 +47,36 @@ var buildSystemCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		helpers.LogCompletion(r.Config.Action.Name, start)
+		helpers.LogCompletion(r.RunConfig.Action.Name, start)
 
 		return nil
 	},
 }
 
 func (r *Run) CloneUpdateRepositories() error {
-	slog.Info(r.Config.Action.Name, "text", "CLONING & UPDATING REPOSITORIES")
+	slog.Info(r.RunConfig.Action.Name, "text", "CLONING & UPDATING REPOSITORIES")
 
-	kongRepository, err := r.Config.GitClient.KongRepository()
+	kongRepository, err := r.RunConfig.GitClient.KongRepository()
 	if err != nil {
 		return err
 	}
 
-	keycloakRepository, err := r.Config.GitClient.KeycloakRepository()
+	keycloakRepository, err := r.RunConfig.GitClient.KeycloakRepository()
 	if err != nil {
 		return err
 	}
 
 	repositories := []*gitrepository.GitRepository{kongRepository, keycloakRepository}
 
-	slog.Info(r.Config.Action.Name, "text", "Cloning repositories", "repositories", repositories)
+	slog.Info(r.RunConfig.Action.Name, "text", "Cloning repositories", "repositories", repositories)
 	for _, repository := range repositories {
-		_ = r.Config.GitClient.Clone(repository)
+		_ = r.RunConfig.GitClient.Clone(repository)
 	}
 
 	if actionParams.UpdateCloned {
-		slog.Info(r.Config.Action.Name, "text", "Updating repositories", "repositories", repositories)
+		slog.Info(r.RunConfig.Action.Name, "text", "Updating repositories", "repositories", repositories)
 		for _, repository := range repositories {
-			err = r.Config.GitClient.ResetHardPullFromOrigin(repository)
+			err = r.RunConfig.GitClient.ResetHardPullFromOrigin(repository)
 			if err != nil {
 				return err
 			}
@@ -87,9 +87,9 @@ func (r *Run) CloneUpdateRepositories() error {
 }
 
 func (r *Run) BuildSystem() error {
-	slog.Info(r.Config.Action.Name, "text", "BUILDING SYSTEM IMAGES")
+	slog.Info(r.RunConfig.Action.Name, "text", "BUILDING SYSTEM IMAGES")
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache"}
-	dir, err := helpers.GetHomeMiscDir(r.Config.Action.Name)
+	dir, err := helpers.GetHomeMiscDir(r.RunConfig.Action.Name)
 	if err != nil {
 		return err
 	}
