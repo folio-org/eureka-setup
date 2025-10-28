@@ -309,8 +309,9 @@ func GetFrontendModulesFromConfig(commandName string, printOutput bool, frontend
 	for _, frontendModulesAnyMap := range frontendModulesAnyMaps {
 		for name, value := range frontendModulesAnyMap {
 			var (
-				deployModule = true
-				version      *string
+				deployModule        = true
+				version             *string
+				localDescriptorPath = ""
 			)
 
 			if value != nil {
@@ -323,9 +324,18 @@ func GetFrontendModulesFromConfig(commandName string, printOutput bool, frontend
 				if mapEntry[ModuleVersionEntryKey] != nil {
 					version = Stringp(mapEntry[ModuleVersionEntryKey].(string))
 				}
+
+				localDescriptorPath = GetAnyKeyOrDefault(mapEntry, ModuleLocalDescriptorPathEntryKey, "").(string)
+
+				if localDescriptorPath != "" {
+					if _, err := os.Stat(localDescriptorPath); os.IsNotExist(err) {
+						LogErrorPanic(commandName, fmt.Sprintf("internal.GetFrontendModulesFromConfig error - local-descriptor-path file does not exist: %s for module: %s", localDescriptorPath, name))
+						return nil
+					}
+				}
 			}
 
-			frontendModulesMap[name] = *NewFrontendModule(deployModule, name, version)
+			frontendModulesMap[name] = *NewFrontendModule(deployModule, name, version, localDescriptorPath)
 
 			moduleInfo := name
 			if version != nil {

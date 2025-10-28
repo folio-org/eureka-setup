@@ -190,14 +190,23 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 
 			moduleDescriptorUrl := fmt.Sprintf("%s/_/proxy/modules/%s", dto.RegistryUrls[FolioRegistry], module.Id)
 
-			isLocalModule := okBackend && backendModule.LocalDescriptorPath != ""
+			isLocalBackendModule := okBackend && backendModule.LocalDescriptorPath != ""
+			isLocalFrontendModule := okFrontend && frontendModule.LocalDescriptorPath != ""
+			isLocalModule := isLocalBackendModule || isLocalFrontendModule
 
 			if applicationFetchDescriptors || isLocalModule {
 				if isLocalModule {
 					slog.Info(commandName, GetFuncName(), fmt.Sprintf("Fetching local module descriptor for %s from file path", module.Id))
 
+					var descriptorPath string
+					if isLocalBackendModule {
+						descriptorPath = backendModule.LocalDescriptorPath
+					} else {
+						descriptorPath = frontendModule.LocalDescriptorPath
+					}
+
 					var descriptor map[string]any
-					ReadJsonFromFile(commandName, backendModule.LocalDescriptorPath, &descriptor)
+					ReadJsonFromFile(commandName, descriptorPath, &descriptor)
 					dto.ModuleDescriptorsMap[module.Id] = descriptor
 
 					slog.Info(commandName, GetFuncName(), fmt.Sprintf("Successfully loaded descriptor for %s from local file", module.Id))
@@ -224,7 +233,7 @@ func CreateApplications(commandName string, enableDebug bool, dto *RegisterModul
 				discoveryModules = append(discoveryModules, map[string]string{"id": module.Id, "name": module.Name, "version": *module.Version, "location": sidecarUrl})
 			} else if okFrontend {
 				frontendModule := map[string]string{"id": module.Id, "name": module.Name, "version": *module.Version}
-				if applicationFetchDescriptors {
+				if applicationFetchDescriptors || isLocalModule {
 					frontendModuleDescriptors = append(frontendModuleDescriptors, dto.ModuleDescriptorsMap[module.Id])
 				} else {
 					frontendModule["url"] = moduleDescriptorUrl

@@ -82,9 +82,10 @@ type BackendModule struct {
 }
 
 type FrontendModule struct {
-	DeployModule  bool
-	ModuleVersion *string
-	ModuleName    string
+	DeployModule        bool
+	LocalDescriptorPath string
+	ModuleVersion       *string
+	ModuleName          string
 }
 
 type Event struct {
@@ -249,11 +250,12 @@ func getBoolValueOrDefault(key string, resources map[string]any, defaultValue bo
 	return value
 }
 
-func NewFrontendModule(deployModule bool, name string, version *string) *FrontendModule {
+func NewFrontendModule(deployModule bool, name string, version *string, localDescriptorPath string) *FrontendModule {
 	return &FrontendModule{
-		DeployModule:  true,
-		ModuleName:    name,
-		ModuleVersion: version,
+		DeployModule:        true,
+		LocalDescriptorPath: localDescriptorPath,
+		ModuleName:          name,
+		ModuleVersion:       version,
 	}
 }
 

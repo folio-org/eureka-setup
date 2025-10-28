@@ -463,6 +463,15 @@ eureka-cli deployApplication -b -u
 eureka-cli deployUi -b -u
 ```
 
+- To use a local frontend module descriptor, add `local-descriptor-path` to the module config:
+
+```yaml
+frontend-modules:
+  folio_users:
+    version: "<version>"
+    local-descriptor-path: "/path/to/ui-module/module-descriptor.json"
+```
+
 ## Using the environment
 
 - Access the UI from `http://localhost:3000` using `diku_admin` username and `admin` password
