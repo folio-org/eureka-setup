@@ -47,7 +47,7 @@ func UndeployModules() {
 		_ = client.Close()
 	}()
 
-	internal.UndeployModuleByNamePattern(undeployModulesCommand, client, fmt.Sprintf(internal.ProfileContainerPattern, viper.GetString(internal.ProfileNameKey)), true)
+	internal.UndeployModuleByNamePattern(undeployModulesCommand, client, fmt.Sprintf(internal.ProfileContainerPattern, viper.GetString(internal.ProfileNameKey)))
 }
 
 func init() {
