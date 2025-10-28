@@ -115,7 +115,7 @@ func InterceptModule() {
 	}()
 
 	slog.Info(interceptModuleCommand, internal.GetFuncName(), "### UNDEPLOYING DEFAULT MODULE AND SIDECAR PAIR ###")
-	internal.UndeployModuleByNamePattern(interceptModuleCommand, client, fmt.Sprintf(internal.SingleModuleOrSidecarContainerPattern, viper.GetString(internal.ProfileNameKey), dto.moduleName), false)
+	internal.UndeployModuleByNamePattern(interceptModuleCommand, client, fmt.Sprintf(internal.SingleModuleOrSidecarContainerPattern, viper.GetString(internal.ProfileNameKey), dto.moduleName))
 
 	registryHostnames := map[string]string{internal.FolioRegistry: "", internal.EurekaRegistry: ""}
 	dto.deployModulesDto = internal.NewDeployModulesDto(vaultRootToken, registryHostnames, registryModules, backendModulesMap, globalEnvironment, globalSidecarEnvironment)

@@ -43,7 +43,7 @@ func UndeployModule() {
 		_ = client.Close()
 	}()
 
-	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(internal.SingleModuleOrSidecarContainerPattern, viper.GetString(internal.ProfileNameKey), withModuleName), true)
+	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(internal.SingleModuleOrSidecarContainerPattern, viper.GetString(internal.ProfileNameKey), withModuleName))
 }
 
 func init() {
