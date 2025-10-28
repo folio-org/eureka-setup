@@ -15,26 +15,27 @@ import (
 	"github.com/folio-org/eureka-cli/models"
 )
 
+type ModuleParamsProcessor interface {
+	ReadBackendModulesFromConfig(managementOnly bool) (map[string]models.BackendModule, error)
+	ReadFrontendModulesFromConfig() map[string]models.FrontendModule
+}
+
 type ModuleParams struct {
 	Action *action.Action
 }
 
 func New(action *action.Action) *ModuleParams {
-	return &ModuleParams{
-		Action: action,
-	}
+	return &ModuleParams{Action: action}
 }
 
-func (mp *ModuleParams) GetBackendModulesFromConfig(managementOnly bool, bb1 map[string]any) (map[string]models.BackendModule, error) {
-	if len(bb1) == 0 {
+func (mp *ModuleParams) ReadBackendModulesFromConfig(managementOnly bool) (map[string]models.BackendModule, error) {
+	if len(mp.Action.ConfigBackendModules) == 0 {
 		slog.Info(mp.Action.Name, "text", "No backend modules were read")
-
 		return make(map[string]models.BackendModule), nil
 	}
 
-	bb2 := make(map[string]models.BackendModule)
-
-	for name, value := range bb1 {
+	backendModules := make(map[string]models.BackendModule)
+	for name, value := range mp.Action.ConfigBackendModules {
 		if managementOnly && !mp.IsManagementModule(name) || !managementOnly && mp.IsManagementModule(name) {
 			continue
 		}
@@ -49,12 +50,20 @@ func (mp *ModuleParams) GetBackendModulesFromConfig(managementOnly bool, bb1 map
 			return nil, err
 		}
 
-		bb2[name] = *backendModule
+		backendModules[name] = *backendModule
+		moduleInfo := name
+		if properties.Version != nil {
+			moduleInfo = fmt.Sprintf("%s with fixed version %s", name, *properties.Version)
+		}
 
-		mp.printModuleInfo(name, properties, bb2)
+		moduleServerPort := backendModules[name].ModuleExposedServerPort
+		moduleDebugPort := backendModules[name].ModuleExposedDebugPort
+		sidecarServerPort := backendModules[name].SidecarExposedServerPort
+		sidecarDebugPort := backendModules[name].SidecarExposedDebugPort
+		slog.Info(mp.Action.Name, "text", "Read backend module with port reserve", "module", moduleInfo, "port1", moduleServerPort, "port2", moduleDebugPort, "port3", sidecarServerPort, "port4", sidecarDebugPort)
 	}
 
-	return bb2, nil
+	return backendModules, nil
 }
 
 func (mp *ModuleParams) createBackendProperties(name string, value any) (models.BackendModuleProperties, error) {
@@ -73,21 +82,6 @@ func (mp *ModuleParams) createBackendModule(properties models.BackendModulePrope
 	return models.NewBackendModule(mp.Action, properties)
 }
 
-func (mp *ModuleParams) printModuleInfo(name string, properties models.BackendModuleProperties, bb map[string]models.BackendModule) {
-	moduleInfo := name
-
-	if properties.Version != nil {
-		moduleInfo = fmt.Sprintf("%s with fixed version %s", name, *properties.Version)
-	}
-
-	moduleServerPort := bb[name].ModuleExposedServerPort
-	moduleDebugPort := bb[name].ModuleExposedDebugPort
-	sidecarServerPort := bb[name].SidecarExposedServerPort
-	sidecarDebugPort := bb[name].SidecarExposedDebugPort
-
-	slog.Info(mp.Action.Name, "text", "Read backend module with port reserve", "module", moduleInfo, "port1", moduleServerPort, "port2", moduleDebugPort, "port3", sidecarServerPort, "port4", sidecarDebugPort)
-}
-
 func (mp *ModuleParams) IsManagementModule(name string) bool {
 	return strings.HasPrefix(name, constant.ManagementModulePattern)
 }
@@ -98,7 +92,6 @@ func (mp *ModuleParams) IsEdgeModule(name string) bool {
 
 func (mp *ModuleParams) createDefaultBackendProperties(name string) (properties models.BackendModuleProperties, err error) {
 	properties.DeployModule = true
-
 	if !mp.IsManagementModule(name) && !mp.IsEdgeModule(name) {
 		properties.DeploySidecar = helpers.BoolP(true)
 	}
@@ -107,7 +100,6 @@ func (mp *ModuleParams) createDefaultBackendProperties(name string) (properties 
 	if err != nil {
 		return models.BackendModuleProperties{}, err
 	}
-
 	properties.PortServer = mp.getDefaultPortServer()
 	properties.Env = make(map[string]any)
 	properties.Resources = make(map[string]any)
@@ -118,9 +110,7 @@ func (mp *ModuleParams) createDefaultBackendProperties(name string) (properties 
 
 func (mp *ModuleParams) createConfigurableBackendProperties(value any, name string) (properties models.BackendModuleProperties, err error) {
 	mapEntry := value.(map[string]any)
-
 	properties.DeployModule = helpers.GetAnyOrDefault(mapEntry, field.ModuleDeployModuleEntry, true).(bool)
-
 	if !strings.HasPrefix(name, constant.ManagementModulePattern) && !strings.HasPrefix(name, constant.EdgeModulePattern) {
 		properties.DeploySidecar = mp.getDeploySidecar(mapEntry)
 	}
@@ -129,7 +119,6 @@ func (mp *ModuleParams) createConfigurableBackendProperties(value any, name stri
 	properties.DisableSystemUser = helpers.GetAnyOrDefault(mapEntry, field.ModuleDisableSystemUserEntry, false).(bool)
 	properties.UseOkapiURL = helpers.GetAnyOrDefault(mapEntry, field.ModuleUseOkapiURLEntry, false).(bool)
 	properties.LocalDescriptorPath = helpers.GetAnyOrDefault(mapEntry, field.ModuleLocalDescriptorPathEntry, "").(string)
-
 	if properties.LocalDescriptorPath != "" {
 		if _, err := os.Stat(properties.LocalDescriptorPath); os.IsNotExist(err) {
 			err := fmt.Errorf("%s local-descriptor-path file does not exist for %s module", properties.LocalDescriptorPath, name)
@@ -188,7 +177,7 @@ func (mp *ModuleParams) getPort(deployModule bool, mapEntry map[string]any) (*in
 }
 
 func (mp *ModuleParams) getDefaultPort() (*int, error) {
-	port, err := helpers.SetFreePortFromRange(mp.Action)
+	port, err := mp.Action.GetPreReservedPort()
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +209,7 @@ func (mp *ModuleParams) getVolumes(mapEntry map[string]any) ([]string, error) {
 		var volume = value.(string)
 		// Windows paths are hard to set, this is why we have this to automatically resolve path location
 		if runtime.GOOS == "windows" && strings.Contains(volume, "$EUREKA") {
-			homeConfigDir, err := helpers.GetHomeDirPath(mp.Action)
+			homeConfigDir, err := helpers.GetHomeDirPath()
 			if err != nil {
 				return nil, err
 			}
@@ -233,24 +222,22 @@ func (mp *ModuleParams) getVolumes(mapEntry map[string]any) ([]string, error) {
 				return nil, err
 			}
 		}
-
 		volumes = append(volumes, volume)
 	}
 
 	return volumes, nil
 }
 
-func (mp *ModuleParams) GetFrontendModulesFromConfig(ff1 ...map[string]any) map[string]models.FrontendModule {
-	if len(ff1) == 0 {
+func (mp *ModuleParams) ReadFrontendModulesFromConfig() map[string]models.FrontendModule {
+	configModules := []map[string]any{mp.Action.ConfigFrontendModules, mp.Action.ConfigCustomFrontendModules}
+	if len(configModules) == 0 {
 		slog.Info(mp.Action.Name, "text", "No frontend modules were read")
-
 		return make(map[string]models.FrontendModule)
 	}
 
-	ff2 := make(map[string]models.FrontendModule)
-
-	for _, ff3 := range ff1 {
-		for name, value := range ff3 {
+	frontendModules := make(map[string]models.FrontendModule)
+	for _, modules := range configModules {
+		for name, value := range modules {
 			var (
 				deployModule = true
 				version      *string
@@ -258,18 +245,15 @@ func (mp *ModuleParams) GetFrontendModulesFromConfig(ff1 ...map[string]any) map[
 
 			if value != nil {
 				mapEntry := value.(map[string]any)
-
 				if mapEntry[field.ModuleDeployModuleEntry] != nil {
 					deployModule = mapEntry[field.ModuleDeployModuleEntry].(bool)
 				}
-
 				if mapEntry[field.ModuleVersionEntry] != nil {
 					version = helpers.StringP(mapEntry[field.ModuleVersionEntry].(string))
 				}
 			}
 
-			ff2[name] = *models.NewFrontendModule(deployModule, name, version)
-
+			frontendModules[name] = *models.NewFrontendModule(deployModule, name, version)
 			moduleInfo := name
 			if version != nil {
 				moduleInfo = fmt.Sprintf("name %s with version %s", name, *version)
@@ -279,5 +263,5 @@ func (mp *ModuleParams) GetFrontendModulesFromConfig(ff1 ...map[string]any) map[
 		}
 	}
 
-	return ff2
+	return frontendModules
 }

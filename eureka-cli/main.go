@@ -35,5 +35,5 @@ var (
 )
 
 func main() {
-	cmd.Execute(embeddedFs)
+	cmd.Execute(&embeddedFs)
 }

@@ -45,6 +45,7 @@ func (r *Run) UpdateKeycloakPublicClients() error {
 	if err != nil {
 		return err
 	}
+	r.Config.Action.KeycloakMasterAccessToken = keycloakMasterAccessToken
 
 	tt, err := r.Config.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
 	if err != nil {
@@ -53,19 +54,18 @@ func (r *Run) UpdateKeycloakPublicClients() error {
 
 	for _, value := range tt {
 		mapEntry := value.(map[string]any)
-
-		existingTenant := mapEntry["name"].(string)
-		if !helpers.HasTenant(existingTenant) || !helpers.IsUIEnabled(existingTenant) {
+		configTenant := mapEntry["name"].(string)
+		if !helpers.HasTenant(configTenant, r.Config.Action.ConfigTenants) || !helpers.IsUIEnabled(configTenant, r.Config.Action.ConfigTenants) {
 			continue
 		}
 
-		err = r.Config.TenantSvc.SetDefaultConfigTenantParams(existingTenant)
+		err = r.Config.TenantSvc.SetConfigTenantParams(configTenant)
 		if err != nil {
 			return err
 		}
 
 		slog.Info(r.Config.Action.Name, "text", "Updating keycloak public client")
-		err = r.Config.KeycloakSvc.UpdateKeycloakPublicClientParams(existingTenant, keycloakMasterAccessToken, ap.PlatformCompleteURL)
+		err = r.Config.KeycloakSvc.UpdateKeycloakPublicClientParams(configTenant, actionParams.PlatformCompleteURL)
 		if err != nil {
 			return err
 		}

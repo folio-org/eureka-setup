@@ -17,14 +17,11 @@ type Container struct {
 	PullImage     bool
 }
 
-func NewModuleContainer(
-	name string,
+func NewModuleContainer(name string,
 	image string,
 	env []string,
 	backendModule BackendModule,
-	networkConfig *network.NetworkingConfig,
-) *Container {
-
+	networkConfig *network.NetworkingConfig) *Container {
 	return &Container{
 		Name:  name,
 		Image: image,

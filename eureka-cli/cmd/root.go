@@ -28,8 +28,9 @@ import (
 )
 
 var (
-	rf embed.FS
-	ap actionparams.ActionParams
+	embedFS      *embed.FS
+	logger       *slog.Logger
+	actionParams actionparams.ActionParams
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -39,8 +40,8 @@ var rootCmd = &cobra.Command{
 	Long:  `Eureka CLI to deploy a local development environment.`,
 }
 
-func Execute(embedFS embed.FS) {
-	rf = embedFS
+func Execute(mainEmbedFS *embed.FS) {
+	embedFS = mainEmbedFS
 
 	err := rootCmd.Execute()
 	if err != nil {
@@ -50,29 +51,30 @@ func Execute(embedFS embed.FS) {
 }
 
 func initConfig() {
-	setConfig(&ap)
-	setDefaultLogger()
+	setConfig(&actionParams)
+	logger = setDefaultLogger()
 	viper.AutomaticEnv()
-	if ap.OverwriteFiles {
-		createHomeDir(true, rf)
-		tryReadInConfig(func(configErr error) { cobra.CheckErr(configErr) })
+	// TODO Refactor - suboptimal
+	if actionParams.OverwriteFiles {
+		createHomeDir(true, embedFS)
+		tryReadConfig(func(configErr error) { cobra.CheckErr(configErr) })
 	} else {
-		tryReadInConfig(func(configErr error) { createHomeDir(false, rf) })
-		tryReadInConfig(func(configErr error) { cobra.CheckErr(configErr) })
+		tryReadConfig(func(configErr error) { createHomeDir(false, embedFS) })
+		tryReadConfig(func(configErr error) { cobra.CheckErr(configErr) })
 	}
 }
 
 func init() {
 	profiles := constant.GetProfiles()
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVarP(&ap.Profile, "profile", "p", "combined", fmt.Sprintf("Use a specific profile, options: %s", profiles))
+	rootCmd.PersistentFlags().StringVarP(&actionParams.Profile, "profile", "p", "combined", fmt.Sprintf("Use a specific profile, options: %s", profiles))
 	if err := rootCmd.RegisterFlagCompletionFunc("profile", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return profiles, cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
 		slog.Error("failed to register profile flag completion function", "error", err)
 		os.Exit(1)
 	}
-	rootCmd.PersistentFlags().StringVarP(&ap.ConfigFile, "configFile", "c", "", "Use a specific config file")
-	rootCmd.PersistentFlags().BoolVarP(&ap.OverwriteFiles, "overwriteFiles", "o", false, fmt.Sprintf("Overwrite files in %s home directory", constant.ConfigDir))
-	rootCmd.PersistentFlags().BoolVarP(&ap.EnableDebug, "enableDebug", "d", false, "Enable debug")
+	rootCmd.PersistentFlags().StringVarP(&actionParams.ConfigFile, "configFile", "c", "", "Use a specific config file")
+	rootCmd.PersistentFlags().BoolVarP(&actionParams.OverwriteFiles, "overwriteFiles", "o", false, fmt.Sprintf("Overwrite files in %s home directory", constant.ConfigDir))
+	rootCmd.PersistentFlags().BoolVarP(&actionParams.EnableDebug, "enableDebug", "d", false, "Enable debug")
 }

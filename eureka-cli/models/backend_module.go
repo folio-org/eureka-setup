@@ -54,17 +54,15 @@ func NewBackendModuleWithSidecar(action *action.Action, properties BackendModule
 	var moduleDebugPort, sidecarServerPort, sidecarDebugPort = 0, 0, 0
 	var err error
 	if properties.DeployModule {
-		moduleDebugPort, err = helpers.SetFreePortFromRange(action)
+		moduleDebugPort, err = action.GetPreReservedPort()
 		if err != nil {
 			return nil, err
 		}
-
-		sidecarServerPort, err = helpers.SetFreePortFromRange(action)
+		sidecarServerPort, err = action.GetPreReservedPort()
 		if err != nil {
 			return nil, err
 		}
-
-		sidecarDebugPort, err = helpers.SetFreePortFromRange(action)
+		sidecarDebugPort, err = action.GetPreReservedPort()
 		if err != nil {
 			return nil, err
 		}
@@ -96,7 +94,7 @@ func NewBackendModuleWithSidecar(action *action.Action, properties BackendModule
 
 func NewBackendModule(action *action.Action, properties BackendModuleProperties) (*BackendModule, error) {
 	moduleServerPort := *properties.Port
-	moduleDebugPort, err := helpers.SetFreePortFromRange(action)
+	moduleDebugPort, err := action.GetPreReservedPort()
 	if err != nil {
 		return nil, err
 	}

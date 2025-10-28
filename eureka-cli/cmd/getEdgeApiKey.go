@@ -45,21 +45,21 @@ var getEdgeApiKeyCmd = &cobra.Command{
 }
 
 func (r *Run) GetEdgeApiKey() error {
-	randomStr, err := r.getRandomString(ap.Length)
+	randomStr, err := r.getRandomString(actionParams.Length)
 	if err != nil {
 		return err
 	}
 
-	bb, err := json.Marshal(map[string]any{
+	payload, err := json.Marshal(map[string]any{
 		"s": randomStr,
-		"t": ap.Tenant,
-		"u": ap.User,
+		"t": actionParams.Tenant,
+		"u": actionParams.User,
 	})
 	if err != nil {
 		return err
 	}
 
-	apiKey := base64.URLEncoding.EncodeToString(bb)
+	apiKey := base64.URLEncoding.EncodeToString(payload)
 
 	fmt.Println(apiKey)
 
@@ -82,9 +82,9 @@ func (r *Run) getRandomString(length int) (string, error) {
 
 func init() {
 	rootCmd.AddCommand(getEdgeApiKeyCmd)
-	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&ap.Tenant, "tenant", "t", "", "Tenant (required)")
-	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&ap.User, "user", "U", "", "User (required)")
-	getEdgeApiKeyCmd.PersistentFlags().IntVarP(&ap.Length, "length", "l", 17, "Salt length")
+	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&actionParams.Tenant, "tenant", "t", "", "Tenant (required)")
+	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&actionParams.User, "user", "U", "", "User (required)")
+	getEdgeApiKeyCmd.PersistentFlags().IntVarP(&actionParams.Length, "length", "l", 17, "Salt length")
 	if err := getEdgeApiKeyCmd.MarkPersistentFlagRequired("tenant"); err != nil {
 		slog.Error("failed to mark tenant flag as required", "error", err)
 		os.Exit(1)

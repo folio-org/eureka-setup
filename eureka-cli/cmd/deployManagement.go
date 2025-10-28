@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -23,10 +24,8 @@ import (
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
-	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/models"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // deployManagementCmd represents the deployManagement command
@@ -35,9 +34,7 @@ var deployManagementCmd = &cobra.Command{
 	Short: "Deploy management",
 	Long:  `Deploy all management modules.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		startPort := viper.GetInt(field.ApplicationPortStart)
-		endPort := viper.GetInt(field.ApplicationPortEnd)
-		r, err := NewCustom(action.DeployManagement, startPort, endPort)
+		r, err := New(action.DeployManagement)
 		if err != nil {
 			return err
 		}
@@ -47,17 +44,17 @@ var deployManagementCmd = &cobra.Command{
 }
 
 func (r *Run) DeployManagement() error {
-	env := helpers.GetConfigEnvVars(field.Env)
+	env := action.GetConfigEnvVars(field.Env)
 
 	slog.Info(r.Config.Action.Name, "text", "READING BACKEND MODULES FROM CONFIG")
-	backendModulesMap, err := r.Config.ModuleParams.GetBackendModulesFromConfig(true, viper.GetStringMap(field.BackendModules))
+	backendModules, err := r.Config.ModuleParams.ReadBackendModulesFromConfig(true)
 	if err != nil {
 		return err
 	}
 
 	slog.Info(r.Config.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
 	instalJsonURLs := map[string]string{
-		constant.EurekaRegistry: viper.GetString(field.InstallEureka),
+		constant.EurekaRegistry: r.Config.Action.ConfigEurekaRegistry,
 	}
 	registryModules, err := r.Config.RegistrySvc.GetModules(instalJsonURLs, true)
 	if err != nil {
@@ -65,7 +62,7 @@ func (r *Run) DeployManagement() error {
 	}
 	r.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules)
 
-	vaultRootToken, client, err := r.GetVaultRootTokenWithDockerClient()
+	client, err := r.Config.DockerClient.Create()
 	if err != nil {
 		return err
 	}
@@ -75,7 +72,7 @@ func (r *Run) DeployManagement() error {
 	registryHosts := map[string]string{
 		constant.EurekaRegistry: "",
 	}
-	containers := models.NewManagementContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, env)
+	containers := models.NewManagementContainers(r.Config.Action.VaultRootToken, registryHosts, registryModules, backendModules, env)
 	deployedModules, err := r.Config.ModuleSvc.DeployModules(client, containers, "", nil)
 	if err != nil {
 		return err
@@ -88,18 +85,43 @@ func (r *Run) DeployManagement() error {
 
 	deployManagementWG.Add(len(deployedModules))
 	for deployedModule := range deployedModules {
-		go r.Config.ModuleSvc.PerformModuleReadinessCheck(&deployManagementWG, errCh, deployedModule, deployedModules[deployedModule])
+		go r.Config.ModuleSvc.CheckModuleReadiness(&deployManagementWG, errCh, deployedModule, deployedModules[deployedModule])
 	}
 	deployManagementWG.Wait()
 	close(errCh)
 
-	select {
-	case err := <-errCh:
-		return err
-	default:
+	for err := range errCh {
+		if err != nil {
+			return err
+		}
 	}
 
-	time.Sleep(constant.DeployManagementWait)
+	slog.Info(r.Config.Action.Name, "text", "WAITING FOR KONG ROUTES TO BECOME READY")
+	expressions := []string{
+		`(http.path == "/applications" && http.method == "POST")`,
+		`(http.path ~ "^/modules/([^/]+)/discovery$" && http.method == "POST")`,
+		`(http.path == "/entitlements" && http.method == "POST")`,
+	}
+
+	for retryCount := range constant.KongRouteReadinessMaxRetries {
+		routes, err := r.Config.KongSvc.FindRouteByExpressions(expressions)
+		if err != nil {
+			if retryCount == constant.KongRouteReadinessMaxRetries {
+				return fmt.Errorf("cannot continue deployment with error: %v", err)
+			} else {
+				slog.Info(r.Config.Action.Name, "text", "Kong routes are unready", "retryCount", retryCount, "maxRetries", constant.KongRouteReadinessMaxRetries)
+				time.Sleep(5 * time.Second)
+			}
+		}
+
+		if len(routes) == len(expressions) {
+			for _, route := range routes {
+				slog.Info(r.Config.Action.Name, "text", "Kong routes are ready", "id", route.ID, "expression", route.Expression)
+			}
+			break
+		}
+	}
+
 	slog.Info(r.Config.Action.Name, "text", "All management modules are ready")
 
 	return nil

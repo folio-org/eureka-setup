@@ -4,44 +4,39 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"slices"
 
 	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/spf13/viper"
 )
 
-func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantType constant.TenantType) error {
-	tenants := viper.GetStringMap(field.Tenants)
+type ManagementTenantEntitlementManager interface {
+	CreateTenantEntitlement(consortiumName string, tenantType constant.TenantType) error
+	RemoveTenantEntitlements(consortiumName string, tenantType constant.TenantType, purgeSchemas bool) error
+}
 
-	tenantParameters, err := ms.TenantSvc.GetTenantParameters(consortiumName, tenants)
+func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantType constant.TenantType) error {
+	tenantParameters, err := ms.TenantSvc.GetEntitlementTenantParameters(consortiumName)
 	if err != nil {
 		return err
 	}
 
-	requestURL := ms.Action.CreateURL(constant.KongPort, fmt.Sprintf("/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=%s", tenantParameters))
-	applicationMap := viper.GetStringMap(field.Application)
-	applicationName := applicationMap["name"].(string)
-	applicationVersion := applicationMap["version"].(string)
-
-	tt, err := ms.GetTenants(consortiumName, tenantType)
+	applicationName := ms.Action.ConfigApplication["name"].(string)
+	applicationVersion := ms.Action.ConfigApplication["version"].(string)
+	resp, err := ms.GetTenants(consortiumName, tenantType)
 	if err != nil {
 		return nil
 	}
 
-	for _, value := range tt {
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=%s", tenantParameters))
+	for _, value := range resp {
 		mapEntry := value.(map[string]any)
-
-		tenant := mapEntry["name"].(string)
-
-		if !slices.Contains(helpers.ConvertMapKeysToSlice(tenants), tenant) {
+		tenantName := mapEntry["name"].(string)
+		if !helpers.HasTenant(tenantName, ms.Action.ConfigTenants) {
 			continue
 		}
 
 		applications := []string{fmt.Sprintf("%s-%s", applicationName, applicationVersion)}
-
-		bb, err := json.Marshal(map[string]any{
+		payload, err := json.Marshal(map[string]any{
 			"tenantId":     mapEntry["id"].(string),
 			"applications": applications,
 		})
@@ -49,43 +44,36 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 			return err
 		}
 
-		err = ms.HTTPClient.PostReturnNoContent(requestURL, bb, map[string]string{})
+		err = ms.HTTPClient.PostReturnNoContent(requestURL, payload, map[string]string{})
 		if err != nil {
 			return err
 		}
-
-		slog.Info(ms.Action.Name, "text", "Created tenant entitlement for tenant", "tenant", tenant)
+		slog.Info(ms.Action.Name, "text", "Created tenant entitlement for tenant", "tenant", tenantName)
 	}
 
 	return nil
 }
 
-func (ms *ManagementSvc) RemoveTenantEntitlements(purgeSchemas bool, consortiumName string, tenantType constant.TenantType) error {
-	requestURL := ms.Action.CreateURL(constant.KongPort, fmt.Sprintf("/entitlements?purge=%t&ignoreErrors=false", purgeSchemas))
-	applicationMap := viper.GetStringMap(field.Application)
-	applicationName := applicationMap["name"].(string)
-	applicationVersion := applicationMap["version"].(string)
-
-	tt, err := ms.GetTenants(consortiumName, tenantType)
+func (ms *ManagementSvc) RemoveTenantEntitlements(consortiumName string, tenantType constant.TenantType, purgeSchemas bool) error {
+	applicationName := ms.Action.ConfigApplication["name"].(string)
+	applicationVersion := ms.Action.ConfigApplication["version"].(string)
+	resp, err := ms.GetTenants(consortiumName, tenantType)
 	if err != nil {
 		return err
 	}
 
-	for _, value := range tt {
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/entitlements?purge=%t&ignoreErrors=false", purgeSchemas))
+	for _, value := range resp {
 		mapEntry := value.(map[string]any)
-
-		tenant := mapEntry["name"].(string)
-
-		if !slices.Contains(helpers.ConvertMapKeysToSlice(viper.GetStringMap(field.Tenants)), tenant) {
+		tenantName := mapEntry["name"].(string)
+		if !helpers.HasTenant(tenantName, ms.Action.ConfigTenants) {
 			continue
 		}
-
 		tenantID := mapEntry["id"].(string)
 
 		var applications []string
 		applications = append(applications, fmt.Sprintf("%s-%s", applicationName, applicationVersion))
-
-		bb, err := json.Marshal(map[string]any{
+		payload, err := json.Marshal(map[string]any{
 			"tenantId":     tenantID,
 			"applications": applications,
 		})
@@ -93,12 +81,11 @@ func (ms *ManagementSvc) RemoveTenantEntitlements(purgeSchemas bool, consortiumN
 			return err
 		}
 
-		err = ms.HTTPClient.DeleteWithBody(requestURL, bb, map[string]string{})
+		err = ms.HTTPClient.DeleteWithBody(requestURL, payload, map[string]string{})
 		if err != nil {
 			return err
 		}
-
-		slog.Info(ms.Action.Name, "text", "Removed tenant entitlement for tenant", "tenant", tenant)
+		slog.Info(ms.Action.Name, "text", "Removed tenant entitlement for tenant", "tenant", tenantName)
 	}
 
 	return nil

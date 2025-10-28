@@ -14,28 +14,75 @@ import (
 	"github.com/google/uuid"
 )
 
+type ConsortiumProcessor interface {
+	ConsortiumManager
+	ConsortiumTenantHandler
+	ConsortiumCentralOrderingManager
+}
+
+type ConsortiumManager interface {
+	GetConsortiumByName(centralTenant string, consortiumName string) (any, error)
+	GetConsortiumCentralTenant(consortiumName string) string
+	GetConsortiumUsers(consortiumName string) map[string]any
+	GetAdminUsername(centralTenant string, consortiumUsers map[string]any) string
+	CreateConsortium(centralTenant string, consortiumName string) (string, error)
+}
+
 type ConsortiumSvc struct {
 	Action     *action.Action
-	HTTPClient *httpclient.HTTPClient
-	UserSvc    *usersvc.UserSvc
+	HTTPClient httpclient.HTTPClientRunner
+	UserSvc    usersvc.UserProcessor
 }
 
-func New(action *action.Action, httpClient *httpclient.HTTPClient, userSvc *usersvc.UserSvc) *ConsortiumSvc {
-	return &ConsortiumSvc{
-		Action:     action,
-		HTTPClient: httpClient,
-		UserSvc:    userSvc,
+func New(action *action.Action, httpClient httpclient.HTTPClientRunner, userSvc usersvc.UserProcessor) *ConsortiumSvc {
+	return &ConsortiumSvc{Action: action, HTTPClient: httpClient, UserSvc: userSvc}
+}
+
+func (cs *ConsortiumSvc) GetConsortiumByName(centralTenant string, consortiumName string) (any, error) {
+	requestURL := cs.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/consortia?query=name==%s", consortiumName))
+	headers := helpers.TenantSecureApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
+	resp, err := cs.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
+	if err != nil {
+		return nil, err
 	}
+	if resp["consortia"] == nil || len(resp["consortia"].([]any)) == 0 {
+		return nil, nil
+	}
+
+	return resp["consortia"].([]any)[0], nil
 }
 
-func (cs *ConsortiumSvc) GetConsortiumCentralTenant(consortiumName string, tenants map[string]any) string {
-	for tenant, properties := range tenants {
+func (cs *ConsortiumSvc) GetConsortiumCentralTenant(consortiumName string) string {
+	for tenantName, properties := range cs.Action.ConfigTenants {
 		if properties == nil || !cs.isValidConsortium(consortiumName, properties) ||
 			cs.getSortableIsCentral(properties.(map[string]any)) == 0 {
 			continue
 		}
 
-		return tenant
+		return tenantName
+	}
+
+	return ""
+}
+
+func (cs *ConsortiumSvc) GetConsortiumUsers(consortiumName string) map[string]any {
+	consortiumUsers := make(map[string]any)
+	for username, properties := range cs.Action.ConfigUsers {
+		if !cs.isValidConsortium(consortiumName, properties) {
+			continue
+		}
+		consortiumUsers[username] = properties
+	}
+
+	return consortiumUsers
+}
+
+func (cs *ConsortiumSvc) GetAdminUsername(centralTenant string, consortiumUsers map[string]any) string {
+	for username, properties := range consortiumUsers {
+		tenant := properties.(map[string]any)[field.UsersTenantEntry]
+		if tenant != nil && tenant.(string) == centralTenant {
+			return username
+		}
 	}
 
 	return ""
@@ -53,23 +100,19 @@ func (cs *ConsortiumSvc) isValidConsortium(consortiumName string, properties any
 	return properties.(map[string]any)[field.TenantsConsortiumEntry] == consortiumName
 }
 
-func (cs *ConsortiumSvc) CreateConsortium(centralTenant string, accessToken string, consortiumName string) (string, error) {
-	cc, err := cs.GetConsortiumByName(centralTenant, accessToken, consortiumName)
+func (cs *ConsortiumSvc) CreateConsortium(centralTenant string, consortiumName string) (string, error) {
+	resp, err := cs.GetConsortiumByName(centralTenant, consortiumName)
 	if err != nil {
 		return "", err
 	}
-
-	if cc != nil {
-		consortiumID := cc.(map[string]any)["id"].(string)
-
+	if resp != nil {
+		consortiumID := resp.(map[string]any)["id"].(string)
 		slog.Info(cs.Action.Name, "text", "Consortium is already created", "consortium", consortiumName)
-
 		return consortiumID, nil
 	}
 
 	consortiumID := uuid.New()
-
-	bb, err := json.Marshal(map[string]any{
+	payload, err := json.Marshal(map[string]any{
 		"id":   consortiumID,
 		"name": consortiumName,
 	})
@@ -77,39 +120,13 @@ func (cs *ConsortiumSvc) CreateConsortium(centralTenant string, accessToken stri
 		return "", err
 	}
 
-	headers := map[string]string{
-		constant.ContentTypeHeader: constant.ApplicationJSON,
-		constant.OkapiTenantHeader: centralTenant,
-		constant.OkapiTokenHeader:  accessToken,
-	}
-
-	err = cs.HTTPClient.PostReturnNoContent(cs.Action.CreateURL(constant.KongPort, "/consortia"), bb, headers)
+	requestURL := cs.Action.GetRequestURL(constant.KongPort, "/consortia")
+	headers := helpers.TenantSecureApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
+	err = cs.HTTPClient.PostReturnNoContent(requestURL, payload, headers)
 	if err != nil {
 		return "", err
 	}
-
 	slog.Info(cs.Action.Name, "text", "Created consortium", "consortium", consortiumName)
 
 	return consortiumID.String(), nil
-}
-
-func (cs *ConsortiumSvc) GetConsortiumByName(centralTenant string, accessToken string, consortiumName string) (any, error) {
-	requestURL := cs.Action.CreateURL(constant.KongPort, fmt.Sprintf("/consortia?query=name==%s", consortiumName))
-
-	headers := map[string]string{
-		constant.ContentTypeHeader: constant.ApplicationJSON,
-		constant.OkapiTenantHeader: centralTenant,
-		constant.OkapiTokenHeader:  accessToken,
-	}
-
-	cc, err := cs.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
-	if err != nil {
-		return nil, err
-	}
-
-	if cc["consortia"] == nil || len(cc["consortia"].([]any)) == 0 {
-		return nil, nil
-	}
-
-	return cc["consortia"].([]any)[0], nil
 }

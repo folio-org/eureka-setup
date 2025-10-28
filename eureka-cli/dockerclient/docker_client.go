@@ -10,17 +10,21 @@ import (
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/spf13/viper"
 )
+
+type DockerClientRunner interface {
+	Create() (*client.Client, error)
+	Close(client *client.Client)
+	PushImage(namespace string, imageName string) error
+	ForcePullImage(imageName string) (finalImageName string, err error)
+}
 
 type DockerClient struct {
 	Action *action.Action
 }
 
 func New(action *action.Action) *DockerClient {
-	return &DockerClient{
-		Action: action,
-	}
+	return &DockerClient{Action: action}
 }
 
 func (dc *DockerClient) Create() (*client.Client, error) {
@@ -28,7 +32,6 @@ func (dc *DockerClient) Create() (*client.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	newClient.NegotiateAPIVersion(context.Background())
 
 	return newClient, nil
@@ -59,12 +62,11 @@ func (dc *DockerClient) PushImage(namespace string, imageName string) error {
 
 func (dc *DockerClient) ForcePullImage(imageName string) (finalImageName string, err error) {
 	slog.Info(dc.Action.Name, "text", "PULLING PLATFORM COMPLETE UI IMAGE FROM DOCKER HUB")
-	if !viper.IsSet(field.NamespacesPlatformCompleteUI) {
+	if !action.IsSet(field.NamespacesPlatformCompleteUI) {
 		return "", fmt.Errorf("cannot run %s image key %s is not set in current config file", imageName, field.NamespacesPlatformCompleteUI)
 	}
 
-	finalImageName = fmt.Sprintf("%s/%s", viper.GetString(field.NamespacesPlatformCompleteUI), imageName)
-
+	finalImageName = fmt.Sprintf("%s/%s", dc.Action.ConfigNamespacePlatformCompleteUI, imageName)
 	slog.Info(dc.Action.Name, "text", "Removing old platform complete UI image")
 	err = helpers.Exec(exec.Command("docker", "image", "rm", "--force", finalImageName))
 	if err != nil {

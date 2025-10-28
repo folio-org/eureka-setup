@@ -5,12 +5,29 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/models"
 )
 
-func AppendVaultEnv(envVars []string, vaultRootToken string) []string {
+type ModuleEnvProcessor interface {
+	VaultEnv(envVars []string, vaultRootToken string) []string
+	OkapiEnv(envVars []string, sidecarName string, portServer int) []string
+	DisabledSystemUserEnv(envVars []string, moduleName string) []string
+	KeycloakEnv(envVars []string) []string
+	ModuleEnv(envVars []string, extraEnvVars map[string]any) []string
+	SidecarEnv(envVars []string, module *models.RegistryModule, portServer int, moduleURL, sidecarURL *string) []string
+}
+
+type ModuleEnv struct {
+	Action *action.Action
+}
+
+func New(action *action.Action) *ModuleEnv {
+	return &ModuleEnv{Action: action}
+}
+
+func (mv *ModuleEnv) VaultEnv(envVars []string, vaultRootToken string) []string {
 	extraEnvVars := []string{"SECRET_STORE_TYPE=VAULT",
 		fmt.Sprintf("SECRET_STORE_VAULT_TOKEN=%s", vaultRootToken),
 		fmt.Sprintf("SECRET_STORE_VAULT_ADDRESS=%s", constant.VaultHTTP),
@@ -20,7 +37,7 @@ func AppendVaultEnv(envVars []string, vaultRootToken string) []string {
 	return envVars
 }
 
-func AppendOkapiEnv(envVars []string, sidecarName string, portServer int) []string {
+func (mv *ModuleEnv) OkapiEnv(envVars []string, sidecarName string, portServer int) []string {
 	extraEnvVars := []string{fmt.Sprintf("OKAPI_HOST=%s.eureka", sidecarName),
 		fmt.Sprintf("OKAPI_PORT=%d", portServer),
 		fmt.Sprintf("OKAPI_SERVICE_HOST=%s.eureka", sidecarName),
@@ -32,7 +49,7 @@ func AppendOkapiEnv(envVars []string, sidecarName string, portServer int) []stri
 	return envVars
 }
 
-func AppendDisableSystemUserEnv(envVars []string, moduleName string) []string {
+func (mv *ModuleEnv) DisabledSystemUserEnv(envVars []string, moduleName string) []string {
 	extraEnvVars := []string{"FOLIO_SYSTEM_USER_ENABLED=false",
 		"SYSTEM_USER_CREATE=false",
 		"SYSTEM_USER_ENABLED=false",
@@ -44,18 +61,18 @@ func AppendDisableSystemUserEnv(envVars []string, moduleName string) []string {
 	return envVars
 }
 
-func AppendKeycloakEnv(envVars []string) []string {
+func (mv *ModuleEnv) KeycloakEnv(envVars []string) []string {
 	extraEnvVars := []string{fmt.Sprintf("KC_URL=%s", constant.KeycloakHTTP),
-		fmt.Sprintf("KC_ADMIN_CLIENT_ID=%s", helpers.GetConfigEnv("KC_ADMIN_CLIENT_ID")),
-		fmt.Sprintf("KC_SERVICE_CLIENT_ID=%s", helpers.GetConfigEnv("KC_SERVICE_CLIENT_ID")),
-		fmt.Sprintf("KC_LOGIN_CLIENT_SUFFIX=%s", helpers.GetConfigEnv("KC_LOGIN_CLIENT_SUFFIX")),
+		fmt.Sprintf("KC_ADMIN_CLIENT_ID=%s", action.GetConfigEnv("KC_ADMIN_CLIENT_ID", mv.Action.ConfigGlobalEnv)),
+		fmt.Sprintf("KC_SERVICE_CLIENT_ID=%s", action.GetConfigEnv("KC_SERVICE_CLIENT_ID", mv.Action.ConfigGlobalEnv)),
+		fmt.Sprintf("KC_LOGIN_CLIENT_SUFFIX=%s", action.GetConfigEnv("KC_LOGIN_CLIENT_SUFFIX", mv.Action.ConfigGlobalEnv)),
 	}
 	envVars = append(envVars, extraEnvVars...)
 
 	return envVars
 }
 
-func AppendModuleEnv(envVars []string, extraEnvVars map[string]any) []string {
+func (mv *ModuleEnv) ModuleEnv(envVars []string, extraEnvVars map[string]any) []string {
 	for key, value := range extraEnvVars {
 		if key == "" {
 			continue
@@ -66,7 +83,7 @@ func AppendModuleEnv(envVars []string, extraEnvVars map[string]any) []string {
 	return envVars
 }
 
-func AppendSidecarEnv(envVars []string, module *models.RegistryModule, portServer int, moduleURL *string, sidecarURL *string) []string {
+func (mv *ModuleEnv) SidecarEnv(envVars []string, module *models.RegistryModule, portServer int, moduleURL, sidecarURL *string) []string {
 	var extraEnvVars []string
 	if moduleURL == nil && sidecarURL == nil {
 		extraEnvVars = []string{fmt.Sprintf("MODULE_NAME=%s", module.Name),

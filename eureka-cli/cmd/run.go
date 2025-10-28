@@ -40,33 +40,24 @@ type Run struct {
 }
 
 func New(name string) (*Run, error) {
-	gatewayURL, err := helpers.GetGatewayURL(name)
+	gatewayURLTemplate, err := action.GetGatewayURLTemplate(name)
 	if err != nil {
 		return nil, err
 	}
 
-	action := action.New(name, gatewayURL, &ap)
-	return &Run{
-		Config: runconfig.New(action),
-	}, nil
+	action := action.New(name, gatewayURLTemplate, &actionParams)
+	return &Run{Config: runconfig.New(action, logger)}, nil
 }
 
-func NewCustom(name string, startPort, endPort int) (*Run, error) {
-	gatewayURL, err := helpers.GetGatewayURL(name)
-	if err != nil {
-		return nil, err
-	}
-
-	action := action.NewCustom(name, gatewayURL, startPort, endPort, &ap)
-	return &Run{
-		Config: runconfig.New(action),
-	}, nil
+func (r *Run) PingGateway() error {
+	gatewayURL := fmt.Sprintf(r.Config.Action.GatewayURLTemplate, constant.KongPort)
+	return r.Config.HTTPClient.Ping(gatewayURL)
 }
 
 func (r *Run) Partition(callback func(string, constant.TenantType)) {
 	if viper.IsSet(field.Consortiums) {
-		for consortiumName := range viper.GetStringMap(field.Consortiums) {
-			for _, tenantType := range constant.Get() {
+		for consortiumName := range r.Config.Action.ConfigConsortiums {
+			for _, tenantType := range constant.GetTenantTypes() {
 				slog.Info(r.Config.Action.Name, "text", "Running partition with consortium and tenant type", "consortium", consortiumName, "tenantType", tenantType)
 				callback(consortiumName, tenantType)
 			}
@@ -79,8 +70,8 @@ func (r *Run) Partition(callback func(string, constant.TenantType)) {
 
 func (r *Run) PartitionErr(callback func(string, constant.TenantType) error) error {
 	if viper.IsSet(field.Consortiums) {
-		for consortiumName := range viper.GetStringMap(field.Consortiums) {
-			for _, tenantType := range constant.Get() {
+		for consortiumName := range r.Config.Action.ConfigConsortiums {
+			for _, tenantType := range constant.GetTenantTypes() {
 				slog.Info(r.Config.Action.Name, "text", "Running partition with consortium and tenant type", "consortium", consortiumName, "tenantType", tenantType)
 				err := callback(consortiumName, tenantType)
 				if err != nil {
@@ -100,19 +91,7 @@ func (r *Run) PartitionErr(callback func(string, constant.TenantType) error) err
 	return nil
 }
 
-func setDefaultLogger() {
-	logLevel := slog.LevelInfo
-	if ap.EnableDebug {
-		logLevel = slog.LevelDebug
-	}
-
-	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level:     logLevel,
-		AddSource: true,
-	})))
-}
-
-func tryReadInConfig(afterReadCallback func(configErr error)) {
+func tryReadConfig(afterReadCallback func(configErr error)) {
 	if err := viper.ReadInConfig(); err != nil {
 		afterReadCallback(err)
 	}
@@ -125,6 +104,22 @@ func setConfig(params *actionparams.ActionParams) {
 	}
 
 	viper.SetConfigFile(params.ConfigFile)
+}
+
+func setDefaultLogger() *slog.Logger {
+	logLevel := slog.LevelInfo
+	if actionParams.EnableDebug {
+		logLevel = slog.LevelDebug
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     logLevel,
+		AddSource: true,
+	}))
+
+	slog.SetDefault(logger)
+
+	return logger
 }
 
 func setConfigNameByProfile(profile string) {
@@ -146,16 +141,13 @@ func getConfigFileByProfile(profile string) string {
 
 	if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
 		fmt.Println("Using profile:", profile)
-		fmt.Println()
 	}
 
 	return fmt.Sprintf("config.%s", profile)
 }
 
-func createHomeDir(overwriteFiles bool, embeddedFs embed.FS) {
-	action := &action.Action{Name: action.Root}
-
-	homeConfigDir, err := helpers.GetHomeDirPath(action)
+func createHomeDir(overwriteFiles bool, embeddedFs *embed.FS) {
+	homeConfigDir, err := helpers.GetHomeDirPath()
 	cobra.CheckErr(err)
 
 	if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
@@ -199,4 +191,5 @@ func createHomeDir(overwriteFiles bool, embeddedFs embed.FS) {
 	if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
 		fmt.Println()
 	}
+
 }

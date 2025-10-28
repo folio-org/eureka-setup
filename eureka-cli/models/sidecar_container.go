@@ -6,15 +6,12 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-func NewSidecarContainer(
-	name string,
+func NewSidecarContainer(name string,
 	image string,
 	env []string,
 	backendModule BackendModule,
 	networkConfig *network.NetworkingConfig,
-	resources *container.Resources,
-) *Container {
-
+	resources *container.Resources) *Container {
 	return &Container{
 		Name:   name,
 		Image:  image,

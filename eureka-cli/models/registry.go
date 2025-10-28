@@ -18,13 +18,10 @@ type RegistryModuleExtract struct {
 	ModuleDescriptorsMap map[string]any
 }
 
-func NewRegistryModuleExtract(
-	registryURLs map[string]string,
+func NewRegistryModuleExtract(registryURLs map[string]string,
 	registryModules map[string][]*RegistryModule,
 	backendModulesMap map[string]BackendModule,
-	frontendModulesMap map[string]FrontendModule,
-) *RegistryModuleExtract {
-
+	frontendModulesMap map[string]FrontendModule) *RegistryModuleExtract {
 	return &RegistryModuleExtract{
 		RegistryURLs:         registryURLs,
 		RegistryModules:      registryModules,

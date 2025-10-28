@@ -13,6 +13,22 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
+type GitClientRunner interface {
+	GitClientRepositoryProvisioner
+	GitClientManager
+}
+
+type GitClientRepositoryProvisioner interface {
+	KongRepository() (*gitrepository.GitRepository, error)
+	KeycloakRepository() (*gitrepository.GitRepository, error)
+	PlatformCompleteRepository(branch plumbing.ReferenceName) (*gitrepository.GitRepository, error)
+}
+
+type GitClientManager interface {
+	Clone(repository *gitrepository.GitRepository) error
+	ResetHardPullFromOrigin(repository *gitrepository.GitRepository) error
+}
+
 type GitClient struct {
 	Action *action.Action
 }
@@ -23,22 +39,22 @@ func New(action *action.Action) *GitClient {
 	}
 }
 
-func (gc *GitClient) KeycloakRepository() (*gitrepository.GitRepository, error) {
-	var (
-		label                         = constant.FolioKongLabel
-		url                           = constant.FolioKongRepositoryURL
-		dir                           = constant.FolioKongOutputDir
-		branch plumbing.ReferenceName = constant.FolioKongBranch
-	)
-	return gitrepository.New(gc.Action, label, url, dir, branch)
-}
-
 func (gc *GitClient) KongRepository() (*gitrepository.GitRepository, error) {
 	var (
 		label                         = constant.FolioKeycloakLabel
 		url                           = constant.FolioKeycloakRepositoryURL
 		dir                           = constant.FolioKeycloakOutputDir
 		branch plumbing.ReferenceName = constant.FolioKeycloakBranch
+	)
+	return gitrepository.New(gc.Action, label, url, dir, branch)
+}
+
+func (gc *GitClient) KeycloakRepository() (*gitrepository.GitRepository, error) {
+	var (
+		label                         = constant.FolioKongLabel
+		url                           = constant.FolioKongRepositoryURL
+		dir                           = constant.FolioKongOutputDir
+		branch plumbing.ReferenceName = constant.FolioKongBranch
 	)
 	return gitrepository.New(gc.Action, label, url, dir, branch)
 }
@@ -66,7 +82,6 @@ func (rc *GitClient) Clone(repository *gitrepository.GitRepository) error {
 	if err != nil {
 		return err
 	}
-
 	slog.Info(rc.Action.Name, "text", "Ref", "ref", ref)
 
 	return nil
@@ -119,7 +134,6 @@ func (rc *GitClient) ResetHardPullFromOrigin(repository *gitrepository.GitReposi
 			slog.Info(rc.Action.Name, "text", "Updating repository pull message", "label", repository.Label, "message", err.Error())
 			return nil
 		}
-
 		return err
 	}
 
@@ -131,7 +145,6 @@ func (rc *GitClient) printStatus(wt *git.Worktree, message string) error {
 	if err != nil {
 		return err
 	}
-
 	if status != nil && status.String() != "" {
 		fmt.Println(message + ":")
 		fmt.Println(status.String())

@@ -9,9 +9,9 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 )
 
-func createRetryClient() *retryablehttp.Client {
+func createRetryClient(logger *slog.Logger, customClient *http.Client) *retryablehttp.Client {
 	retryClient := retryablehttp.NewClient()
-	retryClient.HTTPClient = createCustomClient()
+	retryClient.HTTPClient = customClient
 	retryClient.RetryMax = constant.RetryHTTPClientRetryMax
 	retryClient.RetryWaitMin = constant.RetryHTTPClientRetryWaitMin
 	retryClient.RetryWaitMax = constant.RetryHTTPClientRetryWaitMax
@@ -21,14 +21,13 @@ func createRetryClient() *retryablehttp.Client {
 			return true, checkErr
 		}
 		if resp != nil && (resp.StatusCode == http.StatusTooManyRequests ||
-			resp.StatusCode == http.StatusServiceUnavailable ||
-			resp.StatusCode == http.StatusNotFound) {
+			resp.StatusCode == http.StatusServiceUnavailable) {
 			return true, nil
 		}
 
 		return false, checkErr
 	}
-	retryClient.Logger = slog.Default()
+	retryClient.Logger = logger
 
 	return retryClient
 }

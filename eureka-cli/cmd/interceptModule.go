@@ -28,7 +28,6 @@ import (
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/models"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // interceptModuleCmd represents the interceptModule command
@@ -37,9 +36,7 @@ var interceptModuleCmd = &cobra.Command{
 	Short: "Intercept module",
 	Long:  `Intercept/redirect module traffic to IntelliJ.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		startPort := viper.GetInt(field.ApplicationPortStart)
-		endPort := viper.GetInt(field.ApplicationPortEnd)
-		r, err := NewCustom(action.InterceptModule, startPort, endPort)
+		r, err := New(action.InterceptModule)
 		if err != nil {
 			return err
 		}
@@ -49,19 +46,22 @@ var interceptModuleCmd = &cobra.Command{
 }
 
 func (r *Run) InterceptModule() error {
-	myModule := models.NewInterceptModule(r.Config.Action, ap.ID, ap.DefaultGateway, ap.ModuleURL, ap.SidecarURL, viper.GetInt(field.ApplicationPortStart), viper.GetInt(field.ApplicationPortEnd))
+	myModule, err := models.NewInterceptModule(r.Config.Action, actionParams.ID, actionParams.DefaultGateway, actionParams.ModuleURL, actionParams.SidecarURL)
+	if err != nil {
+		return err
+	}
 
 	slog.Info(r.Config.Action.Name, "text", "INTERCEPTING MODULE", "module", myModule.ModuleName)
-	globalEnv := helpers.GetConfigEnvVars(field.Env)
-	globalSidecarEnv := helpers.GetConfigEnvVars(field.SidecarModuleEnv)
-	backendModulesMap, err := r.Config.ModuleParams.GetBackendModulesFromConfig(false, viper.GetStringMap(field.BackendModules))
+	globalEnv := action.GetConfigEnvVars(field.Env)
+	globalSidecarEnv := action.GetConfigEnvVars(field.SidecarModuleEnv)
+	backendModules, err := r.Config.ModuleParams.ReadBackendModulesFromConfig(false)
 	if err != nil {
 		return err
 	}
 
 	instalJsonURLs := map[string]string{
-		constant.FolioRegistry:  viper.GetString(field.InstallFolio),
-		constant.EurekaRegistry: viper.GetString(field.InstallEureka),
+		constant.FolioRegistry:  r.Config.Action.ConfigFolioRegistry,
+		constant.EurekaRegistry: r.Config.Action.ConfigEurekaRegistry,
 	}
 	registryModules, err := r.Config.RegistrySvc.GetModules(instalJsonURLs, false)
 	if err != nil {
@@ -69,14 +69,14 @@ func (r *Run) InterceptModule() error {
 	}
 	r.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules)
 
-	vaultRootToken, client, err := r.GetVaultRootTokenWithDockerClient()
+	client, err := r.Config.DockerClient.Create()
 	if err != nil {
 		return err
 	}
 	defer r.Config.DockerClient.Close(client)
 
 	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING DEFAULT MODULE AND SIDECAR PAIR")
-	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, viper.GetString(field.ProfileName), myModule.ModuleName)
+	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, r.Config.Action.ConfigProfile, myModule.ModuleName)
 	err = r.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
 	if err != nil {
 		return err
@@ -86,18 +86,18 @@ func (r *Run) InterceptModule() error {
 		constant.FolioRegistry:  "",
 		constant.EurekaRegistry: "",
 	}
-	myModule.Containers = models.NewCoreAndBusinessContainers(vaultRootToken, registryHosts, registryModules, backendModulesMap, globalEnv, globalSidecarEnv)
+	myModule.Containers = models.NewCoreAndBusinessContainers(r.Config.Action.VaultRootToken, registryHosts, registryModules, backendModules, globalEnv, globalSidecarEnv)
 
 	err = r.UpdateModuleDiscovery(*myModule.SidecarUrl)
 	if err != nil {
 		return err
 	}
 
-	if ap.Restore {
+	if actionParams.Restore {
 		return r.deployDefaultModuleAndSidecar(myModule, client)
 	}
 
-	return r.deployCustomSidecarForInterception(!ap.Restore, myModule, client)
+	return r.deployCustomSidecarForInterception(!actionParams.Restore, myModule, client)
 }
 
 func (r *Run) deployDefaultModuleAndSidecar(myModule *models.InterceptModule, client *client.Client) error {
@@ -124,14 +124,14 @@ func (r *Run) deployDefaultModuleAndSidecar(myModule *models.InterceptModule, cl
 	errCh := make(chan error, 1)
 
 	deployModuleWG.Add(1)
-	go r.Config.ModuleSvc.PerformModuleReadinessCheck(&deployModuleWG, errCh, myModule.ModuleName, myModule.BackendModule.ModuleExposedServerPort)
+	go r.Config.ModuleSvc.CheckModuleReadiness(&deployModuleWG, errCh, myModule.ModuleName, myModule.BackendModule.ModuleExposedServerPort)
 	deployModuleWG.Wait()
 	close(errCh)
 
-	select {
-	case err := <-errCh:
-		return err
-	default:
+	for err := range errCh {
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -151,19 +151,19 @@ func (r *Run) prepareContainerNetwork(myModule *models.InterceptModule, moduleAn
 	myModule.NetworkConfig = helpers.NewModuleNetworkConfig()
 
 	if moduleAndSidecar {
-		moduleServerPort, err := helpers.SetFreePortFromRange(r.Config.Action)
+		moduleServerPort, err := r.Config.Action.GetPreReservedPort()
 		if err != nil {
 			return err
 		}
-		moduleDebugPort, err := helpers.SetFreePortFromRange(r.Config.Action)
+		moduleDebugPort, err := r.Config.Action.GetPreReservedPort()
 		if err != nil {
 			return err
 		}
-		sidecarServerPort, err := helpers.SetFreePortFromRange(r.Config.Action)
+		sidecarServerPort, err := r.Config.Action.GetPreReservedPort()
 		if err != nil {
 			return err
 		}
-		sidecarDebugPort, err := helpers.SetFreePortFromRange(r.Config.Action)
+		sidecarDebugPort, err := r.Config.Action.GetPreReservedPort()
 		if err != nil {
 			return err
 		}
@@ -180,7 +180,7 @@ func (r *Run) prepareContainerNetwork(myModule *models.InterceptModule, moduleAn
 	if err != nil {
 		return err
 	}
-	sidecarDebugPort, err := helpers.SetFreePortFromRange(r.Config.Action)
+	sidecarDebugPort, err := r.Config.Action.GetPreReservedPort()
 	if err != nil {
 		return err
 	}
@@ -213,7 +213,7 @@ func (r *Run) deploySidecar(printModuleEnv bool, myModule *models.InterceptModul
 		return err
 	}
 
-	sidecarResources := helpers.CreateResources(false, viper.GetStringMap(field.SidecarModuleResources))
+	sidecarResources := helpers.CreateResources(false, r.Config.Action.ConfigSidecarResources)
 	sidecarEnv := r.Config.ModuleSvc.GetSidecarEnv(myModule.Containers, myModule.RegistryModule, *myModule.BackendModule, myModule.ModuleUrl, myModule.SidecarUrl)
 	sidecarContainer := models.NewSidecarContainer(myModule.RegistryModule.SidecarName, sidecarImage, sidecarEnv, *myModule.BackendModule, myModule.NetworkConfig, sidecarResources)
 	sidecarContainer.PullImage = pullSidecarImage
@@ -251,11 +251,11 @@ func (r *Run) deploySidecar(printModuleEnv bool, myModule *models.InterceptModul
 
 func init() {
 	rootCmd.AddCommand(interceptModuleCmd)
-	interceptModuleCmd.PersistentFlags().StringVarP(&ap.ID, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
-	interceptModuleCmd.PersistentFlags().StringVarP(&ap.ModuleURL, "moduleUrl", "m", "", "Module URL, e.g. http://host.docker.internal:36002 or 36002 (if -g is used)")
-	interceptModuleCmd.PersistentFlags().StringVarP(&ap.SidecarURL, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002 or 37002 (if -g is used)")
-	interceptModuleCmd.PersistentFlags().BoolVarP(&ap.Restore, "restore", "r", false, "Restore module & sidecar")
-	interceptModuleCmd.PersistentFlags().BoolVarP(&ap.DefaultGateway, "defaultGateway", "g", false, "Use default gateway in URLs, .e.g http://host.docker.internal:{{port}} will be set automatically")
+	interceptModuleCmd.PersistentFlags().StringVarP(&actionParams.ID, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
+	interceptModuleCmd.PersistentFlags().StringVarP(&actionParams.ModuleURL, "moduleUrl", "m", "", "Module URL, e.g. http://host.docker.internal:36002 or 36002 (if -g is used)")
+	interceptModuleCmd.PersistentFlags().StringVarP(&actionParams.SidecarURL, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002 or 37002 (if -g is used)")
+	interceptModuleCmd.PersistentFlags().BoolVarP(&actionParams.Restore, "restore", "r", false, "Restore module & sidecar")
+	interceptModuleCmd.PersistentFlags().BoolVarP(&actionParams.DefaultGateway, "defaultGateway", "g", false, "Use default gateway in URLs, .e.g http://host.docker.internal:{{port}} will be set automatically")
 	if err := interceptModuleCmd.MarkPersistentFlagRequired("id"); err != nil {
 		slog.Error("failed to mark id flag as required", "error", err)
 		os.Exit(1)

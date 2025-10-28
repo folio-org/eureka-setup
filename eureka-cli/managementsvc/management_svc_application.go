@@ -9,17 +9,39 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/httpclient"
 	"github.com/folio-org/eureka-cli/models"
-	"github.com/spf13/viper"
+	"github.com/folio-org/eureka-cli/tenantsvc"
 )
 
-func (ms *ManagementSvc) GetApplications() (models.Applications, error) {
-	requestURL := ms.Action.CreateURL(constant.KongPort, "/applications")
+type ManagementProcessor interface {
+	ManagementApplicationManager
+	ManagementTenantManager
+	ManagementTenantEntitlementManager
+}
 
+type ManagementApplicationManager interface {
+	GetApplications() (models.Applications, error)
+	CreateApplications(extract *models.RegistryModuleExtract) error
+	RemoveApplication(applicationID string) error
+	UpdateModuleDiscovery(id string, sidecarURL string, restore bool, portServer string) error
+}
+
+type ManagementSvc struct {
+	Action     *action.Action
+	HTTPClient httpclient.HTTPClientRunner
+	TenantSvc  tenantsvc.TenantProcessor
+}
+
+func New(action *action.Action, httpClient httpclient.HTTPClientRunner, tenantSvc tenantsvc.TenantProcessor) *ManagementSvc {
+	return &ManagementSvc{Action: action, HTTPClient: httpClient, TenantSvc: tenantSvc}
+}
+
+func (ms *ManagementSvc) GetApplications() (models.Applications, error) {
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, "/applications")
 	resp, err := ms.HTTPClient.GetReturnResponse(requestURL, map[string]string{})
 	if err != nil {
 		return models.Applications{}, err
@@ -47,17 +69,13 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 		dependencies              map[string]any
 		discoveryModules          []map[string]string
 	)
-
-	applicationMap := viper.GetStringMap(field.Application)
-	applicationName := applicationMap["name"].(string)
-	applicationVersion := applicationMap["version"].(string)
-	applicationPlatform := applicationMap["platform"].(string)
-	applicationFetchDescriptors := applicationMap["fetch-descriptors"].(bool)
-
+	applicationName := ms.Action.ConfigApplication["name"].(string)
+	applicationVersion := ms.Action.ConfigApplication["version"].(string)
+	applicationPlatform := ms.Action.ConfigApplication["platform"].(string)
+	applicationFetchDescriptors := ms.Action.ConfigApplication["fetch-descriptors"].(bool)
 	applicationID := fmt.Sprintf("%s-%s", applicationName, applicationVersion)
-
-	if applicationMap["dependencies"] != nil {
-		dependencies = applicationMap["dependencies"].(map[string]any)
+	if ms.Action.ConfigApplication["dependencies"] != nil {
+		dependencies = ms.Action.ConfigApplication["dependencies"].(map[string]any)
 	}
 
 	for registryName, rr := range extract.RegistryModules {
@@ -86,21 +104,17 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 			}
 
 			moduleDescriptorURL := fmt.Sprintf("%s/_/proxy/modules/%s", extract.RegistryURLs[constant.FolioRegistry], module.ID)
-
 			isLocalModule := okBackend && backendModule.LocalDescriptorPath != ""
-
 			if applicationFetchDescriptors || isLocalModule {
 				if isLocalModule {
 					slog.Info(ms.Action.Name, "text", "Fetching local module descriptor from file path", "module", module.ID)
 
 					var descriptor map[string]any
-					err := helpers.ReadJsonFromFile(ms.Action, backendModule.LocalDescriptorPath, &descriptor)
+					err := helpers.ReadJsonFromFile(ms.Action.Name, backendModule.LocalDescriptorPath, &descriptor)
 					if err != nil {
 						return err
 					}
-
 					extract.ModuleDescriptorsMap[module.ID] = descriptor
-
 					slog.Info(ms.Action.Name, "text", "Successfully loaded descriptor from local file", "module", module.ID)
 				} else {
 					slog.Info(ms.Action.Name, "text", "Fetching module descriptor from URL", "module", module.ID, "url", moduleDescriptorURL)
@@ -108,7 +122,6 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 					if err != nil {
 						return err
 					}
-
 					extract.ModuleDescriptorsMap[module.ID] = moduleDescriptorsMapResp
 				}
 			}
@@ -120,7 +133,6 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 					"name":    module.Name,
 					"version": *module.Version,
 				}
-
 				if applicationFetchDescriptors || isLocalModule {
 					backendModuleDescriptors = append(backendModuleDescriptors, extract.ModuleDescriptorsMap[module.ID])
 				} else {
@@ -128,9 +140,7 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 				}
 
 				backendModules = append(backendModules, backendModule)
-
 				sidecarUrl := fmt.Sprintf("http://%s.eureka:%s", module.SidecarName, serverPort)
-
 				discoveryModules = append(discoveryModules, map[string]string{
 					"id":       module.ID,
 					"name":     module.Name,
@@ -143,21 +153,18 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 					"name":    module.Name,
 					"version": *module.Version,
 				}
-
 				if applicationFetchDescriptors {
 					frontendModuleDescriptors = append(frontendModuleDescriptors, extract.ModuleDescriptorsMap[module.ID])
 				} else {
 					frontendModule["url"] = moduleDescriptorURL
 				}
-
 				frontendModules = append(frontendModules, frontendModule)
 			}
-
 			slog.Info(ms.Action.Name, "text", "Including module into application", "module", module.Name, "version", *module.Version, "application", applicationID)
 		}
 	}
 
-	bb1, err := json.Marshal(map[string]any{
+	payload1, err := json.Marshal(map[string]any{
 		"id":                  applicationID,
 		"name":                applicationName,
 		"version":             applicationVersion,
@@ -173,40 +180,36 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 		return err
 	}
 
-	err = ms.HTTPClient.PostReturnNoContent(ms.Action.CreateURL(constant.KongPort, "/applications?check=true"), bb1, map[string]string{})
+	err = ms.HTTPClient.PostReturnNoContent(ms.Action.GetRequestURL(constant.KongPort, "/applications?check=true"), payload1, map[string]string{})
 	if err != nil {
 		return err
 	}
-
 	slog.Info(ms.Action.Name, "text", "Created application", "application", applicationID)
 
 	if len(discoveryModules) > 0 {
-		bb2, err := json.Marshal(map[string]any{
+		payload2, err := json.Marshal(map[string]any{
 			"discovery": discoveryModules,
 		})
 		if err != nil {
 			return err
 		}
 
-		err = ms.HTTPClient.PostReturnNoContent(ms.Action.CreateURL(constant.KongPort, "/modules/discovery"), bb2, map[string]string{})
+		err = ms.HTTPClient.PostReturnNoContent(ms.Action.GetRequestURL(constant.KongPort, "/modules/discovery"), payload2, map[string]string{})
 		if err != nil {
 			return err
 		}
 	}
-
 	slog.Info(ms.Action.Name, "text", "Created entries of application module discovery", "count", len(discoveryModules))
 
 	return nil
 }
 
 func (ms *ManagementSvc) RemoveApplication(applicationID string) error {
-	requestURL := ms.Action.CreateURL(constant.KongPort, fmt.Sprintf("/applications/%s", applicationID))
-
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/applications/%s", applicationID))
 	err := ms.HTTPClient.Delete(requestURL, map[string]string{})
 	if err != nil {
 		return err
 	}
-
 	slog.Info(ms.Action.Name, "text", "Removed application", "application", applicationID)
 
 	return nil
@@ -223,7 +226,7 @@ func (ms *ManagementSvc) UpdateModuleDiscovery(id string, sidecarURL string, res
 		}
 	}
 
-	bb, err := json.Marshal(map[string]any{
+	payload, err := json.Marshal(map[string]any{
 		"id":       id,
 		"name":     name,
 		"version":  helpers.GetModuleVersionFromID(id),
@@ -233,13 +236,11 @@ func (ms *ManagementSvc) UpdateModuleDiscovery(id string, sidecarURL string, res
 		return err
 	}
 
-	requestURL := ms.Action.CreateURL(constant.KongPort, fmt.Sprintf("/modules/%s/discovery", id))
-
-	err = ms.HTTPClient.PutReturnNoContent(requestURL, bb, map[string]string{})
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/modules/%s/discovery", id))
+	err = ms.HTTPClient.PutReturnNoContent(requestURL, payload, map[string]string{})
 	if err != nil {
 		return err
 	}
-
 	slog.Info(ms.Action.Name, "text", "Updated application module discovery with sidecar URL", "module", name, "sidecarUrl", sidecarURL)
 
 	return nil

@@ -10,15 +10,12 @@ type Containers struct {
 	ManagementOnly    bool
 }
 
-func NewCoreAndBusinessContainers(
-	vaultRootToken string,
+func NewCoreAndBusinessContainers(vaultRootToken string,
 	registryHosts map[string]string,
 	registryModules map[string][]*RegistryModule,
 	backendModulesMap map[string]BackendModule,
 	globalEnv []string,
-	sidecarEnv []string,
-) *Containers {
-
+	sidecarEnv []string) *Containers {
 	return &Containers{
 		VaultRootToken:    vaultRootToken,
 		RegistryHostname:  registryHosts,
@@ -30,14 +27,11 @@ func NewCoreAndBusinessContainers(
 	}
 }
 
-func NewManagementContainers(
-	vaultRootToken string,
+func NewManagementContainers(vaultRootToken string,
 	registryHosts map[string]string,
 	registryModules map[string][]*RegistryModule,
 	backendModulesMap map[string]BackendModule,
-	globalEnv []string,
-) *Containers {
-
+	globalEnv []string) *Containers {
 	return &Containers{
 		VaultRootToken:    vaultRootToken,
 		RegistryHostname:  registryHosts,

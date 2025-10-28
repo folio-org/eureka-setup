@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-
-	"github.com/folio-org/eureka-cli/action"
 )
 
 func DumpRequestJSON(bodyBytes []byte) {
@@ -31,7 +29,7 @@ func DumpRequestFormData(formData url.Values) {
 	fmt.Println()
 }
 
-func DumpRequest(action *action.Action, req *http.Request) error {
+func DumpRequest(req *http.Request) error {
 	if !slog.Default().Enabled(context.Background(), slog.LevelDebug) {
 		return nil
 	}
@@ -48,7 +46,7 @@ func DumpRequest(action *action.Action, req *http.Request) error {
 	return nil
 }
 
-func DumpResponse(action *action.Action, resp *http.Response, forceDump bool) error {
+func DumpResponse(method, url string, resp *http.Response, forceDump bool) error {
 	if !slog.Default().Enabled(context.Background(), slog.LevelDebug) && !forceDump {
 		return nil
 	}
@@ -59,6 +57,7 @@ func DumpResponse(action *action.Action, resp *http.Response, forceDump bool) er
 	}
 
 	fmt.Printf("\nDUMPING HTTP RESPONSE\n")
+	fmt.Printf("%s %s\n", method, url)
 	fmt.Println(string(b))
 	fmt.Println()
 

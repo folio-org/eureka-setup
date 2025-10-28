@@ -21,17 +21,16 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // deployApplicationCmd represents the deployApplication command
 var deployApplicationCmd = &cobra.Command{
-	Use:   "deployApplication",
-	Short: "Deploy application",
-	Long:  `Deploy platform application.`,
+	Use:     "deployApplication",
+	Short:   "Deploy application",
+	Long:    `Deploy platform application.`,
+	Aliases: []string{"deploy"},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		start := time.Now()
 
@@ -41,7 +40,7 @@ var deployApplicationCmd = &cobra.Command{
 			return err
 		}
 
-		if len(viper.GetStringMap(field.ApplicationGatewayDependencies)) > 0 {
+		if len(r.Config.Action.ConfigApplicationDependencies) > 0 {
 			err = r.DeployChildApplication()
 		} else {
 			err = r.DeployApplication()
@@ -57,6 +56,10 @@ var deployApplicationCmd = &cobra.Command{
 
 func (r *Run) DeployApplication() error {
 	err := r.DeploySystem()
+	if err != nil {
+		return err
+	}
+	err = r.PingGateway()
 	if err != nil {
 		return err
 	}
@@ -111,7 +114,7 @@ func (r *Run) DeployApplication() error {
 	if err != nil {
 		return err
 	}
-	if helpers.IsModuleEnabled(constant.ModSearchModule) {
+	if helpers.IsModuleEnabled(constant.ModSearchModule, r.Config.Action.ConfigBackendModules) {
 		err = r.PartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
 			return r.ReindexIndices(consortiumName, tenantType)
 		})
@@ -156,7 +159,7 @@ func (r *Run) DeployChildApplication() error {
 
 func init() {
 	rootCmd.AddCommand(deployApplicationCmd)
-	deployApplicationCmd.PersistentFlags().BoolVarP(&ap.BuildImages, "buildImages", "b", false, "Build Docker images")
-	deployApplicationCmd.PersistentFlags().BoolVarP(&ap.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
-	deployApplicationCmd.PersistentFlags().BoolVarP(&ap.OnlyRequired, "onlyRequired", "R", false, "Use only required system containers")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&actionParams.BuildImages, "buildImages", "b", false, "Build Docker images")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&actionParams.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&actionParams.OnlyRequired, "onlyRequired", "R", false, "Use only required system containers")
 }

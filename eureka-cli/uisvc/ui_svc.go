@@ -14,29 +14,38 @@ import (
 	"github.com/folio-org/eureka-cli/tenantsvc"
 )
 
+type UIProcessor interface {
+	UIRepositoryCloner
+	UIContainerManager
+	UIPackageJSONProcessor
+	UIStripesConfigProcessor
+}
+
+type UIRepositoryCloner interface {
+	CloneAndUpdateRepository(updateCloned bool) (string, error)
+}
+
+type UIContainerManager interface {
+	PrepareImage(tenantName string) (string, error)
+	BuildImage(tenantName string, outputDir string) (string, error)
+	DeployContainer(tenantName string, imageName string, externalPort int) error
+}
+
 type UISvc struct {
 	Action       *action.Action
-	GitClient    *gitclient.GitClient
-	DockerClient *dockerclient.DockerClient
-	TenantSvc    *tenantsvc.TenantSvc
+	GitClient    gitclient.GitClientRunner
+	DockerClient dockerclient.DockerClientRunner
+	TenantSvc    tenantsvc.TenantProcessor
 }
 
-func New(
-	action *action.Action,
-	gitClient *gitclient.GitClient,
-	dockerClient *dockerclient.DockerClient,
-	tenantSvc *tenantsvc.TenantSvc,
-) *UISvc {
-
-	return &UISvc{
-		Action:       action,
-		GitClient:    gitClient,
-		DockerClient: dockerClient,
-		TenantSvc:    tenantSvc,
-	}
+func New(action *action.Action,
+	gitClient gitclient.GitClientRunner,
+	dockerClient dockerclient.DockerClientRunner,
+	tenantSvc tenantsvc.TenantProcessor) *UISvc {
+	return &UISvc{Action: action, GitClient: gitClient, DockerClient: dockerClient, TenantSvc: tenantSvc}
 }
 
-func (us *UISvc) CloneAndUpdateUIRepository(updateCloned bool) (outputDir string, err error) {
+func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
 	slog.Info(us.Action.Name, "text", "CLONING & UPDATING PLATFORM COMPLETE UI REPOSITORY")
 	branch := us.GetStripesBranch()
 	repository, err := us.GitClient.PlatformCompleteRepository(branch)
@@ -59,18 +68,18 @@ func (us *UISvc) CloneAndUpdateUIRepository(updateCloned bool) (outputDir string
 	return repository.Dir, nil
 }
 
-func (us *UISvc) PrepareUIImage(tenant string) (finalImageName string, err error) {
-	imageName := fmt.Sprintf("platform-complete-ui-%s", tenant)
+func (us *UISvc) PrepareImage(tenantName string) (string, error) {
+	imageName := fmt.Sprintf("platform-complete-ui-%s", tenantName)
 	if us.Action.Params.BuildImages {
-		outputDir, err := us.CloneAndUpdateUIRepository(us.Action.Params.UpdateCloned)
+		outputDir, err := us.CloneAndUpdateRepository(us.Action.Params.UpdateCloned)
 		if err != nil {
 			return "", err
 		}
 
-		return us.BuildImage(outputDir, tenant)
+		return us.BuildImage(tenantName, outputDir)
 	}
 
-	finalImageName, err = us.DockerClient.ForcePullImage(imageName)
+	finalImageName, err := us.DockerClient.ForcePullImage(imageName)
 	if err != nil {
 		return "", err
 	}
@@ -78,23 +87,22 @@ func (us *UISvc) PrepareUIImage(tenant string) (finalImageName string, err error
 	return finalImageName, nil
 }
 
-func (us *UISvc) BuildImage(outputDir string, tenant string) (finalImageName string, err error) {
-	finalImageName = fmt.Sprintf("platform-complete-ui-%s", tenant)
-
+func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error) {
+	finalImageName := fmt.Sprintf("platform-complete-ui-%s", tenantName)
 	slog.Info(us.Action.Name, "text", "Copying UI configs")
 	configName := "stripes.config.js"
-	err = helpers.CopySingleFile(us.Action, filepath.Join(outputDir, "eureka-tpl", configName), filepath.Join(outputDir, configName))
+	err := helpers.CopySingleFile(us.Action.Name, filepath.Join(outputDir, "eureka-tpl", configName), filepath.Join(outputDir, configName))
 	if err != nil {
 		return "", err
 	}
 
 	slog.Info(us.Action.Name, "text", "PreparingUI configs")
-	err = us.PrepareStripesConfigJS(outputDir, tenant)
+	err = us.PrepareStripesConfigJS(tenantName, outputDir)
 	if err != nil {
 		return "", err
 	}
 
-	err = us.PreparePackageJSON(outputDir, tenant)
+	err = us.PreparePackageJSON(outputDir)
 	if err != nil {
 		return "", err
 	}
@@ -102,7 +110,7 @@ func (us *UISvc) BuildImage(outputDir string, tenant string) (finalImageName str
 	slog.Info(us.Action.Name, "text", "Building UI from a Dockerfile")
 	err = helpers.ExecFromDir(exec.Command("docker", "build", "--tag", finalImageName,
 		"--build-arg", fmt.Sprintf("OKAPI_URL=%s", constant.KongExternalHTTP),
-		"--build-arg", fmt.Sprintf("TENANT_ID=%s", tenant),
+		"--build-arg", fmt.Sprintf("TENANT_ID=%s", tenantName),
 		"--file", "./docker/Dockerfile",
 		"--progress", "plain",
 		"--no-cache",
@@ -115,10 +123,9 @@ func (us *UISvc) BuildImage(outputDir string, tenant string) (finalImageName str
 	return finalImageName, nil
 }
 
-func (us *UISvc) DeployContainer(tenant string, imageName string, externalPort int) error {
-	slog.Info(us.Action.Name, "text", "Deploying UI container for tenant", "tenant", tenant)
-	containerName := fmt.Sprintf("eureka-platform-complete-ui-%s", tenant)
-
+func (us *UISvc) DeployContainer(tenantName string, imageName string, externalPort int) error {
+	slog.Info(us.Action.Name, "text", "Deploying UI container for tenant", "tenant", tenantName)
+	containerName := fmt.Sprintf("eureka-platform-complete-ui-%s", tenantName)
 	err := helpers.Exec(exec.Command("docker", "run", "--name", containerName,
 		"--hostname", containerName,
 		"--publish", fmt.Sprintf("%d:80", externalPort),
@@ -133,7 +140,7 @@ func (us *UISvc) DeployContainer(tenant string, imageName string, externalPort i
 		return err
 	}
 
-	slog.Info(us.Action.Name, "text", "Connecting UI container for tenant to network", "tenant", tenant, "network", constant.NetworkID)
+	slog.Info(us.Action.Name, "text", "Connecting UI container for tenant to network", "tenant", tenantName, "network", constant.NetworkID)
 	err = helpers.Exec(exec.Command("docker", "network", "connect", constant.NetworkID, containerName))
 	if err != nil {
 		return err

@@ -16,25 +16,22 @@ type LoggingRoundTripper struct {
 
 func (l *LoggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	l.logger.Debug("HTTP request", "method", req.Method, "url", req.URL.String())
-
 	start := time.Now()
 	resp, err := l.next.RoundTrip(req)
 	duration := time.Since(start)
-
 	if err != nil {
 		l.logger.Error("HTTP request failed", "error", err, "duration", duration)
 
 		return resp, err
 	}
-
 	l.logger.Debug("HTTP response", "method", req.Method, "status", resp.Status, "duration", duration)
 
 	return resp, nil
 }
 
-func createCustomClient() *http.Client {
+func createCustomClient(timeout time.Duration) *http.Client {
 	return &http.Client{
-		Timeout: constant.HTTPClientTimeout,
+		Timeout: timeout,
 		Transport: &LoggingRoundTripper{
 			logger: slog.Default(),
 			next: &http.Transport{

@@ -4,111 +4,87 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"slices"
 
-	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/httpclient"
-	tenantsvc "github.com/folio-org/eureka-cli/tenantsvc"
-	"github.com/spf13/viper"
 )
 
-type ManagementSvc struct {
-	Action     *action.Action
-	HTTPClient *httpclient.HTTPClient
-	TenantSvc  *tenantsvc.TenantSvc
-}
-
-func New(action *action.Action, httpClient *httpclient.HTTPClient, tenantSvc *tenantsvc.TenantSvc) *ManagementSvc {
-	return &ManagementSvc{
-		Action:     action,
-		HTTPClient: httpClient,
-		TenantSvc:  tenantSvc,
-	}
+type ManagementTenantManager interface {
+	GetTenants(consortiumName string, tenantType constant.TenantType) ([]any, error)
+	CreateTenants() error
+	RemoveTenants(consortiumName string, tenantType constant.TenantType) error
 }
 
 func (ms *ManagementSvc) GetTenants(consortiumName string, tenantType constant.TenantType) ([]any, error) {
-	requestURL := ms.Action.CreateURL(constant.KongPort, "/tenants")
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, "/tenants")
 	if tenantType != constant.All {
 		requestURL += fmt.Sprintf("?query=description==%s-%s", consortiumName, tenantType)
 	}
 
-	tt, err := ms.HTTPClient.GetDecodeReturnMapStringAny(requestURL, map[string]string{})
+	resp, err := ms.HTTPClient.GetDecodeReturnMapStringAny(requestURL, map[string]string{})
 	if err != nil {
 		return nil, err
 	}
-
-	if tt["tenants"] == nil || len(tt["tenants"].([]any)) == 0 {
-		slog.Warn(ms.Action.Name, "text", "Did not find any tenants", "consortiumName", consortiumName, "tenantType", tenantType)
+	if resp["tenants"] == nil || len(resp["tenants"].([]any)) == 0 {
+		slog.Warn(ms.Action.Name, "text", "Did not find any tenants", "consortium", consortiumName, "tenantType", tenantType)
 		return nil, nil
 	}
 
-	return tt["tenants"].([]any), nil
+	return resp["tenants"].([]any), nil
 }
 
 func (ms *ManagementSvc) CreateTenants() error {
-	requestURL := ms.Action.CreateURL(constant.KongPort, "/tenants")
-	tt := viper.GetStringMap(field.Tenants)
-
-	for tenant, properties := range tt {
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, "/tenants")
+	for tenantName, properties := range ms.Action.ConfigTenants {
 		mapEntry := properties.(map[string]any)
-
 		description := fmt.Sprintf("%s-%s", constant.NoneConsortium, constant.Default)
-
 		consortiumName := helpers.GetAnyOrDefault(mapEntry, field.TenantsConsortiumEntry, nil)
 		if consortiumName != nil {
 			tenantType := constant.Member
 			if helpers.GetBool(mapEntry, field.TenantsCentralTenantEntry) {
 				tenantType = constant.Central
 			}
-
 			description = fmt.Sprintf("%s-%s", consortiumName, tenantType)
 		}
 
-		bb, err := json.Marshal(map[string]string{
-			"name":        tenant,
+		payload, err := json.Marshal(map[string]string{
+			"name":        tenantName,
 			"description": description,
 		})
 		if err != nil {
 			return err
 		}
 
-		err = ms.HTTPClient.PostReturnNoContent(requestURL, bb, map[string]string{})
+		err = ms.HTTPClient.PostReturnNoContent(requestURL, payload, map[string]string{})
 		if err != nil {
 			return err
 		}
-
-		slog.Info(ms.Action.Name, "text", "Created tenant with description", "tenant", tenant, "description", description)
+		slog.Info(ms.Action.Name, "text", "Created tenant with description", "tenant", tenantName, "description", description)
 	}
 
 	return nil
 }
 
 func (ms *ManagementSvc) RemoveTenants(consortiumName string, tenantType constant.TenantType) error {
-	tt, err := ms.GetTenants(consortiumName, tenantType)
+	resp, err := ms.GetTenants(consortiumName, tenantType)
 	if err != nil {
 		return err
 	}
 
-	for _, value := range tt {
+	for _, value := range resp {
 		mapEntry := value.(map[string]any)
-
-		tenant := mapEntry["name"].(string)
-
-		if !slices.Contains(helpers.ConvertMapKeysToSlice(viper.GetStringMap(field.Tenants)), tenant) {
+		tenantName := mapEntry["name"].(string)
+		if !helpers.HasTenant(tenantName, ms.Action.ConfigTenants) {
 			continue
 		}
 
-		requestURL := ms.Action.CreateURL(constant.KongPort, fmt.Sprintf("/tenants/%s?purgeKafkaTopics=true", mapEntry["id"].(string)))
-
+		requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/tenants/%s?purgeKafkaTopics=true", mapEntry["id"].(string)))
 		err = ms.HTTPClient.Delete(requestURL, map[string]string{})
 		if err != nil {
 			return err
 		}
-
-		slog.Info(ms.Action.Name, "text", "Removed tenant", "tenant", tenant)
+		slog.Info(ms.Action.Name, "text", "Removed tenant", "tenant", tenantName)
 	}
 
 	return nil

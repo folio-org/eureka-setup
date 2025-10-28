@@ -9,20 +9,22 @@ import (
 	"github.com/hashicorp/vault-client-go"
 )
 
-type VaultClient struct {
-	Action     *action.Action
-	HTTPClient *httpclient.HTTPClient
+type VaultClientRunner interface {
+	Create() (*vault.Client, error)
+	GetSecretKey(client *vault.Client, vaultRootToken string, secretPath string) (map[string]any, error)
 }
 
-func New(action *action.Action, httpClient *httpclient.HTTPClient) *VaultClient {
-	return &VaultClient{
-		Action:     action,
-		HTTPClient: httpClient,
-	}
+type VaultClient struct {
+	Action     *action.Action
+	HTTPClient httpclient.HTTPClientRunner
+}
+
+func New(action *action.Action, httpClient httpclient.HTTPClientRunner) *VaultClient {
+	return &VaultClient{Action: action, HTTPClient: httpClient}
 }
 
 func (vc *VaultClient) Create() (*vault.Client, error) {
-	serverURL := vc.Action.CreateURL(constant.VaultServerPort, "")
+	serverURL := vc.Action.GetRequestURL(constant.VaultServerPort, "")
 
 	client, err := vault.New(vault.WithAddress(serverURL), vault.WithRequestTimeout(constant.VaultTimeout))
 	if err != nil {

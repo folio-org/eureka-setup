@@ -1,14 +1,19 @@
 package runconfig
 
 import (
+	"log/slog"
+
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/awssvc"
 	"github.com/folio-org/eureka-cli/consortiumsvc"
 	"github.com/folio-org/eureka-cli/dockerclient"
 	"github.com/folio-org/eureka-cli/gitclient"
 	"github.com/folio-org/eureka-cli/httpclient"
 	"github.com/folio-org/eureka-cli/kafkasvc"
 	"github.com/folio-org/eureka-cli/keycloaksvc"
+	"github.com/folio-org/eureka-cli/kongsvc"
 	"github.com/folio-org/eureka-cli/managementsvc"
+	"github.com/folio-org/eureka-cli/moduleenv"
 	"github.com/folio-org/eureka-cli/moduleparams"
 	"github.com/folio-org/eureka-cli/modulesvc"
 	"github.com/folio-org/eureka-cli/registrysvc"
@@ -22,31 +27,42 @@ import (
 // RunConfig is a central container of all dependencies (services)
 // manually injected through composition and dependency injection
 type RunConfig struct {
-	Action        *action.Action
-	GitClient     *gitclient.GitClient
-	HTTPClient    *httpclient.HTTPClient
-	DockerClient  *dockerclient.DockerClient
-	VaultClient   *vaultclient.VaultClient
-	KafkaSvc      *kafkasvc.KafkaSvc
-	KeycloakSvc   *keycloaksvc.KeycloakSvc
-	RegistrySvc   *registrysvc.RegistrySvc
-	ModuleParams  *moduleparams.ModuleParams
-	ModuleSvc     *modulesvc.ModuleSvc
-	ManagementSvc *managementsvc.ManagementSvc
-	TenantSvc     *tenantsvc.TenantSvc
-	UserSvc       *usersvc.UserSvc
-	ConsortiumSvc *consortiumsvc.ConsortiumSvc
-	UISvc         *uisvc.UISvc
-	SearchSvc     *searchsvc.SearchSvc
+	// Core Infrastructure
+	Action       *action.Action
+	Logger       *slog.Logger
+	GitClient    gitclient.GitClientRunner
+	HTTPClient   httpclient.HTTPClientRunner
+	DockerClient dockerclient.DockerClientRunner
+	VaultClient  vaultclient.VaultClientRunner
+
+	// Business Services
+	AWSSvc        awssvc.AWSProcessor
+	KafkaSvc      kafkasvc.KafkaProcessor
+	KeycloakSvc   keycloaksvc.KeycloakProcessor
+	KongSvc       kongsvc.KongSvcProcessor
+	RegistrySvc   registrysvc.RegistryProcessor
+	ModuleParams  moduleparams.ModuleParamsProcessor
+	ModuleEnv     moduleenv.ModuleEnvProcessor
+	ModuleSvc     modulesvc.ModuleProcessor
+	ManagementSvc managementsvc.ManagementProcessor
+	TenantSvc     tenantsvc.TenantProcessor
+	UserSvc       usersvc.UserProcessor
+	ConsortiumSvc consortiumsvc.ConsortiumProcessor
+	UISvc         uisvc.UIProcessor
+	SearchSvc     searchsvc.SearchProcessor
 }
 
-func New(action *action.Action) *RunConfig {
+func New(action *action.Action, logger *slog.Logger) *RunConfig {
+	// Create infrastructure
 	gitclient := gitclient.New(action)
-	httpClient := httpclient.New(action)
+	httpClient := httpclient.New(action, logger)
 	dockerClient := dockerclient.New(action)
 	vaultClient := vaultclient.New(action, httpClient)
-	kafkaSvc := kafkasvc.New(action)
-	registrySvc := registrysvc.New(action, httpClient)
+
+	// Create services
+	awsSvc := awssvc.New(action)
+	registrySvc := registrysvc.New(action, httpClient, awsSvc)
+	moduleEnv := moduleenv.New(action)
 	userSvc := usersvc.New(action, httpClient)
 	consortiumSvc := consortiumsvc.New(action, httpClient, userSvc)
 	tenantSvc := tenantsvc.New(action, consortiumSvc)
@@ -54,15 +70,19 @@ func New(action *action.Action) *RunConfig {
 
 	return &RunConfig{
 		Action:        action,
+		Logger:        logger,
 		GitClient:     gitclient,
 		HTTPClient:    httpClient,
 		DockerClient:  dockerClient,
 		VaultClient:   vaultClient,
-		KafkaSvc:      kafkaSvc,
+		AWSSvc:        awsSvc,
+		KongSvc:       kongsvc.New(action, httpClient),
+		KafkaSvc:      kafkasvc.New(action),
 		KeycloakSvc:   keycloaksvc.New(action, httpClient, vaultClient, managementSvc),
 		RegistrySvc:   registrySvc,
 		ModuleParams:  moduleparams.New(action),
-		ModuleSvc:     modulesvc.New(action, httpClient, dockerClient, registrySvc),
+		ModuleEnv:     moduleEnv,
+		ModuleSvc:     modulesvc.New(action, httpClient, dockerClient, registrySvc, moduleEnv),
 		ManagementSvc: managementSvc,
 		TenantSvc:     tenantSvc,
 		UserSvc:       userSvc,

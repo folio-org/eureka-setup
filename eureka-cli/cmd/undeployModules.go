@@ -21,9 +21,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/field"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // undeployModulesCmd represents the undeployModules command
@@ -43,7 +41,7 @@ var undeployModulesCmd = &cobra.Command{
 
 func (r *Run) UndeployModules() error {
 	slog.Info(r.Config.Action.Name, "text", "REMOVING APPLICATIONS")
-	applicationID := fmt.Sprintf("%s-%s", viper.GetString(field.ApplicationName), viper.GetString(field.ApplicationVersion))
+	applicationID := fmt.Sprintf("%s-%s", r.Config.Action.ConfigApplicationName, r.Config.Action.ConfigApplicationVersion)
 	_ = r.Config.ManagementSvc.RemoveApplication(applicationID)
 
 	slog.Info(r.Config.Action.Name, "text", "UNDEPLOYING MODULES")
@@ -53,7 +51,7 @@ func (r *Run) UndeployModules() error {
 	}
 	defer r.Config.DockerClient.Close(client)
 
-	pattern := fmt.Sprintf(constant.ProfileContainerPattern, viper.GetString(field.ProfileName))
+	pattern := fmt.Sprintf(constant.ProfileContainerPattern, r.Config.Action.ConfigProfile)
 	err = r.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
 	if err != nil {
 		return err

@@ -1,31 +1,33 @@
 package constant
 
-import (
-	"time"
-)
+import "time"
 
 const (
-	// Keycloak credentials
-	KeycloakAdminUsername = "admin"
-	KeycloakAdminPassword = "admin"
-
 	// Command wait durations
-	DeployApplicationPartitionWait    = 10 * time.Second
+	DeployApplicationPartitionWait    = 15 * time.Second
 	DeploySystemWait                  = 15 * time.Second
 	DeployAdditionalSystemWait        = 15 * time.Second
-	DeployManagementWait              = 10 * time.Second
-	DeployModulesWait                 = 10 * time.Second
-	ModuleReadinessCheckWait          = 10 * time.Second
+	DeployManagementWait              = 5 * time.Second
+	DeployModulesWait                 = 5 * time.Second
+	ModuleReadinessWait               = 10 * time.Second
+	KongReadinessWait                 = 10 * time.Second
 	AttachCapabilitySetsPollWait      = 30 * time.Second
 	AttachCapabilitySetsRebalanceWait = 30 * time.Second
 	AttachCapabilitySetsTimeoutWait   = 30 * time.Second
+	ConsortiumTenantStatusWait        = 10 * time.Second
+
+	// Readiness retries
+	ModuleReadinessMaxRetries     = 50
+	KongRouteReadinessMaxRetries  = 20
+	ConsumerGroupRebalanceRetries = 20
 
 	// Vault client properties
 	VaultTimeout = 30 * time.Second
 
 	// Default HTTP client properties
+	HTTPClientPingTimeout            = 15 * time.Second
 	HTTPClientTimeout                = 30 * time.Minute
-	HTTPClientDialTimeout            = 5 * time.Minute
+	HTTPClientDialTimeout            = 15 * time.Minute
 	HTTPClientKeepAlive              = 90 * time.Second
 	HTTPClientMaxIdleConns           = 50
 	HTTPClientMaxIdleConnsPerHost    = 10
@@ -33,8 +35,8 @@ const (
 	HTTPClientMaxResponseHeaderBytes = 16 << 20
 	HTTPClientWriteBufferSize        = 64 << 10
 	HTTPClientReadBufferSize         = 64 << 10
-	HTTPClientResponseHeaderTimeout  = 5 * time.Minute
-	HTTPClientExpectContinueTimeout  = 10 * time.Second
+	HTTPClientResponseHeaderTimeout  = 15 * time.Minute
+	HTTPClientExpectContinueTimeout  = 15 * time.Second
 	HTTPClientDisableCompression     = false
 	HTTPClientForceAttemptHTTP2      = false
 
@@ -100,9 +102,6 @@ const (
 	OkapiTenantHeader         = "X-Okapi-Tenant"
 	OkapiTokenHeader          = "X-Okapi-Token"
 
-	// Module health check retries
-	ModuleReadinessMaxRetries = 50
-
 	// Consortium properties
 	NoneConsortium = "nop"
 
@@ -139,7 +138,7 @@ const (
 
 	// Other regexp patterns
 	ColonDelimitedPattern = ".*:"
-	ModuleIDPattern       = "([a-z-_]+)([\\d-_.]+)([a-zA-Z0-9-_.]+)"
+	ModuleIDPattern       = `^([a-z_-]+)([\d_.-]+)([-\w.]+)$`
 	VaultRootTokenPattern = "init.sh: Root VAULT TOKEN is:"
 	NewLinePattern        = `[\r\n\s-]+`
 
@@ -156,8 +155,13 @@ const (
 	CreateBucketsContainer = "createbuckets"
 	FTPServerContainer     = "ftp-server"
 
+	// Keycloak credentials
+	KeycloakAdminUsername = "admin"
+	KeycloakAdminPassword = "admin"
+
 	// System container ports
 	KongPort        = "8000"
+	KongAdminPort   = "8001"
 	VaultServerPort = "8200"
 
 	// System container internal endpoints
@@ -198,7 +202,7 @@ const (
 	Member  TenantType = "member"
 )
 
-func Get() []TenantType {
+func GetTenantTypes() []TenantType {
 	return []TenantType{Central, Member}
 }
 

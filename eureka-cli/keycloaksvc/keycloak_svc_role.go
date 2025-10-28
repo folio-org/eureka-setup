@@ -6,116 +6,95 @@ import (
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/field"
-	"github.com/spf13/viper"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
+	"github.com/folio-org/eureka-cli/helpers"
 )
 
-func (ks *KeycloakSvc) GetRoles(headers map[string]string) ([]any, error) {
-	requestURL := ks.Action.CreateURL(constant.KongPort, "/roles?offset=0&limit=10000")
+type KeycloakRoleManager interface {
+	GetRoles(headers map[string]string) ([]any, error)
+	GetRoleByName(roleName string, headers map[string]string) (map[string]any, error)
+	CreateRoles(configTenant string) error
+	RemoveRoles(tenantName string) error
+}
 
-	rr, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
+func (ks *KeycloakSvc) GetRoles(headers map[string]string) ([]any, error) {
+	requestURL := ks.Action.GetRequestURL(constant.KongPort, "/roles?offset=0&limit=10000")
+	resp, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 	if err != nil {
 		return nil, err
 	}
-
-	if rr["roles"] == nil || len(rr["roles"].([]any)) == 0 {
+	if resp["roles"] == nil || len(resp["roles"].([]any)) == 0 {
 		return nil, err
 	}
 
-	return rr["roles"].([]any), nil
+	return resp["roles"].([]any), nil
 }
 
 func (ks *KeycloakSvc) GetRoleByName(roleName string, headers map[string]string) (map[string]any, error) {
-	requestURL := ks.Action.CreateURL(constant.KongPort, fmt.Sprintf("/roles?query=name==%s", roleName))
-
-	rr1, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
+	requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/roles?query=name==%s", roleName))
+	resp, err := ks.HTTPClient.GetDecodeReturnMapStringAny(requestURL, headers)
 	if err != nil {
 		return nil, err
 	}
-
-	if rr1["roles"] == nil {
+	if resp["roles"] == nil {
 		return nil, nil
 	}
 
-	rr2 := rr1["roles"].([]any)
-	if len(rr2) != 1 {
+	roles := resp["roles"].([]any)
+	if len(roles) != 1 {
 		return nil, fmt.Errorf("number of found roles by %s role name is not 1", roleName)
 	}
 
-	return rr2[0].(map[string]any), nil
+	return roles[0].(map[string]any), nil
 }
 
-func (ks *KeycloakSvc) CreateRoles(existingTenant string, accessToken string) error {
-	requestURL := ks.Action.CreateURL(constant.KongPort, "/roles")
-	caser := cases.Lower(language.English)
-	rr := viper.GetStringMap(field.Roles)
-
-	for role, value := range rr {
+func (ks *KeycloakSvc) CreateRoles(configTenant string) error {
+	requestURL := ks.Action.GetRequestURL(constant.KongPort, "/roles")
+	for role, value := range ks.Action.ConfigRoles {
 		mapEntry := value.(map[string]any)
-
-		tenant := mapEntry["tenant"].(string)
-		if existingTenant != tenant {
+		tenantName := mapEntry["tenant"].(string)
+		if configTenant != tenantName {
 			continue
 		}
 
-		headers := map[string]string{
-			constant.ContentTypeHeader: constant.ApplicationJSON,
-			constant.OkapiTenantHeader: tenant,
-			constant.OkapiTokenHeader:  accessToken,
-		}
-
-		bb, err := json.Marshal(map[string]string{
-			"name":        caser.String(role),
+		headers := helpers.TenantSecureApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+		payload, err := json.Marshal(map[string]string{
+			"name":        ks.Action.Caser.String(role),
 			"description": "Default",
 		})
 		if err != nil {
 			return err
 		}
 
-		err = ks.HTTPClient.PostReturnNoContent(requestURL, bb, headers)
+		err = ks.HTTPClient.PostReturnNoContent(requestURL, payload, headers)
 		if err != nil {
 			return err
 		}
-
-		slog.Info(ks.Action.Name, "text", "Created role in tenant", "role", role, "tenant", tenant)
+		slog.Info(ks.Action.Name, "text", "Created role in tenant", "role", role, "tenant", tenantName)
 	}
 
 	return nil
 }
 
-func (ks *KeycloakSvc) RemoveRoles(tenant string, accessToken string) error {
-	headers := map[string]string{
-		constant.ContentTypeHeader: constant.ApplicationJSON,
-		constant.OkapiTenantHeader: tenant,
-		constant.OkapiTokenHeader:  accessToken,
-	}
-
-	caser := cases.Lower(language.English)
-	roles := viper.GetStringMap(field.Roles)
-
-	rr, err := ks.GetRoles(headers)
+func (ks *KeycloakSvc) RemoveRoles(tenantName string) error {
+	headers := helpers.TenantSecureApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	roles, err := ks.GetRoles(headers)
 	if err != nil {
 		return err
 	}
 
-	for _, value := range rr {
+	for _, value := range roles {
 		mapEntry := value.(map[string]any)
-
-		roleName := caser.String(mapEntry["name"].(string))
-		if roles[roleName] == nil {
+		roleName := ks.Action.Caser.String(mapEntry["name"].(string))
+		if ks.Action.ConfigRoles[roleName] == nil {
 			continue
 		}
 
-		requestURL := ks.Action.CreateURL(constant.KongPort, fmt.Sprintf("/roles/%s", mapEntry["id"].(string)))
-
+		requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/roles/%s", mapEntry["id"].(string)))
 		err = ks.HTTPClient.Delete(requestURL, headers)
 		if err != nil {
 			return err
 		}
-
-		slog.Info(ks.Action.Name, "text", "Removed role in tenant", "role", roleName, "tenant", tenant)
+		slog.Info(ks.Action.Name, "text", "Removed role in tenant", "role", roleName, "tenant", tenantName)
 	}
 
 	return nil

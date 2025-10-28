@@ -1,8 +1,8 @@
 package helpers
 
-func ConvertMapKeysToSlice(inputMap map[string]any) []string {
-	keys := make([]string, 0, len(inputMap))
-	for key := range inputMap {
+func ConvertMapToSlice(m map[string]any) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
 		keys = append(keys, key)
 	}
 

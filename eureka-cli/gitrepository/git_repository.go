@@ -20,15 +20,11 @@ func (gr *GitRepository) String() string {
 }
 
 func New(action *action.Action, label, url, dir string, branch plumbing.ReferenceName) (*GitRepository, error) {
-	homeMiscDir, err := helpers.GetHomeMiscDir(action)
+	homeMiscDir, err := helpers.GetHomeMiscDir(action.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	return &GitRepository{
-		Label:  label,
-		URL:    url,
-		Dir:    filepath.Join(homeMiscDir, dir),
-		Branch: branch,
-	}, nil
+	finalDir := filepath.Join(homeMiscDir, dir)
+	return &GitRepository{Label: label, URL: url, Dir: finalDir, Branch: branch}, nil
 }

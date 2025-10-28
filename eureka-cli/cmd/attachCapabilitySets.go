@@ -22,10 +22,8 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // attachCapabilitySetsCmd represents the attachCapabilitySets command
@@ -46,21 +44,20 @@ var attachCapabilitySetsCmd = &cobra.Command{
 }
 
 func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.TenantType, initialWait time.Duration) error {
-	vaultRootToken, err := r.GetVaultRootToken()
+	err := r.GetVaultRootToken()
 	if err != nil {
 		return err
 	}
 
-	tt, err := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
+	resp, err := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
 	if err != nil {
 		return err
 	}
 
-	for _, value := range tt {
+	for _, value := range resp {
 		mapEntry := value.(map[string]any)
-
-		existingTenant := mapEntry["name"].(string)
-		if !helpers.HasTenant(existingTenant) {
+		configTenant := mapEntry["name"].(string)
+		if !helpers.HasTenant(configTenant, r.Config.Action.ConfigTenants) {
 			continue
 		}
 		if initialWait > 0 {
@@ -68,18 +65,19 @@ func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.Te
 		}
 
 		slog.Info(r.Config.Action.Name, "text", "POLLING FOR CAPABILITY SETS CREATION")
-		err := r.pollCapabilitySetsCreation(existingTenant)
+		err := r.pollCapabilitySetsCreation(configTenant)
 		if err != nil {
 			return err
 		}
 
-		slog.Info(r.Config.Action.Name, "text", "ATTACHING CAPABILITY SETS TO ROLES FOR TENANT", "tenant", existingTenant)
-		keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		slog.Info(r.Config.Action.Name, "text", "ATTACHING CAPABILITY SETS TO ROLES FOR TENANT", "tenant", configTenant)
+		keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
 		if err != nil {
 			return err
 		}
+		r.Config.Action.KeycloakAccessToken = keycloakAccessToken
 
-		err = r.Config.KeycloakSvc.AttachCapabilitySetsToRoles(existingTenant, keycloakAccessToken)
+		err = r.Config.KeycloakSvc.AttachCapabilitySetsToRoles(configTenant)
 		if err != nil {
 			return err
 		}
@@ -88,11 +86,9 @@ func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.Te
 	return nil
 }
 
-func (r *Run) pollCapabilitySetsCreation(tenant string) error {
-	consumerGroup := fmt.Sprintf("%s-%s", viper.GetString(field.EnvFolio), constant.ConsumerGroupSuffix)
-	maxRetries := 10
+func (r *Run) pollCapabilitySetsCreation(tenantName string) error {
+	consumerGroup := fmt.Sprintf("%s-%s", r.Config.Action.ConfigEnvFolio, constant.ConsumerGroupSuffix)
 	retryCount := 0
-
 	slog.Info(r.Config.Action.Name, "text", "Checking Kafka readiness before polling consumer groups")
 	if err := r.Config.KafkaSvc.CheckReadiness(); err != nil {
 		slog.Info(r.Config.Action.Name, "text", "Kafka not fully ready, proceeding with polling", "error", err)
@@ -100,14 +96,14 @@ func (r *Run) pollCapabilitySetsCreation(tenant string) error {
 
 	var lag int
 	for {
-		lag, err := r.Config.KafkaSvc.GetConsumerGroupLag(tenant, consumerGroup, lag)
+		lag, err := r.Config.KafkaSvc.GetConsumerGroupLag(tenantName, consumerGroup, lag)
 		if err != nil {
 			retryCount++
-			if retryCount >= maxRetries {
-				return fmt.Errorf("max retries (%d) exceeded while polling consumer group %s: %w", maxRetries, consumerGroup, err)
+			if retryCount >= constant.ConsumerGroupRebalanceRetries {
+				return fmt.Errorf("max retries (%d) exceeded while polling consumer group %s: %w", constant.ConsumerGroupRebalanceRetries, consumerGroup, err)
 			}
 
-			slog.Info(r.Config.Action.Name, "text", "Retry: Error polling consumer group, retrying", "retryCount", retryCount, "maxRetries", maxRetries, "waitSeconds", constant.AttachCapabilitySetsRebalanceWait.Seconds())
+			slog.Info(r.Config.Action.Name, "text", "Retry: Error polling consumer group, retrying", "retryCount", retryCount, "maxRetries", constant.ConsumerGroupRebalanceRetries, "waitSeconds", constant.AttachCapabilitySetsRebalanceWait.Seconds())
 			time.Sleep(constant.AttachCapabilitySetsRebalanceWait)
 			continue
 		}
@@ -116,11 +112,9 @@ func (r *Run) pollCapabilitySetsCreation(tenant string) error {
 		if lag == 0 {
 			break
 		}
-
 		slog.Info(r.Config.Action.Name, "text", "Waiting for consumer group to process", "waitSeconds", constant.AttachCapabilitySetsPollWait.Seconds(), "consumerGroup", consumerGroup, "lag", lag)
 		time.Sleep(constant.AttachCapabilitySetsPollWait)
 	}
-
 	slog.Info(r.Config.Action.Name, "text", "Consumer group has no new message to process", "consumerGroup", consumerGroup)
 
 	return nil

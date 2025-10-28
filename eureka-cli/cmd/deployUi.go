@@ -48,27 +48,27 @@ func (r *Run) DeployUi() error {
 	}
 
 	for _, value := range tt {
-		existingTenant := value.(map[string]any)["name"].(string)
-		if !helpers.HasTenant(existingTenant) || !helpers.IsUIEnabled(existingTenant) {
+		configTenant := value.(map[string]any)["name"].(string)
+		if !helpers.HasTenant(configTenant, r.Config.Action.ConfigTenants) || !helpers.IsUIEnabled(configTenant, r.Config.Action.ConfigTenants) {
 			continue
 		}
 
-		err := r.Config.TenantSvc.SetDefaultConfigTenantParams(existingTenant)
+		err := r.Config.TenantSvc.SetConfigTenantParams(configTenant)
 		if err != nil {
 			return err
 		}
 
-		finalImageName, err := r.Config.UISvc.PrepareUIImage(existingTenant)
+		finalImageName, err := r.Config.UISvc.PrepareImage(configTenant)
 		if err != nil {
 			return err
 		}
 
-		externalPort, err := helpers.ExtractPortFromURL(ap.PlatformCompleteURL)
+		externalPort, err := helpers.ExtractPortFromURL(actionParams.PlatformCompleteURL)
 		if err != nil {
 			return err
 		}
 
-		err = r.Config.UISvc.DeployContainer(existingTenant, finalImageName, externalPort)
+		err = r.Config.UISvc.DeployContainer(configTenant, finalImageName, externalPort)
 		if err != nil {
 			return err
 		}
@@ -79,8 +79,8 @@ func (r *Run) DeployUi() error {
 
 func init() {
 	rootCmd.AddCommand(deployUiCmd)
-	deployUiCmd.PersistentFlags().BoolVarP(&ap.BuildImages, "buildImages", "b", false, "Build Docker images")
-	deployUiCmd.PersistentFlags().BoolVarP(&ap.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
-	deployUiCmd.PersistentFlags().BoolVarP(&ap.SingleTenant, "singleTenant", "T", true, "Use for Single Tenant workflow")
-	deployUiCmd.PersistentFlags().BoolVarP(&ap.EnableECSRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
+	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.BuildImages, "buildImages", "b", false, "Build Docker images")
+	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.SingleTenant, "singleTenant", "T", true, "Use for Single Tenant workflow")
+	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.EnableECSRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
 }

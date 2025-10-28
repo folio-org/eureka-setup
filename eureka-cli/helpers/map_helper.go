@@ -1,32 +1,65 @@
 package helpers
 
-func GetBool(mapEntry map[string]any, key string) bool {
-	value := mapEntry[key]
-	return value != nil && value.(bool)
+func GetBool(entry map[string]any, key string) bool {
+	if entry[key] == nil {
+		return false
+	}
+	newValue, ok := entry[key].(bool)
+	if !ok {
+		return false
+	}
+
+	return newValue
 }
 
-func GetAnyOrDefault(mapEntry map[string]any, key string, defaultValue any) any {
-	if mapEntry[key] == nil {
+func GetAnyOrDefault(entry map[string]any, key string, defaultValue any) any {
+	if entry[key] == nil {
 		return defaultValue
 	}
 
-	return mapEntry[key]
+	return entry[key]
 }
 
-func GetIntOrDefault(mapEntry map[string]any, key string, defaultValue int64) int64 {
-	value, ok := mapEntry[key].(int)
-	if !ok || mapEntry[key] == nil {
-		return int64(defaultValue)
+func GetIntOrDefault(entry map[string]any, key string, defaultValue int64) int64 {
+	if entry[key] == nil {
+		return defaultValue
 	}
-
-	return int64(value)
-}
-
-func GetBoolOrDefault(mapEntry map[string]any, key string, defaultValue bool) bool {
-	value, ok := mapEntry[key].(bool)
-	if !ok || mapEntry[key] == nil {
+	newValue, ok := entry[key].(int)
+	if !ok {
 		return defaultValue
 	}
 
-	return value
+	return int64(newValue)
+}
+
+func GetBoolOrDefault(entry map[string]any, key string, defaultValue bool) bool {
+	if entry[key] == nil {
+		return defaultValue
+	}
+	newValue, ok := entry[key].(bool)
+	if !ok {
+		return defaultValue
+	}
+
+	return newValue
+}
+
+func SetBool(entry map[string]any, key string, value *bool) {
+	if entry[key] != nil {
+		newValue, ok := entry[key].(bool)
+		if !ok {
+			return
+		}
+		*value = newValue
+	}
+}
+
+func SetString(entry map[string]any, key string, value *string) {
+	if entry[key] != nil {
+		newValue, ok := entry[key].(string)
+		if !ok {
+			return
+		}
+		*value = newValue
+	}
 }

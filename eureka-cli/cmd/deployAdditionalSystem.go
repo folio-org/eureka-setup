@@ -44,13 +44,13 @@ var deployAdditionalSystemCmd = &cobra.Command{
 func (r *Run) DeployAdditionalSystem() error {
 	slog.Info(r.Config.Action.Name, "text", "DEPLOYING ADDITIONAL SYSTEM CONTAINERS")
 
-	finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(r.Config.Action, []string{})
+	finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(r.Config.Action.Name, []string{}, r.Config.Action.ConfigBackendModules)
 	if len(finalRequiredContainers) == 0 {
 		slog.Info(r.Config.Action.Name, "text", "No additional system containers deployed")
 		return nil
 	}
 
-	dir, err := helpers.GetHomeMiscDir(r.Config.Action)
+	dir, err := helpers.GetHomeMiscDir(r.Config.Action.Name)
 	if err != nil {
 		return err
 	}

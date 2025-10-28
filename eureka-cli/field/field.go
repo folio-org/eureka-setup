@@ -12,7 +12,7 @@ const (
 	ApplicationPortEnd                   = "application.port-end"
 	ApplicationStripesBranch             = "application.stripes-branch"
 	ApplicationGatewayHostname           = "application.gateway-hostname"
-	ApplicationGatewayDependencies       = "application.dependencies"
+	ApplicationDependencies              = "application.dependencies"
 	Registry                             = "registry"
 	RegistryURL                          = "registry.url"
 	Install                              = "install"

@@ -43,23 +43,23 @@ var buildAndPushUiCmd = &cobra.Command{
 func (r *Run) BuildAndPushUi() error {
 	start := time.Now()
 
-	err := r.Config.TenantSvc.SetDefaultConfigTenantParams(ap.Tenant)
+	err := r.Config.TenantSvc.SetConfigTenantParams(actionParams.Tenant)
 	if err != nil {
 		return err
 	}
 
 	slog.Info(r.Config.Action.Name, "text", "BUILDING AND PUSHING PLATFORM COMPLETE UI IMAGE TO DOCKER HUB")
-	outputDir, err := r.Config.UISvc.CloneAndUpdateUIRepository(ap.UpdateCloned)
+	outputDir, err := r.Config.UISvc.CloneAndUpdateRepository(actionParams.UpdateCloned)
 	if err != nil {
 		return err
 	}
 
-	imageName, err := r.Config.UISvc.BuildImage(outputDir, ap.Tenant)
+	imageName, err := r.Config.UISvc.BuildImage(actionParams.Tenant, outputDir)
 	if err != nil {
 		return err
 	}
 
-	err = r.Config.DockerClient.PushImage(ap.Namespace, imageName)
+	err = r.Config.DockerClient.PushImage(actionParams.Namespace, imageName)
 	if err != nil {
 		return err
 	}
@@ -70,12 +70,12 @@ func (r *Run) BuildAndPushUi() error {
 
 func init() {
 	rootCmd.AddCommand(buildAndPushUiCmd)
-	buildAndPushUiCmd.PersistentFlags().StringVarP(&ap.Namespace, "namespace", "n", "", "DockerHub namespace (required)")
-	buildAndPushUiCmd.PersistentFlags().StringVarP(&ap.Tenant, "tenant", "t", "", "Tenant (required)")
-	buildAndPushUiCmd.PersistentFlags().StringVarP(&ap.PlatformCompleteURL, "PlatformCompleteURL", "P", "http://localhost:3000", "Platform Complete UI url")
-	buildAndPushUiCmd.PersistentFlags().BoolVarP(&ap.SingleTenant, "singleTenant", "T", true, "Use for Single Tenant workflow")
-	buildAndPushUiCmd.PersistentFlags().BoolVarP(&ap.EnableECSRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
-	buildAndPushUiCmd.PersistentFlags().BoolVarP(&ap.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.Namespace, "namespace", "n", "", "DockerHub namespace (required)")
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.Tenant, "tenant", "t", "", "Tenant (required)")
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.PlatformCompleteURL, "PlatformCompleteURL", "P", "http://localhost:3000", "Platform Complete UI url")
+	buildAndPushUiCmd.PersistentFlags().BoolVarP(&actionParams.SingleTenant, "singleTenant", "T", true, "Use for Single Tenant workflow")
+	buildAndPushUiCmd.PersistentFlags().BoolVarP(&actionParams.EnableECSRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
+	buildAndPushUiCmd.PersistentFlags().BoolVarP(&actionParams.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
 	if err := buildAndPushUiCmd.MarkPersistentFlagRequired("namespace"); err != nil {
 		slog.Error("failed to mark namespace flag as required", "error", err)
 		os.Exit(1)

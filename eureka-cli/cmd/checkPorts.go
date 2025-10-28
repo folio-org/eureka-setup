@@ -26,10 +26,8 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // checkPortsCmd represents the checkPorts command
@@ -67,7 +65,7 @@ func (r *Run) CheckPorts() error {
 func (r *Run) deployNetcatContainer() error {
 	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach", "netcat")
 
-	dir, err := helpers.GetHomeMiscDir(r.Config.Action)
+	dir, err := helpers.GetHomeMiscDir(r.Config.Action.Name)
 	if err != nil {
 		return err
 	}
@@ -82,7 +80,10 @@ func (r *Run) getDeployedModules() ([]container.Summary, error) {
 	}
 	defer r.Config.DockerClient.Close(client)
 
-	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(constant.ProfileContainerPattern, viper.GetString(field.ProfileName))})
+	filters := filters.NewArgs(filters.KeyValuePair{
+		Key:   "name",
+		Value: fmt.Sprintf(constant.ProfileContainerPattern, r.Config.Action.ConfigProfile),
+	})
 	containers, err := r.Config.ModuleSvc.GetDeployedModules(client, filters)
 	if err != nil {
 		return nil, err

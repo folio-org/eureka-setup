@@ -7,10 +7,8 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/go-connections/nat"
-	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
-	"github.com/spf13/viper"
 )
 
 func NewModuleNetworkConfig() *network.NetworkingConfig {
@@ -64,9 +62,9 @@ func CreateResources(isModule bool, resources map[string]any) *container.Resourc
 
 	return &container.Resources{
 		CPUCount:          GetIntOrDefault(resources, field.ModuleResourceCpuCountEntry, constant.ModuleCPU),
-		MemoryReservation: ConvertMiBToBytes(GetIntOrDefault(resources, field.ModuleResourceMemoryReservationEntry, constant.ModuleMemoryReservation)),
-		Memory:            ConvertMiBToBytes(GetIntOrDefault(resources, field.ModuleResourceMemoryEntry, constant.ModuleMemory)),
-		MemorySwap:        ConvertMiBToBytes(GetIntOrDefault(resources, field.ModuleResourceMemorySwapEntry, constant.ModuleSwap)),
+		MemoryReservation: ConvertMemory(MibToBytes, GetIntOrDefault(resources, field.ModuleResourceMemoryReservationEntry, constant.ModuleMemoryReservation)),
+		Memory:            ConvertMemory(MibToBytes, GetIntOrDefault(resources, field.ModuleResourceMemoryEntry, constant.ModuleMemory)),
+		MemorySwap:        ConvertMemory(MibToBytes, GetIntOrDefault(resources, field.ModuleResourceMemorySwapEntry, constant.ModuleSwap)),
 		OomKillDisable:    BoolP(GetBoolOrDefault(resources, field.ModuleResourceOomKillDisableEntry, false)),
 	}
 }
@@ -75,40 +73,39 @@ func createDefaultResources(isModule bool) *container.Resources {
 	if isModule {
 		return &container.Resources{
 			CPUCount:          constant.ModuleCPU,
-			MemoryReservation: ConvertMiBToBytes(constant.ModuleMemoryReservation),
-			Memory:            ConvertMiBToBytes(constant.ModuleMemory),
-			MemorySwap:        ConvertMiBToBytes(constant.ModuleSwap),
+			MemoryReservation: ConvertMemory(MibToBytes, constant.ModuleMemoryReservation),
+			Memory:            ConvertMemory(MibToBytes, constant.ModuleMemory),
+			MemorySwap:        ConvertMemory(MibToBytes, constant.ModuleSwap),
 			OomKillDisable:    BoolP(false),
 		}
 	}
 
 	return &container.Resources{
 		CPUCount:          constant.SidecarCPU,
-		MemoryReservation: ConvertMiBToBytes(constant.SidecarMemoryReservation),
-		Memory:            ConvertMiBToBytes(constant.SidecarMemory),
-		MemorySwap:        ConvertMiBToBytes(constant.SidecarSwap),
+		MemoryReservation: ConvertMemory(MibToBytes, constant.SidecarMemoryReservation),
+		Memory:            ConvertMemory(MibToBytes, constant.SidecarMemory),
+		MemorySwap:        ConvertMemory(MibToBytes, constant.SidecarSwap),
 		OomKillDisable:    BoolP(false),
 	}
 }
 
-func AppendAdditionalRequiredContainers(action *action.Action, initialRequiredContainers []string) []string {
-	if IsModuleEnabled(constant.ModSearchModule) {
+func AppendAdditionalRequiredContainers(actionName string, initialRequiredContainers []string, configBackendModules map[string]any) []string {
+	if IsModuleEnabled(constant.ModSearchModule, configBackendModules) {
 		initialRequiredContainers = append(initialRequiredContainers, constant.ElasticsearchContainer)
 	}
-	if IsModuleEnabled(constant.ModDataExportWorkerModule) {
+	if IsModuleEnabled(constant.ModDataExportWorkerModule, configBackendModules) {
 		extraContainers := []string{constant.MinIOContainer, constant.CreateBucketsContainer, constant.FTPServerContainer}
 		initialRequiredContainers = append(initialRequiredContainers, extraContainers...)
 	}
 	if len(initialRequiredContainers) > 0 {
-		slog.Info(action.Name, "text", "Retrieved required containers", "containers", initialRequiredContainers)
+		slog.Info(actionName, "text", "Retrieved required containers", "containers", initialRequiredContainers)
 	}
 
 	return initialRequiredContainers
 }
 
-// IsModuleEnabled returns true if the module is present and enabled, or if its value is nil or missing the deploy entry
-func IsModuleEnabled(module string) bool {
-	value, exists := viper.GetStringMap(field.BackendModules)[module]
+func IsModuleEnabled(module string, configBackendModules map[string]any) bool {
+	value, exists := configBackendModules[module]
 	if !exists || value == nil {
 		return false
 	}
@@ -120,16 +117,15 @@ func IsModuleEnabled(module string) bool {
 
 	deploy, ok := entry[field.ModuleDeployModuleEntry]
 	if !ok {
-		return true // If the deploy entry is missing, treat as enabled (legacy behavior)
+		return true
 	}
 	enabled, ok := deploy.(bool)
 
 	return ok && enabled
 }
 
-// IsUIEnabled returns true if the tenant has UI deployment enabled
-func IsUIEnabled(tenant string) bool {
-	value, exists := viper.GetStringMap(field.Tenants)[tenant]
+func IsUIEnabled(tenantName string, configTenants map[string]any) bool {
+	value, exists := configTenants[tenantName]
 	if !exists || value == nil {
 		return false
 	}

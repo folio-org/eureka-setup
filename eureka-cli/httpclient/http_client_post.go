@@ -9,6 +9,14 @@ import (
 	"strings"
 )
 
+type HTTPClientPostManager interface {
+	PostReturnNoContent(url string, b []byte, headers map[string]string) error
+	PostRetryReturnNoContent(url string, b []byte, headers map[string]string) error
+	PostReturnMapStringAny(url string, b []byte, headers map[string]string) (map[string]any, error)
+	PostReturnStruct(url string, b []byte, headers map[string]string, target any) error
+	PostFormDataReturnMapStringAny(url string, fd url.Values, headers map[string]string) (map[string]any, error)
+}
+
 func (hc *HTTPClient) PostReturnNoContent(url string, b []byte, headers map[string]string) error {
 	resp, err := hc.doRequest(http.MethodPost, url, b, headers, false)
 	if err != nil {
@@ -45,21 +53,30 @@ func (hc *HTTPClient) PostReturnMapStringAny(url string, b []byte, headers map[s
 	return respMap, nil
 }
 
+func (hc *HTTPClient) PostReturnStruct(url string, b []byte, headers map[string]string, target any) error {
+	resp, err := hc.doRequest(http.MethodPost, url, b, headers, false)
+	if err != nil {
+		return err
+	}
+	defer CloseResponse(resp)
+
+	return json.NewDecoder(resp.Body).Decode(target)
+}
+
 func (hc *HTTPClient) PostFormDataReturnMapStringAny(url string, fd url.Values, headers map[string]string) (map[string]any, error) {
 	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(fd.Encode()))
 	if err != nil {
 		return nil, err
 	}
 
-	SetRequestHeaders(req, headers)
-
+	setRequestHeaders(req, headers)
 	resp, err := hc.customClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer CloseResponse(resp)
 
-	if err := hc.ValidateResponse(resp); err != nil {
+	if err := hc.validateResponse(url, http.MethodPost, resp); err != nil {
 		return nil, err
 	}
 

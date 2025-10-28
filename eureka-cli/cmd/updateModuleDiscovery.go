@@ -35,20 +35,20 @@ var updateModuleDiscoveryCmd = &cobra.Command{
 			return err
 		}
 
-		return r.UpdateModuleDiscovery(ap.SidecarURL)
+		return r.UpdateModuleDiscovery(actionParams.SidecarURL)
 	},
 }
 
 func (r *Run) UpdateModuleDiscovery(sidecarUrl string) error {
 	slog.Info(r.Config.Action.Name, "text", "UPDATING MODULE DISCOVERY URL")
-	return r.Config.ManagementSvc.UpdateModuleDiscovery(ap.ID, sidecarUrl, ap.Restore, constant.ServerPort)
+	return r.Config.ManagementSvc.UpdateModuleDiscovery(actionParams.ID, sidecarUrl, actionParams.Restore, constant.ServerPort)
 }
 
 func init() {
 	rootCmd.AddCommand(updateModuleDiscoveryCmd)
-	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&ap.ID, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
-	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&ap.SidecarURL, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
-	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&ap.Restore, "restore", "r", false, "Restore sidecar URL")
+	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&actionParams.ID, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
+	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&actionParams.SidecarURL, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
+	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&actionParams.Restore, "restore", "r", false, "Restore sidecar URL")
 	if err := updateModuleDiscoveryCmd.MarkPersistentFlagRequired("id"); err != nil {
 		slog.Error("failed to mark id flag as required", "error", err)
 		os.Exit(1)

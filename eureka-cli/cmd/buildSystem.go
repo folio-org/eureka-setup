@@ -73,7 +73,7 @@ func (r *Run) CloneUpdateRepositories() error {
 		_ = r.Config.GitClient.Clone(repository)
 	}
 
-	if ap.UpdateCloned {
+	if actionParams.UpdateCloned {
 		slog.Info(r.Config.Action.Name, "text", "Updating repositories", "repositories", repositories)
 		for _, repository := range repositories {
 			err = r.Config.GitClient.ResetHardPullFromOrigin(repository)
@@ -89,7 +89,7 @@ func (r *Run) CloneUpdateRepositories() error {
 func (r *Run) BuildSystem() error {
 	slog.Info(r.Config.Action.Name, "text", "BUILDING SYSTEM IMAGES")
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache"}
-	dir, err := helpers.GetHomeMiscDir(r.Config.Action)
+	dir, err := helpers.GetHomeMiscDir(r.Config.Action.Name)
 	if err != nil {
 		return err
 	}
@@ -99,5 +99,5 @@ func (r *Run) BuildSystem() error {
 
 func init() {
 	rootCmd.AddCommand(buildSystemCmd)
-	buildSystemCmd.PersistentFlags().BoolVarP(&ap.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	buildSystemCmd.PersistentFlags().BoolVarP(&actionParams.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
 }

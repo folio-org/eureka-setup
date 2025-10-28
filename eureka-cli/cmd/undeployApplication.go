@@ -20,17 +20,16 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // undeployApplicationCmd represents the undeployApplication command
 var undeployApplicationCmd = &cobra.Command{
-	Use:   "undeployApplication",
-	Short: "Undeploy application",
-	Long:  `Undeploy platform application.`,
+	Use:     "undeployApplication",
+	Short:   "Undeploy application",
+	Long:    `Undeploy platform application.`,
+	Aliases: []string{"undeploy"},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		start := time.Now()
 
@@ -40,7 +39,7 @@ var undeployApplicationCmd = &cobra.Command{
 			return err
 		}
 
-		if len(viper.GetStringMap(field.ApplicationGatewayDependencies)) > 0 {
+		if len(r.Config.Action.ConfigApplicationDependencies) > 0 {
 			err = r.UndeployChildApplication()
 			if err != nil {
 				return err
@@ -98,5 +97,5 @@ func (r *Run) UndeployChildApplication() error {
 
 func init() {
 	rootCmd.AddCommand(undeployApplicationCmd)
-	undeployApplicationCmd.PersistentFlags().BoolVarP(&ap.PurgeSchemas, "purgeSchemas", "S", false, "Purge schemas in PostgreSQL on uninstallation")
+	undeployApplicationCmd.PersistentFlags().BoolVarP(&actionParams.PurgeSchemas, "purgeSchemas", "S", false, "Purge schemas in PostgreSQL on uninstallation")
 }

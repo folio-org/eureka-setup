@@ -23,10 +23,8 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // listModulesCmd represents the listModules command
@@ -45,7 +43,7 @@ var listModulesCmd = &cobra.Command{
 }
 
 func (r *Run) ListModules() error {
-	filter := fmt.Sprintf("name=%s", r.createFilter(ap.ModuleName, ap.ModuleType, ap.All))
+	filter := fmt.Sprintf("name=%s", r.createFilter(actionParams.ModuleName, actionParams.ModuleType, actionParams.All))
 	return helpers.Exec(exec.Command("docker", "container", "ls", "--all", "--filter", filter))
 }
 
@@ -54,7 +52,7 @@ func (r *Run) createFilter(moduleName string, moduleType string, all bool) strin
 		return constant.AllContainerPattern
 	}
 
-	currentProfile := viper.GetString(field.ProfileName)
+	currentProfile := r.Config.Action.ConfigProfile
 	if moduleName != "" {
 		return fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, currentProfile, moduleName)
 	}
@@ -74,9 +72,9 @@ func (r *Run) createFilter(moduleName string, moduleType string, all bool) strin
 func init() {
 	availableModuleTypes := []string{constant.ModuleType, constant.SidecarType, constant.ManagementType}
 	rootCmd.AddCommand(listModulesCmd)
-	listModulesCmd.Flags().BoolVarP(&ap.All, "all", "a", false, "All modules for all profiles")
-	listModulesCmd.Flags().StringVarP(&ap.ModuleName, "moduleName", "m", "", "By module name, e.g. mod-orders")
-	listModulesCmd.Flags().StringVarP(&ap.ModuleType, "moduleType", "M", "", fmt.Sprintf("By module type, options: %s", availableModuleTypes))
+	listModulesCmd.Flags().BoolVarP(&actionParams.All, "all", "a", false, "All modules for all profiles")
+	listModulesCmd.Flags().StringVarP(&actionParams.ModuleName, "moduleName", "m", "", "By module name, e.g. mod-orders")
+	listModulesCmd.Flags().StringVarP(&actionParams.ModuleType, "moduleType", "M", "", fmt.Sprintf("By module type, options: %s", availableModuleTypes))
 	if err := listModulesCmd.RegisterFlagCompletionFunc("moduleType", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return availableModuleTypes, cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {

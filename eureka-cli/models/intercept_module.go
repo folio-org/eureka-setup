@@ -22,31 +22,27 @@ type InterceptModule struct {
 	BackendModule     *BackendModule
 }
 
-func NewInterceptModule(
-	action *action.Action,
-	id string,
-	defaultGateway bool,
-	moduleUrl,
-	sidecarUrl string,
-	portStart,
-	portEnd int,
-) *InterceptModule {
-	var moduleURLTemp, sidecarURLTemp = moduleUrl, sidecarUrl
+func NewInterceptModule(a *action.Action, id string, defaultGateway bool, moduleURL, sidecarURL string) (*InterceptModule, error) {
+	var moduleURLTemp, sidecarURLTemp = moduleURL, sidecarURL
 	if defaultGateway {
-		baseSchemaAndUrl := helpers.GetProtoAndBaseURL(action.Name)
-		moduleURLTemp = helpers.ConstructURL(moduleUrl, baseSchemaAndUrl)
-		sidecarURLTemp = helpers.ConstructURL(sidecarUrl, baseSchemaAndUrl)
+		gatewayURL, err := action.GetGatewayURL(a.Name)
+		if err != nil {
+			return nil, err
+		}
+		moduleURLTemp = helpers.ConstructURL(moduleURL, gatewayURL)
+		sidecarURLTemp = helpers.ConstructURL(sidecarURL, gatewayURL)
 	}
 
 	id = strings.ReplaceAll(id, ":", "-")
+	moduleName := helpers.GetModuleNameFromID(id)
 	return &InterceptModule{
 		ID:         id,
-		ModuleName: helpers.GetModuleNameFromID(id),
+		ModuleName: moduleName,
 		ModuleUrl:  &moduleURLTemp,
 		SidecarUrl: &sidecarURLTemp,
-		PortStart:  portStart,
-		PortEnd:    portEnd,
-	}
+		PortStart:  a.ConfigApplicationPortStart,
+		PortEnd:    a.ConfigApplicationPortEnd,
+	}, nil
 }
 
 func (im *InterceptModule) ClearURLs() {

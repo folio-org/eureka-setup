@@ -10,11 +10,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
 )
 
-func ReadJsonFromFile(action *action.Action, filePath string, data any) error {
+func ReadJsonFromFile(actionName string, filePath string, data any) error {
 	jsonFile, err := os.OpenFile(filePath, os.O_RDONLY, 0644)
 	if err != nil {
 		return err
@@ -29,7 +28,7 @@ func ReadJsonFromFile(action *action.Action, filePath string, data any) error {
 	return nil
 }
 
-func WriteJsonToFile(action *action.Action, filePath string, packageJson any) error {
+func WriteJsonToFile(filePath string, packageJson any) error {
 	jsonFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
@@ -54,21 +53,8 @@ func WriteJsonToFile(action *action.Action, filePath string, packageJson any) er
 	return nil
 }
 
-func CheckIsRegularFile(action *action.Action, fileName string) error {
-	fileStat, err := os.Stat(fileName)
-	if err != nil {
-		return err
-	}
-
-	if !fileStat.Mode().IsRegular() {
-		return fmt.Errorf("%s is not a regular file", fileName)
-	}
-
-	return nil
-}
-
-func CopySingleFile(action *action.Action, srcPath string, dstPath string) error {
-	err := CheckIsRegularFile(action, srcPath)
+func CopySingleFile(actionName, srcPath, dstPath string) error {
+	err := CheckIsRegularFile(actionName, srcPath)
 	if err != nil {
 		return err
 	}
@@ -90,12 +76,25 @@ func CopySingleFile(action *action.Action, srcPath string, dstPath string) error
 		return err
 	}
 
-	slog.Info(action.Name, "text", "Copied a single file", "srcPath", filepath.FromSlash(srcPath), "dstPath", filepath.FromSlash(dstPath))
+	slog.Info(actionName, "text", "Copied a single file", "srcPath", filepath.FromSlash(srcPath), "dstPath", filepath.FromSlash(dstPath))
 
 	return nil
 }
 
-func GetCurrentWorkDirPath(action *action.Action) (string, error) {
+func CheckIsRegularFile(actionName, fileName string) error {
+	fileStat, err := os.Stat(fileName)
+	if err != nil {
+		return err
+	}
+
+	if !fileStat.Mode().IsRegular() {
+		return fmt.Errorf("%s is not a regular file", fileName)
+	}
+
+	return nil
+}
+
+func GetCurrentWorkDirPath(actionName string) (string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return "", err
@@ -104,8 +103,8 @@ func GetCurrentWorkDirPath(action *action.Action) (string, error) {
 	return cwd, nil
 }
 
-func GetHomeMiscDir(action *action.Action) (string, error) {
-	homeDir, err := GetHomeDirPath(action)
+func GetHomeMiscDir(actionName string) (string, error) {
+	homeDir, err := GetHomeDirPath()
 	if err != nil {
 		return "", err
 	}
@@ -113,7 +112,7 @@ func GetHomeMiscDir(action *action.Action) (string, error) {
 	return filepath.Join(homeDir, constant.DockerComposeWorkDir), nil
 }
 
-func GetHomeDirPath(action *action.Action) (string, error) {
+func GetHomeDirPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err

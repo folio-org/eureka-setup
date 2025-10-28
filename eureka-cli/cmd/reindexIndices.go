@@ -24,7 +24,6 @@ import (
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // reindexIndicesCmd represents the reindexIndices command
@@ -45,41 +44,41 @@ var reindexIndicesCmd = &cobra.Command{
 }
 
 func (r *Run) ReindexIndices(consortiumName string, tenantType constant.TenantType) error {
-	vaultRootToken, err := r.GetVaultRootToken()
+	err := r.GetVaultRootToken()
 	if err != nil {
 		return err
 	}
 
-	tt, err := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
+	resp, err := r.Config.ManagementSvc.GetTenants(consortiumName, tenantType)
 	if err != nil {
 		return err
 	}
 
-	for _, value := range tt {
+	for _, value := range resp {
 		mapEntry := value.(map[string]any)
-
-		existingTenant := mapEntry["name"].(string)
-		if !helpers.HasTenant(existingTenant) {
+		configTenant := mapEntry["name"].(string)
+		if !helpers.HasTenant(configTenant, r.Config.Action.ConfigTenants) {
 			continue
 		}
 
 		tenantType := mapEntry["description"].(string)
-		if viper.IsSet(field.Consortiums) && tenantType != fmt.Sprintf("%s-%s", consortiumName, constant.Central) {
+		if action.IsSet(field.Consortiums) && tenantType != fmt.Sprintf("%s-%s", consortiumName, constant.Central) {
 			continue
 		}
 
-		slog.Info(r.Config.Action.Name, "text", "REINDEXING INDICES FOR TENANT", "tenant", existingTenant)
-		keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(vaultRootToken, existingTenant)
+		slog.Info(r.Config.Action.Name, "text", "RE-INDEXING INDICES FOR TENANT", "tenant", configTenant)
+		keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
+		if err != nil {
+			return err
+		}
+		r.Config.Action.KeycloakAccessToken = keycloakAccessToken
+
+		err = r.Config.SearchSvc.ReindexInventoryRecords(configTenant)
 		if err != nil {
 			return err
 		}
 
-		err = r.Config.SearchSvc.ReindexInventoryRecords(existingTenant, keycloakAccessToken)
-		if err != nil {
-			return err
-		}
-
-		err = r.Config.SearchSvc.ReindexInstanceRecords(existingTenant, keycloakAccessToken)
+		err = r.Config.SearchSvc.ReindexInstanceRecords(configTenant)
 		if err != nil {
 			return err
 		}

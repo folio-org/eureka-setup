@@ -35,29 +35,29 @@ var getKeycloakAccessTokenCmd = &cobra.Command{
 			return err
 		}
 
-		vaultRootToken, err := r.GetVaultRootToken()
+		err = r.GetVaultRootToken()
 		if err != nil {
 			return err
 		}
 
-		return r.GetKeycloakAccessToken(vaultRootToken)
+		return r.GetKeycloakAccessToken()
 	},
 }
 
-func (r *Run) GetKeycloakAccessToken(vaultRootToken string) error {
-	keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(vaultRootToken, ap.Tenant)
+func (r *Run) GetKeycloakAccessToken() error {
+	keycloakAccessToken, err := r.Config.KeycloakSvc.GetKeycloakAccessToken(actionParams.Tenant)
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(keycloakAccessToken)
+	r.Config.Action.KeycloakAccessToken = keycloakAccessToken
+	fmt.Println(r.Config.Action.KeycloakAccessToken)
 
 	return nil
 }
 
 func init() {
 	rootCmd.AddCommand(getKeycloakAccessTokenCmd)
-	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&ap.Tenant, "tenant", "t", "", "Tenant (required)")
+	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&actionParams.Tenant, "tenant", "t", "", "Tenant (required)")
 	if err := getKeycloakAccessTokenCmd.MarkPersistentFlagRequired("tenant"); err != nil {
 		slog.Error("failed to mark tenant flag as required", "error", err)
 		os.Exit(1)
