@@ -42,7 +42,7 @@ func UndeployManagement() {
 		_ = client.Close()
 	}()
 
-	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, internal.ManagementContainerPattern, true)
+	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, internal.ManagementContainerPattern)
 }
 
 func init() {

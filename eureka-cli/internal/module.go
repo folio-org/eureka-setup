@@ -281,14 +281,14 @@ func GetDeployedModules(commandName string, client *client.Client, filters filte
 	return deployedModules
 }
 
-func UndeployModuleByNamePattern(commandName string, client *client.Client, value string, removeAsync bool) {
+func UndeployModuleByNamePattern(commandName string, client *client.Client, value string) {
 	deployedModules := GetDeployedModules(commandName, client, filters.NewArgs(filters.KeyValuePair{Key: "name", Value: value}))
 	for _, deployedModule := range deployedModules {
-		undeployModule(commandName, client, deployedModule, removeAsync)
+		undeployModule(commandName, client, deployedModule)
 	}
 }
 
-func undeployModule(commandName string, client *client.Client, deployedModule container.Summary, removeAsync bool) {
+func undeployModule(commandName string, client *client.Client, deployedModule container.Summary) {
 	err := client.NetworkDisconnect(context.Background(), DefaultNetworkId, deployedModule.ID, false)
 	if err != nil {
 		slog.Warn(commandName, GetFuncName(), fmt.Sprintf("client.NetworkDisconnect warning - %s", err.Error()))
@@ -300,18 +300,10 @@ func undeployModule(commandName string, client *client.Client, deployedModule co
 		panic(err)
 	}
 
-	var removeContainerFunc = func() {
-		err = client.ContainerRemove(context.Background(), deployedModule.ID, container.RemoveOptions{Force: true, RemoveVolumes: true})
-		if err != nil {
-			slog.Error(commandName, GetFuncName(), "client.ContainerRemove error")
-			panic(err)
-		}
-	}
-
-	if removeAsync {
-		go removeContainerFunc()
-	} else {
-		removeContainerFunc()
+	err = client.ContainerRemove(context.Background(), deployedModule.ID, container.RemoveOptions{Force: true, RemoveVolumes: true})
+	if err != nil {
+		slog.Error(commandName, GetFuncName(), "client.ContainerRemove error")
+		panic(err)
 	}
 
 	containerName := strings.ReplaceAll(deployedModule.Names[0], "/", "")
