@@ -425,6 +425,23 @@ backend-modules:
 eureka-cli deployApplication
 ```
 
+## Using local frontend module descriptors
+
+- To use a local frontend module descriptor, add `local-descriptor-path` to the module config
+
+```yaml
+frontend-modules:
+  folio_users:
+    version: "<version>"
+    local-descriptor-path: "/path/to/ui-module/module-descriptor.json"
+```
+
+- Deploy the environment with your local module
+
+```bash
+eureka-cli deployApplication
+```
+
 ## Using the UI
 
 The environment depends on the [platform-complete](https://github.com/folio-org/platform-complete) project to combine and assemble frontend and backend modules into a single UI package. By default, the CLI uses a pre-built Docker image of _platform-complete_ from DockerHub to deploy the UI container.
@@ -461,15 +478,6 @@ eureka-cli deployApplication -b -u
 
 # Will only build and deploy the platform-complete image
 eureka-cli deployUi -b -u
-```
-
-- To use a local frontend module descriptor, add `local-descriptor-path` to the module config:
-
-```yaml
-frontend-modules:
-  folio_users:
-    version: "<version>"
-    local-descriptor-path: "/path/to/ui-module/module-descriptor.json"
 ```
 
 ## Using the environment
