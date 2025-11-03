@@ -214,12 +214,12 @@ func DeployModule(commandName string, client *client.Client, dto *DeployModuleDt
 	if dto.PullImage {
 		PullModule(commandName, client, dto.Image)
 	}
-	if strings.Contains(dto.Image, SidecarProjectName) {
+	if strings.Contains(dto.Image, "sidecar") {
 		dto.Config.Cmd = []string{
 			"./application",
 			"-Dquarkus.http.host=0.0.0.0",
-			"-Dquarkus.log.level=INFO",
-			"-Dquarkus.log.category.'org.apache.kafka'.level=INFO",
+			"-Dquarkus.log.level=DEBUG",
+			"-Dquarkus.log.category.'org.apache.kafka'.level=DEBUG",
 		}
 	}
 
