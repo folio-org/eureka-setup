@@ -7,7 +7,7 @@
 ## Prerequisites
 
 - Install dependencies:
-  - [Go](https://go.dev/doc/install) compiler: last development-tested version is `go1.24.1 windows/amd64`
+  - [Go](https://go.dev/doc/install) compiler: last development-tested version is `go1.25.1 windows/amd64`
   - [Rancher Desktop](https://rancherdesktop.io/) container daemon: last development-tested version is `v1.19.3`
     - Enable **dockerd (Moby)** container engine
     - Disable **Check for updates automatically**
@@ -22,7 +22,7 @@
   - [Vault](http://localhost:8200) UI: Find a Vault root token in the container logs using `docker logs vault` or use `getVaultRootToken` command
   - [Kafka](http://localhost:9080) UI: No auth
   - [Kong](http://localhost:8002) Admin GUI: No auth
-  - [MinIO](http://localhost:9001) Console: minioadmin/minioadmin
+  - [MinIO](http://localhost:19001) Console: minioadmin/minioadmin
   - [Kibana](http://localhost:15601) UI: No auth
 
 ## Commands
@@ -418,6 +418,23 @@ backend-modules:
 ```
 
 > When `local-descriptor-path` is specified, the Docker image will not be pulled from a registry and the descriptor will be loaded from the local filesystem
+
+- Deploy the environment with your local module
+
+```bash
+eureka-cli deployApplication
+```
+
+## Using local frontend module descriptors
+
+- To use a local frontend module descriptor, add `local-descriptor-path` to the module config
+
+```yaml
+frontend-modules:
+  folio_users:
+    version: "<version>"
+    local-descriptor-path: "/path/to/ui-module/module-descriptor.json"
+```
 
 - Deploy the environment with your local module
 

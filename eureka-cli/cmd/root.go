@@ -18,45 +18,20 @@ package cmd
 import (
 	"embed"
 	"fmt"
-	"io/fs"
 	"log/slog"
 	"os"
-	"path/filepath"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/actionparams"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-const rootCommand string = "Root"
-
 var (
-	withConfigFile          string
-	withProfile             string
-	withOverwriteFiles      bool
-	withModuleName          string
-	withEnableDebug         bool
-	withBuildImages         bool
-	withUpdateCloned        bool
-	withSingleTenant        bool
-	withEnableEcsRequests   bool
-	withTenant              string
-	withNamespace           string
-	withPlatformCompleteUrl string
-	withAll                 bool
-	withId                  string
-	withModuleUrl           string
-	withSidecarUrl          string
-	withRestore             bool
-	withDefaultGateway      bool
-	withOnlyRequired        bool
-	withUser                string
-	withLength              int
-	withModuleType          string
-	withPurgeSchemas        bool
+	embedFS      *embed.FS
+	logger       *slog.Logger
+	actionParams actionparams.ActionParams
 )
-
-var embeddedFs embed.FS
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -65,136 +40,45 @@ var rootCmd = &cobra.Command{
 	Long:  `Eureka CLI to deploy a local development environment.`,
 }
 
-func Execute(mainEmbeddedFs embed.FS) {
-	embeddedFs = mainEmbeddedFs
-	if err := rootCmd.Execute(); err != nil {
+func Execute(mainEmbedFS *embed.FS) {
+	embedFS = mainEmbedFS
+
+	err := rootCmd.Execute()
+	if err != nil {
+		slog.Error("command execution failed", "error", err)
 		os.Exit(1)
 	}
 }
 
 func initConfig() {
-	setConfig(withEnableDebug, withConfigFile, withProfile)
-
+	setConfig(&actionParams)
+	logger = setDefaultLogger()
 	viper.AutomaticEnv()
 
-	if withOverwriteFiles {
-		createHomeDir(withEnableDebug, true, embeddedFs)
-		tryReadInConfig(func(configErr error) { cobra.CheckErr(configErr) })
+	if actionParams.OverwriteFiles {
+		createHomeDir(true, embedFS)
 	} else {
-		tryReadInConfig(func(configErr error) { createHomeDir(withEnableDebug, false, embeddedFs) })
-		tryReadInConfig(func(configErr error) { cobra.CheckErr(configErr) })
+		if err := viper.ReadInConfig(); err != nil {
+			createHomeDir(false, embedFS)
+		}
 	}
-}
 
-func tryReadInConfig(afterReadCallback func(configErr error)) {
 	if err := viper.ReadInConfig(); err != nil {
-		afterReadCallback(err)
-	}
-}
-
-func setConfig(enabledDebug bool, configFile string, profile string) {
-	if configFile == "" {
-		setConfigNameByProfile(enabledDebug, profile)
-		return
-	}
-
-	viper.SetConfigFile(configFile)
-}
-
-func setConfigNameByProfile(enabledDebug bool, profile string) {
-	home, err := os.UserHomeDir()
-	cobra.CheckErr(err)
-
-	configPath := filepath.Join(home, internal.ConfigDir)
-	viper.AddConfigPath(configPath)
-	viper.SetConfigType(internal.ConfigType)
-
-	configFile := getConfigFileByProfile(enabledDebug, profile)
-	viper.SetConfigName(configFile)
-}
-
-func getConfigFileByProfile(enabledDebug bool, profile string) string {
-	if profile == "" {
-		profile = internal.AvailableProfiles[0]
-	}
-
-	if enabledDebug {
-		fmt.Println("Using profile:", profile)
-		fmt.Println()
-	}
-
-	return fmt.Sprintf("config.%s", profile)
-}
-
-func createHomeDir(enabledDebug bool, overwriteFiles bool, embeddedFs embed.FS) {
-	homeConfigDir := internal.GetHomeDirPath(rootCommand)
-	if enabledDebug {
-		if overwriteFiles {
-			fmt.Printf("Overwriting files in %s home directory\n\n", homeConfigDir)
-		} else {
-			fmt.Printf("Creating missing files in %s home directory\n\n", homeConfigDir)
-		}
-	}
-
-	err := fs.WalkDir(embeddedFs, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		dstPath := filepath.Join(homeConfigDir, path)
-		if d.IsDir() {
-			err := os.MkdirAll(dstPath, 0755)
-			if err != nil {
-				return err
-			}
-		} else {
-			content, err := fs.ReadFile(embeddedFs, path)
-			if err != nil {
-				return err
-			}
-
-			err = os.WriteFile(dstPath, content, 0644)
-			if err != nil {
-				return err
-			}
-
-			if enabledDebug {
-				fmt.Println("Created file:", dstPath)
-			}
-		}
-
-		return nil
-	})
-	cobra.CheckErr(err)
-
-	if withEnableDebug {
-		fmt.Println()
-	}
-}
-
-func RunByConsortiumAndTenantType(commandName string, fn func(string, internal.TenantType)) {
-	if viper.IsSet(internal.ConsortiumsKey) {
-		for consortium := range viper.GetStringMap(internal.ConsortiumsKey) {
-			for _, tenantType := range []internal.TenantType{internal.CentralTenantType, internal.MemberTenantType} {
-				slog.Info(commandName, internal.GetFuncName(), fmt.Sprintf("Running sequentially for %s consortium and %s tenant type", consortium, tenantType))
-				fn(consortium, tenantType)
-			}
-		}
-	} else {
-		fn(internal.NoneConsortium, internal.DefaultTenantType)
+		cobra.CheckErr(err)
 	}
 }
 
 func init() {
+	profiles := constant.GetProfiles()
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVarP(&withProfile, "profile", "p", "combined", fmt.Sprintf("Use a specific profile, options: %s", internal.AvailableProfiles))
+	rootCmd.PersistentFlags().StringVarP(&actionParams.Profile, "profile", "p", "combined", fmt.Sprintf("Use a specific profile, options: %s", profiles))
 	if err := rootCmd.RegisterFlagCompletionFunc("profile", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return internal.AvailableProfiles, cobra.ShellCompDirectiveNoFileComp
+		return profiles, cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
-		slog.Error(rootCommand, internal.GetFuncName(), "rootCmd.RegisterFlagCompletionFunc error")
-		panic(err)
+		slog.Error("failed to register profile flag completion function", "error", err)
+		os.Exit(1)
 	}
-	rootCmd.PersistentFlags().StringVarP(&withConfigFile, "configFile", "c", "", "Use a specific config file")
-	rootCmd.PersistentFlags().BoolVarP(&withOverwriteFiles, "overwriteFiles", "o", false, fmt.Sprintf("Overwrite files in %s home directory", internal.ConfigDir))
-	rootCmd.PersistentFlags().BoolVarP(&withEnableDebug, "enableDebug", "d", false, "Enable debug")
+	rootCmd.PersistentFlags().StringVarP(&actionParams.ConfigFile, "configFile", "c", "", "Use a specific config file")
+	rootCmd.PersistentFlags().BoolVarP(&actionParams.OverwriteFiles, "overwriteFiles", "o", false, fmt.Sprintf("Overwrite files in %s home directory", constant.ConfigDir))
+	rootCmd.PersistentFlags().BoolVarP(&actionParams.EnableDebug, "enableDebug", "d", false, "Enable debug")
 }

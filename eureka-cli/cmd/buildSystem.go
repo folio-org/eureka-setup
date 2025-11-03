@@ -20,12 +20,10 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/gitrepository"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
-)
-
-const (
-	buildSystemCommand string = "Build System"
 )
 
 // buildSystemCmd represents the buildSystem command
@@ -33,41 +31,73 @@ var buildSystemCmd = &cobra.Command{
 	Use:   "buildSystem",
 	Short: "Build system",
 	Long:  `Build system images.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		start := time.Now()
-		CloneUpdateRepositories()
-		BuildSystem()
-		slog.Info(buildSystemCommand, "Elapsed, duration", time.Since(start))
+
+		r, err := New(action.BuildSystem)
+		if err != nil {
+			return err
+		}
+
+		err = r.CloneUpdateRepositories()
+		if err != nil {
+			return err
+		}
+		err = r.BuildSystem()
+		if err != nil {
+			return err
+		}
+		helpers.LogCompletion(r.RunConfig.Action.Name, start)
+
+		return nil
 	},
 }
 
-func CloneUpdateRepositories() {
-	slog.Info(buildSystemCommand, internal.GetFuncName(), "### CLONING & UPDATING REPOSITORIES ###")
-	repositories := []*internal.Repository{
-		internal.NewRepository(buildSystemCommand, internal.FolioKongRepositoryUrl, internal.DefaultFolioKongOutputDir, internal.DefaultFolioKongBranchName),
-		internal.NewRepository(buildSystemCommand, internal.FolioKeycloakRepositoryUrl, internal.DefaultFolioKeycloakOutputDir, internal.DefaultFolioKeycloakBranchName),
+func (r *Run) CloneUpdateRepositories() error {
+	slog.Info(r.RunConfig.Action.Name, "text", "CLONING & UPDATING REPOSITORIES")
+
+	kongRepository, err := r.RunConfig.GitClient.KongRepository()
+	if err != nil {
+		return err
 	}
 
-	slog.Info(buildSystemCommand, internal.GetFuncName(), "Cloning repositories")
+	keycloakRepository, err := r.RunConfig.GitClient.KeycloakRepository()
+	if err != nil {
+		return err
+	}
+
+	repositories := []*gitrepository.GitRepository{kongRepository, keycloakRepository}
+
+	slog.Info(r.RunConfig.Action.Name, "text", "Cloning repositories", "repositories", repositories)
 	for _, repository := range repositories {
-		internal.GitCloneRepository(buildSystemCommand, withEnableDebug, false, repository)
+		_ = r.RunConfig.GitClient.Clone(repository)
 	}
 
-	if withUpdateCloned {
-		slog.Info(buildSystemCommand, internal.GetFuncName(), "Updating repositories")
+	if actionParams.UpdateCloned {
+		slog.Info(r.RunConfig.Action.Name, "text", "Updating repositories", "repositories", repositories)
 		for _, repository := range repositories {
-			internal.GitResetHardPullFromOriginRepository(buildSystemCommand, withEnableDebug, repository)
+			err = r.RunConfig.GitClient.ResetHardPullFromOrigin(repository)
+			if err != nil {
+				return err
+			}
 		}
 	}
+
+	return nil
 }
 
-func BuildSystem() {
-	slog.Info(buildSystemCommand, internal.GetFuncName(), "### BUILDING SYSTEM IMAGES ###")
+func (r *Run) BuildSystem() error {
+	slog.Info(r.RunConfig.Action.Name, "text", "BUILDING SYSTEM IMAGES")
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache"}
-	internal.RunCommandFromDir(buildSystemCommand, exec.Command("docker", subCommand...), internal.GetHomeMiscDir(buildSystemCommand))
+	dir, err := helpers.GetHomeMiscDir(r.RunConfig.Action.Name)
+	if err != nil {
+		return err
+	}
+
+	return helpers.ExecFromDir(exec.Command("docker", subCommand...), dir)
 }
 
 func init() {
 	rootCmd.AddCommand(buildSystemCmd)
-	buildSystemCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	buildSystemCmd.PersistentFlags().BoolVarP(&actionParams.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
 }

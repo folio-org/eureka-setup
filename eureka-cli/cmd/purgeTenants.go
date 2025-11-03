@@ -21,15 +21,13 @@ import (
 	"log/slog"
 	"net/url"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
 	"github.com/spf13/cobra"
 )
 
-const purgeTenantsCommand = "Purge Tenants"
-
 var (
 	withKongGateway      string
-	withTenantIds        []string
+	withTenantIDs        []string
 	withApplicationNames []string
 )
 
@@ -38,49 +36,55 @@ var purgeTenantsCmd = &cobra.Command{
 	Use:   "purgeTenants",
 	Short: "Purge tenants",
 	Long:  `Purge tenants and their entitlements.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		slog.Info(buildSystemCommand, internal.GetFuncName(), "### PURGING TENANTS ###")
-		slog.Info(purgeTenantsCommand, internal.GetFuncName(), fmt.Sprintf("Using Kong Gateway: %s", withKongGateway))
+	RunE: func(cmd *cobra.Command, args []string) error {
+		run, err := New(action.PurgeTenants)
+		if err != nil {
+			return err
+		}
 
-		slog.Info(purgeTenantsCommand, internal.GetFuncName(), "Purging tenant entitlements")
-		for _, tenantId := range withTenantIds {
-			for key, value := range map[string][]string{tenantId: withApplicationNames} {
-				requestUrl, err := url.JoinPath(withKongGateway, "/entitlements")
+		slog.Info(run.RunConfig.Action.Name, slog.String("text", "PURGING TENANTS"), slog.String("Using Kong Gateway", withKongGateway))
+
+		slog.Info(run.RunConfig.Action.Name, "text", "Purging tenant entitlements")
+		for _, tenantID := range withTenantIDs {
+			for key, value := range map[string][]string{tenantID: withApplicationNames} {
+				requestURL, err := url.JoinPath(withKongGateway, "/entitlements")
 				if err != nil {
-					slog.Error(purgeTenantsCommand, internal.GetFuncName(), "json.Marshal error")
-					panic(err)
+					return err
 				}
 
-				bytes, err := json.Marshal(map[string]any{"tenantId": key, "applications": value})
+				payload, err := json.Marshal(map[string]any{
+					"tenantId":     key,
+					"applications": value,
+				})
 				if err != nil {
-					slog.Error(purgeTenantsCommand, internal.GetFuncName(), "json.Marshal error")
-					panic(err)
+					return err
 				}
 
-				internal.DoDeleteWithBody(purgeTenantsCommand, fmt.Sprintf("%s%s", requestUrl, "?purge=true"), withEnableDebug, bytes, false, map[string]string{})
+				_ = run.RunConfig.HTTPClient.DeleteWithBody(fmt.Sprintf("%s%s", requestURL, "?purge=true"), payload, map[string]string{})
 
-				slog.Info(purgeTenantsCommand, internal.GetFuncName(), fmt.Sprintf("Purged %s tenant entitlement with %s applications", key, value))
+				slog.Info(run.RunConfig.Action.Name, "text", "Purged tenant entitlement with applications", "tenant", key, "applications", value)
 			}
 		}
 
-		slog.Info(purgeTenantsCommand, internal.GetFuncName(), "Purging tenants")
-		for _, tenantId := range withTenantIds {
-			requestUrl, err := url.JoinPath(withKongGateway, "/tenants", tenantId)
+		slog.Info(run.RunConfig.Action.Name, "text", "Purging tenants")
+		for _, tenantID := range withTenantIDs {
+			requestURL, err := url.JoinPath(withKongGateway, "/tenants", tenantID)
 			if err != nil {
-				slog.Error(purgeTenantsCommand, internal.GetFuncName(), "json.Marshal error")
-				panic(err)
+				return err
 			}
 
-			internal.DoDelete(purgeTenantsCommand, fmt.Sprintf("%s%s", requestUrl, "?purgeKafkaTopics=true"), withEnableDebug, true, map[string]string{})
+			_ = run.RunConfig.HTTPClient.Delete(fmt.Sprintf("%s%s", requestURL, "?purgeKafkaTopics=true"), map[string]string{})
 
-			slog.Info(purgeTenantsCommand, internal.GetFuncName(), fmt.Sprintf("Purged %s tenant", tenantId))
+			slog.Info(run.RunConfig.Action.Name, "text", "Purged tenant", "tenant", tenantID)
 		}
+
+		return nil
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(purgeTenantsCmd)
 	purgeTenantsCmd.PersistentFlags().StringVarP(&withKongGateway, "gateway", "", "http://localhost:8000", "Kong Gateway")
-	purgeTenantsCmd.PersistentFlags().StringSliceVarP(&withTenantIds, "ids", "", []string{}, "Tenant ids")
+	purgeTenantsCmd.PersistentFlags().StringSliceVarP(&withTenantIDs, "ids", "", []string{}, "Tenant ids")
 	purgeTenantsCmd.PersistentFlags().StringSliceVarP(&withApplicationNames, "apps", "", []string{"app-combined-1.0.0"}, "Application names")
 }

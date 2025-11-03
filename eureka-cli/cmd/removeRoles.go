@@ -16,42 +16,41 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
 )
-
-const removeRolesCommand string = "Remove Roles"
 
 // removeRolesCmd represents the removeRoles command
 var removeRolesCmd = &cobra.Command{
 	Use:   "removeRoles",
 	Short: "Remove roles",
 	Long:  `Remove all roles.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		RunByConsortiumAndTenantType(removeRolesCommand, func(consortium string, tenantType internal.TenantType) {
-			RemoveRoles(consortium, tenantType)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.RemoveRoles)
+		if err != nil {
+			return err
+		}
+
+		return r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+			return r.RemoveRoles(consortiumName, tenantType)
 		})
 	},
 }
 
-func RemoveRoles(consortium string, tenantType internal.TenantType) {
-	vaultRootToken := GetVaultRootToken()
-
-	for _, value := range internal.GetTenants(removeRolesCommand, withEnableDebug, false, consortium, tenantType) {
-		mapEntry := value.(map[string]any)
-
-		existingTenant := mapEntry["name"].(string)
-		if !internal.HasTenant(existingTenant) {
-			continue
+func (r *Run) RemoveRoles(consortiumName string, tenantType constant.TenantType) error {
+	return r.TenantPartition(consortiumName, tenantType, func(configTenant string, tenantType constant.TenantType) error {
+		slog.Info(r.RunConfig.Action.Name, "text", "REMOVING ROLES FOR TENANT", "tenant", configTenant)
+		keycloakAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakAccessToken(configTenant)
+		if err != nil {
+			return err
 		}
+		r.RunConfig.Action.KeycloakAccessToken = keycloakAccessToken
 
-		slog.Info(removeRolesCommand, internal.GetFuncName(), fmt.Sprintf("### REMOVING ROLES FOR %s TENANT ###", existingTenant))
-		keycloakAccessToken := internal.GetKeycloakAccessToken(removeRolesCommand, withEnableDebug, vaultRootToken, existingTenant)
-		internal.RemoveRoles(removeRolesCommand, withEnableDebug, false, existingTenant, keycloakAccessToken)
-	}
+		return r.RunConfig.KeycloakSvc.RemoveRoles(configTenant)
+	})
 }
 
 func init() {

@@ -18,34 +18,48 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
+	"os"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
 	"github.com/spf13/cobra"
 )
-
-const getKeycloakAccessTokenCommand string = "Get Keycloak Access Token"
 
 // getKeycloakAccessTokenCmd represents the getAccessToken command
 var getKeycloakAccessTokenCmd = &cobra.Command{
 	Use:   "getKeycloakAccessToken",
-	Short: "Get keyclaok access token",
+	Short: "Get keycloak access token",
 	Long:  `Get a keycloak master access token.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		vaultRootToken := GetVaultRootToken()
-		GetKeycloakAccessToken(vaultRootToken)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.GetKeycloakAccessToken)
+		if err != nil {
+			return err
+		}
+
+		err = r.GetVaultRootToken()
+		if err != nil {
+			return err
+		}
+		fmt.Println(r.RunConfig.Action.KeycloakAccessToken)
+
+		return r.GetKeycloakAccessToken()
 	},
 }
 
-func GetKeycloakAccessToken(vaultRootToken string) {
-	keycloakAccessToken := internal.GetKeycloakAccessToken(getKeycloakAccessTokenCommand, withEnableDebug, vaultRootToken, withTenant)
-	fmt.Println(keycloakAccessToken)
+func (r *Run) GetKeycloakAccessToken() error {
+	keycloakAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakAccessToken(actionParams.Tenant)
+	if err != nil {
+		return err
+	}
+	r.RunConfig.Action.KeycloakAccessToken = keycloakAccessToken
+
+	return nil
 }
 
 func init() {
 	rootCmd.AddCommand(getKeycloakAccessTokenCmd)
-	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&withTenant, "tenant", "t", "", "Tenant (required)")
+	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&actionParams.Tenant, "tenant", "t", "", "Tenant (required)")
 	if err := getKeycloakAccessTokenCmd.MarkPersistentFlagRequired("tenant"); err != nil {
-		slog.Error(getKeycloakAccessTokenCommand, internal.GetFuncName(), "getKeycloakAccessTokenCmd.MarkPersistentFlagRequired error")
-		panic(err)
+		slog.Error("failed to mark tenant flag as required", "error", err)
+		os.Exit(1)
 	}
 }

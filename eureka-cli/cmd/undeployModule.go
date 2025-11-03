@@ -18,39 +18,50 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
+	"os"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
-
-const undeployModuleCommand = "Undeploy Module"
 
 // undeployModuleCmd represents the undeployModule command
 var undeployModuleCmd = &cobra.Command{
 	Use:   "undeployModule",
 	Short: "Undeploy module",
 	Long:  `Undeploy a single module.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		UndeployModule()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.UndeployModule)
+		if err != nil {
+			return err
+		}
+
+		return r.UndeployModule()
 	},
 }
 
-func UndeployModule() {
-	slog.Info(undeployModuleCommand, internal.GetFuncName(), "### UNDEPLOYING MODULE ###")
-	client := internal.CreateDockerClient(undeployModuleCommand)
-	defer func() {
-		_ = client.Close()
-	}()
+func (r *Run) UndeployModule() error {
+	slog.Info(r.RunConfig.Action.Name, "text", "UNDEPLOYING MODULE")
+	client, err := r.RunConfig.DockerClient.Create()
+	if err != nil {
+		return err
+	}
+	defer r.RunConfig.DockerClient.Close(client)
 
-	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(internal.SingleModuleOrSidecarContainerPattern, viper.GetString(internal.ProfileNameKey), withModuleName), true)
+	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, r.RunConfig.Action.ConfigProfile, actionParams.ModuleName)
+	err = r.RunConfig.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func init() {
 	rootCmd.AddCommand(undeployModuleCmd)
-	undeployModuleCmd.PersistentFlags().StringVarP(&withModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders (required)")
+	undeployModuleCmd.PersistentFlags().StringVarP(&actionParams.ModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders (required)")
 	if err := undeployModuleCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
-		slog.Error(undeployModuleCommand, internal.GetFuncName(), "undeployModuleCmd.MarkPersistentFlagRequired error")
-		panic(err)
+		slog.Error("failed to mark moduleName flag as required", "error", err)
+		os.Exit(1)
 	}
 }

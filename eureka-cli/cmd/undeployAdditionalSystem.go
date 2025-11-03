@@ -19,36 +19,48 @@ import (
 	"log/slog"
 	"os/exec"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
-
-const undeployAdditionalSystemCommand string = "Undeploy Additional System"
 
 // undeployAdditionalSystemCmd represents the undeployAdditionalSystem command
 var undeployAdditionalSystemCmd = &cobra.Command{
 	Use:   "undeployAdditionalSystem",
 	Short: "Undeploy additional system",
 	Long:  `Undeploy additional system containers.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		UndeployAdditionalSystem()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.UndeployAdditionalSystem)
+		if err != nil {
+			return err
+		}
+
+		return r.UndeployAdditionalSystem()
 	},
 }
 
-func UndeployAdditionalSystem() {
-	slog.Info(undeployAdditionalSystemCommand, internal.GetFuncName(), "### UNDEPLOYING ADDITIONAL SYSTEM CONTAINERS ###")
+func (r *Run) UndeployAdditionalSystem() error {
+	slog.Info(r.RunConfig.Action.Name, "text", "UNDEPLOYING ADDITIONAL SYSTEM CONTAINERS")
 
-	additionalRequiredContainers := internal.GetRequiredContainers(undeployAdditionalSystemCommand, []string{})
-	if len(additionalRequiredContainers) == 0 {
-		slog.Info(undeployAdditionalSystemCommand, internal.GetFuncName(), "No addititional system containers undeployed")
-		return
+	finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(r.RunConfig.Action.Name, []string{}, r.RunConfig.Action.ConfigBackendModules)
+	if len(finalRequiredContainers) == 0 {
+		slog.Info(r.RunConfig.Action.Name, "text", "No additional system containers undeployed")
+		return nil
 	}
 
-	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "stop"}, additionalRequiredContainers...)
-	internal.RunCommand(undeployAdditionalSystemCommand, exec.Command("docker", subCommand...))
+	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "stop"}, finalRequiredContainers...)
+	err := helpers.Exec(exec.Command("docker", subCommand...))
+	if err != nil {
+		return err
+	}
 
-	subCommand = append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "rm", "--volumes", "--force"}, additionalRequiredContainers...)
-	internal.RunCommand(undeployAdditionalSystemCommand, exec.Command("docker", subCommand...))
+	subCommand = append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "rm", "--volumes", "--force"}, finalRequiredContainers...)
+	err = helpers.Exec(exec.Command("docker", subCommand...))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func init() {

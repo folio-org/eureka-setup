@@ -16,70 +16,86 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/errors"
+	"github.com/folio-org/eureka-cli/field"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
-
-const createConsortiumsCommand string = "Create Consortiums"
 
 // createConsortiumCmd represents the createConsortiums command
 var createConsortiumsCmd = &cobra.Command{
 	Use:   "createConsortiums",
 	Short: "Create consortiums",
 	Long:  `Create consortiums with multiple tenants.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		CreateConsortium()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.CreateConsortiums)
+		if err != nil {
+			return err
+		}
+
+		return r.CreateConsortium()
 	},
 }
 
-func CreateConsortium() {
-	if !viper.IsSet(internal.ConsortiumsKey) {
-		return
+func (r *Run) CreateConsortium() error {
+	if !action.IsSet(field.Consortiums) {
+		return nil
 	}
 
-	consortiums := viper.GetStringMap(internal.ConsortiumsKey)
-	tenants := viper.GetStringMap(internal.TenantsKey)
-	users := viper.GetStringMap(internal.UsersKey)
+	err := r.GetVaultRootToken()
+	if err != nil {
+		return err
+	}
 
-	vaultRootToken := GetVaultRootToken()
-
-	for consortium, properties := range consortiums {
+	for consortium, properties := range r.RunConfig.Action.ConfigConsortiums {
 		mapEntry := properties.(map[string]any)
-
-		if !internal.GetBoolKey(mapEntry, internal.ConsortiumCreateConsortiumEntryKey) {
-			slog.Info(createConsortiumsCommand, internal.GetFuncName(), fmt.Sprintf("### IGNORING CREATION OF %s CONSORTIUM ###", consortium))
+		if !helpers.GetBool(mapEntry, field.ConsortiumCreateConsortiumEntry) {
+			slog.Info(r.RunConfig.Action.Name, "text", "IGNORING CREATION OF CONSORTIUM", "consortium", consortium)
 			continue
 		}
 
-		centralTenant := internal.GetConsortiumCentralTenant(consortium, tenants)
+		centralTenant := r.RunConfig.ConsortiumSvc.GetConsortiumCentralTenant(consortium)
 		if centralTenant == "" {
-			internal.LogErrorPanic(createConsortiumsCommand, fmt.Sprintf("internal.GetConsortiumCentralTenant error - %s consortium does not contain a central tenant", consortium))
-			return
+			return errors.ConsortiumMissingCentralTenant(consortium)
 		}
 
-		consortiumTenants := internal.GetSortedConsortiumTenants(consortium, tenants)
-		consortiumUsers := internal.GetConsortiumUsers(consortium, users)
-		keycloakAccessToken := internal.GetKeycloakAccessToken(createRolesCommand, withEnableDebug, vaultRootToken, centralTenant)
+		consortiumTenants := r.RunConfig.ConsortiumSvc.GetSortedConsortiumTenants(consortium)
+		consortiumUsers := r.RunConfig.ConsortiumSvc.GetConsortiumUsers(consortium)
+		keycloakAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakAccessToken(centralTenant)
+		if err != nil {
+			return err
+		}
+		r.RunConfig.Action.KeycloakAccessToken = keycloakAccessToken
 
-		slog.Info(createConsortiumsCommand, internal.GetFuncName(), fmt.Sprintf("### CREATING %s CONSORTIUM ###", consortium))
-		consortiumId := internal.CreateConsortium(createConsortiumsCommand, withEnableDebug, centralTenant, keycloakAccessToken, consortium)
+		slog.Info(r.RunConfig.Action.Name, "text", "CREATING CONSORTIUM", "consortium", consortium)
+		consortiumID, err := r.RunConfig.ConsortiumSvc.CreateConsortium(centralTenant, consortium)
+		if err != nil {
+			return err
+		}
 
-		slog.Info(createConsortiumsCommand, internal.GetFuncName(), fmt.Sprintf("### ADDING %s (%d) TENANTS TO %s CONSORTIUM ###", consortiumTenants, len(consortiumTenants), consortium))
-		adminUsername := internal.GetAdminUsername(centralTenant, consortiumUsers)
-		internal.CreateConsortiumTenants(createConsortiumsCommand, withEnableDebug, centralTenant, keycloakAccessToken, consortiumId, consortiumTenants, adminUsername)
+		slog.Info(r.RunConfig.Action.Name, "text", "ADDING TENANTS TO CONSORTIUM", "tenants", consortiumTenants, "tenantCount", len(consortiumTenants), "consortium", consortium)
+		adminUsername := r.RunConfig.ConsortiumSvc.GetAdminUsername(centralTenant, consortiumUsers)
+		err = r.RunConfig.ConsortiumSvc.CreateConsortiumTenants(centralTenant, consortiumID, consortiumTenants, adminUsername)
+		if err != nil {
+			return err
+		}
 
-		if !internal.GetBoolKey(mapEntry, internal.ConsortiumEnableCentralOrderingEntryKey) {
-			slog.Info(createConsortiumsCommand, internal.GetFuncName(), fmt.Sprintf("### IGNORING ENABLEMENT OF CENTRAL ORDERING FOR %s TENANT IN %s CONSORTIUM ###", centralTenant, consortium))
+		if !helpers.GetBool(mapEntry, field.ConsortiumEnableCentralOrderingEntry) {
+			slog.Info(r.RunConfig.Action.Name, "text", "IGNORING ENABLEMENT OF CENTRAL ORDERING FOR TENANT IN CONSORTIUM", "tenant", centralTenant, "consortium", consortium)
 			continue
 		}
 
-		slog.Info(createConsortiumsCommand, internal.GetFuncName(), fmt.Sprintf("### ENABLING CENTRAL ORDERING FOR %s TENANT IN %s CONSORTIUM ###", centralTenant, consortium))
-		internal.EnableCentralOrdering(createConsortiumsCommand, withEnableDebug, centralTenant, keycloakAccessToken)
+		slog.Info(r.RunConfig.Action.Name, "text", "ENABLING CENTRAL ORDERING FOR TENANT IN CONSORTIUM", "tenant", centralTenant, "consortium", consortium)
+		err = r.RunConfig.ConsortiumSvc.EnableCentralOrdering(centralTenant)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 func init() {

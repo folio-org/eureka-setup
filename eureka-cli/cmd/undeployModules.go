@@ -19,35 +19,44 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
-
-const undeployModulesCommand = "Undeploy Modules"
 
 // undeployModulesCmd represents the undeployModules command
 var undeployModulesCmd = &cobra.Command{
 	Use:   "undeployModules",
 	Short: "Undeploy modules",
 	Long:  `Undeploy multiple modules.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		UndeployModules()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.UndeployModules)
+		if err != nil {
+			return err
+		}
+
+		return r.UndeployModules()
 	},
 }
 
-func UndeployModules() {
-	slog.Info(undeployModulesCommand, internal.GetFuncName(), "### REMOVING APPLICATIONS ###")
-	applicationId := fmt.Sprintf("%s-%s", viper.GetString(internal.ApplicationNameKey), viper.GetString(internal.ApplicationVersionKey))
-	internal.RemoveApplication(undeployModulesCommand, withEnableDebug, false, applicationId)
+func (r *Run) UndeployModules() error {
+	slog.Info(r.RunConfig.Action.Name, "text", "REMOVING APPLICATIONS")
+	_ = r.RunConfig.ManagementSvc.RemoveApplication(r.RunConfig.Action.ConfigApplicationID)
 
-	slog.Info(undeployModulesCommand, internal.GetFuncName(), "### UNDEPLOYING MODULES ###")
-	client := internal.CreateDockerClient(undeployModulesCommand)
-	defer func() {
-		_ = client.Close()
-	}()
+	slog.Info(r.RunConfig.Action.Name, "text", "UNDEPLOYING MODULES")
+	client, err := r.RunConfig.DockerClient.Create()
+	if err != nil {
+		return err
+	}
+	defer r.RunConfig.DockerClient.Close(client)
 
-	internal.UndeployModuleByNamePattern(undeployModulesCommand, client, fmt.Sprintf(internal.ProfileContainerPattern, viper.GetString(internal.ProfileNameKey)), true)
+	pattern := fmt.Sprintf(constant.ProfileContainerPattern, r.RunConfig.Action.ConfigProfile)
+	err = r.RunConfig.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func init() {

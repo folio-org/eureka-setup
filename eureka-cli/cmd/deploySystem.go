@@ -20,47 +20,68 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
-
-const deploySystemCommand string = "Deploy System"
-
-var coreRequiredContainers = []string{"postgres", "kafka", "kafka-tools", "vault", "keycloak", "keycloak-internal", "kong"}
 
 // deploySystemCmd represents the deploySystem command
 var deploySystemCmd = &cobra.Command{
 	Use:   "deploySystem",
 	Short: "Deploy system",
 	Long:  `Deploy all system containers.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		DeploySystem()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.DeploySystem)
+		if err != nil {
+			return err
+		}
+
+		return r.DeploySystem()
 	},
 }
 
-func DeploySystem() {
-	CloneUpdateRepositories()
-	if withBuildImages {
-		BuildSystem()
+func (r *Run) DeploySystem() error {
+	err := r.CloneUpdateRepositories()
+	if err != nil {
+		return err
+	}
+
+	if actionParams.BuildImages {
+		err := r.BuildSystem()
+		if err != nil {
+			return err
+		}
 	}
 
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}
-	if withOnlyRequired {
-		requiredContainers := internal.GetRequiredContainers(deploySystemCommand, coreRequiredContainers)
-		subCommand = append(subCommand, requiredContainers...)
+	if actionParams.OnlyRequired {
+		initialRequiredContainers := constant.GetInitialRequiredContainers()
+		finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(r.RunConfig.Action.Name, initialRequiredContainers, r.RunConfig.Action.ConfigBackendModules)
+		subCommand = append(subCommand, finalRequiredContainers...)
 	}
 
-	slog.Info(deploySystemCommand, internal.GetFuncName(), "### DEPLOYING SYSTEM CONTAINERS ###")
-	internal.RunCommandFromDir(deploySystemCommand, exec.Command("docker", subCommand...), internal.GetHomeMiscDir(deploySystemCommand))
+	slog.Info(r.RunConfig.Action.Name, "text", "DEPLOYING SYSTEM CONTAINERS")
+	dir, err := helpers.GetHomeMiscDir(r.RunConfig.Action.Name)
+	if err != nil {
+		return err
+	}
 
-	slog.Info(deploySystemCommand, internal.GetFuncName(), "### WAITING FOR SYSTEM CONTAINERS TO INITIALIZE ###")
-	time.Sleep(15 * time.Second)
-	slog.Info(deploySystemCommand, internal.GetFuncName(), "All system containers have initialized")
+	err = helpers.ExecFromDir(exec.Command("docker", subCommand...), dir)
+	if err != nil {
+		return err
+	}
+
+	slog.Info(r.RunConfig.Action.Name, "text", "WAITING FOR SYSTEM CONTAINERS TO BECOME READY")
+	time.Sleep(constant.DeploySystemWait)
+	slog.Info(r.RunConfig.Action.Name, "text", "All system containers are ready")
+
+	return nil
 }
 
 func init() {
 	rootCmd.AddCommand(deploySystemCmd)
-	deploySystemCmd.PersistentFlags().BoolVarP(&withBuildImages, "buildImages", "b", false, "Build Docker images")
-	deploySystemCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
-	deploySystemCmd.PersistentFlags().BoolVarP(&withOnlyRequired, "onlyRequired", "R", false, "Use only required system containers")
+	deploySystemCmd.PersistentFlags().BoolVarP(&actionParams.BuildImages, "buildImages", "b", false, "Build Docker images")
+	deploySystemCmd.PersistentFlags().BoolVarP(&actionParams.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	deploySystemCmd.PersistentFlags().BoolVarP(&actionParams.OnlyRequired, "onlyRequired", "R", false, "Use only required system containers")
 }

@@ -18,27 +18,36 @@ package cmd
 import (
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
 )
-
-const removeTenantsCommand string = "Remove Tenants"
 
 // removeTenantsCmd represents the removeTenants command
 var removeTenantsCmd = &cobra.Command{
 	Use:   "removeTenants",
 	Short: "Remove tenants",
 	Long:  `Remove all tenants.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		RunByConsortiumAndTenantType(removeTenantsCommand, func(consortium string, tenantType internal.TenantType) {
-			RemoveTenants(consortium, tenantType)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.RemoveTenants)
+		if err != nil {
+			return err
+		}
+
+		r.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) {
+			_ = r.RemoveUsers(consortiumName, tenantType)
+			_ = r.RemoveRoles(consortiumName, tenantType)
+			_ = r.RemoveTenantEntitlements(consortiumName, tenantType)
+			_ = r.RemoveTenants(consortiumName, tenantType)
 		})
+
+		return nil
 	},
 }
 
-func RemoveTenants(consortium string, tenantType internal.TenantType) {
-	slog.Info(removeTenantsCommand, internal.GetFuncName(), "### REMOVING TENANTS ###")
-	internal.RemoveTenants(removeTenantsCommand, withEnableDebug, false, consortium, tenantType)
+func (r *Run) RemoveTenants(consortiumName string, tenantType constant.TenantType) error {
+	slog.Info(r.RunConfig.Action.Name, "text", "REMOVING TENANTS")
+	return r.RunConfig.ManagementSvc.RemoveTenants(consortiumName, tenantType)
 }
 
 func init() {

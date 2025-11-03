@@ -18,26 +18,13 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	"os/exec"
-	"regexp"
-	"strconv"
-	"strings"
 	"time"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/errors"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-)
-
-const (
-	attachCapabilitySetsCommand string = "Attach Capability Sets"
-
-	NewLinePattern      string = `[\r\n\s-]+`
-	KafkaUrl            string = "kafka.eureka:9092"
-	ConsumerGroupSuffix string = "mod-roles-keycloak-capability-group"
-
-	NoActiveMembersErrorMessage string = "Consumer group 'folio-mod-roles-keycloak-capability-group' has no active members."
-	IsRebalancingErrorMessage   string = "Consumer group 'folio-mod-roles-keycloak-capability-group' is rebalancing."
 )
 
 // attachCapabilitySetsCmd represents the attachCapabilitySets command
@@ -45,78 +32,95 @@ var attachCapabilitySetsCmd = &cobra.Command{
 	Use:   "attachCapabilitySets",
 	Short: "Attach capability sets",
 	Long:  `Attach capability sets to roles.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		RunByConsortiumAndTenantType(attachCapabilitySetsCommand, func(consortium string, tenantType internal.TenantType) {
-			AttachCapabilitySets(consortium, tenantType, time.Duration(0*time.Second))
+	RunE: func(cmd *cobra.Command, args []string) error {
+		r, err := New(action.AttachCapabilitySets)
+		if err != nil {
+			return err
+		}
+
+		return r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
+			return r.AttachCapabilitySets(consortiumName, tenantType, time.Duration(0*time.Second))
 		})
 	},
 }
 
-func AttachCapabilitySets(consortium string, tenantType internal.TenantType, initialWaitDuration time.Duration) {
-	vaultRootToken := GetVaultRootToken()
+func (r *Run) AttachCapabilitySets(consortiumName string, tenantType constant.TenantType, initialWait time.Duration) error {
+	// TODO Abstract
+	err := r.GetVaultRootToken()
+	if err != nil {
+		return err
+	}
 
-	for _, value := range internal.GetTenants(attachCapabilitySetsCommand, withEnableDebug, false, consortium, tenantType) {
+	resp, err := r.RunConfig.ManagementSvc.GetTenants(consortiumName, tenantType)
+	if err != nil {
+		return err
+	}
+
+	for _, value := range resp {
 		mapEntry := value.(map[string]any)
-
-		existingTenant := mapEntry["name"].(string)
-		if !internal.HasTenant(existingTenant) {
+		configTenant := mapEntry["name"].(string)
+		hasTenant := helpers.HasTenant(configTenant, r.RunConfig.Action.ConfigTenants)
+		if !hasTenant {
 			continue
 		}
-		if initialWaitDuration > 0 {
-			slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %f duration before polling", initialWaitDuration.Seconds()))
-			time.Sleep(initialWaitDuration)
+		if initialWait > 0 {
+			time.Sleep(initialWait)
 		}
 
-		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), "### POLLING FOR CAPABILITY SETS CREATION ###")
-		pollCapabilitySetsCreation(withEnableDebug, existingTenant)
+		slog.Info(r.RunConfig.Action.Name, "text", "POLLING FOR CAPABILITY SETS CREATION")
+		err := r.pollCapabilitySetsCreation(configTenant)
+		if err != nil {
+			return err
+		}
 
-		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("### ATTACHING CAPABILITY SETS TO ROLES FOR %s TENANT ###", existingTenant))
-		keycloakAccessToken := internal.GetKeycloakAccessToken(attachCapabilitySetsCommand, withEnableDebug, vaultRootToken, existingTenant)
-		internal.AttachCapabilitySetsToRoles(attachCapabilitySetsCommand, withEnableDebug, existingTenant, keycloakAccessToken)
+		slog.Info(r.RunConfig.Action.Name, "text", "ATTACHING CAPABILITY SETS TO ROLES FOR TENANT", "tenant", configTenant)
+		keycloakAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakAccessToken(configTenant)
+		if err != nil {
+			return err
+		}
+		r.RunConfig.Action.KeycloakAccessToken = keycloakAccessToken
+
+		err = r.RunConfig.KeycloakSvc.AttachCapabilitySetsToRoles(configTenant)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
-func pollCapabilitySetsCreation(enableDebug bool, tenant string) {
-	consumerGroup := fmt.Sprintf("%s-%s", viper.GetString(internal.EnvironmentFolioKey), ConsumerGroupSuffix)
+func (r *Run) pollCapabilitySetsCreation(tenantName string) error {
+	consumerGroup := fmt.Sprintf("%s-%s", r.RunConfig.Action.ConfigEnvFolio, constant.ConsumerGroupSuffix)
+	retryCount := 0
+	slog.Info(r.RunConfig.Action.Name, "text", "Checking Kafka readiness before polling consumer groups")
+	if err := r.RunConfig.KafkaSvc.CheckReadiness(); err != nil {
+		slog.Info(r.RunConfig.Action.Name, "text", "Kafka not fully ready, proceeding with polling", "error", err)
+	}
 
 	var lag int
 	for {
-		lag := getConsumerGroupLag(enableDebug, tenant, consumerGroup, lag)
+		lag, err := r.RunConfig.KafkaSvc.GetConsumerGroupLag(tenantName, consumerGroup, lag)
+		if err != nil {
+			retryCount++
+			if retryCount >= constant.ConsumerGroupRebalanceRetries {
+				return errors.ConsumerGroupRebalanceTimeout(consumerGroup, err)
+			}
+
+			slog.Info(r.RunConfig.Action.Name, "text", "Retry: Error polling consumer group, retrying", "retryCount", retryCount, "maxRetries", constant.ConsumerGroupRebalanceRetries, "waitSeconds", constant.AttachCapabilitySetsRebalanceWait.Seconds())
+			time.Sleep(constant.AttachCapabilitySetsRebalanceWait)
+			continue
+		}
+
+		retryCount = 0
 		if lag == 0 {
 			break
 		}
-
-		pollWaitDuration := 30 * time.Second
-		slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %f duration for %s consumer group to process all messages, lag: %d", pollWaitDuration.Seconds(), consumerGroup, lag))
-		time.Sleep(pollWaitDuration)
+		slog.Info(r.RunConfig.Action.Name, "text", "Waiting for consumer group to process", "waitSeconds", constant.AttachCapabilitySetsPollWait.Seconds(), "consumerGroup", consumerGroup, "lag", lag)
+		time.Sleep(constant.AttachCapabilitySetsPollWait)
 	}
+	slog.Info(r.RunConfig.Action.Name, "text", "Consumer group has no new message to process", "consumerGroup", consumerGroup)
 
-	slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Consumer group %s has no new message to process", consumerGroup))
-}
-
-func getConsumerGroupLag(enableDebug bool, tenant string, consumerGroup string, initialLag int) (lag int) {
-	stdout, stderr := internal.RunCommandReturnOutput(listSystemCommand, exec.Command("docker", "exec", "-i", "kafka-tools", "bash", "-c",
-		fmt.Sprintf("kafka-consumer-groups.sh --bootstrap-server %s --describe --group %s | grep %s | awk '{print $6}'", KafkaUrl, consumerGroup, tenant)))
-	if stderr.Len() > 0 {
-		if strings.Contains(stderr.String(), NoActiveMembersErrorMessage) || strings.Contains(stderr.String(), IsRebalancingErrorMessage) {
-			internal.LogWarn(attachCapabilitySetsCommand, enableDebug, fmt.Sprintf("internal.RunCommandReturnOutput warning - %s", stderr.String()))
-			rebalanceWaitDuration := 30 * time.Second
-			slog.Info(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %f duration for consumers to reconnect or rebalance", rebalanceWaitDuration.Seconds()))
-			time.Sleep(rebalanceWaitDuration)
-			return initialLag
-		}
-		internal.LogErrorPrintStderrPanic(attachCapabilitySetsCommand, "internal.RunCommandReturnOutput error", stderr.String())
-
-		return 0
-	}
-
-	lag, err := strconv.Atoi(regexp.MustCompile(NewLinePattern).ReplaceAllString(stdout.String(), ""))
-	if err != nil {
-		slog.Error(attachCapabilitySetsCommand, internal.GetFuncName(), fmt.Sprintf("strconv.Atoi warning - %s", err.Error()))
-		return initialLag
-	}
-
-	return lag
+	return nil
 }
 
 func init() {
