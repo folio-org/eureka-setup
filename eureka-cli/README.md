@@ -380,6 +380,8 @@ sidecar-module:
   version: 1.0.0
 ```
 
+> The `version` must be set explicitly
+
 - Deploy the environment with this config, in our example we deploy an _edge_ application with `custom-folio-module-sidecar:1.0.0` sidecars
 
 ```bash
@@ -409,13 +411,13 @@ git clone https://github.com/folio-org/folio-module-sidecar.git
 - Build the artefact locally
 
 ```bash
-mvn clean install -DskipTests
+cd folio-module-sidecar
 mvn install -Pnative -DskipTests \
   -Dquarkus.native.remote-container-build=true \
   -Dquarkus.native.builder-image=quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-21
 ```
 
-> Builds the JAR precursor then the native binary using a container-based GraalVM
+> Builds a native binary using a container-based GraalVM with a Linux toolchain
 
 - Build a custom local docker image
 
@@ -430,6 +432,8 @@ sidecar-module:
   local-image: folio-module-sidecar-native
   version: latest
 ```
+
+> The `version` must be set explicitly
 
 ## Using local backend module images
 
