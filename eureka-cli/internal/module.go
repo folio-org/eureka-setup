@@ -214,6 +214,14 @@ func DeployModule(commandName string, client *client.Client, dto *DeployModuleDt
 	if dto.PullImage {
 		PullModule(commandName, client, dto.Image)
 	}
+	if strings.Contains(dto.Image, SidecarProjectName) {
+		dto.Config.Cmd = []string{
+			"./application",
+			"-Dquarkus.http.host=0.0.0.0",
+			"-Dquarkus.log.level=INFO",
+			"-Dquarkus.log.category.'org.apache.kafka'.level=INFO",
+		}
+	}
 
 	cr, err := client.ContainerCreate(context.Background(), dto.Config, dto.HostConfig, dto.NetworkConfig, dto.Platform, containerName)
 	if err != nil {

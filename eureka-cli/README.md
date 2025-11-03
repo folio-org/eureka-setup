@@ -396,6 +396,41 @@ eureka-cli -p edge listModules
 
 ![CLI Use Custom Folio Module Sidecar (2/2)](images/cli_use_custom_folio_module_sidecar_2.png)
 
+## Using a native folio-module-sidecar
+
+The CLI also supports using native sidecars built with GraalVM. These sidecars have a different and more lighter resource profile making them ideal for deployments with only few resources to spare.
+
+- Git clone **folio-module-sidecar** from GitHub
+
+```bash
+git clone https://github.com/folio-org/folio-module-sidecar.git
+```
+
+- Build the artefact locally
+
+```bash
+mvn clean install -DskipTests
+mvn install -Pnative -DskipTests \
+  -Dquarkus.native.remote-container-build=true \
+  -Dquarkus.native.builder-image=quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-21
+```
+
+> Builds the JAR precursor then the native binary using a container-based GraalVM
+
+- Build a custom local docker image
+
+```bash
+docker build -f docker/Dockerfile.native-micro -t folio-module-sidecar-native .
+```
+
+- Use the newly built `folio-module-sidecar-native:latest` local image in your config by replacing `sidecar-module.image` with `sidecar-module.local-image` key
+
+```yaml
+sidecar-module:
+  local-image: folio-module-sidecar-native
+  version: latest
+```
+
 ## Using local backend module images
 
 When developing backend modules locally, you can deploy them with custom module descriptors without pushing to a registry.
