@@ -435,6 +435,12 @@ sidecar-module:
 
 > The `version` must be set explicitly
 
+- Deploy the environment as normal but make sure to remove `JAVA_OPTIONS` env var from the `sidecar-module` in the config, as this is not intepreted by the substrate VM in the image
+
+```bash
+eureka-cli deployApplication
+```
+
 ## Using local backend module images
 
 When developing backend modules locally, you can deploy them with custom module descriptors without pushing to a registry.
