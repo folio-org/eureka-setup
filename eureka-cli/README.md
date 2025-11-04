@@ -372,12 +372,13 @@ docker build --tag custom-folio-module-sidecar:1.0.0 .
 
 > This example uses a non-native image build, see <https://github.com/folio-org/folio-module-sidecar/blob/master/README.md> for how to build a native Docker image
 
-- Use the newly built `custom-folio-module-sidecar:1.0.0` local image in your config by replacing `sidecar-module.image` with `sidecar-module.local-image` key
+- Use the newly built `custom-folio-module-sidecar:1.0.0` local image in your config by setting `sidecar-module.custom-namespace` to true
 
 ```yaml
 sidecar-module:
-  local-image: custom-folio-module-sidecar
+  image: custom-folio-module-sidecar
   version: 1.0.0
+  custom-namespace: true
 ```
 
 > The `version` must be set explicitly
@@ -425,13 +426,19 @@ mvn clean install -Pnative -DskipTests \
 docker build -f docker/Dockerfile.native-micro -t folio-module-sidecar-native .
 ```
 
-- Use the newly built `folio-module-sidecar-native:latest` local image in your config by replacing `sidecar-module.image` with `sidecar-module.local-image` key
+- Use the newly built `folio-module-sidecar-native:latest` local image in your config by setting `sidecar-module.custom-namespace` to true and `sidecar-module.native-binary-cmd` with valid args
 
 ```yaml
 sidecar-module:
-  local-image: folio-module-sidecar-native
+  image: folio-module-sidecar-native
   version: latest
+  custom-namespace: true
+  native-binary-cmd: [
+    "./application", "-Dquarkus.http.host=0.0.0.0", "-Dquarkus.log.category.'org.apache.kafka'.level=INFO"
+  ]
 ```
+
+As an alternative to building a native image locally, you can also use the default image, `bkadirkhodjaev/folio-module-sidecar-native` on the Docker Hub in your configs. This public image will be updated on a regular basis.
 
 > The `version` must be set explicitly
 

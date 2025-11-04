@@ -75,8 +75,12 @@ users:
     first-name: Doe
     roles: ["diku_user_role"]
 sidecar-module:
-  local-image: bkadirkhodjaev/folio-module-sidecar-native
+  image: bkadirkhodjaev/folio-module-sidecar-native
   version: latest
+  custom-namespace: true
+  native-binary-cmd: [
+    "./application", "-Dquarkus.http.host=0.0.0.0", "-Dquarkus.log.category.'org.apache.kafka'.level=INFO"
+  ]
   environment:
     # Kafka
     ENV: folio

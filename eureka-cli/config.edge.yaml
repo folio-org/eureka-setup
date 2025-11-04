@@ -59,7 +59,12 @@ roles:
     tenant: diku
     capability-sets: ["all"]
 sidecar-module:
-  image: folio-module-sidecar
+  image: bkadirkhodjaev/folio-module-sidecar-native
+  version: latest
+  custom-namespace: true
+  native-binary-cmd: [
+    "./application", "-Dquarkus.http.host=0.0.0.0", "-Dquarkus.log.category.'org.apache.kafka'.level=INFO"
+  ]
   environment:
     # Kafka
     ENV: folio
@@ -84,12 +89,6 @@ sidecar-module:
     ROOT_LOG_LEVEL: INFO
     REQUEST_TIMEOUT: 604800000
     ALLOW_CROSS_TENANT_REQUESTS: "true"
-    # Java
-    JAVA_OPTIONS: >-
-      -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
-      -XX:+UseZGC -XX:MaxRAMPercentage=80.0 -Xms64m -Xmx64m
-      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=INFO -Dquarkus.log.category.'org.apache.kafka'.level=INFO 
-      -Djava.util.logging.manager=org.jboss.logmanager.LogManager
 backend-modules:
   mod-gobi:
   mod-ebsconet:
