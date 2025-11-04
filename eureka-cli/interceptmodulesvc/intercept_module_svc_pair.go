@@ -1,8 +1,6 @@
 package interceptmodulesvc
 
 import (
-	"strings"
-
 	"github.com/docker/docker/api/types/network"
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/actionparams"
@@ -17,8 +15,6 @@ type ModulePair struct {
 	ModuleURL         *string
 	SidecarURL        *string
 	SidecarServerPort int
-	PortStart         int
-	PortEnd           int
 	RegistryModule    *models.RegistryModule
 	Containers        *models.Containers
 	NetworkConfig     *network.NetworkingConfig
@@ -41,16 +37,7 @@ func NewModulePair(a *action.Action, p *actionparams.ActionParams) (*ModulePair,
 		sidecarURL = helpers.ConstructURL(p.SidecarURL, gatewayURL)
 	}
 
-	id := strings.ReplaceAll(p.ID, ":", "-")
-	moduleName := helpers.GetModuleNameFromID(id)
-	return &ModulePair{
-		ID:         id,
-		ModuleName: moduleName,
-		ModuleURL:  &moduleURL,
-		SidecarURL: &sidecarURL,
-		PortStart:  a.ConfigApplicationPortStart,
-		PortEnd:    a.ConfigApplicationPortEnd,
-	}, nil
+	return &ModulePair{ID: p.ID, ModuleName: p.ModuleName, ModuleURL: &moduleURL, SidecarURL: &sidecarURL}, nil
 }
 
 // ClearModuleURL clears the module URL from the intercept module
