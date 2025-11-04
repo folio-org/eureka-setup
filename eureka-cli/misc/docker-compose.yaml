@@ -104,7 +104,7 @@ services:
     image: apache/kafka-native:${KAFKA_VERSION}
     restart: unless-stopped
     cpus: 6
-    mem_limit: 2g
+    mem_limit: "1.5g"
     memswap_limit: -1
     environment:
       CLUSTER_ID: kafka-local
@@ -120,6 +120,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 1
     volumes:
       - kafka-data:/var/lib/kafka/data
     networks:
