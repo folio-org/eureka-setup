@@ -30,34 +30,35 @@ var getKeycloakAccessTokenCmd = &cobra.Command{
 	Short: "Get keycloak access token",
 	Long:  `Get a keycloak master access token.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.GetKeycloakAccessToken)
+		run, err := New(action.GetKeycloakAccessToken)
 		if err != nil {
 			return err
 		}
-
-		err = r.GetVaultRootToken()
-		if err != nil {
+		if err := run.GetVaultRootToken(); err != nil {
 			return err
 		}
-		fmt.Println(r.RunConfig.Action.KeycloakAccessToken)
+		if err := run.GetKeycloakAccessToken(); err != nil {
+			return err
+		}
+		fmt.Println(run.Config.Action.KeycloakAccessToken)
 
-		return r.GetKeycloakAccessToken()
+		return nil
 	},
 }
 
-func (r *Run) GetKeycloakAccessToken() error {
-	keycloakAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakAccessToken(actionParams.Tenant)
+func (run *Run) GetKeycloakAccessToken() error {
+	keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(actionParams.Tenant)
 	if err != nil {
 		return err
 	}
-	r.RunConfig.Action.KeycloakAccessToken = keycloakAccessToken
+	run.Config.Action.KeycloakAccessToken = keycloakAccessToken
 
 	return nil
 }
 
 func init() {
 	rootCmd.AddCommand(getKeycloakAccessTokenCmd)
-	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&actionParams.Tenant, "tenant", "t", "", "Tenant (required)")
+	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&actionParams.Tenant, "tenant", "t", "", "Tenant")
 	if err := getKeycloakAccessTokenCmd.MarkPersistentFlagRequired("tenant"); err != nil {
 		slog.Error("failed to mark tenant flag as required", "error", err)
 		os.Exit(1)

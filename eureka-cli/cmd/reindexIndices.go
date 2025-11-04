@@ -22,7 +22,6 @@ import (
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
-	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -32,61 +31,36 @@ var reindexIndicesCmd = &cobra.Command{
 	Short: "Reindex elasticsearch",
 	Long:  `Reindex elasticsearch indices.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.ReindexIndices)
+		run, err := New(action.ReindexIndices)
 		if err != nil {
 			return err
 		}
 
-		return r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
-			return r.ReindexIndices(consortiumName, tenantType)
+		return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+			return run.ReindexIndices(consortiumName, tenantType)
 		})
 	},
 }
 
-func (r *Run) ReindexIndices(consortiumName string, tenantType constant.TenantType) error {
-	// TODO Abstract
-	err := r.GetVaultRootToken()
-	if err != nil {
-		return err
-	}
-
-	tenants, err := r.RunConfig.ManagementSvc.GetTenants(consortiumName, tenantType)
-	if err != nil {
-		return err
-	}
-
-	for _, value := range tenants {
-		mapEntry := value.(map[string]any)
-		configTenant := mapEntry["name"].(string)
-		hasTenant := helpers.HasTenant(configTenant, r.RunConfig.Action.ConfigTenants)
-		if !hasTenant {
-			continue
+func (run *Run) ReindexIndices(consortiumName string, tenantType constant.TenantType) error {
+	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
+		if action.IsSet(field.Consortiums) && tenantType == fmt.Sprintf("%s-%s", consortiumName, constant.Central) {
+			slog.Info(run.Config.Action.Name, "text", "RE-INDEXING INDICES FOR TENANT", "tenant", configTenant)
+			keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
+			if err != nil {
+				return err
+			}
+			run.Config.Action.KeycloakAccessToken = keycloakAccessToken
+			if err := run.Config.SearchSvc.ReindexInventoryRecords(configTenant); err != nil {
+				return err
+			}
+			if err := run.Config.SearchSvc.ReindexInstanceRecords(configTenant); err != nil {
+				return err
+			}
 		}
 
-		tenantType := mapEntry["description"].(string)
-		if action.IsSet(field.Consortiums) && tenantType != fmt.Sprintf("%s-%s", consortiumName, constant.Central) {
-			continue
-		}
-
-		slog.Info(r.RunConfig.Action.Name, "text", "RE-INDEXING INDICES FOR TENANT", "tenant", configTenant)
-		keycloakAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakAccessToken(configTenant)
-		if err != nil {
-			return err
-		}
-		r.RunConfig.Action.KeycloakAccessToken = keycloakAccessToken
-
-		err = r.RunConfig.SearchSvc.ReindexInventoryRecords(configTenant)
-		if err != nil {
-			return err
-		}
-
-		err = r.RunConfig.SearchSvc.ReindexInstanceRecords(configTenant)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+		return nil
+	})
 }
 
 func init() {

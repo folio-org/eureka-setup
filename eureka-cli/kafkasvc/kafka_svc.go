@@ -16,8 +16,8 @@ import (
 
 // KafkaProcessor defines the interface for Kafka service operations
 type KafkaProcessor interface {
-	CheckReadiness() error
-	GetConsumerGroupLag(tenant string, consumerGroup string, initialLag int) (lag int, err error)
+	CheckBrokenReadiness() error
+	PollConsumerGroup(tenantName string) error
 }
 
 // KafkaSvc provides functionality for Kafka operations including health checks and consumer lag monitoring
@@ -30,8 +30,8 @@ func New(action *action.Action) *KafkaSvc {
 	return &KafkaSvc{Action: action}
 }
 
-func (ks *KafkaSvc) CheckReadiness() error {
-	kafkaCmd := fmt.Sprintf("timeout 10s kafka-broker-api-versions.sh --bootstrap-server %s", constant.KafkaTCP)
+func (ks *KafkaSvc) CheckBrokenReadiness() error {
+	kafkaCmd := fmt.Sprintf("timeout 30s kafka-broker-api-versions.sh --bootstrap-server %s", constant.KafkaTCP)
 	stdout, stderr, err := helpers.ExecReturnOutput(exec.Command("docker", "exec", "-i", "kafka-tools", "bash", "-c", kafkaCmd))
 	if err != nil || stderr.Len() > 0 {
 		return errors.KafkaNotReady(err)
@@ -39,12 +39,47 @@ func (ks *KafkaSvc) CheckReadiness() error {
 	if stdout.Len() == 0 {
 		return errors.KafkaBrokerAPIFailed()
 	}
-	slog.Info(ks.Action.Name, "text", "Kafka broker is ready and accessible")
+	slog.Info(ks.Action.Name, "text", "Broker is ready and accessible")
 
 	return nil
 }
 
-func (ks *KafkaSvc) GetConsumerGroupLag(tenant string, consumerGroup string, initialLag int) (lag int, err error) {
+func (ks *KafkaSvc) PollConsumerGroup(tenantName string) error {
+	slog.Info(ks.Action.Name, "text", "Preparing broker readiness check")
+	if err := ks.CheckBrokenReadiness(); err != nil {
+		slog.Warn(ks.Action.Name, "text", "Broker not fully ready", "error", err)
+	}
+
+	consumerGroup := fmt.Sprintf("%s-%s", ks.Action.ConfigEnvFolio, constant.ConsumerGroupSuffix)
+	retryCount := 0
+
+	var lag int
+	for {
+		lag, err := ks.getConsumerGroupLag(tenantName, consumerGroup, lag)
+		if err != nil {
+			retryCount++
+			if retryCount >= constant.ConsumerGroupRebalanceRetries {
+				return errors.ConsumerGroupRebalanceTimeout(consumerGroup, err)
+			}
+
+			slog.Info(ks.Action.Name, "text", "Waiting form consumer group to rebalance", "retryCount", retryCount, "maxRetries", constant.ConsumerGroupRebalanceRetries, "waitSeconds", constant.AttachCapabilitySetsRebalanceWait.Seconds())
+			time.Sleep(constant.AttachCapabilitySetsRebalanceWait)
+			continue
+		}
+
+		retryCount = 0
+		if lag == 0 {
+			break
+		}
+		slog.Info(ks.Action.Name, "text", "Waiting for consumer group", "waitSeconds", constant.AttachCapabilitySetsPollWait.Seconds(), "consumerGroup", consumerGroup, "lag", lag)
+		time.Sleep(constant.AttachCapabilitySetsPollWait)
+	}
+	slog.Info(ks.Action.Name, "text", "Consumer group has no new message to process", "consumerGroup", consumerGroup)
+
+	return nil
+}
+
+func (ks *KafkaSvc) getConsumerGroupLag(tenant string, consumerGroup string, initialLag int) (lag int, err error) {
 	kafkaCmd := fmt.Sprintf("timeout 30s kafka-consumer-groups.sh --bootstrap-server %s --describe --group %s | grep %s | awk '{print $6}'", constant.KafkaTCP, consumerGroup, tenant)
 	stdout, stderr, err := helpers.ExecReturnOutput(exec.Command("docker", "exec", "-i", "kafka-tools", "bash", "-c", kafkaCmd))
 	if err != nil {
@@ -59,7 +94,6 @@ func (ks *KafkaSvc) GetConsumerGroupLag(tenant string, consumerGroup string, ini
 			return initialLag, nil
 		}
 		if strings.Contains(stderrText, constant.ErrTimeoutException) {
-			slog.Info(ks.Action.Name, "text", "Kafka timeout detected, waiting for Kafka to be ready")
 			time.Sleep(constant.AttachCapabilitySetsTimeoutWait)
 			return initialLag, nil
 		}

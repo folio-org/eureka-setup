@@ -30,33 +30,31 @@ var undeployUiCmd = &cobra.Command{
 	Short: "Undeploy UI",
 	Long:  `Undeploy the UI containers.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.UndeployUi)
+		run, err := New(action.UndeployUi)
 		if err != nil {
 			return err
 		}
 
-		return r.UndeployUi()
+		return run.UndeployUi()
 	},
 }
 
-func (r *Run) UndeployUi() error {
-	// TODO Abstract
-	slog.Info(r.RunConfig.Action.Name, "text", "UNDEPLOYING UI CONTAINERS")
-	client, err := r.RunConfig.DockerClient.Create()
+func (run *Run) UndeployUi() error {
+	slog.Info(run.Config.Action.Name, "text", "UNDEPLOYING UI CONTAINERS")
+	client, err := run.Config.DockerClient.Create()
 	if err != nil {
 		return err
 	}
-	defer r.RunConfig.DockerClient.Close(client)
+	defer run.Config.DockerClient.Close(client)
 
-	tenants, err := r.RunConfig.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
+	tenants, err := run.Config.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
 	if err != nil {
 		return err
 	}
 
 	for _, value := range tenants {
 		pattern := fmt.Sprintf(constant.SingleUiContainerPattern, value.(map[string]any)["name"].(string))
-		err = r.RunConfig.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
-		if err != nil {
+		if err := run.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern); err != nil {
 			return err
 		}
 	}

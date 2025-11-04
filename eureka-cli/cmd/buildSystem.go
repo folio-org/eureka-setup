@@ -34,50 +34,44 @@ var buildSystemCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		start := time.Now()
 
-		r, err := New(action.BuildSystem)
+		run, err := New(action.BuildSystem)
 		if err != nil {
 			return err
 		}
-
-		err = r.CloneUpdateRepositories()
-		if err != nil {
+		if err := run.CloneUpdateRepositories(); err != nil {
 			return err
 		}
-		err = r.BuildSystem()
-		if err != nil {
+		if err := run.BuildSystem(); err != nil {
 			return err
 		}
-		helpers.LogCompletion(r.RunConfig.Action.Name, start)
+		helpers.LogCompletion(run.Config.Action.Name, start)
 
 		return nil
 	},
 }
 
-func (r *Run) CloneUpdateRepositories() error {
-	slog.Info(r.RunConfig.Action.Name, "text", "CLONING & UPDATING REPOSITORIES")
-
-	kongRepository, err := r.RunConfig.GitClient.KongRepository()
+func (run *Run) CloneUpdateRepositories() error {
+	slog.Info(run.Config.Action.Name, "text", "CLONING & UPDATING REPOSITORIES")
+	kongRepository, err := run.Config.GitClient.KongRepository()
 	if err != nil {
 		return err
 	}
 
-	keycloakRepository, err := r.RunConfig.GitClient.KeycloakRepository()
+	keycloakRepository, err := run.Config.GitClient.KeycloakRepository()
 	if err != nil {
 		return err
 	}
 
 	repositories := []*gitrepository.GitRepository{kongRepository, keycloakRepository}
-
-	slog.Info(r.RunConfig.Action.Name, "text", "Cloning repositories", "repositories", repositories)
+	slog.Info(run.Config.Action.Name, "text", "Cloning repositories", "repositories", repositories)
 	for _, repository := range repositories {
-		_ = r.RunConfig.GitClient.Clone(repository)
+		_ = run.Config.GitClient.Clone(repository)
 	}
 
 	if actionParams.UpdateCloned {
-		slog.Info(r.RunConfig.Action.Name, "text", "Updating repositories", "repositories", repositories)
+		slog.Info(run.Config.Action.Name, "text", "Updating repositories", "repositories", repositories)
 		for _, repository := range repositories {
-			err = r.RunConfig.GitClient.ResetHardPullFromOrigin(repository)
-			if err != nil {
+			if err := run.Config.GitClient.ResetHardPullFromOrigin(repository); err != nil {
 				return err
 			}
 		}
@@ -86,10 +80,10 @@ func (r *Run) CloneUpdateRepositories() error {
 	return nil
 }
 
-func (r *Run) BuildSystem() error {
-	slog.Info(r.RunConfig.Action.Name, "text", "BUILDING SYSTEM IMAGES")
+func (run *Run) BuildSystem() error {
+	slog.Info(run.Config.Action.Name, "text", "BUILDING SYSTEM IMAGES")
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache"}
-	dir, err := helpers.GetHomeMiscDir(r.RunConfig.Action.Name)
+	dir, err := helpers.GetHomeMiscDir(run.Config.Action.Name)
 	if err != nil {
 		return err
 	}

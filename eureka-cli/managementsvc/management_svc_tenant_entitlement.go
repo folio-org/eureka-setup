@@ -28,14 +28,14 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=%s", tenantParameters))
 	for _, value := range tenants {
-		mapEntry := value.(map[string]any)
-		tenantName := mapEntry["name"].(string)
+		entry := value.(map[string]any)
+		tenantName := entry["name"].(string)
 		if !helpers.HasTenant(tenantName, ms.Action.ConfigTenants) {
 			continue
 		}
 
 		payload, err := json.Marshal(map[string]any{
-			"tenantId":     mapEntry["id"].(string),
+			"tenantId":     entry["id"].(string),
 			"applications": []string{ms.Action.ConfigApplicationID},
 		})
 		if err != nil {
@@ -60,12 +60,12 @@ func (ms *ManagementSvc) RemoveTenantEntitlements(consortiumName string, tenantT
 
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/entitlements?purge=%t&ignoreErrors=false", purgeSchemas))
 	for _, value := range tenants {
-		mapEntry := value.(map[string]any)
-		tenantName := mapEntry["name"].(string)
+		entry := value.(map[string]any)
+		tenantName := entry["name"].(string)
 		if !helpers.HasTenant(tenantName, ms.Action.ConfigTenants) {
 			continue
 		}
-		tenantID := mapEntry["id"].(string)
+		tenantID := entry["id"].(string)
 
 		payload, err := json.Marshal(map[string]any{
 			"tenantId":     tenantID,

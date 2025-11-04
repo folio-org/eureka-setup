@@ -42,7 +42,7 @@ type BackendModuleProperties struct {
 	Name                string
 	Version             *string
 	Port                *int
-	PortServer          *int
+	PrivatePort         *int
 	Env                 map[string]any
 	Resources           map[string]any
 	Volumes             []string
@@ -50,7 +50,7 @@ type BackendModuleProperties struct {
 
 // NewBackendModuleWithSidecar creates a new BackendModule instance with sidecar configuration
 func NewBackendModuleWithSidecar(action *action.Action, properties BackendModuleProperties) (*BackendModule, error) {
-	exposedPorts := helpers.CreateExposedPorts(*properties.PortServer)
+	exposedPorts := helpers.CreateExposedPorts(*properties.PrivatePort)
 	moduleServerPort := *properties.Port
 
 	var (
@@ -84,9 +84,9 @@ func NewBackendModuleWithSidecar(action *action.Action, properties BackendModule
 		ModuleVersion:            properties.Version,
 		ModuleExposedServerPort:  moduleServerPort,
 		ModuleExposedDebugPort:   moduleDebugPort,
-		ModuleServerPort:         *properties.PortServer,
+		ModuleServerPort:         *properties.PrivatePort,
 		ModuleExposedPorts:       exposedPorts,
-		ModulePortBindings:       helpers.CreatePortBindings(moduleServerPort, moduleDebugPort, *properties.PortServer),
+		ModulePortBindings:       helpers.CreatePortBindings(moduleServerPort, moduleDebugPort, *properties.PrivatePort),
 		ModuleEnv:                properties.Env,
 		ModuleResources:          *helpers.CreateResources(true, properties.Resources),
 		ModuleVolumes:            properties.Volumes,
@@ -94,7 +94,7 @@ func NewBackendModuleWithSidecar(action *action.Action, properties BackendModule
 		SidecarExposedServerPort: sidecarServerPort,
 		SidecarExposedDebugPort:  sidecarDebugPort,
 		SidecarExposedPorts:      exposedPorts,
-		SidecarPortBindings:      helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, *properties.PortServer),
+		SidecarPortBindings:      helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, *properties.PrivatePort),
 	}, nil
 }
 
@@ -116,9 +116,9 @@ func NewBackendModule(action *action.Action, properties BackendModuleProperties)
 		ModuleVersion:           properties.Version,
 		ModuleExposedServerPort: moduleServerPort,
 		ModuleExposedDebugPort:  moduleDebugPort,
-		ModuleServerPort:        *properties.PortServer,
-		ModuleExposedPorts:      helpers.CreateExposedPorts(*properties.PortServer),
-		ModulePortBindings:      helpers.CreatePortBindings(moduleServerPort, moduleDebugPort, *properties.PortServer),
+		ModuleServerPort:        *properties.PrivatePort,
+		ModuleExposedPorts:      helpers.CreateExposedPorts(*properties.PrivatePort),
+		ModulePortBindings:      helpers.CreatePortBindings(moduleServerPort, moduleDebugPort, *properties.PrivatePort),
 		ModuleEnv:               properties.Env,
 		ModuleResources:         *helpers.CreateResources(true, properties.Resources),
 		ModuleVolumes:           properties.Volumes,

@@ -13,11 +13,11 @@ import (
 // ModuleEnvProcessor defines the interface for building module environment variable configurations
 type ModuleEnvProcessor interface {
 	VaultEnv(envVars []string, vaultRootToken string) []string
-	OkapiEnv(envVars []string, sidecarName string, portServer int) []string
+	OkapiEnv(envVars []string, sidecarName string, privatePort int) []string
 	DisabledSystemUserEnv(envVars []string, moduleName string) []string
 	KeycloakEnv(envVars []string) []string
 	ModuleEnv(envVars []string, extraEnvVars map[string]any) []string
-	SidecarEnv(envVars []string, module *models.RegistryModule, portServer int, moduleURL, sidecarURL *string) []string
+	SidecarEnv(envVars []string, module *models.RegistryModule, privatePort int, moduleURL, sidecarURL *string) []string
 }
 
 // ModuleEnv provides functionality for constructing environment variables for modules
@@ -40,12 +40,12 @@ func (mv *ModuleEnv) VaultEnv(envVars []string, vaultRootToken string) []string 
 	return envVars
 }
 
-func (mv *ModuleEnv) OkapiEnv(envVars []string, sidecarName string, portServer int) []string {
+func (mv *ModuleEnv) OkapiEnv(envVars []string, sidecarName string, privatePort int) []string {
 	extraEnvVars := []string{fmt.Sprintf("OKAPI_HOST=%s.eureka", sidecarName),
-		fmt.Sprintf("OKAPI_PORT=%d", portServer),
+		fmt.Sprintf("OKAPI_PORT=%d", privatePort),
 		fmt.Sprintf("OKAPI_SERVICE_HOST=%s.eureka", sidecarName),
-		fmt.Sprintf("OKAPI_SERVICE_URL=http://%s.eureka:%d", sidecarName, portServer),
-		fmt.Sprintf("OKAPI_URL=http://%s.eureka:%d", sidecarName, portServer),
+		fmt.Sprintf("OKAPI_SERVICE_URL=http://%s.eureka:%d", sidecarName, privatePort),
+		fmt.Sprintf("OKAPI_URL=http://%s.eureka:%d", sidecarName, privatePort),
 	}
 	envVars = append(envVars, extraEnvVars...)
 
@@ -86,14 +86,14 @@ func (mv *ModuleEnv) ModuleEnv(envVars []string, extraEnvVars map[string]any) []
 	return envVars
 }
 
-func (mv *ModuleEnv) SidecarEnv(envVars []string, module *models.RegistryModule, portServer int, moduleURL, sidecarURL *string) []string {
+func (mv *ModuleEnv) SidecarEnv(envVars []string, module *models.RegistryModule, privatePort int, moduleURL, sidecarURL *string) []string {
 	var extraEnvVars []string
 	if moduleURL == nil && sidecarURL == nil {
 		extraEnvVars = []string{fmt.Sprintf("MODULE_NAME=%s", module.Name),
 			fmt.Sprintf("MODULE_VERSION=%s", *module.Version),
-			fmt.Sprintf("MODULE_URL=http://%s.eureka:%d", module.Name, portServer),
+			fmt.Sprintf("MODULE_URL=http://%s.eureka:%d", module.Name, privatePort),
 			fmt.Sprintf("SIDECAR_NAME=%s", module.SidecarName),
-			fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%d", module.SidecarName, portServer),
+			fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%d", module.SidecarName, privatePort),
 		}
 	} else {
 		extraEnvVars = []string{fmt.Sprintf("MODULE_NAME=%s", module.Name),
@@ -104,8 +104,8 @@ func (mv *ModuleEnv) SidecarEnv(envVars []string, module *models.RegistryModule,
 		}
 	}
 	// Change the default port on Quarkus netty server
-	if strconv.Itoa(portServer) != constant.ServerPort {
-		extraEnvVars = append(extraEnvVars, fmt.Sprintf("QUARKUS_HTTP_PORT=%d", portServer))
+	if strconv.Itoa(privatePort) != constant.PrivateServerPort {
+		extraEnvVars = append(extraEnvVars, fmt.Sprintf("QUARKUS_HTTP_PORT=%d", privatePort))
 	}
 	envVars = append(envVars, extraEnvVars...)
 

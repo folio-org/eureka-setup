@@ -9,6 +9,7 @@ import (
 	"github.com/folio-org/eureka-cli/dockerclient"
 	"github.com/folio-org/eureka-cli/gitclient"
 	"github.com/folio-org/eureka-cli/httpclient"
+	"github.com/folio-org/eureka-cli/interceptmodulesvc"
 	"github.com/folio-org/eureka-cli/kafkasvc"
 	"github.com/folio-org/eureka-cli/keycloaksvc"
 	"github.com/folio-org/eureka-cli/kongsvc"
@@ -36,20 +37,21 @@ type RunConfig struct {
 	VaultClient  vaultclient.VaultClientRunner
 
 	// Business Services
-	AWSSvc        awssvc.AWSProcessor
-	KafkaSvc      kafkasvc.KafkaProcessor
-	KeycloakSvc   keycloaksvc.KeycloakProcessor
-	KongSvc       kongsvc.KongProcessor
-	RegistrySvc   registrysvc.RegistryProcessor
-	ModuleParams  moduleparams.ModuleParamsProcessor
-	ModuleEnv     moduleenv.ModuleEnvProcessor
-	ModuleSvc     modulesvc.ModuleProcessor
-	ManagementSvc managementsvc.ManagementProcessor
-	TenantSvc     tenantsvc.TenantProcessor
-	UserSvc       usersvc.UserProcessor
-	ConsortiumSvc consortiumsvc.ConsortiumProcessor
-	UISvc         uisvc.UIProcessor
-	SearchSvc     searchsvc.SearchProcessor
+	AWSSvc             awssvc.AWSProcessor
+	KafkaSvc           kafkasvc.KafkaProcessor
+	KeycloakSvc        keycloaksvc.KeycloakProcessor
+	KongSvc            kongsvc.KongProcessor
+	RegistrySvc        registrysvc.RegistryProcessor
+	ModuleParams       moduleparams.ModuleParamsProcessor
+	ModuleEnv          moduleenv.ModuleEnvProcessor
+	ModuleSvc          modulesvc.ModuleProcessor
+	ManagementSvc      managementsvc.ManagementProcessor
+	TenantSvc          tenantsvc.TenantProcessor
+	UserSvc            usersvc.UserProcessor
+	ConsortiumSvc      consortiumsvc.ConsortiumProcessor
+	UISvc              uisvc.UIProcessor
+	SearchSvc          searchsvc.SearchProcessor
+	InterceptModuleSvc interceptmodulesvc.InterceptModuleProcessor
 }
 
 func New(action *action.Action, logger *slog.Logger) *RunConfig {
@@ -63,31 +65,33 @@ func New(action *action.Action, logger *slog.Logger) *RunConfig {
 	awsSvc := awssvc.New(action)
 	registrySvc := registrysvc.New(action, httpClient, awsSvc)
 	moduleEnv := moduleenv.New(action)
+	moduleSvc := modulesvc.New(action, httpClient, dockerClient, registrySvc, moduleEnv)
 	userSvc := usersvc.New(action, httpClient)
 	consortiumSvc := consortiumsvc.New(action, httpClient, userSvc)
 	tenantSvc := tenantsvc.New(action, consortiumSvc)
 	managementSvc := managementsvc.New(action, httpClient, tenantSvc)
 
 	return &RunConfig{
-		Action:        action,
-		Logger:        logger,
-		GitClient:     gitclient,
-		HTTPClient:    httpClient,
-		DockerClient:  dockerClient,
-		VaultClient:   vaultClient,
-		AWSSvc:        awsSvc,
-		KongSvc:       kongsvc.New(action, httpClient),
-		KafkaSvc:      kafkasvc.New(action),
-		KeycloakSvc:   keycloaksvc.New(action, httpClient, vaultClient, managementSvc),
-		RegistrySvc:   registrySvc,
-		ModuleParams:  moduleparams.New(action),
-		ModuleEnv:     moduleEnv,
-		ModuleSvc:     modulesvc.New(action, httpClient, dockerClient, registrySvc, moduleEnv),
-		ManagementSvc: managementSvc,
-		TenantSvc:     tenantSvc,
-		UserSvc:       userSvc,
-		ConsortiumSvc: consortiumSvc,
-		UISvc:         uisvc.New(action, gitclient, dockerClient, tenantSvc),
-		SearchSvc:     searchsvc.New(action, httpClient),
+		Action:             action,
+		Logger:             logger,
+		GitClient:          gitclient,
+		HTTPClient:         httpClient,
+		DockerClient:       dockerClient,
+		VaultClient:        vaultClient,
+		AWSSvc:             awsSvc,
+		KongSvc:            kongsvc.New(action, httpClient),
+		KafkaSvc:           kafkasvc.New(action),
+		KeycloakSvc:        keycloaksvc.New(action, httpClient, vaultClient, managementSvc),
+		RegistrySvc:        registrySvc,
+		ModuleParams:       moduleparams.New(action),
+		ModuleEnv:          moduleEnv,
+		ModuleSvc:          moduleSvc,
+		ManagementSvc:      managementSvc,
+		TenantSvc:          tenantSvc,
+		UserSvc:            userSvc,
+		ConsortiumSvc:      consortiumSvc,
+		UISvc:              uisvc.New(action, gitclient, dockerClient, tenantSvc),
+		SearchSvc:          searchsvc.New(action, httpClient),
+		InterceptModuleSvc: interceptmodulesvc.New(action, moduleSvc, managementSvc),
 	}
 }

@@ -32,24 +32,21 @@ var deploySystemCmd = &cobra.Command{
 	Short: "Deploy system",
 	Long:  `Deploy all system containers.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.DeploySystem)
+		run, err := New(action.DeploySystem)
 		if err != nil {
 			return err
 		}
 
-		return r.DeploySystem()
+		return run.DeploySystem()
 	},
 }
 
-func (r *Run) DeploySystem() error {
-	err := r.CloneUpdateRepositories()
-	if err != nil {
+func (run *Run) DeploySystem() error {
+	if err := run.CloneUpdateRepositories(); err != nil {
 		return err
 	}
-
 	if actionParams.BuildImages {
-		err := r.BuildSystem()
-		if err != nil {
+		if err := run.BuildSystem(); err != nil {
 			return err
 		}
 	}
@@ -57,24 +54,21 @@ func (r *Run) DeploySystem() error {
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}
 	if actionParams.OnlyRequired {
 		initialRequiredContainers := constant.GetInitialRequiredContainers()
-		finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(r.RunConfig.Action.Name, initialRequiredContainers, r.RunConfig.Action.ConfigBackendModules)
+		finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(run.Config.Action.Name, initialRequiredContainers, run.Config.Action.ConfigBackendModules)
 		subCommand = append(subCommand, finalRequiredContainers...)
 	}
 
-	slog.Info(r.RunConfig.Action.Name, "text", "DEPLOYING SYSTEM CONTAINERS")
-	dir, err := helpers.GetHomeMiscDir(r.RunConfig.Action.Name)
+	slog.Info(run.Config.Action.Name, "text", "DEPLOYING SYSTEM CONTAINERS")
+	dir, err := helpers.GetHomeMiscDir(run.Config.Action.Name)
 	if err != nil {
 		return err
 	}
-
-	err = helpers.ExecFromDir(exec.Command("docker", subCommand...), dir)
-	if err != nil {
+	if err := helpers.ExecFromDir(exec.Command("docker", subCommand...), dir); err != nil {
 		return err
 	}
-
-	slog.Info(r.RunConfig.Action.Name, "text", "WAITING FOR SYSTEM CONTAINERS TO BECOME READY")
+	slog.Info(run.Config.Action.Name, "text", "WAITING FOR SYSTEM CONTAINERS TO BECOME READY")
 	time.Sleep(constant.DeploySystemWait)
-	slog.Info(r.RunConfig.Action.Name, "text", "All system containers are ready")
+	slog.Info(run.Config.Action.Name, "text", "All system containers are ready")
 
 	return nil
 }
@@ -83,5 +77,5 @@ func init() {
 	rootCmd.AddCommand(deploySystemCmd)
 	deploySystemCmd.PersistentFlags().BoolVarP(&actionParams.BuildImages, "buildImages", "b", false, "Build Docker images")
 	deploySystemCmd.PersistentFlags().BoolVarP(&actionParams.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
-	deploySystemCmd.PersistentFlags().BoolVarP(&actionParams.OnlyRequired, "onlyRequired", "R", false, "Use only required system containers")
+	deploySystemCmd.PersistentFlags().BoolVarP(&actionParams.OnlyRequired, "onlyRequired", "q", false, "Use only required system containers")
 }

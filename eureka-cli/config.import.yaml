@@ -220,7 +220,7 @@ backend-modules:
   ### Inventory Modules
   mod-inventory-storage:
   mod-inventory:
-    port-server: 9403
+    private-port: 9403
   mod-quick-marc:
   ### Data Import Modules
   mod-data-import:
@@ -252,7 +252,7 @@ backend-modules:
     deploy-module: false
   mod-circulation:
     deploy-module: false
-    port-server: 9801
+    private-port: 9801
   mod-pubsub:
     deploy-module: false
     disable-system-user: true

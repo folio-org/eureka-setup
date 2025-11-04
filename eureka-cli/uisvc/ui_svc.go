@@ -75,8 +75,8 @@ func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
 
 func (us *UISvc) PrepareImage(tenantName string) (string, error) {
 	imageName := fmt.Sprintf("platform-complete-ui-%s", tenantName)
-	if us.Action.ActionParams.BuildImages {
-		outputDir, err := us.CloneAndUpdateRepository(us.Action.ActionParams.UpdateCloned)
+	if us.Action.Params.BuildImages {
+		outputDir, err := us.CloneAndUpdateRepository(us.Action.Params.UpdateCloned)
 		if err != nil {
 			return "", err
 		}

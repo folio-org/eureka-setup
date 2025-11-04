@@ -29,27 +29,27 @@ var removeUsersCmd = &cobra.Command{
 	Short: "Create users",
 	Long:  `Create all users.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.RemoveUsers)
+		run, err := New(action.RemoveUsers)
 		if err != nil {
 			return err
 		}
 
-		return r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
-			return r.RemoveUsers(consortiumName, tenantType)
+		return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+			return run.RemoveUsers(consortiumName, tenantType)
 		})
 	},
 }
 
-func (r *Run) RemoveUsers(consortiumName string, tenantType constant.TenantType) error {
-	return r.TenantPartition(consortiumName, tenantType, func(configTenant string, tenantType constant.TenantType) error {
-		slog.Info(r.RunConfig.Action.Name, "text", "REMOVING USERS FOR TENANT", "tenant", configTenant)
-		keycloakAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakAccessToken(configTenant)
+func (run *Run) RemoveUsers(consortiumName string, tenantType constant.TenantType) error {
+	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
+		slog.Info(run.Config.Action.Name, "text", "REMOVING USERS FOR TENANT", "tenant", configTenant)
+		keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
 		if err != nil {
 			return err
 		}
-		r.RunConfig.Action.KeycloakAccessToken = keycloakAccessToken
+		run.Config.Action.KeycloakAccessToken = keycloakAccessToken
 
-		return r.RunConfig.KeycloakSvc.RemoveUsers(configTenant)
+		return run.Config.KeycloakSvc.RemoveUsers(configTenant)
 	})
 }
 

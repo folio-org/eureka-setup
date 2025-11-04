@@ -1,6 +1,8 @@
 package constant
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	// Command wait durations
@@ -48,14 +50,9 @@ const (
 	HTTPClientForceAttemptHTTP2      = false
 
 	// Retry HTTP client properties
-	RetryHTTPClientRetryMax     = 30
-	RetryHTTPClientRetryWaitMin = 5 * time.Second
-	RetryHTTPClientRetryWaitMax = 10 * time.Second
-
-	// Container types
-	ManagementType = "management"
-	ModuleType     = "module"
-	SidecarType    = "sidecar"
+	RetryHTTPClientRetryMax     = 3
+	RetryHTTPClientRetryWaitMin = 2 * time.Second
+	RetryHTTPClientRetryWaitMax = 5 * time.Second
 
 	SidecarProjectName = "folio-module-sidecar"
 
@@ -124,13 +121,13 @@ const (
 	DockerComposeWorkDir = "./misc"
 
 	// Container network properties
-	NetworkID       = "eureka"
-	NetworkAlias    = "eureka-net"
-	DockerHostname  = "host.docker.internal"
-	DockerGatewayIP = "172.17.0.1"
-	HostIP          = "0.0.0.0"
-	ServerPort      = "8081"
-	DebugPort       = "5005"
+	NetworkID         = "eureka"
+	NetworkAlias      = "eureka-net"
+	DockerHostname    = "host.docker.internal"
+	DockerGatewayIP   = "172.17.0.1"
+	HostIP            = "0.0.0.0"
+	PrivateServerPort = "8081"
+	PrivateDebugPort  = "5005"
 
 	// Container regexp patterns
 	ManagementModulePattern               = "mgr-"
@@ -200,13 +197,25 @@ const (
 	ImportProfile    = "import"
 )
 
+// Container types
+const (
+	ManagementType = "management"
+	ModuleType     = "module"
+	SidecarType    = "sidecar"
+)
+
+func GetContainerTypes() []string {
+	return []string{ModuleType, SidecarType, ManagementType}
+}
+
+// Tenant types
 type TenantType string
 
 const (
-	All     TenantType = ""
-	Default TenantType = "default"
-	Central TenantType = "central"
-	Member  TenantType = "member"
+	All     = ""
+	Default = "default"
+	Central = "central"
+	Member  = "member"
 )
 
 func GetTenantTypes() []TenantType {

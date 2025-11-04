@@ -48,11 +48,11 @@ func (ss *SearchSvc) ReindexInventoryRecords(tenantName string) error {
 			continue
 		}
 		if len(job.Errors) > 0 {
-			slog.Warn(ss.Action.Name, "text", "Failed to reindex inventory records with error type", "tenant", tenantName, "record", record, "errorType", job.Errors[0].Type)
+			slog.Warn(ss.Action.Name, "text", "Reindex inventory records was unsuccessful", "tenant", tenantName, "record", record, "errorType", job.Errors[0].Type)
 			continue
 		}
 		if job.ID == "" {
-			slog.Warn(ss.Action.Name, "text", "Failed to reindex inventory records with no job ID", "tenant", tenantName, "record", record)
+			slog.Warn(ss.Action.Name, "text", "Reindex inventory records was unsuccessful with job not being created", "tenant", tenantName, "record", record)
 			continue
 		}
 		slog.Info(ss.Action.Name, "text", "Reindexed inventory records", "tenant", tenantName, "record", record, "jobId", job.ID, "jobStatus", job.JobStatus)

@@ -94,8 +94,8 @@ func (cs *ConsortiumSvc) GetAdminUsername(centralTenant string, consortiumUsers 
 	return ""
 }
 
-func (cs *ConsortiumSvc) getSortableIsCentral(mapEntry map[string]any) int {
-	if helpers.GetBool(mapEntry, field.TenantsCentralTenantEntry) {
+func (cs *ConsortiumSvc) getSortableIsCentral(entry map[string]any) int {
+	if helpers.GetBool(entry, field.TenantsCentralTenantEntry) {
 		return 1
 	}
 

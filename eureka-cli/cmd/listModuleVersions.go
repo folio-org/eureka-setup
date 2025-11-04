@@ -24,8 +24,6 @@ import (
 	"strings"
 
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/httpclient"
 	"github.com/spf13/cobra"
@@ -38,30 +36,26 @@ var listModuleVersionsCmd = &cobra.Command{
 	Short: "List module versions",
 	Long:  `List module versions using the registry URL from config.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.ListModuleVersions)
+		run, err := New(action.ListModuleVersions)
 		if err != nil {
 			return err
 		}
 
-		err = r.ListModuleVersions()
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return run.ListModuleVersions()
 	},
 }
 
-func (r *Run) ListModuleVersions() error {
+func (run *Run) ListModuleVersions() error {
 	if actionParams.ID != "" {
-		return r.getModuleDescriptorByID()
+		return run.getModuleDescriptorByID()
 	}
 
-	return r.listModuleVersionsSortedDescendingOrder()
+	return run.listModuleVersionsSortedDescendingOrder()
 }
 
-func (r *Run) getModuleDescriptorByID() error {
-	httpResponse, err := r.RunConfig.HTTPClient.GetReturnResponse(fmt.Sprintf("%s/_/proxy/modules/%s", r.RunConfig.Action.ConfigRegistryURL, actionParams.ID), map[string]string{})
+func (run *Run) getModuleDescriptorByID() error {
+	requestURL := fmt.Sprintf("%s/_/proxy/modules/%s", run.Config.Action.ConfigRegistryURL, actionParams.ID)
+	httpResponse, err := run.Config.HTTPClient.GetReturnResponse(requestURL, map[string]string{})
 	if err != nil {
 		return err
 	}
@@ -72,30 +66,24 @@ func (r *Run) getModuleDescriptorByID() error {
 		if err != nil {
 			return err
 		}
-
-		idx := strings.Index(string(respBytes), constant.NewLinePattern)
-		if idx == -1 {
-			return errors.EmptyLineNotFound(actionParams.ID)
-		}
-
-		fmt.Println(string([]byte(respBytes[idx:])))
+		fmt.Println(string(respBytes))
 	}
 
 	return nil
 }
 
-func (r *Run) listModuleVersionsSortedDescendingOrder() error {
-	modulesData, err := r.RunConfig.HTTPClient.GetRetryDecodeReturnAny(fmt.Sprintf("%s/_/proxy/modules", r.RunConfig.Action.ConfigRegistryURL), map[string]string{})
+func (run *Run) listModuleVersionsSortedDescendingOrder() error {
+	requestURL := fmt.Sprintf("%s/_/proxy/modules", run.Config.Action.ConfigRegistryURL)
+	modulesData, err := run.Config.HTTPClient.GetRetryDecodeReturnAny(requestURL, map[string]string{})
 	if err != nil {
 		return err
 	}
 
 	var versions []string
 	for _, value := range modulesData.([]any) {
-		mapEntry := value.(map[string]any)
-
-		if helpers.MatchesModuleName(mapEntry["id"].(string), actionParams.ModuleName) {
-			versions = append(versions, mapEntry["id"].(string))
+		entry := value.(map[string]any)
+		if helpers.MatchesModuleName(entry["id"].(string), actionParams.ModuleName) {
+			versions = append(versions, entry["id"].(string))
 		}
 	}
 
@@ -106,7 +94,7 @@ func (r *Run) listModuleVersionsSortedDescendingOrder() error {
 	})
 
 	for idx, version := range versions {
-		if idx >= actionParams.Lines {
+		if idx >= actionParams.Versions {
 			break
 		}
 		fmt.Println(version)
@@ -117,9 +105,9 @@ func (r *Run) listModuleVersionsSortedDescendingOrder() error {
 
 func init() {
 	rootCmd.AddCommand(listModuleVersionsCmd)
-	listModuleVersionsCmd.PersistentFlags().StringVarP(&actionParams.ModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders (required)")
+	listModuleVersionsCmd.PersistentFlags().StringVarP(&actionParams.ModuleName, "moduleName", "n", "", "Module name, e.g. mod-orders")
 	listModuleVersionsCmd.PersistentFlags().StringVarP(&actionParams.ID, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021")
-	listModuleVersionsCmd.PersistentFlags().IntVarP(&actionParams.Lines, "lines", "L", 5, "Number of lines, e.g. 5")
+	listModuleVersionsCmd.PersistentFlags().IntVarP(&actionParams.Versions, "versions", "v", 5, "Number of versions, e.g. 5")
 	if err := listModuleVersionsCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
 		slog.Error("failed to mark moduleName flag as required", "error", err)
 		os.Exit(1)

@@ -29,7 +29,8 @@ type ManagementApplicationManager interface {
 	GetApplications() (models.ApplicationsResponse, error)
 	CreateApplications(extract *models.RegistryModuleExtract) error
 	RemoveApplication(applicationID string) error
-	UpdateModuleDiscovery(id string, sidecarURL string, restore bool, portServer string) error
+	GetModuleDiscovery(name string) (models.ModuleDiscoveryResponse, error)
+	UpdateModuleDiscovery(id string, sidecarURL string, restore bool) error
 }
 
 // ManagementSvc provides functionality for management operations including applications and tenants
@@ -68,10 +69,10 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 	var (
 		backendModules            []map[string]string
 		frontendModules           []map[string]string
+		discoveryModules          []map[string]string
+		dependencies              map[string]any
 		backendModuleDescriptors  []any
 		frontendModuleDescriptors []any
-		dependencies              map[string]any
-		discoveryModules          []map[string]string
 	)
 	if len(ms.Action.ConfigApplicationDependencies) > 0 {
 		dependencies = ms.Action.ConfigApplicationDependencies
@@ -131,6 +132,7 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 						return err
 					}
 					extract.ModuleDescriptors[module.ID] = moduleDescriptorsMapResp
+					slog.Info(ms.Action.Name, "text", "Successfully loaded descriptor from the remote", "module", module.ID)
 				}
 			}
 
@@ -223,14 +225,33 @@ func (ms *ManagementSvc) RemoveApplication(applicationID string) error {
 	return nil
 }
 
-func (ms *ManagementSvc) UpdateModuleDiscovery(id string, sidecarURL string, restore bool, portServer string) error {
-	id = strings.ReplaceAll(id, ":", "-")
+func (ms *ManagementSvc) GetModuleDiscovery(name string) (models.ModuleDiscoveryResponse, error) {
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/modules/discovery?query=name==%s&limit=1", name))
+	httpResponse, err := ms.HTTPClient.GetReturnResponse(requestURL, map[string]string{})
+	if err != nil {
+		return models.ModuleDiscoveryResponse{}, err
+	}
+	defer httpclient.CloseResponse(httpResponse)
+	if httpResponse == nil {
+		return models.ModuleDiscoveryResponse{}, nil
+	}
+
+	var moduleDiscovery models.ModuleDiscoveryResponse
+	err = json.NewDecoder(httpResponse.Body).Decode(&moduleDiscovery)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return models.ModuleDiscoveryResponse{}, err
+	}
+
+	return moduleDiscovery, nil
+}
+
+func (ms *ManagementSvc) UpdateModuleDiscovery(id string, sidecarURL string, restore bool) error {
 	name := helpers.GetModuleNameFromID(id)
 	if sidecarURL == "" || restore {
 		if strings.HasPrefix(name, "edge") {
-			sidecarURL = fmt.Sprintf("http://%s.eureka:%s", name, portServer)
+			sidecarURL = fmt.Sprintf("http://%s.eureka:%s", name, constant.PrivateServerPort)
 		} else {
-			sidecarURL = fmt.Sprintf("http://%s-sc.eureka:%s", name, portServer)
+			sidecarURL = fmt.Sprintf("http://%s-sc.eureka:%s", name, constant.PrivateServerPort)
 		}
 	}
 
@@ -249,7 +270,7 @@ func (ms *ManagementSvc) UpdateModuleDiscovery(id string, sidecarURL string, res
 	if err != nil {
 		return err
 	}
-	slog.Info(ms.Action.Name, "text", "Updated application module discovery with sidecar URL", "module", name, "sidecarUrl", sidecarURL)
+	slog.Info(ms.Action.Name, "text", "Updated application module discovery with new sidecar URL", "module", name, "sidecarUrl", sidecarURL)
 
 	return nil
 }

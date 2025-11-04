@@ -20,7 +20,7 @@ func (l *LoggingRoundTripper) RoundTrip(httpRequest *http.Request) (*http.Respon
 	httpResponse, err := l.next.RoundTrip(httpRequest)
 	duration := time.Since(start)
 	if err != nil {
-		l.logger.Error("HTTP request failed", "error", err, "duration", duration)
+		l.logger.Debug("HTTP request failed", "error", err, "duration", duration)
 
 		return httpResponse, err
 	}

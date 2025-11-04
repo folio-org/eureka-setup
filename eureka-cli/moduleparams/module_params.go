@@ -1,7 +1,6 @@
 package moduleparams
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 	"runtime"
@@ -18,8 +17,8 @@ import (
 
 // ModuleParamsProcessor defines the interface for reading module parameters from configuration
 type ModuleParamsProcessor interface {
-	ReadBackendModulesFromConfig(managementOnly bool) (map[string]models.BackendModule, error)
-	ReadFrontendModulesFromConfig() (map[string]models.FrontendModule, error)
+	ReadBackendModulesFromConfig(managementOnly bool, verbose bool) (map[string]models.BackendModule, error)
+	ReadFrontendModulesFromConfig(verbose bool) (map[string]models.FrontendModule, error)
 }
 
 // ModuleParams provides functionality for parsing and processing module configuration parameters
@@ -32,7 +31,7 @@ func New(action *action.Action) *ModuleParams {
 	return &ModuleParams{Action: action}
 }
 
-func (mp *ModuleParams) ReadBackendModulesFromConfig(managementOnly bool) (map[string]models.BackendModule, error) {
+func (mp *ModuleParams) ReadBackendModulesFromConfig(managementOnly bool, verbose bool) (map[string]models.BackendModule, error) {
 	if len(mp.Action.ConfigBackendModules) == 0 {
 		slog.Info(mp.Action.Name, "text", "No backend modules were read")
 		return make(map[string]models.BackendModule), nil
@@ -40,7 +39,7 @@ func (mp *ModuleParams) ReadBackendModulesFromConfig(managementOnly bool) (map[s
 
 	backendModules := make(map[string]models.BackendModule)
 	for name, value := range mp.Action.ConfigBackendModules {
-		if managementOnly && !mp.IsManagementModule(name) || !managementOnly && mp.IsManagementModule(name) {
+		if managementOnly && !mp.isManagementModule(name) || !managementOnly && mp.isManagementModule(name) {
 			continue
 		}
 
@@ -55,16 +54,18 @@ func (mp *ModuleParams) ReadBackendModulesFromConfig(managementOnly bool) (map[s
 		}
 
 		backendModules[name] = *backendModule
-		moduleInfo := name
-		if properties.Version != nil {
-			moduleInfo = fmt.Sprintf("%s with fixed version %s", name, *properties.Version)
-		}
-
 		moduleServerPort := backendModules[name].ModuleExposedServerPort
 		moduleDebugPort := backendModules[name].ModuleExposedDebugPort
 		sidecarServerPort := backendModules[name].SidecarExposedServerPort
 		sidecarDebugPort := backendModules[name].SidecarExposedDebugPort
-		slog.Info(mp.Action.Name, "text", "Read backend module with port reserve", "module", moduleInfo, "port1", moduleServerPort, "port2", moduleDebugPort, "port3", sidecarServerPort, "port4", sidecarDebugPort)
+
+		if verbose {
+			if properties.Version == nil {
+				slog.Info(mp.Action.Name, "text", "Read backend module", "module", name, "port1", moduleServerPort, "port2", moduleDebugPort, "port3", sidecarServerPort, "port4", sidecarDebugPort)
+			} else {
+				slog.Info(mp.Action.Name, "text", "Read backend module", "module", name, "version", *properties.Version, "port1", moduleServerPort, "port2", moduleDebugPort, "port3", sidecarServerPort, "port4", sidecarDebugPort)
+			}
+		}
 	}
 
 	return backendModules, nil
@@ -86,17 +87,9 @@ func (mp *ModuleParams) createBackendModule(properties models.BackendModulePrope
 	return models.NewBackendModule(mp.Action, properties)
 }
 
-func (mp *ModuleParams) IsManagementModule(name string) bool {
-	return strings.HasPrefix(name, constant.ManagementModulePattern)
-}
-
-func (mp *ModuleParams) IsEdgeModule(name string) bool {
-	return strings.HasPrefix(name, constant.EdgeModulePattern)
-}
-
 func (mp *ModuleParams) createDefaultBackendProperties(name string) (properties models.BackendModuleProperties, err error) {
 	properties.DeployModule = true
-	if !mp.IsManagementModule(name) && !mp.IsEdgeModule(name) {
+	if !mp.isManagementModule(name) && !mp.isEdgeModule(name) {
 		properties.DeploySidecar = helpers.BoolP(true)
 	}
 
@@ -104,7 +97,7 @@ func (mp *ModuleParams) createDefaultBackendProperties(name string) (properties 
 	if err != nil {
 		return models.BackendModuleProperties{}, err
 	}
-	properties.PortServer = mp.getDefaultPortServer()
+	properties.PrivatePort = mp.getDefaultPrivatePort()
 	properties.Env = make(map[string]any)
 	properties.Resources = make(map[string]any)
 	properties.Volumes = []string{}
@@ -112,33 +105,41 @@ func (mp *ModuleParams) createDefaultBackendProperties(name string) (properties 
 	return properties, nil
 }
 
+func (mp *ModuleParams) isManagementModule(name string) bool {
+	return strings.HasPrefix(name, constant.ManagementModulePattern)
+}
+
+func (mp *ModuleParams) isEdgeModule(name string) bool {
+	return strings.HasPrefix(name, constant.EdgeModulePattern)
+}
+
 func (mp *ModuleParams) createConfigurableBackendProperties(value any, name string) (properties models.BackendModuleProperties, err error) {
-	mapEntry := value.(map[string]any)
-	properties.DeployModule = helpers.GetAnyOrDefault(mapEntry, field.ModuleDeployModuleEntry, true).(bool)
+	entry := value.(map[string]any)
+	properties.DeployModule = helpers.GetAnyOrDefault(entry, field.ModuleDeployModuleEntry, true).(bool)
 	if !strings.HasPrefix(name, constant.ManagementModulePattern) && !strings.HasPrefix(name, constant.EdgeModulePattern) {
-		properties.DeploySidecar = mp.getDeploySidecar(mapEntry)
+		properties.DeploySidecar = mp.getDeploySidecar(entry)
 	}
 
-	properties.UseVault = helpers.GetAnyOrDefault(mapEntry, field.ModuleUseVaultEntry, false).(bool)
-	properties.DisableSystemUser = helpers.GetAnyOrDefault(mapEntry, field.ModuleDisableSystemUserEntry, false).(bool)
-	properties.UseOkapiURL = helpers.GetAnyOrDefault(mapEntry, field.ModuleUseOkapiURLEntry, false).(bool)
-	properties.LocalDescriptorPath = helpers.GetAnyOrDefault(mapEntry, field.ModuleLocalDescriptorPathEntry, "").(string)
+	properties.UseVault = helpers.GetAnyOrDefault(entry, field.ModuleUseVaultEntry, false).(bool)
+	properties.DisableSystemUser = helpers.GetAnyOrDefault(entry, field.ModuleDisableSystemUserEntry, false).(bool)
+	properties.UseOkapiURL = helpers.GetAnyOrDefault(entry, field.ModuleUseOkapiURLEntry, false).(bool)
+	properties.LocalDescriptorPath = helpers.GetAnyOrDefault(entry, field.ModuleLocalDescriptorPathEntry, "").(string)
 	if properties.LocalDescriptorPath != "" {
 		if _, err := os.Stat(properties.LocalDescriptorPath); os.IsNotExist(err) {
 			return models.BackendModuleProperties{}, errors.LocalDescriptorNotFound(properties.LocalDescriptorPath, name)
 		}
 	}
 
-	properties.Version = mp.getVersion(mapEntry)
-	properties.Port, err = mp.getPort(properties.DeployModule, mapEntry)
+	properties.Version = mp.getVersion(entry)
+	properties.Port, err = mp.getPort(entry, properties.DeployModule)
 	if err != nil {
 		return models.BackendModuleProperties{}, err
 	}
 
-	properties.PortServer = mp.getPortServer(mapEntry)
-	properties.Env = helpers.GetAnyOrDefault(mapEntry, field.ModuleEnvEntry, make(map[string]any)).(map[string]any)
-	properties.Resources = helpers.GetAnyOrDefault(mapEntry, field.ModuleResourceEntry, make(map[string]any)).(map[string]any)
-	properties.Volumes, err = mp.getVolumes(mapEntry)
+	properties.PrivatePort = mp.getPrivatePort(entry)
+	properties.Env = helpers.GetAnyOrDefault(entry, field.ModuleEnvEntry, make(map[string]any)).(map[string]any)
+	properties.Resources = helpers.GetAnyOrDefault(entry, field.ModuleResourceEntry, make(map[string]any)).(map[string]any)
+	properties.Volumes, err = mp.getVolumes(entry)
 	if err != nil {
 		return models.BackendModuleProperties{}, err
 	}
@@ -146,37 +147,37 @@ func (mp *ModuleParams) createConfigurableBackendProperties(value any, name stri
 	return properties, nil
 }
 
-func (mp *ModuleParams) getDeploySidecar(mapEntry map[string]any) *bool {
-	if mapEntry[field.ModuleDeploySidecarEntry] == nil {
+func (mp *ModuleParams) getDeploySidecar(entry map[string]any) *bool {
+	if entry[field.ModuleDeploySidecarEntry] == nil {
 		return helpers.BoolP(true)
 	}
 
-	return helpers.BoolP(mapEntry[field.ModuleDeploySidecarEntry].(bool))
+	return helpers.BoolP(entry[field.ModuleDeploySidecarEntry].(bool))
 }
 
-func (mp *ModuleParams) getVersion(mapEntry map[string]any) *string {
-	if mapEntry[field.ModuleVersionEntry] == nil {
+func (mp *ModuleParams) getVersion(entry map[string]any) *string {
+	if entry[field.ModuleVersionEntry] == nil {
 		return nil
 	}
 
-	_, ok := mapEntry[field.ModuleVersionEntry].(float64)
+	_, ok := entry[field.ModuleVersionEntry].(float64)
 	if ok {
-		return helpers.StringP(strconv.FormatFloat(mapEntry[field.ModuleVersionEntry].(float64), 'f', -1, 64))
+		return helpers.StringP(strconv.FormatFloat(entry[field.ModuleVersionEntry].(float64), 'f', -1, 64))
 	}
 
-	return helpers.StringP(mapEntry[field.ModuleVersionEntry].(string))
+	return helpers.StringP(entry[field.ModuleVersionEntry].(string))
 }
 
-func (mp *ModuleParams) getPort(deployModule bool, mapEntry map[string]any) (*int, error) {
+func (mp *ModuleParams) getPort(entry map[string]any, deployModule bool) (*int, error) {
 	if !deployModule {
 		return helpers.IntP(0), nil
 	}
 
-	if mapEntry[field.ModulePortEntry] == nil {
+	if entry[field.ModulePortEntry] == nil {
 		return mp.getDefaultPort()
 	}
 
-	return helpers.IntP(mapEntry[field.ModulePortEntry].(int)), nil
+	return helpers.IntP(entry[field.ModulePortEntry].(int)), nil
 }
 
 func (mp *ModuleParams) getDefaultPort() (*int, error) {
@@ -188,29 +189,28 @@ func (mp *ModuleParams) getDefaultPort() (*int, error) {
 	return helpers.IntP(port), nil
 }
 
-func (mp *ModuleParams) getPortServer(mapEntry map[string]any) *int {
-	if mapEntry[field.ModulePortServerEntry] == nil {
-		return mp.getDefaultPortServer()
+func (mp *ModuleParams) getPrivatePort(entry map[string]any) *int {
+	if entry[field.ModulePrivatePortEntry] == nil {
+		return mp.getDefaultPrivatePort()
 	}
 
-	return helpers.IntP(mapEntry[field.ModulePortServerEntry].(int))
+	return helpers.IntP(entry[field.ModulePrivatePortEntry].(int))
 }
 
-func (mp *ModuleParams) getDefaultPortServer() *int {
-	defaultServerPort, _ := strconv.Atoi(constant.ServerPort)
+func (mp *ModuleParams) getDefaultPrivatePort() *int {
+	defaultServerPort, _ := strconv.Atoi(constant.PrivateServerPort)
 
 	return helpers.IntP(defaultServerPort)
 }
 
-func (mp *ModuleParams) getVolumes(mapEntry map[string]any) ([]string, error) {
-	if mapEntry[field.ModuleVolumesEntry] == nil {
+func (mp *ModuleParams) getVolumes(entry map[string]any) ([]string, error) {
+	if entry[field.ModuleVolumesEntry] == nil {
 		return []string{}, nil
 	}
 
 	var volumes []string
-	for _, value := range mapEntry[field.ModuleVolumesEntry].([]any) {
+	for _, value := range entry[field.ModuleVolumesEntry].([]any) {
 		var volume = value.(string)
-		// Windows paths are hard to set, this is why we have this to automatically resolve path location
 		if runtime.GOOS == "windows" && strings.Contains(volume, "$EUREKA") {
 			homeConfigDir, err := helpers.GetHomeDirPath()
 			if err != nil {
@@ -231,7 +231,7 @@ func (mp *ModuleParams) getVolumes(mapEntry map[string]any) ([]string, error) {
 	return volumes, nil
 }
 
-func (mp *ModuleParams) ReadFrontendModulesFromConfig() (map[string]models.FrontendModule, error) {
+func (mp *ModuleParams) ReadFrontendModulesFromConfig(verbose bool) (map[string]models.FrontendModule, error) {
 	frontendModules := make(map[string]models.FrontendModule)
 	configModules := []map[string]any{mp.Action.ConfigFrontendModules, mp.Action.ConfigCustomFrontendModules}
 	if len(configModules) == 0 {
@@ -248,15 +248,15 @@ func (mp *ModuleParams) ReadFrontendModulesFromConfig() (map[string]models.Front
 			)
 
 			if value != nil {
-				mapEntry := value.(map[string]any)
-				if mapEntry[field.ModuleDeployModuleEntry] != nil {
-					deployModule = mapEntry[field.ModuleDeployModuleEntry].(bool)
+				entry := value.(map[string]any)
+				if entry[field.ModuleDeployModuleEntry] != nil {
+					deployModule = entry[field.ModuleDeployModuleEntry].(bool)
 				}
-				if mapEntry[field.ModuleVersionEntry] != nil {
-					version = helpers.StringP(mapEntry[field.ModuleVersionEntry].(string))
+				if entry[field.ModuleVersionEntry] != nil {
+					version = helpers.StringP(entry[field.ModuleVersionEntry].(string))
 				}
 
-				localDescriptorPath = helpers.GetAnyOrDefault(mapEntry, field.ModuleLocalDescriptorPathEntry, "").(string)
+				localDescriptorPath = helpers.GetAnyOrDefault(entry, field.ModuleLocalDescriptorPathEntry, "").(string)
 				if localDescriptorPath != "" {
 					if _, err := os.Stat(localDescriptorPath); os.IsNotExist(err) {
 						return nil, errors.LocalDescriptorNotFound(localDescriptorPath, name)
@@ -266,12 +266,13 @@ func (mp *ModuleParams) ReadFrontendModulesFromConfig() (map[string]models.Front
 			}
 
 			frontendModules[name] = *models.NewFrontendModule(deployModule, name, version, localDescriptorPath)
-			moduleInfo := name
-			if version != nil {
-				moduleInfo = fmt.Sprintf("name %s with version %s", name, *version)
+			if verbose {
+				if version == nil {
+					slog.Info(mp.Action.Name, "text", "Read frontend module", "module", name)
+				} else {
+					slog.Info(mp.Action.Name, "text", "Read frontend module", "module", name, "version", *version)
+				}
 			}
-
-			slog.Info(mp.Action.Name, "text", "Read frontend module", "module", moduleInfo)
 		}
 	}
 

@@ -41,7 +41,7 @@ func New(action *action.Action, logger *slog.Logger) *HTTPClient {
 }
 
 func (hc *HTTPClient) Ping(url string) error {
-	httpResponse, err := retryablehttp.Get(url)
+	httpResponse, err := hc.retryClient.Get(url)
 	if err != nil {
 		return errors.PingFailed(url, err)
 	}

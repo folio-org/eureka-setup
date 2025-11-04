@@ -31,49 +31,45 @@ var buildAndPushUiCmd = &cobra.Command{
 	Short: "Build and push UI",
 	Long:  `Build and push UI image to DockerHub.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.BuildAndPushUi)
+		run, err := New(action.BuildAndPushUi)
 		if err != nil {
 			return err
 		}
 
-		return r.BuildAndPushUi()
+		return run.BuildAndPushUi()
 	},
 }
 
-func (r *Run) BuildAndPushUi() error {
+func (run *Run) BuildAndPushUi() error {
 	start := time.Now()
+	if err := run.Config.TenantSvc.SetConfigTenantParams(actionParams.Tenant); err != nil {
+		return err
+	}
 
-	err := r.RunConfig.TenantSvc.SetConfigTenantParams(actionParams.Tenant)
+	slog.Info(run.Config.Action.Name, "text", "BUILDING AND PUSHING PLATFORM COMPLETE UI IMAGE TO DOCKER HUB")
+	outputDir, err := run.Config.UISvc.CloneAndUpdateRepository(actionParams.UpdateCloned)
 	if err != nil {
 		return err
 	}
 
-	slog.Info(r.RunConfig.Action.Name, "text", "BUILDING AND PUSHING PLATFORM COMPLETE UI IMAGE TO DOCKER HUB")
-	outputDir, err := r.RunConfig.UISvc.CloneAndUpdateRepository(actionParams.UpdateCloned)
+	imageName, err := run.Config.UISvc.BuildImage(actionParams.Tenant, outputDir)
 	if err != nil {
 		return err
 	}
-
-	imageName, err := r.RunConfig.UISvc.BuildImage(actionParams.Tenant, outputDir)
-	if err != nil {
+	if err := run.Config.DockerClient.PushImage(actionParams.Namespace, imageName); err != nil {
 		return err
 	}
-
-	err = r.RunConfig.DockerClient.PushImage(actionParams.Namespace, imageName)
-	if err != nil {
-		return err
-	}
-	helpers.LogCompletion(r.RunConfig.Action.Name, start)
+	helpers.LogCompletion(run.Config.Action.Name, start)
 
 	return nil
 }
 
 func init() {
 	rootCmd.AddCommand(buildAndPushUiCmd)
-	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.Namespace, "namespace", "n", "", "DockerHub namespace (required)")
-	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.Tenant, "tenant", "t", "", "Tenant (required)")
-	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.PlatformCompleteURL, "PlatformCompleteURL", "P", "http://localhost:3000", "Platform Complete UI url")
-	buildAndPushUiCmd.PersistentFlags().BoolVarP(&actionParams.SingleTenant, "singleTenant", "T", true, "Use for Single Tenant workflow")
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.Namespace, "namespace", "c", "", "DockerHub namespace")
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.Tenant, "tenant", "t", "", "Tenant")
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.PlatformCompleteURL, "platformCompleteURL", "l", "http://localhost:3000", "Platform Complete UI url")
+	buildAndPushUiCmd.PersistentFlags().BoolVarP(&actionParams.SingleTenant, "singleTenant", "w", true, "Use for Single Tenant workflow")
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&actionParams.EnableECSRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&actionParams.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
 	if err := buildAndPushUiCmd.MarkPersistentFlagRequired("namespace"); err != nil {

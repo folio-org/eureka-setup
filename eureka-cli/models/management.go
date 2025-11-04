@@ -52,9 +52,21 @@ type ApplicationModule struct {
 	URL     string `json:"url,omitempty"`
 }
 
+// ApplicationsResponse represents the response containing a list of application descriptors
+type ApplicationsResponse struct {
+	ApplicationDescriptors []map[string]any `json:"applicationDescriptors"`
+	TotalRecords           int              `json:"totalRecords"`
+}
+
 // ModuleDiscoveryRequest represents the payload for registering module discovery information
 type ModuleDiscoveryRequest struct {
 	Discovery []ModuleDiscovery `json:"discovery"`
+}
+
+// ModuleDiscoveryResponse represents the response containing a list of module discovery information
+type ModuleDiscoveryResponse struct {
+	Discovery    []ModuleDiscovery `json:"discovery"`
+	TotalRecords int               `json:"totalRecords"`
 }
 
 // ModuleDiscovery represents discovery information for a deployed module
@@ -63,10 +75,4 @@ type ModuleDiscovery struct {
 	Name     string `json:"name"`
 	Version  string `json:"version"`
 	Location string `json:"location"`
-}
-
-// ApplicationsResponse represents the response containing a list of application descriptors
-type ApplicationsResponse struct {
-	ApplicationDescriptors []map[string]any `json:"applicationDescriptors"`
-	TotalRecords           int              `json:"totalRecords"`
 }

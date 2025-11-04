@@ -29,27 +29,30 @@ var removeTenantEntitlementsCmd = &cobra.Command{
 	Short: "Remove tenant entitlements",
 	Long:  `Remove all tenant entitlements.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.RemoveTenantEntitlements)
+		run, err := New(action.RemoveTenantEntitlements)
 		if err != nil {
 			return err
 		}
 
-		r.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) {
-			_ = r.RemoveUsers(consortiumName, tenantType)
-			_ = r.RemoveRoles(consortiumName, tenantType)
-			_ = r.RemoveTenantEntitlements(consortiumName, tenantType)
-		})
+		return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+			if err := run.RemoveUsers(consortiumName, tenantType); err != nil {
+				return err
+			}
+			if err := run.RemoveRoles(consortiumName, tenantType); err != nil {
+				return err
+			}
 
-		return nil
+			return run.RemoveTenantEntitlements(consortiumName, tenantType)
+		})
 	},
 }
 
-func (r *Run) RemoveTenantEntitlements(consortiumName string, tenantType constant.TenantType) error {
-	slog.Info(r.RunConfig.Action.Name, "text", "REMOVING TENANT ENTITLEMENTS")
-	return r.RunConfig.ManagementSvc.RemoveTenantEntitlements(consortiumName, tenantType, actionParams.PurgeSchemas)
+func (run *Run) RemoveTenantEntitlements(consortiumName string, tenantType constant.TenantType) error {
+	slog.Info(run.Config.Action.Name, "text", "REMOVING TENANT ENTITLEMENTS")
+	return run.Config.ManagementSvc.RemoveTenantEntitlements(consortiumName, tenantType, actionParams.PurgeSchemas)
 }
 
 func init() {
 	rootCmd.AddCommand(removeTenantEntitlementsCmd)
-	removeTenantEntitlementsCmd.PersistentFlags().BoolVarP(&actionParams.PurgeSchemas, "purgeSchemas", "P", false, "Purge schemas in PostgreSQL on uninstallation")
+	removeTenantEntitlementsCmd.PersistentFlags().BoolVarP(&actionParams.PurgeSchemas, "purgeSchemas", "z", false, "Purge schemas in PostgreSQL on uninstallation")
 }

@@ -54,8 +54,12 @@ func RequestFailed(statusCode int, url string) error {
 
 // ==================== Action Errors ====================
 
-func GatewayURLConstructFailed(platform string) error {
-	return fmt.Errorf("failed to construct a gateway url for platform: %s", platform)
+func UnsupportedPlatform(platform, address string) error {
+	return fmt.Errorf("unsupported %s platform for %s", platform, address)
+}
+
+func GatewayURLConstructFailed(platform string, err error) error {
+	return fmt.Errorf("failed to construct a gateway url for %s platform: %w", platform, err)
 }
 
 func NoFreeTCPPort(portStart, portEnd int) error {
@@ -180,6 +184,10 @@ func EmptyLineNotFound(id string) error {
 
 func ImageKeyNotSet(imageName, fieldName string) error {
 	return fmt.Errorf("%w: cannot run image %s, key %s not set in config", ErrConfigMissing, imageName, fieldName)
+}
+
+func ModuleDiscoveryNotFound(moduleName string) error {
+	return fmt.Errorf("%w: module discovery %s in application", ErrNotFound, moduleName)
 }
 
 // ==================== Tenant Errors ====================

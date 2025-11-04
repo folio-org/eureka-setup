@@ -41,12 +41,12 @@ func (us *UISvc) PrepareStripesConfigJS(tenantName string, configPath string) er
 	tenantOptions := fmt.Sprintf(`{%[1]s: {name: "%[1]s", clientId: "%[1]s%s"}}`, tenantName, action.GetConfigEnv("KC_LOGIN_CLIENT_SUFFIX", us.Action.ConfigGlobalEnv))
 	replaceMap := map[string]string{
 		"${kongUrl}":           constant.KongExternalHTTP,
-		"${tenantUrl}":         us.Action.ActionParams.PlatformCompleteURL,
+		"${tenantUrl}":         us.Action.Params.PlatformCompleteURL,
 		"${keycloakUrl}":       constant.KeycloakExternalHTTP,
 		"${hasAllPerms}":       `false`,
-		"${isSingleTenant}":    strconv.FormatBool(us.Action.ActionParams.SingleTenant),
+		"${isSingleTenant}":    strconv.FormatBool(us.Action.Params.SingleTenant),
 		"${tenantOptions}":     tenantOptions,
-		"${enableEcsRequests}": strconv.FormatBool(us.Action.ActionParams.EnableECSRequests),
+		"${enableEcsRequests}": strconv.FormatBool(us.Action.Params.EnableECSRequests),
 	}
 
 	var newReadFileStr = string(readFileBytes)

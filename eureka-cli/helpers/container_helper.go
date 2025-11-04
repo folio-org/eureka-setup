@@ -23,8 +23,7 @@ func NewModuleNetworkConfig() *network.NetworkingConfig {
 func CreateExposedPorts(serverPort int) *nat.PortSet {
 	moduleExposedPorts := make(map[nat.Port]struct{})
 	moduleExposedPorts[nat.Port(strconv.Itoa(serverPort))] = struct{}{}
-	moduleExposedPorts[nat.Port(constant.DebugPort)] = struct{}{}
-
+	moduleExposedPorts[nat.Port(constant.PrivateDebugPort)] = struct{}{}
 	portSet := nat.PortSet(moduleExposedPorts)
 
 	return &portSet
@@ -35,21 +34,17 @@ func CreatePortBindings(hostServerPort int, hostServerDebugPort int, serverPort 
 		serverPortBinding      []nat.PortBinding
 		serverDebugPortBinding []nat.PortBinding
 	)
-
 	serverPortBinding = append(serverPortBinding, nat.PortBinding{
 		HostIP:   constant.HostIP,
 		HostPort: strconv.Itoa(hostServerPort),
 	})
-
 	serverDebugPortBinding = append(serverDebugPortBinding, nat.PortBinding{
 		HostIP:   constant.HostIP,
 		HostPort: strconv.Itoa(hostServerDebugPort),
 	})
-
 	portBindings := make(map[nat.Port][]nat.PortBinding)
 	portBindings[nat.Port(strconv.Itoa(serverPort))] = serverPortBinding
-	portBindings[nat.Port(constant.DebugPort)] = serverDebugPortBinding
-
+	portBindings[nat.Port(constant.PrivateDebugPort)] = serverDebugPortBinding
 	portMap := nat.PortMap(portBindings)
 
 	return &portMap

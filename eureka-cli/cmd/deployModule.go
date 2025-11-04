@@ -26,17 +26,16 @@ var deployModuleCmd = &cobra.Command{
 	Short: "Deploy module",
 	Long:  `Deploy a single module.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.DeployModule)
+		run, err := New(action.DeployModule)
 		if err != nil {
 			return err
 		}
 
-		return r.DeployModule()
+		return run.DeployModule()
 	},
 }
 
-// TODO Add single module deployment
-func (r *Run) DeployModule() error {
+func (run *Run) DeployModule() error {
 	return nil
 }
 

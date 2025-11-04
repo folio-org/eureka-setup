@@ -20,7 +20,7 @@ import (
 	"os"
 
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -30,27 +30,36 @@ var updateModuleDiscoveryCmd = &cobra.Command{
 	Short: "Update module discovery",
 	Long:  `Update module discovery to point to a different sidecar URL.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.UpdateModuleDiscovery)
+		run, err := New(action.UpdateModuleDiscovery)
 		if err != nil {
 			return err
 		}
 
-		return r.UpdateModuleDiscovery(actionParams.SidecarURL)
+		return run.UpdateModuleDiscovery()
 	},
 }
 
-func (r *Run) UpdateModuleDiscovery(sidecarUrl string) error {
-	slog.Info(r.RunConfig.Action.Name, "text", "UPDATING MODULE DISCOVERY URL")
-	return r.RunConfig.ManagementSvc.UpdateModuleDiscovery(actionParams.ID, sidecarUrl, actionParams.Restore, constant.ServerPort)
+func (run *Run) UpdateModuleDiscovery() error {
+	moduleDiscovery, err := run.Config.ManagementSvc.GetModuleDiscovery(run.Config.Action.Params.ModuleName)
+	if err != nil {
+		return err
+	}
+	if len(moduleDiscovery.Discovery) == 0 {
+		return errors.ModuleDiscoveryNotFound(run.Config.Action.Params.ModuleName)
+	}
+	run.Config.Action.Params.ID = moduleDiscovery.Discovery[0].ID
+
+	slog.Info(run.Config.Action.Name, "text", "UPDATING MODULE DISCOVERY URL", "module", run.Config.Action.Params.ModuleName, "id", run.Config.Action.Params.ID)
+	return run.Config.ManagementSvc.UpdateModuleDiscovery(run.Config.Action.Params.ID, run.Config.Action.Params.SidecarURL, run.Config.Action.Params.Restore)
 }
 
 func init() {
 	rootCmd.AddCommand(updateModuleDiscoveryCmd)
-	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&actionParams.ID, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
+	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&actionParams.ModuleName, "moduleName", "n", "", "Module name, e.g. mod-orders")
 	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&actionParams.SidecarURL, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
 	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&actionParams.Restore, "restore", "r", false, "Restore sidecar URL")
-	if err := updateModuleDiscoveryCmd.MarkPersistentFlagRequired("id"); err != nil {
-		slog.Error("failed to mark id flag as required", "error", err)
+	if err := updateModuleDiscoveryCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
+		slog.Error("failed to mark moduleName flag as required", "error", err)
 		os.Exit(1)
 	}
 }

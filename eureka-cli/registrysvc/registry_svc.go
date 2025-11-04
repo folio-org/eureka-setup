@@ -95,13 +95,13 @@ func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, printModule
 					continue
 				}
 
-				mapEntry := value.(map[string]any)
-				if mapEntry[field.ModuleVersionEntry] == nil {
+				entry := value.(map[string]any)
+				if entry[field.ModuleVersionEntry] == nil {
 					continue
 				}
 
 				registryModule := &models.RegistryModule{
-					ID:     fmt.Sprintf("%s-%s", name, mapEntry[field.ModuleVersionEntry].(string)),
+					ID:     fmt.Sprintf("%s-%s", name, entry[field.ModuleVersionEntry].(string)),
 					Action: "enable",
 				}
 				decodedRegistryModules = append(decodedRegistryModules, registryModule)

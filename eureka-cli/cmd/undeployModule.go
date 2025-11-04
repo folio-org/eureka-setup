@@ -31,35 +31,30 @@ var undeployModuleCmd = &cobra.Command{
 	Short: "Undeploy module",
 	Long:  `Undeploy a single module.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.UndeployModule)
+		run, err := New(action.UndeployModule)
 		if err != nil {
 			return err
 		}
 
-		return r.UndeployModule()
+		return run.UndeployModule()
 	},
 }
 
-func (r *Run) UndeployModule() error {
-	slog.Info(r.RunConfig.Action.Name, "text", "UNDEPLOYING MODULE")
-	client, err := r.RunConfig.DockerClient.Create()
+func (run *Run) UndeployModule() error {
+	slog.Info(run.Config.Action.Name, "text", "UNDEPLOYING MODULE")
+	client, err := run.Config.DockerClient.Create()
 	if err != nil {
 		return err
 	}
-	defer r.RunConfig.DockerClient.Close(client)
+	defer run.Config.DockerClient.Close(client)
 
-	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, r.RunConfig.Action.ConfigProfile, actionParams.ModuleName)
-	err = r.RunConfig.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, run.Config.Action.ConfigProfile, actionParams.ModuleName)
+	return run.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
 }
 
 func init() {
 	rootCmd.AddCommand(undeployModuleCmd)
-	undeployModuleCmd.PersistentFlags().StringVarP(&actionParams.ModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders (required)")
+	undeployModuleCmd.PersistentFlags().StringVarP(&actionParams.ModuleName, "moduleName", "n", "", "Module name, e.g. mod-orders")
 	if err := undeployModuleCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
 		slog.Error("failed to mark moduleName flag as required", "error", err)
 		os.Exit(1)

@@ -35,17 +35,17 @@ var getEdgeApiKeyCmd = &cobra.Command{
 	Short: "Get Edge API key",
 	Long:  `Get Edge API key for a tenant`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.GetEdgeApiKey)
+		run, err := New(action.GetEdgeApiKey)
 		if err != nil {
 			return err
 		}
 
-		return r.GetEdgeApiKey()
+		return run.GetEdgeApiKey()
 	},
 }
 
-func (r *Run) GetEdgeApiKey() error {
-	randomStr, err := r.getRandomString(actionParams.Length)
+func (run *Run) GetEdgeApiKey() error {
+	randomStr, err := run.getRandomString(actionParams.Length)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,6 @@ func (r *Run) GetEdgeApiKey() error {
 	if err != nil {
 		return err
 	}
-
 	apiKey := base64.URLEncoding.EncodeToString(payload)
 
 	fmt.Println(apiKey)
@@ -66,14 +65,13 @@ func (r *Run) GetEdgeApiKey() error {
 	return nil
 }
 
-func (r *Run) getRandomString(length int) (string, error) {
+func (run *Run) getRandomString(length int) (string, error) {
 	bytes := make([]byte, length)
 	for i := range length {
 		charsetIdx, err := rand.Int(rand.Reader, big.NewInt(int64(len(constant.Charset))))
 		if err != nil {
 			return "", err
 		}
-
 		bytes[i] = constant.Charset[charsetIdx.Int64()]
 	}
 
@@ -82,8 +80,8 @@ func (r *Run) getRandomString(length int) (string, error) {
 
 func init() {
 	rootCmd.AddCommand(getEdgeApiKeyCmd)
-	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&actionParams.Tenant, "tenant", "t", "", "Tenant (required)")
-	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&actionParams.User, "user", "U", "", "User (required)")
+	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&actionParams.Tenant, "tenant", "t", "", "Tenant")
+	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&actionParams.User, "user", "x", "", "User")
 	getEdgeApiKeyCmd.PersistentFlags().IntVarP(&actionParams.Length, "length", "l", 17, "Salt length")
 	if err := getEdgeApiKeyCmd.MarkPersistentFlagRequired("tenant"); err != nil {
 		slog.Error("failed to mark tenant flag as required", "error", err)

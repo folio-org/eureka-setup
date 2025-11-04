@@ -193,7 +193,7 @@ func (ms *ModuleSvc) DeployModule(client *client.Client, myContainer *models.Con
 		return err
 	}
 	if len(cr.Warnings) > 0 {
-		slog.Warn(ms.Action.Name, "text", "Caught module creation with warning", "container", containerName, "warnings", cr.Warnings)
+		slog.Warn(ms.Action.Name, "text", "Module created with warning", "container", containerName, "warnings", cr.Warnings)
 	}
 
 	err = client.ContainerStart(ctx, cr.ID, container.StartOptions{})

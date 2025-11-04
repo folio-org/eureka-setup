@@ -9,6 +9,27 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 )
 
+// LoggerAdapter adapts slog.Logger to retryablehttp.LeveledLogger interface
+type LoggerAdapter struct {
+	logger *slog.Logger
+}
+
+func (l *LoggerAdapter) Error(msg string, keysAndValues ...any) {
+	l.logger.Error(msg, keysAndValues...)
+}
+
+func (l *LoggerAdapter) Info(msg string, keysAndValues ...any) {
+	l.logger.Info(msg, keysAndValues...)
+}
+
+func (l *LoggerAdapter) Debug(msg string, keysAndValues ...any) {
+	l.logger.Debug(msg, keysAndValues...)
+}
+
+func (l *LoggerAdapter) Warn(msg string, keysAndValues ...any) {
+	l.logger.Warn(msg, keysAndValues...)
+}
+
 func createRetryClient(logger *slog.Logger, customClient *http.Client) *retryablehttp.Client {
 	retryClient := retryablehttp.NewClient()
 	retryClient.HTTPClient = customClient
@@ -27,7 +48,7 @@ func createRetryClient(logger *slog.Logger, customClient *http.Client) *retryabl
 
 		return false, checkErr
 	}
-	retryClient.Logger = logger
+	retryClient.Logger = &LoggerAdapter{logger}
 
 	return retryClient
 }

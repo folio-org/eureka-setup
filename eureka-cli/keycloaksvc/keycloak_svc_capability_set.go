@@ -73,8 +73,8 @@ func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenantName string) error {
 	}
 
 	for _, roleValue := range roles {
-		mapEntry := roleValue.(map[string]any)
-		roleName := ks.Action.Caser.String(mapEntry["name"].(string))
+		entry := roleValue.(map[string]any)
+		roleName := ks.Action.Caser.String(entry["name"].(string))
 		if ks.Action.ConfigRoles[roleName] == nil {
 			continue
 		}
@@ -101,7 +101,7 @@ func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenantName string) error {
 			slog.Info(ks.Action.Name, "text", "Attaching capability sets to role in tenant", "rangeStart", lowerBound, "rangeEnd", upperBound, "total", len(capabilitySets), "role", roleName, "tenant", tenantName)
 
 			payload, err := json.Marshal(map[string]any{
-				"roleId":           mapEntry["id"].(string),
+				"roleId":           entry["id"].(string),
 				"capabilitySetIds": batchCapabilitySetIDs,
 			})
 			if err != nil {
@@ -162,13 +162,13 @@ func (ks *KeycloakSvc) DetachCapabilitySetsFromRoles(tenantName string) error {
 	}
 
 	for _, value := range roles {
-		mapEntry := value.(map[string]any)
-		roleName := ks.Action.Caser.String(mapEntry["name"].(string))
+		entry := value.(map[string]any)
+		roleName := ks.Action.Caser.String(entry["name"].(string))
 		if ks.Action.ConfigRoles[roleName] == nil {
 			continue
 		}
 
-		requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/roles/%s/capability-sets", mapEntry["id"].(string)))
+		requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/roles/%s/capability-sets", entry["id"].(string)))
 		err = ks.HTTPClient.Delete(requestURL, headers)
 		if err != nil {
 			return err

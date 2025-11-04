@@ -20,7 +20,7 @@ type ModuleReadinessChecker interface {
 func (ms *ModuleSvc) CheckModuleReadiness(wg *sync.WaitGroup, errCh chan<- error, moduleName string, port int) {
 	defer wg.Done()
 
-	slog.Info(ms.Action.Name, "text", "Waiting module on port", "module", moduleName, "port", port)
+	slog.Info(ms.Action.Name, "text", "Preparing module readiness check", "module", moduleName, "port", port)
 	requestURL := ms.Action.GetRequestURL(strconv.Itoa(port), "/admin/health")
 	for retryCount := range constant.ModuleReadinessMaxRetries {
 		ready, _ := ms.checkContainerStatusCode(requestURL)

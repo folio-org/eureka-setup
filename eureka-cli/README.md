@@ -65,15 +65,37 @@ By default, public images from DockerHub (folioci & folioorg namespaces) will be
 
 Available flags:
 
+**Global flags (available for all commands):**
+
 | Short | Long                | Description                                                             |
 |-------|---------------------|------------------------------------------------------------------------ |
 | `-p`  | `--profile`         | Select profile (combined, export, search, edge, ecs, ecs-single import) |
 | `-c`  | `--configFile`      | Specify config file path                                                |
 | `-o`  | `--overwriteFiles`  | Overwrite files in .eureka home directory                               |
 | `-d`  | `--enableDebug`     | Enable debug mode                                                       |
-| `-R`  | `--onlyRequired`    | Use only required system containers                                     |
+| `-q`  | `--onlyRequired`    | Use only required system containers (deploySystem, deployApplication)   |
 | `-b`  | `--buildImages`     | Build Docker images                                                     |
 | `-u`  | `--updateCloned`    | Update Git cloned projects                                              |
+
+**Command-specific flags:**
+
+| Short | Long                   | Description                                                | Command(s)                                                       |
+|-------|------------------------|------------------------------------------------------------|------------------------------------------------------------------|
+| `-y`  | `--moduleType`         | Filter by module type (module, sidecar, management)        | listModules                                                      |
+| `-v`  | `--versions`           | Number of versions to display                              | listModuleVersions                                               |
+| `-z`  | `--purgeSchemas`       | Purge PostgreSQL schemas on uninstallation                 | removeTenantEntitlements, undeployApplication                    |
+| `-l`  | `--platformCompleteURL`| Platform Complete UI URL                                   | buildAndPushUi                                                   |
+| `-w`  | `--singleTenant`       | Use for Single Tenant workflow                             | deployUi, buildAndPushUi                                         |
+| `-x`  | `--user`               | User for edge API key generation                           | getEdgeApiKey                                                    |
+| `-e`  | `--enableEcsRequests`  | Enable ECS requests                                        | deployUi, buildAndPushUi                                         |
+| `-t`  | `--tenant`             | Tenant name                                                | getKeycloakAccessToken, getEdgeApiKey, buildAndPushUi            |
+| `-n`  | `--moduleName`         | Module name (e.g., mod-orders)                             | interceptModule, listModules, listModuleVersions, undeployModule |
+| `-i`  | `--id`                 | Module ID (e.g., mod-orders:13.1.0-SNAPSHOT.1021)          | updateModuleDiscovery, listModuleVersions                        |
+| `-s`  | `--sidecarUrl`         | Sidecar URL                                                | interceptModule, updateModuleDiscovery                           |
+| `-r`  | `--restore`            | Restore module & sidecar                                   | interceptModule, updateModuleDiscovery                           |
+| `-g`  | `--defaultGateway`     | Use default gateway in URLs                                | interceptModule                                                  |
+| `-a`  | `--all`                | All modules for all profiles                               | listModules                                                      |
+| `-c`  | `--namespace`          | DockerHub namespace                                        | buildAndPushUi                                                   |
 
 ```bash
 eureka-cli -c ./config.combined.yaml deployApplication
@@ -275,13 +297,13 @@ eureka-cli listModules
 eureka-cli listModules -m mod-orders
 
 # For only modules in a profile
-eureka-cli listModules -M module
+eureka-cli listModules -y module
 
 # For only sidecars in a profile
-eureka-cli listModules -M sidecar
+eureka-cli listModules -y sidecar
 
 # For only management modules
-eureka-cli listModules -M management
+eureka-cli listModules -y management
 
 # Using all modules for all profiles including mgr-*
 eureka-cli listModules -a
@@ -312,7 +334,7 @@ eureka-cli getKeycloakAccessToken -t diku
 - Get an Edge API key for a user and tenant
 
 ```bash
-eureka-cli getEdgeApiKey -t diku -U diku_admin
+eureka-cli getEdgeApiKey -t diku -x diku_admin
 ```
 
 - Reindex inventory and instance record Elasticsearch indices

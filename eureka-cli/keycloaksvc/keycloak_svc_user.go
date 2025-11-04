@@ -37,16 +37,16 @@ func (ks *KeycloakSvc) CreateUsers(configTenant string) error {
 	postUserPasswordRequestURL := ks.Action.GetRequestURL(constant.KongPort, "/authn/credentials")
 	postUserRoleRequestURL := ks.Action.GetRequestURL(constant.KongPort, "/roles/users")
 	for username, value := range ks.Action.ConfigUsers {
-		mapEntry := value.(map[string]any)
-		tenantName := mapEntry["tenant"].(string)
+		entry := value.(map[string]any)
+		tenantName := entry["tenant"].(string)
 		if configTenant != tenantName {
 			continue
 		}
 
-		password := mapEntry["password"].(string)
-		firstName := mapEntry["first-name"].(string)
-		lastName := mapEntry["last-name"].(string)
-		userRoles := mapEntry["roles"].([]any)
+		password := entry["password"].(string)
+		firstName := entry["first-name"].(string)
+		lastName := entry["last-name"].(string)
+		userRoles := entry["roles"].([]any)
 		payload1, err := json.Marshal(map[string]any{
 			"username": username,
 			"active":   true,
@@ -97,7 +97,7 @@ func (ks *KeycloakSvc) CreateUsers(configTenant string) error {
 			roleID := role["id"].(string)
 			roleName := role["name"].(string)
 			if roleID == "" {
-				slog.Warn(ks.Action.Name, "text", "Did not find role by name", "role", roleName)
+				slog.Warn(ks.Action.Name, "text", "Roles are not found by name", "role", roleName)
 				continue
 			}
 			roleIDs = append(roleIDs, roleID)
@@ -129,13 +129,13 @@ func (ks *KeycloakSvc) RemoveUsers(tenantName string) error {
 
 	headers := helpers.TenantSecureApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
 	for _, value := range users {
-		mapEntry := value.(map[string]any)
-		username := mapEntry["username"].(string)
+		entry := value.(map[string]any)
+		username := entry["username"].(string)
 		if ks.Action.ConfigUsers[username] == nil {
 			continue
 		}
 
-		requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/users-keycloak/users/%s", mapEntry["id"].(string)))
+		requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/users-keycloak/users/%s", entry["id"].(string)))
 		err = ks.HTTPClient.Delete(requestURL, headers)
 		if err != nil {
 			return err

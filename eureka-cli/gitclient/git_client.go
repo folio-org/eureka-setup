@@ -103,7 +103,7 @@ func (rc *GitClient) ResetHardPullFromOrigin(repository *gitrepository.GitReposi
 		Force:    true,
 		Progress: os.Stdout,
 	}); err != nil {
-		slog.Warn(rc.Action.Name, "text", "Updating repository fetch message", "label", repository.Label, "message", err.Error())
+		slog.Warn(rc.Action.Name, "text", "Fetching repository changes", "label", repository.Label, "message", err.Error())
 	}
 
 	worktree, err := targetRepository.Worktree()

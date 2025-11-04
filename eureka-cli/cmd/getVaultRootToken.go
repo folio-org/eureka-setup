@@ -29,43 +29,35 @@ var getVaultRootTokenCmd = &cobra.Command{
 	Short: "Get vault root token",
 	Long:  `Get vault root token from the server.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.GetVaultRootToken)
+		run, err := New(action.GetVaultRootToken)
 		if err != nil {
 			return err
 		}
-
-		err = r.GetVaultRootToken()
-		if err != nil {
+		if err := run.GetVaultRootToken(); err != nil {
 			return err
 		}
-		fmt.Println(r.RunConfig.Action.KeycloakAccessToken)
+		fmt.Println(run.Config.Action.VaultRootToken)
 
 		return nil
 	},
 }
 
-func (r *Run) GetVaultRootToken() error {
-	client, err := r.RunConfig.DockerClient.Create()
+func (run *Run) GetVaultRootToken() error {
+	client, err := run.Config.DockerClient.Create()
 	if err != nil {
 		return err
 	}
-	defer r.RunConfig.DockerClient.Close(client)
+	defer run.Config.DockerClient.Close(client)
 
-	err = r.setVaultRootTokenIntoContext(client)
-	if err != nil {
-		return err
-
-	}
-
-	return nil
+	return run.setVaultRootTokenIntoContext(client)
 }
 
-func (r *Run) setVaultRootTokenIntoContext(client *client.Client) error {
-	vaultRootToken, err := r.RunConfig.ModuleSvc.GetVaultRootToken(client)
+func (run *Run) setVaultRootTokenIntoContext(client *client.Client) error {
+	vaultRootToken, err := run.Config.ModuleSvc.GetVaultRootToken(client)
 	if err != nil {
 		return err
 	}
-	r.RunConfig.Action.VaultRootToken = vaultRootToken
+	run.Config.Action.VaultRootToken = vaultRootToken
 
 	return nil
 }

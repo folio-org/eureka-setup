@@ -30,60 +30,47 @@ var deployUiCmd = &cobra.Command{
 	Short: "Deploy UI",
 	Long:  `Deploy the UI container.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.DeployUi)
+		run, err := New(action.DeployUi)
 		if err != nil {
 			return err
 		}
 
-		return r.DeployUi()
+		return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+			return run.DeployUi(consortiumName, tenantType)
+		})
 	},
 }
 
-func (r *Run) DeployUi() error {
-	// TODO Abstract
-	slog.Info(r.RunConfig.Action.Name, "text", "DEPLOYING UI")
+func (run *Run) DeployUi(consortiumName string, tenantType constant.TenantType) error {
+	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
+		slog.Info(run.Config.Action.Name, "text", "DEPLOYING UI")
+		if helpers.IsUIEnabled(configTenant, run.Config.Action.ConfigTenants) {
+			if err := run.Config.TenantSvc.SetConfigTenantParams(configTenant); err != nil {
+				return err
+			}
 
-	tt, err := r.RunConfig.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
-	if err != nil {
-		return err
-	}
+			finalImageName, err := run.Config.UISvc.PrepareImage(configTenant)
+			if err != nil {
+				return err
+			}
 
-	for _, value := range tt {
-		configTenant := value.(map[string]any)["name"].(string)
-		hasTenant := helpers.HasTenant(configTenant, r.RunConfig.Action.ConfigTenants)
-		isUIEnabled := helpers.IsUIEnabled(configTenant, r.RunConfig.Action.ConfigTenants)
-		if !hasTenant || !isUIEnabled {
-			continue
+			externalPort, err := helpers.ExtractPortFromURL(actionParams.PlatformCompleteURL)
+			if err != nil {
+				return err
+			}
+			if err := run.Config.UISvc.DeployContainer(configTenant, finalImageName, externalPort); err != nil {
+				return err
+			}
 		}
 
-		err := r.RunConfig.TenantSvc.SetConfigTenantParams(configTenant)
-		if err != nil {
-			return err
-		}
-
-		finalImageName, err := r.RunConfig.UISvc.PrepareImage(configTenant)
-		if err != nil {
-			return err
-		}
-
-		externalPort, err := helpers.ExtractPortFromURL(actionParams.PlatformCompleteURL)
-		if err != nil {
-			return err
-		}
-
-		err = r.RunConfig.UISvc.DeployContainer(configTenant, finalImageName, externalPort)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+		return nil
+	})
 }
 
 func init() {
 	rootCmd.AddCommand(deployUiCmd)
 	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.BuildImages, "buildImages", "b", false, "Build Docker images")
 	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
-	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.SingleTenant, "singleTenant", "T", true, "Use for Single Tenant workflow")
+	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.SingleTenant, "singleTenant", "w", true, "Use for Single Tenant workflow")
 	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.EnableECSRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
 }

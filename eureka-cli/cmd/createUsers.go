@@ -20,7 +20,6 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -30,51 +29,28 @@ var createUsersCmd = &cobra.Command{
 	Short: "Create users",
 	Long:  `Create all users.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.CreateUsers)
+		run, err := New(action.CreateUsers)
 		if err != nil {
 			return err
 		}
 
-		return r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
-			return r.CreateUsers(consortiumName, tenantType)
+		return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+			return run.CreateUsers(consortiumName, tenantType)
 		})
 	},
 }
 
-func (r *Run) CreateUsers(consortiumName string, tenantType constant.TenantType) error {
-	// TODO Abstract
-	err := r.GetVaultRootToken()
-	if err != nil {
-		return err
-	}
-
-	tenants, err := r.RunConfig.ManagementSvc.GetTenants(consortiumName, tenantType)
-	if err != nil {
-		return err
-	}
-
-	for _, value := range tenants {
-		mapEntry := value.(map[string]any)
-		configTenant := mapEntry["name"].(string)
-		hasTenant := helpers.HasTenant(configTenant, r.RunConfig.Action.ConfigTenants)
-		if !hasTenant {
-			continue
-		}
-
-		slog.Info(r.RunConfig.Action.Name, "text", "CREATING USERS FOR TENANT", "tenant", configTenant)
-		keycloakAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakAccessToken(configTenant)
+func (run *Run) CreateUsers(consortiumName string, tenantType constant.TenantType) error {
+	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
+		slog.Info(run.Config.Action.Name, "text", "CREATING USERS FOR TENANT", "tenant", configTenant)
+		keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
 		if err != nil {
 			return err
 		}
-		r.RunConfig.Action.KeycloakAccessToken = keycloakAccessToken
+		run.Config.Action.KeycloakAccessToken = keycloakAccessToken
 
-		err = r.RunConfig.KeycloakSvc.CreateUsers(configTenant)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+		return run.Config.KeycloakSvc.CreateUsers(configTenant)
+	})
 }
 
 func init() {

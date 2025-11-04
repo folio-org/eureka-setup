@@ -22,6 +22,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/models"
@@ -34,96 +35,86 @@ var deployModulesCmd = &cobra.Command{
 	Short: "Deploy modules",
 	Long:  `Deploy multiple module versions.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.DeployModules)
+		run, err := New(action.DeployModules)
 		if err != nil {
 			return err
 		}
 
-		return r.DeployModules()
+		return run.DeployModules()
 	},
 }
 
-func (r *Run) DeployModules() error {
-	slog.Info(r.RunConfig.Action.Name, "text", "READING BACKEND MODULES FROM CONFIG")
-	backendModules, err := r.RunConfig.ModuleParams.ReadBackendModulesFromConfig(false)
+func (run *Run) DeployModules() error {
+	slog.Info(run.Config.Action.Name, "text", "READING BACKEND MODULES FROM CONFIG")
+	backendModules, err := run.Config.ModuleParams.ReadBackendModulesFromConfig(false, true)
 	if err != nil {
 		return err
 	}
 
-	slog.Info(r.RunConfig.Action.Name, "text", "READING FRONTEND MODULES FROM CONFIG")
-	frontendModules, err := r.RunConfig.ModuleParams.ReadFrontendModulesFromConfig()
+	slog.Info(run.Config.Action.Name, "text", "READING FRONTEND MODULES FROM CONFIG")
+	frontendModules, err := run.Config.ModuleParams.ReadFrontendModulesFromConfig(true)
 	if err != nil {
 		return err
 	}
 
-	slog.Info(r.RunConfig.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
-	instalJsonURLs := map[string]string{
-		constant.FolioRegistry:  r.RunConfig.Action.ConfigFolioRegistry,
-		constant.EurekaRegistry: r.RunConfig.Action.ConfigEurekaRegistry,
-	}
-	registryModules, err := r.RunConfig.RegistrySvc.GetModules(instalJsonURLs, true)
+	slog.Info(run.Config.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
+	instalJsonURLs := run.Config.Action.GetCombinedInstallJsonURLs()
+	registryModules, err := run.Config.RegistrySvc.GetModules(instalJsonURLs, true)
 	if err != nil {
 		return err
 	}
-	r.RunConfig.RegistrySvc.ExtractModuleNameAndVersion(registryModules)
+	run.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules)
 
-	client, err := r.RunConfig.DockerClient.Create()
+	client, err := run.Config.DockerClient.Create()
 	if err != nil {
 		return err
 	}
-	defer r.RunConfig.DockerClient.Close(client)
-
-	err = r.setVaultRootTokenIntoContext(client)
-	if err != nil {
+	defer run.Config.DockerClient.Close(client)
+	if err := run.setVaultRootTokenIntoContext(client); err != nil {
 		return err
 	}
 
-	slog.Info(r.RunConfig.Action.Name, "text", "CREATING APPLICATIONS")
-	registryURLs := map[string]string{
-		constant.FolioRegistry:  r.RunConfig.Action.ConfigRegistryURL,
-		constant.EurekaRegistry: r.RunConfig.Action.ConfigRegistryURL,
-	}
+	slog.Info(run.Config.Action.Name, "text", "CREATING APPLICATIONS")
+	registryURLs := run.Config.Action.GetCombinedRegistryURLs()
 	registerModuleExtract := models.NewRegistryModuleExtract(registryURLs, registryModules, backendModules, frontendModules)
-	err = r.RunConfig.ManagementSvc.CreateApplications(registerModuleExtract)
+	if err := run.Config.ManagementSvc.CreateApplications(registerModuleExtract); err != nil {
+		return err
+	}
+
+	slog.Info(run.Config.Action.Name, "text", "PULLING SIDECAR IMAGE")
+	globalEnv := run.Config.Action.GetConfigEnvVars(field.Env)
+	sidecarEnv := run.Config.Action.GetConfigEnvVars(field.SidecarModuleEnv)
+	containers := models.NewCoreAndBusinessContainers(run.Config.Action.VaultRootToken, registryModules, backendModules, globalEnv, sidecarEnv)
+	sidecarImage, pullSidecarImage, err := run.Config.ModuleSvc.GetSidecarImage(containers.RegistryModules[constant.EurekaRegistry])
 	if err != nil {
 		return err
 	}
 
-	slog.Info(r.RunConfig.Action.Name, "text", "PULLING SIDECAR IMAGE")
-	registryHosts := map[string]string{
-		constant.FolioRegistry:  "",
-		constant.EurekaRegistry: "",
-	}
-	globalEnv := action.GetConfigEnvVars(field.Env)
-	sidecarEnv := action.GetConfigEnvVars(field.SidecarModuleEnv)
-	containers := models.NewCoreAndBusinessContainers(r.RunConfig.Action.VaultRootToken, registryHosts, registryModules, backendModules, globalEnv, sidecarEnv)
-	sidecarImage, pullSidecarImage, err := r.RunConfig.ModuleSvc.GetSidecarImage(containers.RegistryModules[constant.EurekaRegistry])
-	if err != nil {
-		return err
-	}
-
-	slog.Info(r.RunConfig.Action.Name, "text", "Using sidecar image", "image", sidecarImage)
-	sidecarResources := helpers.CreateResources(false, r.RunConfig.Action.ConfigSidecarResources)
+	slog.Info(run.Config.Action.Name, "text", "Using sidecar image", "image", sidecarImage)
+	sidecarResources := helpers.CreateResources(false, run.Config.Action.ConfigSidecarResources)
 	if pullSidecarImage {
-		err = r.RunConfig.ModuleSvc.PullModule(client, sidecarImage)
+		err = run.Config.ModuleSvc.PullModule(client, sidecarImage)
 		if err != nil {
 			return err
 		}
 	}
 
-	slog.Info(r.RunConfig.Action.Name, "text", "DEPLOYING MODULES")
-	deployedModules, err := r.RunConfig.ModuleSvc.DeployModules(client, containers, sidecarImage, sidecarResources)
+	slog.Info(run.Config.Action.Name, "text", "DEPLOYING MODULES")
+	deployedModules, err := run.Config.ModuleSvc.DeployModules(client, containers, sidecarImage, sidecarResources)
 	if err != nil {
 		return err
 	}
+	if len(deployedModules) == 0 {
+		return errors.ModulesNotDeployed(len(deployedModules))
+	}
 	time.Sleep(constant.DeployModulesWait)
 
-	slog.Info(r.RunConfig.Action.Name, "text", "WAITING FOR MODULES TO BECOME READY")
+	slog.Info(run.Config.Action.Name, "text", "WAITING FOR MODULES TO BECOME READY")
 	var deployModulesWG sync.WaitGroup
 	errCh := make(chan error, len(deployedModules))
 	deployModulesWG.Add(len(deployedModules))
 	for deployedModule := range deployedModules {
-		go r.RunConfig.ModuleSvc.CheckModuleReadiness(&deployModulesWG, errCh, deployedModule, deployedModules[deployedModule])
+		go run.Config.ModuleSvc.CheckModuleReadiness(&deployModulesWG, errCh, deployedModule, deployedModules[deployedModule])
 	}
 	deployModulesWG.Wait()
 	close(errCh)
@@ -133,8 +124,7 @@ func (r *Run) DeployModules() error {
 			return err
 		}
 	}
-
-	slog.Info(r.RunConfig.Action.Name, "text", "All modules are ready")
+	slog.Info(run.Config.Action.Name, "text", "All modules are ready")
 
 	return nil
 }

@@ -36,35 +36,34 @@ var checkPortsCmd = &cobra.Command{
 	Short: "Check ports",
 	Long:  `Check container ports.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.CheckPorts)
+		run, err := New(action.CheckPorts)
 		if err != nil {
 			return err
 		}
 
-		return r.CheckPorts()
+		return run.CheckPorts()
 	},
 }
 
-func (r *Run) CheckPorts() error {
-	slog.Info(r.RunConfig.Action.Name, "text", "CHECKING CONTAINER PORTS")
-	err := r.deployNetcatContainer()
-	if err != nil {
+func (run *Run) CheckPorts() error {
+	slog.Info(run.Config.Action.Name, "text", "CHECKING CONTAINER PORTS")
+	if err := run.deployNetcatContainer(); err != nil {
 		return err
 	}
 
-	modules, err := r.getDeployedModules()
+	modules, err := run.getDeployedModules()
 	if err != nil {
 		return err
 	}
-	r.runNetcat(modules)
+	run.runNetcat(modules)
 
 	return nil
 }
 
-func (r *Run) deployNetcatContainer() error {
+func (run *Run) deployNetcatContainer() error {
 	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach", "netcat")
 
-	dir, err := helpers.GetHomeMiscDir(r.RunConfig.Action.Name)
+	dir, err := helpers.GetHomeMiscDir(run.Config.Action.Name)
 	if err != nil {
 		return err
 	}
@@ -72,18 +71,18 @@ func (r *Run) deployNetcatContainer() error {
 	return helpers.ExecFromDir(preparedCommand, dir)
 }
 
-func (r *Run) getDeployedModules() ([]container.Summary, error) {
-	client, err := r.RunConfig.DockerClient.Create()
+func (run *Run) getDeployedModules() ([]container.Summary, error) {
+	client, err := run.Config.DockerClient.Create()
 	if err != nil {
 		return nil, err
 	}
-	defer r.RunConfig.DockerClient.Close(client)
+	defer run.Config.DockerClient.Close(client)
 
 	filters := filters.NewArgs(filters.KeyValuePair{
 		Key:   "name",
-		Value: fmt.Sprintf(constant.ProfileContainerPattern, r.RunConfig.Action.ConfigProfile),
+		Value: fmt.Sprintf(constant.ProfileContainerPattern, run.Config.Action.ConfigProfile),
 	})
-	containers, err := r.RunConfig.ModuleSvc.GetDeployedModules(client, filters)
+	containers, err := run.Config.ModuleSvc.GetDeployedModules(client, filters)
 	if err != nil {
 		return nil, err
 	}
@@ -91,8 +90,8 @@ func (r *Run) getDeployedModules() ([]container.Summary, error) {
 	return containers, nil
 }
 
-func (r *Run) runNetcat(modules []container.Summary) {
-	slog.Info(r.RunConfig.Action.Name, "text", "Running netcat -zv [container] [private port]")
+func (run *Run) runNetcat(modules []container.Summary) {
+	slog.Info(run.Config.Action.Name, "text", "Running netcat -zv [container] [private port]")
 	for _, module := range modules {
 		moduleName := fmt.Sprintf("%s.eureka", strings.ReplaceAll(module.Names[0], "/", ""))
 		for _, portPair := range module.Ports {

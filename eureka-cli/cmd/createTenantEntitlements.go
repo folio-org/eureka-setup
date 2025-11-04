@@ -29,20 +29,20 @@ var createTenantEntitlementsCmd = &cobra.Command{
 	Short: "Create tenant entitlements",
 	Long:  `Create all tenant entitlements.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.CreateTenantEntitlements)
+		run, err := New(action.CreateTenantEntitlements)
 		if err != nil {
 			return err
 		}
 
-		return r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
-			return r.CreateTenantEntitlements(consortiumName, tenantType)
+		return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+			return run.CreateTenantEntitlements(consortiumName, tenantType)
 		})
 	},
 }
 
-func (r *Run) CreateTenantEntitlements(consortiumName string, tenantType constant.TenantType) error {
-	slog.Info(r.RunConfig.Action.Name, "text", "CREATING TENANT ENTITLEMENTS")
-	return r.RunConfig.ManagementSvc.CreateTenantEntitlement(consortiumName, tenantType)
+func (run *Run) CreateTenantEntitlements(consortiumName string, tenantType constant.TenantType) error {
+	slog.Info(run.Config.Action.Name, "text", "CREATING TENANT ENTITLEMENTS")
+	return run.Config.ManagementSvc.CreateTenantEntitlement(consortiumName, tenantType)
 }
 
 func init() {

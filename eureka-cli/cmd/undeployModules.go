@@ -30,33 +30,28 @@ var undeployModulesCmd = &cobra.Command{
 	Short: "Undeploy modules",
 	Long:  `Undeploy multiple modules.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.UndeployModules)
+		run, err := New(action.UndeployModules)
 		if err != nil {
 			return err
 		}
 
-		return r.UndeployModules()
+		return run.UndeployModules()
 	},
 }
 
-func (r *Run) UndeployModules() error {
-	slog.Info(r.RunConfig.Action.Name, "text", "REMOVING APPLICATIONS")
-	_ = r.RunConfig.ManagementSvc.RemoveApplication(r.RunConfig.Action.ConfigApplicationID)
+func (run *Run) UndeployModules() error {
+	slog.Info(run.Config.Action.Name, "text", "REMOVING APPLICATIONS")
+	_ = run.Config.ManagementSvc.RemoveApplication(run.Config.Action.ConfigApplicationID)
 
-	slog.Info(r.RunConfig.Action.Name, "text", "UNDEPLOYING MODULES")
-	client, err := r.RunConfig.DockerClient.Create()
+	slog.Info(run.Config.Action.Name, "text", "UNDEPLOYING MODULES")
+	client, err := run.Config.DockerClient.Create()
 	if err != nil {
 		return err
 	}
-	defer r.RunConfig.DockerClient.Close(client)
+	defer run.Config.DockerClient.Close(client)
 
-	pattern := fmt.Sprintf(constant.ProfileContainerPattern, r.RunConfig.Action.ConfigProfile)
-	err = r.RunConfig.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	pattern := fmt.Sprintf(constant.ProfileContainerPattern, run.Config.Action.ConfigProfile)
+	return run.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
 }
 
 func init() {

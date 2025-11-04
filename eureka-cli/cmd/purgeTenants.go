@@ -41,10 +41,9 @@ var purgeTenantsCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		slog.Info(run.Config.Action.Name, slog.String("text", "PURGING TENANTS"), slog.String("Using Kong Gateway", withKongGateway))
 
-		slog.Info(run.RunConfig.Action.Name, slog.String("text", "PURGING TENANTS"), slog.String("Using Kong Gateway", withKongGateway))
-
-		slog.Info(run.RunConfig.Action.Name, "text", "Purging tenant entitlements")
+		slog.Info(run.Config.Action.Name, "text", "Purging tenant entitlements")
 		for _, tenantID := range withTenantIDs {
 			for key, value := range map[string][]string{tenantID: withApplicationNames} {
 				requestURL, err := url.JoinPath(withKongGateway, "/entitlements")
@@ -59,23 +58,21 @@ var purgeTenantsCmd = &cobra.Command{
 				if err != nil {
 					return err
 				}
+				_ = run.Config.HTTPClient.DeleteWithBody(fmt.Sprintf("%s%s", requestURL, "?purge=true"), payload, map[string]string{})
 
-				_ = run.RunConfig.HTTPClient.DeleteWithBody(fmt.Sprintf("%s%s", requestURL, "?purge=true"), payload, map[string]string{})
-
-				slog.Info(run.RunConfig.Action.Name, "text", "Purged tenant entitlement with applications", "tenant", key, "applications", value)
+				slog.Info(run.Config.Action.Name, "text", "Purged tenant entitlement with applications", "tenant", key, "applications", value)
 			}
 		}
 
-		slog.Info(run.RunConfig.Action.Name, "text", "Purging tenants")
+		slog.Info(run.Config.Action.Name, "text", "Purging tenants")
 		for _, tenantID := range withTenantIDs {
 			requestURL, err := url.JoinPath(withKongGateway, "/tenants", tenantID)
 			if err != nil {
 				return err
 			}
+			_ = run.Config.HTTPClient.Delete(fmt.Sprintf("%s%s", requestURL, "?purgeKafkaTopics=true"), map[string]string{})
 
-			_ = run.RunConfig.HTTPClient.Delete(fmt.Sprintf("%s%s", requestURL, "?purgeKafkaTopics=true"), map[string]string{})
-
-			slog.Info(run.RunConfig.Action.Name, "text", "Purged tenant", "tenant", tenantID)
+			slog.Info(run.Config.Action.Name, "text", "Purged tenant", "tenant", tenantID)
 		}
 
 		return nil

@@ -32,38 +32,35 @@ var deployAdditionalSystemCmd = &cobra.Command{
 	Short: "Deploy additional system",
 	Long:  `Deploy additional system containers.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.DeployAdditionalSystem)
+		run, err := New(action.DeployAdditionalSystem)
 		if err != nil {
 			return err
 		}
 
-		return r.DeployAdditionalSystem()
+		return run.DeployAdditionalSystem()
 	},
 }
 
-func (r *Run) DeployAdditionalSystem() error {
-	slog.Info(r.RunConfig.Action.Name, "text", "DEPLOYING ADDITIONAL SYSTEM CONTAINERS")
-
-	finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(r.RunConfig.Action.Name, []string{}, r.RunConfig.Action.ConfigBackendModules)
+func (run *Run) DeployAdditionalSystem() error {
+	slog.Info(run.Config.Action.Name, "text", "DEPLOYING ADDITIONAL SYSTEM CONTAINERS")
+	finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(run.Config.Action.Name, []string{}, run.Config.Action.ConfigBackendModules)
 	if len(finalRequiredContainers) == 0 {
-		slog.Info(r.RunConfig.Action.Name, "text", "No additional system containers deployed")
+		slog.Info(run.Config.Action.Name, "text", "No additional system containers deployed")
 		return nil
 	}
 
-	dir, err := helpers.GetHomeMiscDir(r.RunConfig.Action.Name)
+	dir, err := helpers.GetHomeMiscDir(run.Config.Action.Name)
 	if err != nil {
 		return err
 	}
 
 	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}, finalRequiredContainers...)
-	err = helpers.ExecFromDir(exec.Command("docker", subCommand...), dir)
-	if err != nil {
+	if err := helpers.ExecFromDir(exec.Command("docker", subCommand...), dir); err != nil {
 		return err
 	}
-
-	slog.Info(r.RunConfig.Action.Name, "text", "WAITING FOR ADDITIONAL SYSTEM CONTAINERS TO BECOME READY")
+	slog.Info(run.Config.Action.Name, "text", "WAITING FOR ADDITIONAL SYSTEM CONTAINERS TO BECOME READY")
 	time.Sleep(constant.DeployAdditionalSystemWait)
-	slog.Info(r.RunConfig.Action.Name, "text", "All additional system containers are ready")
+	slog.Info(run.Config.Action.Name, "text", "All additional system containers are ready")
 
 	return nil
 }

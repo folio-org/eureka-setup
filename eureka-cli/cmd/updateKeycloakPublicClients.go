@@ -30,51 +30,40 @@ var updateKeycloakPublicClientsCmd = &cobra.Command{
 	Short: "Update Keycloak public client params",
 	Long:  `Update Keycloak public client params for each UI container.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.UpdateKeycloakPublicClients)
+		run, err := New(action.UpdateKeycloakPublicClients)
 		if err != nil {
 			return err
 		}
 
-		return r.UpdateKeycloakPublicClients()
+		return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+			return run.UpdateKeycloakPublicClients(consortiumName, tenantType)
+		})
 	},
 }
 
-func (r *Run) UpdateKeycloakPublicClients() error {
-	// TODO Abstract
-	slog.Info(r.RunConfig.Action.Name, "text", "UPDATING KEYCLOAK PUBLIC CLIENTS")
-	keycloakMasterAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakMasterAccessToken()
+func (run *Run) UpdateKeycloakPublicClients(consortiumName string, tenantType constant.TenantType) error {
+	keycloakMasterAccessToken, err := run.Config.KeycloakSvc.GetKeycloakMasterAccessToken()
 	if err != nil {
 		return err
 	}
-	r.RunConfig.Action.KeycloakMasterAccessToken = keycloakMasterAccessToken
+	run.Config.Action.KeycloakMasterAccessToken = keycloakMasterAccessToken
 
-	tenants, err := r.RunConfig.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
-	if err != nil {
-		return err
-	}
+	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
+		slog.Info(run.Config.Action.Name, "text", "UPDATING KEYCLOAK PUBLIC CLIENTS")
+		if helpers.IsUIEnabled(configTenant, run.Config.Action.ConfigTenants) {
+			slog.Info(run.Config.Action.Name, "text", "Setting config tenant params")
+			if err := run.Config.TenantSvc.SetConfigTenantParams(configTenant); err != nil {
+				return err
+			}
 
-	for _, value := range tenants {
-		mapEntry := value.(map[string]any)
-		configTenant := mapEntry["name"].(string)
-		hasTenant := helpers.HasTenant(configTenant, r.RunConfig.Action.ConfigTenants)
-		isUIEnabled := helpers.IsUIEnabled(configTenant, r.RunConfig.Action.ConfigTenants)
-		if !hasTenant || !isUIEnabled {
-			continue
+			slog.Info(run.Config.Action.Name, "text", "Updating keycloak public client")
+			if err := run.Config.KeycloakSvc.UpdateKeycloakPublicClientParams(configTenant, actionParams.PlatformCompleteURL); err != nil {
+				return err
+			}
 		}
 
-		err = r.RunConfig.TenantSvc.SetConfigTenantParams(configTenant)
-		if err != nil {
-			return err
-		}
-
-		slog.Info(r.RunConfig.Action.Name, "text", "Updating keycloak public client")
-		err = r.RunConfig.KeycloakSvc.UpdateKeycloakPublicClientParams(configTenant, actionParams.PlatformCompleteURL)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+		return nil
+	})
 }
 
 func init() {

@@ -15,12 +15,32 @@ type KongRouteReadinessChecker interface {
 
 func (ks *KongSvc) CheckRouteReadiness() error {
 	var (
-		expressions = []string{`(http.path == "/applications" && http.method == "POST")`,
-			`(http.path ~ "^/modules/([^/]+)/discovery$" && http.method == "POST")`,
+		// TODO Add more expressions
+		expressions = []string{
+			// Applications
+			`(http.path == "/applications" && http.method == "GET")`,
+			`(http.path == "/applications" && http.method == "POST")`,
+			`(http.path ~ "^/applications/([^/]+)$" && http.method == "DELETE")`,
+
+			// Module Discovery
+			`(http.path == "/modules/discovery" && http.method == "GET")`,
+			`(http.path == "/modules/discovery" && http.method == "POST")`,
+			`(http.path ~ "^/modules/([^/]+)/discovery$" && http.method == "PUT")`,
+
+			// Tenants
+			`(http.path == "/tenants" && http.method == "GET")`,
+			`(http.path == "/tenants" && http.method == "POST")`,
+			`(http.path ~ "^/tenants/([^/]+)$" && http.method == "DELETE")`,
+
+			// Tenant Entitlement
+			`(http.path == "/entitlements" && http.method == "GET")`,
 			`(http.path == "/entitlements" && http.method == "POST")`,
+			`(http.path == "/entitlements" && http.method == "PUT")`,
+			`(http.path == "/entitlements" && http.method == "DELETE")`,
 		}
 		expected = len(expressions)
 	)
+	slog.Info(ks.Action.Name, "text", "Preparing route readiness check", "expected", expected)
 	for retryCount := range constant.KongRouteReadinessMaxRetries {
 		matchedRoutes, _ := ks.FindRouteByExpressions(expressions)
 		actual := len(matchedRoutes)

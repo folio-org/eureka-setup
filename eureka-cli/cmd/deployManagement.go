@@ -22,6 +22,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/models"
 	"github.com/spf13/cobra"
@@ -33,61 +34,57 @@ var deployManagementCmd = &cobra.Command{
 	Short: "Deploy management",
 	Long:  `Deploy all management modules.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.DeployManagement)
+		run, err := New(action.DeployManagement)
 		if err != nil {
 			return err
 		}
 
-		return r.DeployManagement()
+		return run.DeployManagement()
 	},
 }
 
-func (r *Run) DeployManagement() error {
-	slog.Info(r.RunConfig.Action.Name, "text", "READING BACKEND MODULES FROM CONFIG")
-	backendModules, err := r.RunConfig.ModuleParams.ReadBackendModulesFromConfig(true)
+func (run *Run) DeployManagement() error {
+	slog.Info(run.Config.Action.Name, "text", "READING BACKEND MODULES FROM CONFIG")
+	backendModules, err := run.Config.ModuleParams.ReadBackendModulesFromConfig(true, true)
 	if err != nil {
 		return err
 	}
 
-	slog.Info(r.RunConfig.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
-	instalJsonURLs := map[string]string{
-		constant.EurekaRegistry: r.RunConfig.Action.ConfigEurekaRegistry,
-	}
-	registryModules, err := r.RunConfig.RegistrySvc.GetModules(instalJsonURLs, true)
+	slog.Info(run.Config.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
+	instalJsonURLs := run.Config.Action.GetEurekaInstallJsonURLs()
+	registryModules, err := run.Config.RegistrySvc.GetModules(instalJsonURLs, true)
 	if err != nil {
 		return err
 	}
-	r.RunConfig.RegistrySvc.ExtractModuleNameAndVersion(registryModules)
+	run.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules)
 
-	client, err := r.RunConfig.DockerClient.Create()
+	client, err := run.Config.DockerClient.Create()
 	if err != nil {
 		return err
 	}
-	defer r.RunConfig.DockerClient.Close(client)
-
-	err = r.setVaultRootTokenIntoContext(client)
-	if err != nil {
+	defer run.Config.DockerClient.Close(client)
+	if err := run.setVaultRootTokenIntoContext(client); err != nil {
 		return err
 	}
 
-	slog.Info(r.RunConfig.Action.Name, "text", "DEPLOYING MANAGEMENT MODULES")
-	registryHosts := map[string]string{
-		constant.EurekaRegistry: "",
-	}
-	env := action.GetConfigEnvVars(field.Env)
-	containers := models.NewManagementContainers(r.RunConfig.Action.VaultRootToken, registryHosts, registryModules, backendModules, env)
-	deployedModules, err := r.RunConfig.ModuleSvc.DeployModules(client, containers, "", nil)
+	slog.Info(run.Config.Action.Name, "text", "DEPLOYING MANAGEMENT MODULES")
+	env := run.Config.Action.GetConfigEnvVars(field.Env)
+	containers := models.NewManagementContainers(run.Config.Action.VaultRootToken, registryModules, backendModules, env)
+	deployedModules, err := run.Config.ModuleSvc.DeployModules(client, containers, "", nil)
 	if err != nil {
 		return err
+	}
+	if len(deployedModules) == 0 {
+		return errors.ModulesNotDeployed(len(deployedModules))
 	}
 	time.Sleep(constant.DeployManagementWait)
 
-	slog.Info(r.RunConfig.Action.Name, "text", "WAITING FOR MANAGEMENT MODULES TO BECOME READY")
+	slog.Info(run.Config.Action.Name, "text", "WAITING FOR MANAGEMENT MODULES TO BECOME READY")
 	var deployManagementWG sync.WaitGroup
 	errCh := make(chan error, len(deployedModules))
 	deployManagementWG.Add(len(deployedModules))
 	for deployedModule := range deployedModules {
-		go r.RunConfig.ModuleSvc.CheckModuleReadiness(&deployManagementWG, errCh, deployedModule, deployedModules[deployedModule])
+		go run.Config.ModuleSvc.CheckModuleReadiness(&deployManagementWG, errCh, deployedModule, deployedModules[deployedModule])
 	}
 	deployManagementWG.Wait()
 	close(errCh)
@@ -98,11 +95,11 @@ func (r *Run) DeployManagement() error {
 		}
 	}
 
-	slog.Info(r.RunConfig.Action.Name, "text", "WAITING FOR KONG ROUTES TO BECOME READY")
-	if err := r.RunConfig.KongSvc.CheckRouteReadiness(); err != nil {
+	slog.Info(run.Config.Action.Name, "text", "WAITING FOR KONG ROUTES TO BECOME READY")
+	if err := run.Config.KongSvc.CheckRouteReadiness(); err != nil {
 		return err
 	}
-	slog.Info(r.RunConfig.Action.Name, "text", "All management modules are ready")
+	slog.Info(run.Config.Action.Name, "text", "All management modules are ready")
 
 	return nil
 }

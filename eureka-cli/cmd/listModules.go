@@ -33,26 +33,26 @@ var listModulesCmd = &cobra.Command{
 	Short: "List modules",
 	Long:  `List all modules.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.ListModules)
+		run, err := New(action.ListModules)
 		if err != nil {
 			return err
 		}
 
-		return r.ListModules()
+		return run.ListModules()
 	},
 }
 
-func (r *Run) ListModules() error {
-	filter := fmt.Sprintf("name=%s", r.createFilter(actionParams.ModuleName, actionParams.ModuleType, actionParams.All))
+func (run *Run) ListModules() error {
+	filter := fmt.Sprintf("name=%s", run.createFilter(actionParams.ModuleName, actionParams.ModuleType, actionParams.All))
 	return helpers.Exec(exec.Command("docker", "container", "ls", "--all", "--filter", filter))
 }
 
-func (r *Run) createFilter(moduleName string, moduleType string, all bool) string {
+func (run *Run) createFilter(moduleName string, moduleType string, all bool) string {
 	if all {
 		return constant.AllContainerPattern
 	}
 
-	currentProfile := r.RunConfig.Action.ConfigProfile
+	currentProfile := run.Config.Action.ConfigProfile
 	if moduleName != "" {
 		return fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, currentProfile, moduleName)
 	}
@@ -70,13 +70,12 @@ func (r *Run) createFilter(moduleName string, moduleType string, all bool) strin
 }
 
 func init() {
-	availableModuleTypes := []string{constant.ModuleType, constant.SidecarType, constant.ManagementType}
 	rootCmd.AddCommand(listModulesCmd)
 	listModulesCmd.Flags().BoolVarP(&actionParams.All, "all", "a", false, "All modules for all profiles")
-	listModulesCmd.Flags().StringVarP(&actionParams.ModuleName, "moduleName", "m", "", "By module name, e.g. mod-orders")
-	listModulesCmd.Flags().StringVarP(&actionParams.ModuleType, "moduleType", "M", "", fmt.Sprintf("By module type, options: %s", availableModuleTypes))
+	listModulesCmd.Flags().StringVarP(&actionParams.ModuleName, "moduleName", "n", "", "Module name, e.g. mod-orders")
+	listModulesCmd.Flags().StringVarP(&actionParams.ModuleType, "moduleType", "y", "", "Module type, e.g. management")
 	if err := listModulesCmd.RegisterFlagCompletionFunc("moduleType", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return availableModuleTypes, cobra.ShellCompDirectiveNoFileComp
+		return constant.GetContainerTypes(), cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
 		slog.Error("failed to register flag completion function", "error", err)
 		os.Exit(1)

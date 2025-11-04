@@ -29,27 +29,27 @@ var removeRolesCmd = &cobra.Command{
 	Short: "Remove roles",
 	Long:  `Remove all roles.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.RemoveRoles)
+		run, err := New(action.RemoveRoles)
 		if err != nil {
 			return err
 		}
 
-		return r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
-			return r.RemoveRoles(consortiumName, tenantType)
+		return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+			return run.RemoveRoles(consortiumName, tenantType)
 		})
 	},
 }
 
-func (r *Run) RemoveRoles(consortiumName string, tenantType constant.TenantType) error {
-	return r.TenantPartition(consortiumName, tenantType, func(configTenant string, tenantType constant.TenantType) error {
-		slog.Info(r.RunConfig.Action.Name, "text", "REMOVING ROLES FOR TENANT", "tenant", configTenant)
-		keycloakAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakAccessToken(configTenant)
+func (run *Run) RemoveRoles(consortiumName string, tenantType constant.TenantType) error {
+	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
+		slog.Info(run.Config.Action.Name, "text", "REMOVING ROLES FOR TENANT", "tenant", configTenant)
+		keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
 		if err != nil {
 			return err
 		}
-		r.RunConfig.Action.KeycloakAccessToken = keycloakAccessToken
+		run.Config.Action.KeycloakAccessToken = keycloakAccessToken
 
-		return r.RunConfig.KeycloakSvc.RemoveRoles(configTenant)
+		return run.Config.KeycloakSvc.RemoveRoles(configTenant)
 	})
 }
 

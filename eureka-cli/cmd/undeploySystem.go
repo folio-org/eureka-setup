@@ -30,17 +30,17 @@ var undeploySystemCmd = &cobra.Command{
 	Short: "Undeploy system",
 	Long:  `Undeploy all system containers.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.UndeploySystem)
+		run, err := New(action.UndeploySystem)
 		if err != nil {
 			return err
 		}
 
-		return r.UndeploySystem()
+		return run.UndeploySystem()
 	},
 }
 
-func (r *Run) UndeploySystem() error {
-	slog.Info(r.RunConfig.Action.Name, "text", "UNDEPLOYING SYSTEM CONTAINERS")
+func (run *Run) UndeploySystem() error {
+	slog.Info(run.Config.Action.Name, "text", "UNDEPLOYING SYSTEM CONTAINERS")
 	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "down", "--volumes", "--remove-orphans")
 	return helpers.Exec(preparedCommand)
 }

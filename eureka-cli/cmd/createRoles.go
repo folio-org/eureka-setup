@@ -20,7 +20,6 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -30,51 +29,28 @@ var createRolesCmd = &cobra.Command{
 	Short: "Create roles",
 	Long:  `Create all roles.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.CreateRoles)
+		run, err := New(action.CreateRoles)
 		if err != nil {
 			return err
 		}
 
-		return r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
-			return r.CreateRoles(consortiumName, tenantType)
+		return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+			return run.CreateRoles(consortiumName, tenantType)
 		})
 	},
 }
 
-func (r *Run) CreateRoles(consortiumName string, tenantType constant.TenantType) error {
-	// TODO Abstract
-	err := r.GetVaultRootToken()
-	if err != nil {
-		return err
-	}
-
-	resp, err := r.RunConfig.ManagementSvc.GetTenants(consortiumName, tenantType)
-	if err != nil {
-		return err
-	}
-
-	for _, value := range resp {
-		mapEntry := value.(map[string]any)
-		configTenant := mapEntry["name"].(string)
-		hasTenant := helpers.HasTenant(configTenant, r.RunConfig.Action.ConfigTenants)
-		if !hasTenant {
-			continue
-		}
-
-		slog.Info(r.RunConfig.Action.Name, "text", "CREATING ROLES FOR TENANT", "tenant", configTenant)
-		keycloakAccessToken, err := r.RunConfig.KeycloakSvc.GetKeycloakAccessToken(configTenant)
+func (run *Run) CreateRoles(consortiumName string, tenantType constant.TenantType) error {
+	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
+		slog.Info(run.Config.Action.Name, "text", "CREATING ROLES FOR TENANT", "tenant", configTenant)
+		keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
 		if err != nil {
 			return err
 		}
-		r.RunConfig.Action.KeycloakAccessToken = keycloakAccessToken
+		run.Config.Action.KeycloakAccessToken = keycloakAccessToken
 
-		err = r.RunConfig.KeycloakSvc.CreateRoles(configTenant)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+		return run.Config.KeycloakSvc.CreateRoles(configTenant)
+	})
 }
 
 func init() {

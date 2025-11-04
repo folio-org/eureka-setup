@@ -34,68 +34,61 @@ var undeployApplicationCmd = &cobra.Command{
 		start := time.Now()
 
 		var err error
-		r, err := New(action.UndeployApplication)
+		run, err := New(action.UndeployApplication)
 		if err != nil {
 			return err
 		}
 
-		if len(r.RunConfig.Action.ConfigApplicationDependencies) > 0 {
-			err = r.UndeployChildApplication()
-			if err != nil {
-				return err
-			}
+		if len(run.Config.Action.ConfigApplicationDependencies) > 0 {
+			err = run.UndeployChildApplication()
 		} else {
-			r.UndeployApplication()
+			err = run.UndeployApplication()
 		}
-
-		helpers.LogCompletion(r.RunConfig.Action.Name, start)
+		if err != nil {
+			return err
+		}
+		helpers.LogCompletion(run.Config.Action.Name, start)
 
 		return nil
 	},
 }
 
-func (r *Run) UndeployApplication() {
-	_ = r.UndeployUi()
-	_ = r.UndeployModules()
-	_ = r.UndeployManagement()
-	_ = r.UndeploySystem()
+func (run *Run) UndeployApplication() error {
+	if err := run.UndeployUi(); err != nil {
+		return err
+	}
+	if err := run.UndeployModules(); err != nil {
+		return err
+	}
+	if err := run.UndeployManagement(); err != nil {
+		return err
+	}
+
+	return run.UndeploySystem()
 }
 
-func (r *Run) UndeployChildApplication() error {
-	err := r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
-		return r.RemoveTenantEntitlements(consortiumName, tenantType)
-	})
-	if err != nil {
+func (run *Run) UndeployChildApplication() error {
+	if err := run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+		return run.RemoveTenantEntitlements(consortiumName, tenantType)
+	}); err != nil {
 		return err
 	}
-	err = r.UndeployModules()
-	if err != nil {
+	if err := run.UndeployModules(); err != nil {
 		return err
 	}
-	err = r.UndeployAdditionalSystem()
-	if err != nil {
+	if err := run.UndeployAdditionalSystem(); err != nil {
 		return err
 	}
-	err = r.ConsortiumPartitionErr(func(consortiumName string, tenantType constant.TenantType) error {
-		err := r.DetachCapabilitySets(consortiumName, tenantType)
-		if err != nil {
-			return err
-		}
-		err = r.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second)
-		if err != nil {
+	return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+		if err := run.DetachCapabilitySets(consortiumName, tenantType); err != nil {
 			return err
 		}
 
-		return nil
+		return run.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second)
 	})
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func init() {
 	rootCmd.AddCommand(undeployApplicationCmd)
-	undeployApplicationCmd.PersistentFlags().BoolVarP(&actionParams.PurgeSchemas, "purgeSchemas", "S", false, "Purge schemas in PostgreSQL on uninstallation")
+	undeployApplicationCmd.PersistentFlags().BoolVarP(&actionParams.PurgeSchemas, "purgeSchemas", "z", false, "Purge schemas in PostgreSQL on uninstallation")
 }

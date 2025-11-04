@@ -24,7 +24,7 @@ type Action struct {
 	Name                              string
 	GatewayURLTemplate                string
 	ReservedPorts                     []int
-	ActionParams                      *actionparams.ActionParams
+	Params                            *actionparams.ActionParams
 	Caser                             cases.Caser
 	VaultRootToken                    string
 	KeycloakAccessToken               string
@@ -77,7 +77,7 @@ func newGeneric(name, gatewayURL string, actionParams *actionparams.ActionParams
 		Name:                              name,
 		GatewayURLTemplate:                gatewayURL,
 		ReservedPorts:                     []int{},
-		ActionParams:                      actionParams,
+		Params:                            actionParams,
 		VaultRootToken:                    vaultRootToken,
 		KeycloakAccessToken:               keycloakAccessToken,
 		KeycloakMasterAccessToken:         keycloakMasterAccessToken,
@@ -123,39 +123,61 @@ func GetGatewayURLTemplate(actionName string) (string, error) {
 }
 
 func GetGatewayURL(actionName string) (string, error) {
-	var (
-		gatewayURL string
-		err        error
-	)
-	if viper.IsSet(field.ApplicationGatewayHostname) {
-		hostname := viper.GetString(field.ApplicationGatewayHostname)
-		if strings.HasPrefix(hostname, "http://") {
-			err = helpers.IsHostnameReachable(actionName, hostname)
-			if err == nil {
-				gatewayURL = hostname
-			}
-		} else {
-			gatewayURL = fmt.Sprintf("http://%s", hostname)
-		}
-	}
-	if err != nil {
-		err = helpers.IsHostnameReachable(actionName, constant.DockerHostname)
-		if err == nil {
-			gatewayURL = fmt.Sprintf("http://%s", constant.DockerHostname)
-		}
-	}
-	if runtime.GOOS == "linux" || runtime.GOOS == "darwin" && err != nil {
-		gatewayURL = fmt.Sprintf("http://%s", constant.DockerGatewayIP)
-		err = nil
-	}
-	if err != nil {
-		return "", err
+	slog.Debug(actionName, "text", "RETRIEVING GATEWAY URL")
+	gatewayURL, err := getConfigGatewayURL(actionName)
+	if gatewayURL == "" {
+		gatewayURL, err = getDefaultGatewayURL(actionName)
 	}
 	if gatewayURL == "" {
-		return "", errors.GatewayURLConstructFailed(runtime.GOOS)
+		gatewayURL, err = getOtherGatewayURL(actionName)
 	}
+	if gatewayURL == "" || err != nil {
+		return "", errors.GatewayURLConstructFailed(runtime.GOOS, err)
+	}
+	slog.Debug(actionName, "text", "Retrieved gateway URL", "url", gatewayURL)
 
 	return gatewayURL, nil
+}
+
+func getConfigGatewayURL(actionName string) (gatewayURL string, err error) {
+	if !viper.IsSet(field.ApplicationGatewayHostname) {
+		return "", nil
+	}
+
+	hostname := viper.GetString(field.ApplicationGatewayHostname)
+	err = helpers.IsHostnameReachable(actionName, hostname)
+	if err != nil {
+		slog.Warn(actionName, "text", "Retrieving config gateway hostname was unsuccessful", "error", err)
+		return "", err
+	}
+
+	if !strings.HasPrefix(hostname, "http://") {
+		gatewayURL = fmt.Sprintf("http://%s", hostname)
+	} else {
+		gatewayURL = hostname
+	}
+
+	return
+}
+
+func getDefaultGatewayURL(actionName string) (gatewayURL string, err error) {
+	err = helpers.IsHostnameReachable(actionName, constant.DockerHostname)
+	if err != nil {
+		slog.Warn(actionName, "text", "Retrieving default gateway URL was unsuccessful", "error", err)
+		return "", nil
+	}
+
+	return fmt.Sprintf("http://%s", constant.DockerHostname), nil
+}
+
+func getOtherGatewayURL(actionName string) (gatewayURL string, err error) {
+	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
+		err = errors.UnsupportedPlatform(runtime.GOOS, constant.DockerGatewayIP)
+		slog.Warn(actionName, "text", "Retrieving other gateway URL was unsuccessful", "error", err)
+		return "", err
+	}
+
+	return fmt.Sprintf("http://%s", constant.DockerGatewayIP), nil
 }
 
 func (a *Action) GetPreReservedPort() (int, error) {
@@ -193,7 +215,7 @@ func (a *Action) GetRequestURL(port string, route string) string {
 	return fmt.Sprintf(a.GatewayURLTemplate, port) + route
 }
 
-func GetConfigEnvVars(key string) []string {
+func (a *Action) GetConfigEnvVars(key string) []string {
 	var envVars []string
 	for key, value := range viper.GetStringMapString(key) {
 		envVars = append(envVars, fmt.Sprintf("%s=%s", strings.ToUpper(key), value))
@@ -208,4 +230,24 @@ func GetConfigEnv(key string, configGlobalEnv map[string]string) string {
 
 func IsSet(key string) bool {
 	return viper.IsSet(key)
+}
+
+func (a *Action) GetCombinedInstallJsonURLs() map[string]string {
+	return map[string]string{
+		constant.FolioRegistry:  a.ConfigFolioRegistry,
+		constant.EurekaRegistry: a.ConfigEurekaRegistry,
+	}
+}
+
+func (a *Action) GetEurekaInstallJsonURLs() map[string]string {
+	return map[string]string{
+		constant.EurekaRegistry: a.ConfigEurekaRegistry,
+	}
+}
+
+func (a *Action) GetCombinedRegistryURLs() map[string]string {
+	return map[string]string{
+		constant.FolioRegistry:  a.ConfigRegistryURL,
+		constant.EurekaRegistry: a.ConfigRegistryURL,
+	}
 }

@@ -29,25 +29,30 @@ var removeTenantsCmd = &cobra.Command{
 	Short: "Remove tenants",
 	Long:  `Remove all tenants.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		r, err := New(action.RemoveTenants)
+		run, err := New(action.RemoveTenants)
 		if err != nil {
 			return err
 		}
 
-		r.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) {
-			_ = r.RemoveUsers(consortiumName, tenantType)
-			_ = r.RemoveRoles(consortiumName, tenantType)
-			_ = r.RemoveTenantEntitlements(consortiumName, tenantType)
-			_ = r.RemoveTenants(consortiumName, tenantType)
-		})
+		return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+			if err := run.RemoveUsers(consortiumName, tenantType); err != nil {
+				return err
+			}
+			if err := run.RemoveRoles(consortiumName, tenantType); err != nil {
+				return err
+			}
+			if err := run.RemoveTenantEntitlements(consortiumName, tenantType); err != nil {
+				return err
+			}
 
-		return nil
+			return run.RemoveTenants(consortiumName, tenantType)
+		})
 	},
 }
 
-func (r *Run) RemoveTenants(consortiumName string, tenantType constant.TenantType) error {
-	slog.Info(r.RunConfig.Action.Name, "text", "REMOVING TENANTS")
-	return r.RunConfig.ManagementSvc.RemoveTenants(consortiumName, tenantType)
+func (run *Run) RemoveTenants(consortiumName string, tenantType constant.TenantType) error {
+	slog.Info(run.Config.Action.Name, "text", "REMOVING TENANTS")
+	return run.Config.ManagementSvc.RemoveTenants(consortiumName, tenantType)
 }
 
 func init() {

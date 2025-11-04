@@ -7,7 +7,6 @@ application:
   fetch-descriptors: false
   port-start: 30000
   port-end: 30999
-  gateway-hostname: http://host.docker.internal
 registry:
   url: https://folio-registry.dev.folio.org
 install:
@@ -207,7 +206,7 @@ backend-modules:
   mod-tags:
   mod-inventory-storage:
   mod-inventory:
-    port-server: 9403
+    private-port: 9403
   mod-organizations-storage:
   mod-organizations:
   mod-invoice-storage:
@@ -222,7 +221,7 @@ backend-modules:
     disable-system-user: true
   mod-circulation-storage:
   mod-circulation:
-    port-server: 9801
+    private-port: 9801
   mod-template-engine:
   mod-feesfines:
 frontend-modules:

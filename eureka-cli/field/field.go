@@ -56,7 +56,7 @@ const (
 	ModuleDeploySidecarEntry             = "deploy-sidecar"
 	ModuleVersionEntry                   = "version"
 	ModulePortEntry                      = "port"
-	ModulePortServerEntry                = "port-server"
+	ModulePrivatePortEntry               = "private-port"
 	ModuleUseVaultEntry                  = "use-vault"
 	ModuleUseOkapiURLEntry               = "use-okapi-url"
 	ModuleDisableSystemUserEntry         = "disable-system-user"

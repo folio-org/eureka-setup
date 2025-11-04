@@ -26,5 +26,5 @@ type ActionParams struct {
 	Length              int
 	ModuleType          string
 	PurgeSchemas        bool
-	Lines               int
+	Versions            int
 }
