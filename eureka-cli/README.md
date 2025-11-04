@@ -412,7 +412,7 @@ git clone https://github.com/folio-org/folio-module-sidecar.git
 
 ```bash
 cd folio-module-sidecar
-mvn install -Pnative -DskipTests \
+mvn clean install -Pnative -DskipTests \
   -Dquarkus.native.remote-container-build=true \
   -Dquarkus.native.builder-image=quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-21
 ```
