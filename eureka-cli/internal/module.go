@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
@@ -257,8 +258,18 @@ func getContainerName(dto *DeployModuleDto) string {
 }
 
 func PullModule(commandName string, client *client.Client, imageName string) {
-	registryAuthToken := GetRegistryAuthTokenIfPresent(commandName)
+	_, err := client.ImageInspect(context.Background(), imageName)
+	if err == nil {
+		slog.Debug(commandName, GetFuncName(), fmt.Sprintf("Image %s already exists locally, skipping pull", imageName))
+		return
+	}
+	if !errdefs.IsNotFound(err) {
+		slog.Error(commandName, GetFuncName(), "client.ImageInspect error")
+		panic(err)
+	}
 
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Pulling image %s", imageName))
+	registryAuthToken := GetRegistryAuthTokenIfPresent(commandName)
 	reader, err := client.ImagePull(context.Background(), imageName, image.PullOptions{RegistryAuth: registryAuthToken})
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "client.ImagePull error")
