@@ -100,11 +100,7 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 
 	var sidecarWG sync.WaitGroup
 	sidecarErrCh := make(chan error, 10)
-	for registryName, registryModules := range containers.RegistryModules {
-		if len(registryModules) > 0 {
-			slog.Info(ms.Action.Name, "text", "Deploying modules", "registry", registryName)
-		}
-
+	for _, registryModules := range containers.RegistryModules {
 		for _, registryModule := range registryModules {
 			if ms.shouldSkipModule(registryModule, containers.ManagementOnly) {
 				continue
@@ -114,16 +110,15 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 			}
 
 			backendModule := containers.BackendModules[registryModule.Name]
-			moduleVersion := ms.GetModuleImageVersion(backendModule, registryModule)
-			moduleImage := ms.GetModuleImage(moduleVersion, registryModule)
-			moduleEnv := ms.GetModuleEnv(containers, registryModule, backendModule)
-			container := models.NewModuleContainer(registryModule.Name, moduleImage, moduleEnv, backendModule, networkConfig)
-			err := ms.DeployModule(client, container)
-			if err != nil {
+			version := ms.GetModuleImageVersion(backendModule, registryModule)
+			image := ms.GetModuleImage(version, registryModule)
+			env := ms.GetModuleEnv(containers, registryModule, backendModule)
+			container := models.NewModuleContainer(registryModule.Name, image, env, backendModule, networkConfig)
+			if err := ms.DeployModule(client, container); err != nil {
 				return nil, err
 			}
-
 			deployedModules[registryModule.Name] = backendModule.ModuleExposedServerPort
+
 			if backendModule.DeploySidecar && sidecarImage != "" {
 				sidecarWG.Add(1)
 				go ms.deploySidecarAsync(&sidecarWG, sidecarErrCh, &SidecarRequest{
@@ -160,15 +155,13 @@ func (ms *ModuleSvc) shouldDeployModule(registryModule *models.RegistryModule, b
 	return exists && backendModule.DeployModule
 }
 
-func (ms *ModuleSvc) deploySidecarAsync(wg *sync.WaitGroup, errCh chan<- error, sidecarReq *SidecarRequest) {
+func (ms *ModuleSvc) deploySidecarAsync(wg *sync.WaitGroup, errCh chan<- error, r *SidecarRequest) {
 	defer wg.Done()
 
-	sidecarEnv := ms.GetSidecarEnv(sidecarReq.Containers, sidecarReq.RegistryModule, sidecarReq.BackendModule, "", "")
-	sidecarContainer := models.NewSidecarContainer(sidecarReq.RegistryModule.SidecarName, sidecarReq.SidecarImage, sidecarEnv, sidecarReq.BackendModule, sidecarReq.NetworkConfig, sidecarReq.SidecarResources)
-	err := ms.DeployModule(sidecarReq.Client, sidecarContainer)
-	if err != nil {
-		err := appErrors.SidecarDeployFailed(sidecarReq.RegistryModule.SidecarName, err)
-		slog.Error(ms.Action.Name, "error", err)
+	env := ms.GetSidecarEnv(r.Containers, r.RegistryModule, r.BackendModule, "", "")
+	container := models.NewSidecarContainer(r.RegistryModule.SidecarName, r.SidecarImage, env, r.BackendModule, r.NetworkConfig, r.SidecarResources)
+	if err := ms.DeployModule(r.Client, container); err != nil {
+		err := appErrors.SidecarDeployFailed(r.RegistryModule.SidecarName, err)
 		select {
 		case errCh <- err:
 		default:
@@ -176,19 +169,19 @@ func (ms *ModuleSvc) deploySidecarAsync(wg *sync.WaitGroup, errCh chan<- error, 
 	}
 }
 
-func (ms *ModuleSvc) DeployModule(client *client.Client, newContainer *models.Container) error {
+func (ms *ModuleSvc) DeployModule(client *client.Client, c *models.Container) error {
 	ctx, cancel := context.WithTimeout(context.Background(), constant.ContextTimeoutDockerDeploy)
 	defer cancel()
 
-	containerName := ms.getContainerName(newContainer)
-	if newContainer.PullImage {
-		err := ms.PullModule(client, newContainer.Image)
+	containerName := ms.getContainerName(c)
+	if c.PullImage {
+		err := ms.PullModule(client, c.Image)
 		if err != nil {
 			return err
 		}
 	}
 
-	createResponse, err := client.ContainerCreate(ctx, newContainer.Config, newContainer.HostConfig, newContainer.NetworkConfig, newContainer.Platform, containerName)
+	createResponse, err := client.ContainerCreate(ctx, c.Config, c.HostConfig, c.NetworkConfig, c.Platform, containerName)
 	if err != nil {
 		return err
 	}

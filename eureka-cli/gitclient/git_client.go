@@ -93,12 +93,10 @@ func (rc *GitClient) Clone(repository *gitrepository.GitRepository) error {
 
 func (rc *GitClient) ResetHardPullFromOrigin(repository *gitrepository.GitRepository) error {
 	slog.Info(rc.Action.Name, "text", "Updating repository", "label", repository.Label, "branch", repository.Branch)
-
 	targetRepository, err := git.PlainOpen(repository.Dir)
 	if err != nil {
 		return err
 	}
-
 	if err = targetRepository.Fetch(&git.FetchOptions{
 		Force:    true,
 		Progress: os.Stdout,
@@ -127,7 +125,6 @@ func (rc *GitClient) ResetHardPullFromOrigin(repository *gitrepository.GitReposi
 	if err != nil {
 		return err
 	}
-
 	if err = worktree.Pull(&git.PullOptions{
 		RemoteName:    "origin",
 		ReferenceName: ref.Name(),

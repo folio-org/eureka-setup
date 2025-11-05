@@ -37,7 +37,6 @@ func (dc *DockerClient) Create() (*client.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), constant.ContextTimeoutDockerAPIVersion)
 	defer cancel()
 

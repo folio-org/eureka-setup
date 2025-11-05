@@ -56,7 +56,6 @@ func (ms *ModuleSvc) GetBackendModule(containers *models.Containers, moduleName 
 			if !ok || !backendModule.DeployModule {
 				continue
 			}
-
 			if registryModule.Name == moduleName {
 				return &backendModule, registryModule
 			}
@@ -79,7 +78,6 @@ func (ms *ModuleSvc) GetSidecarImage(registryModules []*models.RegistryModule) (
 	if err != nil {
 		return "", false, err
 	}
-
 	if ms.Action.ConfigSidecarModule[field.SidecarModuleLocalImageEntry] != nil && ms.Action.ConfigSidecarModule[field.SidecarModuleLocalImageEntry].(string) != "" {
 		return fmt.Sprintf("%s:%s", ms.Action.ConfigSidecarModule[field.SidecarModuleLocalImageEntry].(string), sidecarImageVersion), false, nil
 	}

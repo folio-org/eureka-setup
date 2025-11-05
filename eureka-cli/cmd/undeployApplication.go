@@ -54,9 +54,7 @@ var undeployApplicationCmd = &cobra.Command{
 }
 
 func (run *Run) UndeployApplication() error {
-	if err := run.UndeployUi(); err != nil {
-		return err
-	}
+	_ = run.UndeployUi()
 	if err := run.UndeployModules(false); err != nil {
 		return err
 	}

@@ -28,7 +28,6 @@ func New(action *action.Action, httpClient httpclient.HTTPClientRunner) *VaultCl
 
 func (vc *VaultClient) Create() (*vault.Client, error) {
 	serverURL := vc.Action.GetRequestURL(constant.VaultServerPort, "")
-
 	client, err := vault.New(vault.WithAddress(serverURL), vault.WithRequestTimeout(constant.ContextTimeoutVaultClient))
 	if err != nil {
 		return nil, err

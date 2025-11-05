@@ -47,6 +47,7 @@ func (ms *ModuleSvc) GetVaultRootToken(client *client.Client) (string, error) {
 		parsedLogLine := string(rawLogLine)
 		if strings.Contains(parsedLogLine, constant.VaultRootTokenPattern) {
 			vaultRootToken := helpers.GetVaultRootTokenFromLogs(parsedLogLine)
+
 			return vaultRootToken, nil
 		}
 	}
