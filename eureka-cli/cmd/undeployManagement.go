@@ -33,7 +33,7 @@ var undeployManagementCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if err := run.UndeployModules(); err != nil {
+		if err := run.UndeployModules(true); err != nil {
 			return err
 		}
 

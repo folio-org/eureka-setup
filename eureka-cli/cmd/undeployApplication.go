@@ -57,7 +57,7 @@ func (run *Run) UndeployApplication() error {
 	if err := run.UndeployUi(); err != nil {
 		return err
 	}
-	if err := run.UndeployModules(); err != nil {
+	if err := run.UndeployModules(false); err != nil {
 		return err
 	}
 	if err := run.UndeployManagement(); err != nil {
@@ -73,7 +73,7 @@ func (run *Run) UndeployChildApplication() error {
 	}); err != nil {
 		return err
 	}
-	if err := run.UndeployModules(); err != nil {
+	if err := run.UndeployModules(true); err != nil {
 		return err
 	}
 	if err := run.UndeployAdditionalSystem(); err != nil {

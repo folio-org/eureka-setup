@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"strconv"
 	"strings"
 
 	"github.com/folio-org/eureka-cli/action"
@@ -30,7 +29,7 @@ type ManagementApplicationManager interface {
 	CreateApplications(extract *models.RegistryModuleExtract) error
 	RemoveApplication(applicationID string) error
 	GetModuleDiscovery(name string) (models.ModuleDiscoveryResponse, error)
-	UpdateModuleDiscovery(id string, sidecarURL string, restore bool) error
+	UpdateModuleDiscovery(id string, restore bool, privatePort int, sidecarURL string) error
 }
 
 // ManagementSvc provides functionality for management operations including applications and tenants
@@ -78,12 +77,8 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 		dependencies = ms.Action.ConfigApplicationDependencies
 	}
 
-	for registryName, rr := range extract.RegistryModules {
-		if len(rr) > 0 {
-			slog.Info(ms.Action.Name, "text", "Including modules to application", "registry", registryName, "application", ms.Action.ConfigApplicationID)
-		}
-
-		for _, module := range rr {
+	for _, modules := range extract.RegistryModules {
+		for _, module := range modules {
 			if strings.Contains(module.Name, constant.ManagementModulePattern) {
 				continue
 			}
@@ -111,33 +106,33 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 			if ms.Action.ConfigApplicationFetchDescriptors || isLocalModule {
 				if isLocalModule {
 					slog.Info(ms.Action.Name, "text", "Fetching local module descriptor from file path", "module", module.ID)
-					var descriptorPath string
+					var moduleDescriptorPath string
 					if isLocalBackendModule {
-						descriptorPath = backendModule.LocalDescriptorPath
+						moduleDescriptorPath = backendModule.LocalDescriptorPath
 					} else {
-						descriptorPath = frontendModule.LocalDescriptorPath
+						moduleDescriptorPath = frontendModule.LocalDescriptorPath
 					}
 
-					var descriptor map[string]any
-					err := helpers.ReadJsonFromFile(ms.Action.Name, descriptorPath, &descriptor)
+					var moduleDescriptorData map[string]any
+					err := helpers.ReadJsonFromFile(ms.Action.Name, moduleDescriptorPath, &moduleDescriptorData)
 					if err != nil {
 						return err
 					}
-					extract.ModuleDescriptors[module.ID] = descriptor
-					slog.Info(ms.Action.Name, "text", "Successfully loaded descriptor from local file", "module", module.ID)
+					extract.ModuleDescriptors[module.ID] = moduleDescriptorData
+					slog.Info(ms.Action.Name, "text", "Successfully loaded module descriptor from local file path", "module", module.ID)
 				} else {
 					slog.Info(ms.Action.Name, "text", "Fetching module descriptor from URL", "module", module.ID, "url", moduleDescriptorURL)
-					moduleDescriptorsMapResp, err := ms.HTTPClient.GetRetryDecodeReturnAny(moduleDescriptorURL, map[string]string{})
+					moduleDescriptorData, err := ms.HTTPClient.GetRetryDecodeReturnAny(moduleDescriptorURL, map[string]string{})
 					if err != nil {
 						return err
 					}
-					extract.ModuleDescriptors[module.ID] = moduleDescriptorsMapResp
-					slog.Info(ms.Action.Name, "text", "Successfully loaded descriptor from the remote", "module", module.ID)
+					extract.ModuleDescriptors[module.ID] = moduleDescriptorData
+					slog.Info(ms.Action.Name, "text", "Successfully loaded module descriptor from the remote", "module", module.ID)
 				}
 			}
 
 			if okBackend {
-				serverPort := strconv.Itoa(backendModule.ModuleServerPort)
+				serverPort := backendModule.ModuleServerPort
 				backendModule := map[string]string{
 					"id":      module.ID,
 					"name":    module.Name,
@@ -148,14 +143,14 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 				} else {
 					backendModule["url"] = moduleDescriptorURL
 				}
-
 				backendModules = append(backendModules, backendModule)
-				sidecarUrl := fmt.Sprintf("http://%s.eureka:%s", module.SidecarName, serverPort)
+
+				sidecarURL := fmt.Sprintf("http://%s.eureka:%d", module.SidecarName, serverPort)
 				discoveryModules = append(discoveryModules, map[string]string{
 					"id":       module.ID,
 					"name":     module.Name,
 					"version":  *module.Version,
-					"location": sidecarUrl,
+					"location": sidecarURL,
 				})
 			} else if okFrontend {
 				frontendModule := map[string]string{
@@ -170,7 +165,6 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 				}
 				frontendModules = append(frontendModules, frontendModule)
 			}
-			slog.Info(ms.Action.Name, "text", "Including module into application", "module", module.Name, "version", *module.Version, "application", ms.Action.ConfigApplicationID)
 		}
 	}
 
@@ -194,7 +188,7 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 	if err != nil {
 		return err
 	}
-	slog.Info(ms.Action.Name, "text", "Created application", "application", ms.Action.ConfigApplicationID)
+	slog.Info(ms.Action.Name, "text", "Created application", "id", ms.Action.ConfigApplicationID, "backendModules", len(backendModules), "frontendModules", len(frontendModules))
 
 	if len(discoveryModules) > 0 {
 		payload2, err := json.Marshal(map[string]any{
@@ -208,8 +202,8 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 		if err != nil {
 			return err
 		}
+		slog.Info(ms.Action.Name, "text", "Created module discovery", "count", len(discoveryModules))
 	}
-	slog.Info(ms.Action.Name, "text", "Created entries of application module discovery", "count", len(discoveryModules))
 
 	return nil
 }
@@ -220,7 +214,7 @@ func (ms *ManagementSvc) RemoveApplication(applicationID string) error {
 	if err != nil {
 		return err
 	}
-	slog.Info(ms.Action.Name, "text", "Removed application", "application", applicationID)
+	slog.Info(ms.Action.Name, "text", "Removed application", "id", applicationID)
 
 	return nil
 }
@@ -245,20 +239,21 @@ func (ms *ManagementSvc) GetModuleDiscovery(name string) (models.ModuleDiscovery
 	return moduleDiscovery, nil
 }
 
-func (ms *ManagementSvc) UpdateModuleDiscovery(id string, sidecarURL string, restore bool) error {
+func (ms *ManagementSvc) UpdateModuleDiscovery(id string, restore bool, privatePort int, sidecarURL string) error {
 	name := helpers.GetModuleNameFromID(id)
 	if sidecarURL == "" || restore {
 		if strings.HasPrefix(name, "edge") {
-			sidecarURL = fmt.Sprintf("http://%s.eureka:%s", name, constant.PrivateServerPort)
+			sidecarURL = fmt.Sprintf("http://%s.eureka:%d", name, privatePort)
 		} else {
-			sidecarURL = fmt.Sprintf("http://%s-sc.eureka:%s", name, constant.PrivateServerPort)
+			sidecarURL = fmt.Sprintf("http://%s-sc.eureka:%d", name, privatePort)
 		}
 	}
 
+	version := helpers.GetModuleVersionFromID(id)
 	payload, err := json.Marshal(map[string]any{
 		"id":       id,
 		"name":     name,
-		"version":  helpers.GetModuleVersionFromID(id),
+		"version":  version,
 		"location": sidecarURL,
 	})
 	if err != nil {
@@ -270,7 +265,7 @@ func (ms *ManagementSvc) UpdateModuleDiscovery(id string, sidecarURL string, res
 	if err != nil {
 		return err
 	}
-	slog.Info(ms.Action.Name, "text", "Updated application module discovery with new sidecar URL", "module", name, "sidecarUrl", sidecarURL)
+	slog.Info(ms.Action.Name, "text", "Updated module discovery", "module", name, "url", sidecarURL)
 
 	return nil
 }

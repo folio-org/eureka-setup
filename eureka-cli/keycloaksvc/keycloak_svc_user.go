@@ -63,14 +63,14 @@ func (ks *KeycloakSvc) CreateUsers(configTenant string) error {
 		}
 
 		okapiBasedHeaders := helpers.TenantSecureApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
-		nonOkapiBasedHeaders := helpers.NonOkapiSecureApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+		nonOkapiBasedHeaders := helpers.TenantSecureNonOkapiApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
 		var createdUser map[string]any
 		err = ks.HTTPClient.PostReturnStruct(postUserRequestURL, payload1, okapiBasedHeaders, &createdUser)
 		if err != nil {
 			return err
 		}
 
-		slog.Info(ks.Action.Name, "text", "Created user with password in tenant", "username", username, "password", password, "tenant", tenantName)
+		slog.Info(ks.Action.Name, "text", "Created user with password", "username", username, "password", password, "tenant", tenantName)
 		userID := createdUser["id"].(string)
 		payload2, err := json.Marshal(map[string]any{
 			"userId":   userID,
@@ -85,7 +85,7 @@ func (ks *KeycloakSvc) CreateUsers(configTenant string) error {
 		if err != nil {
 			return err
 		}
-		slog.Info(ks.Action.Name, "text", "Attached password to user in tenant", "password", password, "username", username, "tenant", tenantName)
+		slog.Info(ks.Action.Name, "text", "Attached password to user", "password", password, "username", username, "tenant", tenantName)
 
 		var roleIDs []string
 		for _, userRole := range userRoles {
@@ -115,7 +115,7 @@ func (ks *KeycloakSvc) CreateUsers(configTenant string) error {
 		if err != nil {
 			return err
 		}
-		slog.Info(ks.Action.Name, "text", "Attached roles to user in tenant", "roleCount", len(roleIDs), "username", username, "tenant", tenantName)
+		slog.Info(ks.Action.Name, "text", "Attached roles to user", "count", len(roleIDs), "username", username, "tenant", tenantName)
 	}
 
 	return nil
@@ -140,7 +140,7 @@ func (ks *KeycloakSvc) RemoveUsers(tenantName string) error {
 		if err != nil {
 			return err
 		}
-		slog.Info(ks.Action.Name, "text", "Removed user in tenant", "username", username, "tenant", tenantName)
+		slog.Info(ks.Action.Name, "text", "Removed user", "username", username, "tenant", tenantName)
 	}
 
 	return nil

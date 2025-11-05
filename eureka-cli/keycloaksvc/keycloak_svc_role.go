@@ -34,7 +34,7 @@ func (ks *KeycloakSvc) GetRoles(headers map[string]string) ([]any, error) {
 }
 
 func (ks *KeycloakSvc) GetRoleByName(roleName string, headers map[string]string) (map[string]any, error) {
-	requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/roles?query=name==%s", roleName))
+	requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/roles?query=name==%s&limit=1", roleName))
 	decodedResponse, err := ks.HTTPClient.GetRetryDecodeReturnAny(requestURL, headers)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (ks *KeycloakSvc) CreateRoles(configTenant string) error {
 		if err != nil {
 			return err
 		}
-		slog.Info(ks.Action.Name, "text", "Created role in tenant", "role", role, "tenant", tenantName)
+		slog.Info(ks.Action.Name, "text", "Created role", "role", role, "tenant", tenantName)
 	}
 
 	return nil
@@ -100,7 +100,7 @@ func (ks *KeycloakSvc) RemoveRoles(tenantName string) error {
 		if err != nil {
 			return err
 		}
-		slog.Info(ks.Action.Name, "text", "Removed role in tenant", "role", roleName, "tenant", tenantName)
+		slog.Info(ks.Action.Name, "text", "Removed role", "role", roleName, "tenant", tenantName)
 	}
 
 	return nil

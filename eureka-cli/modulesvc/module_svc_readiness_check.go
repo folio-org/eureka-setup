@@ -37,7 +37,7 @@ func (ms *ModuleSvc) CheckModuleReadiness(wg *sync.WaitGroup, errCh chan<- error
 			return
 		}
 
-		slog.Info(ms.Action.Name, "text", "Module is unready", "module", moduleName, "retryCount", retryCount, "maxRetries", constant.ModuleReadinessMaxRetries)
+		slog.Info(ms.Action.Name, "text", "Module is unready", "module", moduleName, "count", retryCount, "max", constant.ModuleReadinessMaxRetries)
 		time.Sleep(constant.ModuleReadinessWait)
 	}
 }

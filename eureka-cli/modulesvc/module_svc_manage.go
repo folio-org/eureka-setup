@@ -26,7 +26,7 @@ type ModuleManager interface {
 	GetDeployedModules(client *client.Client, filters filters.Args) ([]container.Summary, error)
 	PullModule(client *client.Client, imageName string) error
 	DeployModules(client *client.Client, containers *models.Containers, sidecarImage string, sidecarResources *container.Resources) (map[string]int, error)
-	DeployModule(client *client.Client, myContainer *models.Container) error
+	DeployModule(client *client.Client, container *models.Container) error
 	UndeployModuleByNamePattern(client *client.Client, pattern string) error
 }
 
@@ -163,7 +163,7 @@ func (ms *ModuleSvc) shouldDeployModule(registryModule *models.RegistryModule, b
 func (ms *ModuleSvc) deploySidecarAsync(wg *sync.WaitGroup, errCh chan<- error, sidecarReq *SidecarRequest) {
 	defer wg.Done()
 
-	sidecarEnv := ms.GetSidecarEnv(sidecarReq.Containers, sidecarReq.RegistryModule, sidecarReq.BackendModule, nil, nil)
+	sidecarEnv := ms.GetSidecarEnv(sidecarReq.Containers, sidecarReq.RegistryModule, sidecarReq.BackendModule, "", "")
 	sidecarContainer := models.NewSidecarContainer(sidecarReq.RegistryModule.SidecarName, sidecarReq.SidecarImage, sidecarEnv, sidecarReq.BackendModule, sidecarReq.NetworkConfig, sidecarReq.SidecarResources)
 	err := ms.DeployModule(sidecarReq.Client, sidecarContainer)
 	if err != nil {
@@ -176,27 +176,27 @@ func (ms *ModuleSvc) deploySidecarAsync(wg *sync.WaitGroup, errCh chan<- error, 
 	}
 }
 
-func (ms *ModuleSvc) DeployModule(client *client.Client, myContainer *models.Container) error {
+func (ms *ModuleSvc) DeployModule(client *client.Client, newContainer *models.Container) error {
 	ctx, cancel := context.WithTimeout(context.Background(), constant.ContextTimeoutDockerDeploy)
 	defer cancel()
 
-	containerName := ms.getContainerName(myContainer)
-	if myContainer.PullImage {
-		err := ms.PullModule(client, myContainer.Image)
+	containerName := ms.getContainerName(newContainer)
+	if newContainer.PullImage {
+		err := ms.PullModule(client, newContainer.Image)
 		if err != nil {
 			return err
 		}
 	}
 
-	cr, err := client.ContainerCreate(ctx, myContainer.Config, myContainer.HostConfig, myContainer.NetworkConfig, myContainer.Platform, containerName)
+	createResponse, err := client.ContainerCreate(ctx, newContainer.Config, newContainer.HostConfig, newContainer.NetworkConfig, newContainer.Platform, containerName)
 	if err != nil {
 		return err
 	}
-	if len(cr.Warnings) > 0 {
-		slog.Warn(ms.Action.Name, "text", "Module created with warning", "container", containerName, "warnings", cr.Warnings)
+	if len(createResponse.Warnings) > 0 {
+		slog.Warn(ms.Action.Name, "text", "Module created with warning", "container", containerName, "warnings", createResponse.Warnings)
 	}
 
-	err = client.ContainerStart(ctx, cr.ID, container.StartOptions{})
+	err = client.ContainerStart(ctx, createResponse.ID, container.StartOptions{})
 	if err != nil {
 		return err
 	}
@@ -205,12 +205,12 @@ func (ms *ModuleSvc) DeployModule(client *client.Client, myContainer *models.Con
 	return nil
 }
 
-func (ms *ModuleSvc) getContainerName(myContainer *models.Container) string {
-	if strings.HasPrefix(myContainer.Name, constant.ManagementModulePattern) {
-		return fmt.Sprintf("eureka-%s", myContainer.Name)
+func (ms *ModuleSvc) getContainerName(container *models.Container) string {
+	if strings.HasPrefix(container.Name, constant.ManagementModulePattern) {
+		return fmt.Sprintf("eureka-%s", container.Name)
 	}
 
-	return fmt.Sprintf("eureka-%s-%s", ms.Action.ConfigProfile, myContainer.Name)
+	return fmt.Sprintf("eureka-%s-%s", ms.Action.ConfigProfile, container.Name)
 }
 
 func (ms *ModuleSvc) UndeployModuleByNamePattern(client *client.Client, pattern string) error {

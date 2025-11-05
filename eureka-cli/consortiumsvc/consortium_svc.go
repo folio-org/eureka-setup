@@ -43,7 +43,7 @@ func New(action *action.Action, httpClient httpclient.HTTPClientRunner, userSvc 
 }
 
 func (cs *ConsortiumSvc) GetConsortiumByName(centralTenant string, consortiumName string) (any, error) {
-	requestURL := cs.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/consortia?query=name==%s", consortiumName))
+	requestURL := cs.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/consortia?query=name==%s&limit=1", consortiumName))
 	headers := helpers.TenantSecureApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
 	decodedResponse, err := cs.HTTPClient.GetRetryDecodeReturnAny(requestURL, headers)
 	if err != nil {

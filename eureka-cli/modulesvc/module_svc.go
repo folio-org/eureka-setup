@@ -37,8 +37,8 @@ type ModuleProvisioner interface {
 	GetModuleImageVersion(backendModule models.BackendModule, registryModule *models.RegistryModule) string
 	GetSidecarImage(registryModules []*models.RegistryModule) (string, bool, error)
 	GetModuleImage(moduleVersion string, registryModule *models.RegistryModule) string
-	GetModuleEnv(myContainer *models.Containers, module *models.RegistryModule, backendModule models.BackendModule) []string
-	GetSidecarEnv(containers *models.Containers, module *models.RegistryModule, backendModule models.BackendModule, moduleURL, sidecarURL *string) []string
+	GetModuleEnv(container *models.Containers, module *models.RegistryModule, backendModule models.BackendModule) []string
+	GetSidecarEnv(containers *models.Containers, module *models.RegistryModule, backendModule models.BackendModule, moduleURL, sidecarURL string) []string
 }
 
 func New(action *action.Action,
@@ -114,29 +114,29 @@ func (ms *ModuleSvc) GetModuleImage(moduleVersion string, registryModule *models
 	return fmt.Sprintf("%s/%s:%s", ms.RegistrySvc.GetNamespace(moduleVersion), registryModule.Name, moduleVersion)
 }
 
-func (ms *ModuleSvc) GetModuleEnv(myContainer *models.Containers, module *models.RegistryModule, backendModule models.BackendModule) []string {
-	var combinedEnv []string
-	combinedEnv = append(combinedEnv, myContainer.GlobalEnv...)
+func (ms *ModuleSvc) GetModuleEnv(container *models.Containers, module *models.RegistryModule, backendModule models.BackendModule) []string {
+	var env []string
+	env = append(env, container.GlobalEnv...)
 	if backendModule.UseVault {
-		combinedEnv = ms.ModuleEnv.VaultEnv(combinedEnv, myContainer.VaultRootToken)
+		env = ms.ModuleEnv.VaultEnv(env, container.VaultRootToken)
 	}
 	if backendModule.UseOkapiURL {
-		combinedEnv = ms.ModuleEnv.OkapiEnv(combinedEnv, module.SidecarName, backendModule.ModuleServerPort)
+		env = ms.ModuleEnv.OkapiEnv(env, module.SidecarName, backendModule.ModuleServerPort)
 	}
 	if backendModule.DisableSystemUser {
-		combinedEnv = ms.ModuleEnv.DisabledSystemUserEnv(combinedEnv, module.Name)
+		env = ms.ModuleEnv.DisabledSystemUserEnv(env, module.Name)
 	}
-	combinedEnv = ms.ModuleEnv.ModuleEnv(combinedEnv, backendModule.ModuleEnv)
+	env = ms.ModuleEnv.ModuleEnv(env, backendModule.ModuleEnv)
 
-	return combinedEnv
+	return env
 }
 
-func (ms *ModuleSvc) GetSidecarEnv(containers *models.Containers, module *models.RegistryModule, backendModule models.BackendModule, moduleURL *string, sidecarURL *string) []string {
-	var combinedEnv []string
-	combinedEnv = append(combinedEnv, containers.SidecarEnv...)
-	combinedEnv = ms.ModuleEnv.VaultEnv(combinedEnv, containers.VaultRootToken)
-	combinedEnv = ms.ModuleEnv.KeycloakEnv(combinedEnv)
-	combinedEnv = ms.ModuleEnv.SidecarEnv(combinedEnv, module, backendModule.ModuleServerPort, moduleURL, sidecarURL)
+func (ms *ModuleSvc) GetSidecarEnv(containers *models.Containers, module *models.RegistryModule, backendModule models.BackendModule, moduleURL, sidecarURL string) []string {
+	var env []string
+	env = append(env, containers.SidecarEnv...)
+	env = ms.ModuleEnv.VaultEnv(env, containers.VaultRootToken)
+	env = ms.ModuleEnv.KeycloakEnv(env)
+	env = ms.ModuleEnv.SidecarEnv(env, module, backendModule.ModuleServerPort, moduleURL, sidecarURL)
 
-	return combinedEnv
+	return env
 }

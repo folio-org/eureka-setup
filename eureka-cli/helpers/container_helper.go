@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"fmt"
 	"log/slog"
 	"strconv"
 
@@ -18,6 +19,10 @@ func NewModuleNetworkConfig() *network.NetworkingConfig {
 	}}
 
 	return &network.NetworkingConfig{EndpointsConfig: endpointConfig}
+}
+
+func GetSidecarName(moduleName string) string {
+	return fmt.Sprintf("%s-sc", moduleName)
 }
 
 func CreateExposedPorts(serverPort int) *nat.PortSet {

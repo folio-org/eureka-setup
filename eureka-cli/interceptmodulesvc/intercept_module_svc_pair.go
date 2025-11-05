@@ -10,15 +10,14 @@ import (
 
 // ModulePair represents a module configured for traffic interception and debugging
 type ModulePair struct {
-	ID                string
-	ModuleName        string
-	ModuleURL         *string
-	SidecarURL        *string
-	SidecarServerPort int
-	RegistryModule    *models.RegistryModule
-	Containers        *models.Containers
-	NetworkConfig     *network.NetworkingConfig
-	BackendModule     *models.BackendModule
+	ID             string
+	ModuleName     string
+	ModuleURL      string
+	SidecarURL     string
+	RegistryModule *models.RegistryModule
+	Containers     *models.Containers
+	NetworkConfig  *network.NetworkingConfig
+	BackendModule  *models.BackendModule
 }
 
 // NewModulePair creates a new ModulePair instance with configured URLs for interception
@@ -37,15 +36,15 @@ func NewModulePair(a *action.Action, p *actionparams.ActionParams) (*ModulePair,
 		sidecarURL = helpers.ConstructURL(p.SidecarURL, gatewayURL)
 	}
 
-	return &ModulePair{ID: p.ID, ModuleName: p.ModuleName, ModuleURL: &moduleURL, SidecarURL: &sidecarURL}, nil
+	return &ModulePair{ID: p.ID, ModuleName: p.ModuleName, ModuleURL: moduleURL, SidecarURL: sidecarURL}, nil
 }
 
 // ClearModuleURL clears the module URL from the intercept module
-func (mp *ModulePair) ClearModuleURL() {
-	mp.ModuleURL = nil
+func (mp *ModulePair) clearModuleURL() {
+	mp.ModuleURL = ""
 }
 
 // ClearSidecarURL clears the sidecar URL from the intercept module
-func (mp *ModulePair) ClearSidecarURL() {
-	mp.SidecarURL = nil
+func (mp *ModulePair) clearSidecarURL() {
+	mp.SidecarURL = ""
 }

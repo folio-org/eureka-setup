@@ -74,7 +74,7 @@ func (run *Run) CreateConsortium() error {
 			return err
 		}
 
-		slog.Info(run.Config.Action.Name, "text", "ADDING TENANTS TO CONSORTIUM", "tenants", consortiumTenants, "tenantCount", len(consortiumTenants), "consortium", consortium)
+		slog.Info(run.Config.Action.Name, "text", "ADDING TENANTS TO CONSORTIUM", "tenants", consortiumTenants, "count", len(consortiumTenants), "consortium", consortium)
 		adminUsername := run.Config.ConsortiumSvc.GetAdminUsername(centralTenant, consortiumUsers)
 		if err := run.Config.ConsortiumSvc.CreateConsortiumTenants(centralTenant, consortiumID, consortiumTenants, adminUsername); err != nil {
 			return err

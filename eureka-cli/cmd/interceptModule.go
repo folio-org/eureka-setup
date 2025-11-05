@@ -16,13 +16,10 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/interceptmodulesvc"
 	"github.com/folio-org/eureka-cli/models"
@@ -44,23 +41,18 @@ var interceptModuleCmd = &cobra.Command{
 	},
 }
 
-// TODO Set to correct private port on restore
 func (run *Run) InterceptModule() error {
-	moduleDiscovery, err := run.Config.ManagementSvc.GetModuleDiscovery(run.Config.Action.Params.ModuleName)
-	if err != nil {
+	if err := run.setModuleDiscoveryDataIntoContext(); err != nil {
 		return err
 	}
-	if len(moduleDiscovery.Discovery) == 0 {
-		return errors.ModuleDiscoveryNotFound(run.Config.Action.Params.ModuleName)
-	}
-	run.Config.Action.Params.ID = moduleDiscovery.Discovery[0].ID
 
-	slog.Info(run.Config.Action.Name, "text", "INTERCEPTING MODULE", "module", run.Config.Action.Params.ModuleName, "id", run.Config.Action.Params.ID)
+	slog.Info(run.Config.Action.Name, "text", "INTERCEPTING MODULE", "module", actionParams.ModuleName, "id", actionParams.ID)
 	backendModules, err := run.Config.ModuleParams.ReadBackendModulesFromConfig(false, false)
 	if err != nil {
 		return err
 	}
 
+	// TODO Cache or save already read install json
 	instalJsonURLs := run.Config.Action.GetCombinedInstallJsonURLs()
 	registryModules, err := run.Config.RegistrySvc.GetModules(instalJsonURLs, false)
 	if err != nil {
@@ -77,12 +69,6 @@ func (run *Run) InterceptModule() error {
 		return err
 	}
 
-	slog.Info(run.Config.Action.Name, "text", "UNDEPLOYING DEFAULT MODULE AND SIDECAR PAIR")
-	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, run.Config.Action.ConfigProfile, run.Config.Action.Params.ModuleName)
-	if err := run.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern); err != nil {
-		return err
-	}
-
 	pair, err := interceptmodulesvc.NewModulePair(run.Config.Action, run.Config.Action.Params)
 	if err != nil {
 		return err
@@ -91,10 +77,7 @@ func (run *Run) InterceptModule() error {
 	globalEnv := run.Config.Action.GetConfigEnvVars(field.Env)
 	sidecarEnv := run.Config.Action.GetConfigEnvVars(field.SidecarModuleEnv)
 	pair.Containers = models.NewCoreAndBusinessContainers(run.Config.Action.VaultRootToken, registryModules, backendModules, globalEnv, sidecarEnv)
-	if err := run.Config.ManagementSvc.UpdateModuleDiscovery(actionParams.ID, *pair.SidecarURL, actionParams.Restore); err != nil {
-		return err
-	}
-	if run.Config.Action.Params.Restore {
+	if actionParams.Restore {
 		return run.Config.InterceptModuleSvc.DeployDefaultModuleAndSidecarPair(pair, client)
 	}
 
@@ -107,7 +90,7 @@ func init() {
 	interceptModuleCmd.PersistentFlags().StringVarP(&actionParams.ModuleURL, "moduleUrl", "m", "", "Module URL, e.g. http://host.docker.internal:36002 or 36002 (if -g is used)")
 	interceptModuleCmd.PersistentFlags().StringVarP(&actionParams.SidecarURL, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002 or 37002 (if -g is used)")
 	interceptModuleCmd.PersistentFlags().BoolVarP(&actionParams.Restore, "restore", "r", false, "Restore module & sidecar")
-	interceptModuleCmd.PersistentFlags().BoolVarP(&actionParams.DefaultGateway, "defaultGateway", "g", false, "Use default gateway in URLs, .e.g http://host.docker.internal:{{port}} will be set automatically")
+	interceptModuleCmd.PersistentFlags().BoolVarP(&actionParams.DefaultGateway, "defaultGateway", "g", false, "Use default gateway in URLs, .e.g. http://host.docker.internal:{{port}} will be set automatically")
 	if err := interceptModuleCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
 		slog.Error("failed to mark moduleName flag as required", "error", err)
 		os.Exit(1)

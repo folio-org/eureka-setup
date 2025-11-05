@@ -96,6 +96,7 @@ Available flags:
 | `-g`  | `--defaultGateway`     | Use default gateway in URLs                                | interceptModule                                                  |
 | `-a`  | `--all`                | All modules for all profiles                               | listModules                                                      |
 | `-c`  | `--namespace`          | DockerHub namespace                                        | buildAndPushUi                                                   |
+| `-j`  | `--privatePort`        | Private port                                               | updateModuleDiscovery                                            |
 
 ```bash
 eureka-cli -c ./config.combined.yaml deployApplication

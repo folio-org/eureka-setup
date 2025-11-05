@@ -67,7 +67,7 @@ func (rs *RegistrySvc) ExtractModuleNameAndVersion(registryModules map[string][]
 			if strings.HasPrefix(module.Name, "edge") {
 				module.SidecarName = module.Name
 			} else {
-				module.SidecarName = fmt.Sprintf("%s-sc", module.Name)
+				module.SidecarName = helpers.GetSidecarName(module.Name)
 			}
 			modules[moduleIndex] = module
 		}
@@ -110,7 +110,7 @@ func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, printModule
 
 		if len(decodedRegistryModules) > 0 {
 			if printModules {
-				slog.Info(rs.Action.Name, "text", "Read registry with modules", "registry", registryName, "moduleCount", len(decodedRegistryModules))
+				slog.Info(rs.Action.Name, "text", "Read registry with modules", "registry", registryName, "count", len(decodedRegistryModules))
 			}
 			sort.Slice(decodedRegistryModules, func(i, j int) bool {
 				switch strings.Compare(decodedRegistryModules[i].ID, decodedRegistryModules[j].ID) {

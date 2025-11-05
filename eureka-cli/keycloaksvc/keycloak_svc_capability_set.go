@@ -28,7 +28,7 @@ func (ks *KeycloakSvc) GetCapabilitySets(headers map[string]string) ([]any, erro
 
 	for _, descriptor := range applications.ApplicationDescriptors {
 		applicationID := descriptor["id"].(string)
-		requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/capability-sets?offset=0&limit=10000&query=applicationId==%s", applicationID))
+		requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/capability-sets?query=applicationId==%s&offset=0&limit=10000", applicationID))
 		decodedResponse, err := ks.HTTPClient.GetRetryDecodeReturnAny(requestURL, headers)
 		if err != nil {
 			return nil, err
@@ -45,7 +45,7 @@ func (ks *KeycloakSvc) GetCapabilitySets(headers map[string]string) ([]any, erro
 }
 
 func (ks *KeycloakSvc) GetCapabilitySetsByName(headers map[string]string, capabilityName string) ([]any, error) {
-	requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/capability-sets?offset=0&limit=1000&query=name=%s", capabilityName))
+	requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/capability-sets?query=name==%s&limit=1", capabilityName))
 	decodedResponse, err := ks.HTTPClient.GetRetryDecodeReturnAny(requestURL, headers)
 	if err != nil {
 		return nil, err
@@ -68,7 +68,7 @@ func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenantName string) error {
 
 	requestURL := ks.Action.GetRequestURL(constant.KongPort, "/roles/capability-sets")
 	if len(roles) == 0 {
-		slog.Info(ks.Action.Name, "text", "Cannot attach capability sets, found no roles in tenant", "tenant", tenantName)
+		slog.Warn(ks.Action.Name, "text", "Cannot attach capability sets, found no roles", "tenant", tenantName)
 		return nil
 	}
 
@@ -90,7 +90,7 @@ func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenantName string) error {
 			return err
 		}
 		if len(capabilitySets) == 0 {
-			slog.Info(ks.Action.Name, "text", "No capability sets were attached to role in tenant", "role", roleName, "tenant", tenantName)
+			slog.Warn(ks.Action.Name, "text", "No capability sets were attached", "role", roleName, "tenant", tenantName)
 			continue
 		}
 
@@ -98,7 +98,7 @@ func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenantName string) error {
 		for lowerBound := 0; lowerBound < len(capabilitySets); lowerBound += batchSize {
 			upperBound := min(lowerBound+batchSize, len(capabilitySets))
 			batchCapabilitySetIDs := capabilitySets[lowerBound:upperBound]
-			slog.Info(ks.Action.Name, "text", "Attaching capability sets to role in tenant", "rangeStart", lowerBound, "rangeEnd", upperBound, "total", len(capabilitySets), "role", roleName, "tenant", tenantName)
+			slog.Info(ks.Action.Name, "text", "Attaching capability sets", "start", lowerBound, "end", upperBound, "total", len(capabilitySets), "role", roleName, "tenant", tenantName)
 
 			payload, err := json.Marshal(map[string]any{
 				"roleId":           entry["id"].(string),
@@ -113,7 +113,7 @@ func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenantName string) error {
 				return err
 			}
 		}
-		slog.Info(ks.Action.Name, "text", "Attached capability sets to role in tenant", "count", len(capabilitySets), "role", roleName, "tenant", tenantName)
+		slog.Info(ks.Action.Name, "text", "Attached capability sets", "count", len(capabilitySets), "role", roleName, "tenant", tenantName)
 	}
 
 	return nil
@@ -157,7 +157,7 @@ func (ks *KeycloakSvc) DetachCapabilitySetsFromRoles(tenantName string) error {
 		return err
 	}
 	if len(roles) == 0 {
-		slog.Info(ks.Action.Name, "text", "Cannot detach capability sets, found no roles in tenant", "tenant", tenantName)
+		slog.Warn(ks.Action.Name, "text", "Cannot detach capability sets, found no roles", "tenant", tenantName)
 		return nil
 	}
 
@@ -173,7 +173,7 @@ func (ks *KeycloakSvc) DetachCapabilitySetsFromRoles(tenantName string) error {
 		if err != nil {
 			return err
 		}
-		slog.Info(ks.Action.Name, "text", "Detached capability sets from role in tenant", "role", roleName, "tenant", tenantName)
+		slog.Info(ks.Action.Name, "text", "Detached capability sets", "role", roleName, "tenant", tenantName)
 	}
 
 	return nil

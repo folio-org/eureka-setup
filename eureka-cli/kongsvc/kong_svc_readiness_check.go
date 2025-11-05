@@ -15,7 +15,6 @@ type KongRouteReadinessChecker interface {
 
 func (ks *KongSvc) CheckRouteReadiness() error {
 	var (
-		// TODO Add more expressions
 		expressions = []string{
 			// Applications
 			`(http.path == "/applications" && http.method == "GET")`,
@@ -55,7 +54,7 @@ func (ks *KongSvc) CheckRouteReadiness() error {
 			return errors.KongRoutesNotReady(actual, expected)
 		}
 
-		slog.Info(ks.Action.Name, "text", "Kong routes are unready", "retryCount", retryCount, "maxRetries", constant.KongRouteReadinessMaxRetries)
+		slog.Info(ks.Action.Name, "text", "Kong routes are unready", "count", retryCount, "max", constant.KongRouteReadinessMaxRetries)
 		time.Sleep(constant.KongReadinessWait)
 	}
 

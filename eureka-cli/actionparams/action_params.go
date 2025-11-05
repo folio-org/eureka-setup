@@ -27,4 +27,5 @@ type ActionParams struct {
 	ModuleType          string
 	PurgeSchemas        bool
 	Versions            int
+	PrivatePort         int
 }

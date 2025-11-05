@@ -40,26 +40,43 @@ var updateModuleDiscoveryCmd = &cobra.Command{
 }
 
 func (run *Run) UpdateModuleDiscovery() error {
-	moduleDiscovery, err := run.Config.ManagementSvc.GetModuleDiscovery(run.Config.Action.Params.ModuleName)
+	if err := run.setModuleDiscoveryDataIntoContext(); err != nil {
+		return err
+	}
+
+	slog.Info(run.Config.Action.Name, "text", "UPDATING MODULE DISCOVERY", "module", actionParams.ModuleName, "id", actionParams.ID)
+	return run.Config.ManagementSvc.UpdateModuleDiscovery(actionParams.ID, actionParams.Restore, actionParams.PrivatePort, actionParams.SidecarURL)
+}
+
+func (run *Run) setModuleDiscoveryDataIntoContext() error {
+	moduleDiscovery, err := run.Config.ManagementSvc.GetModuleDiscovery(actionParams.ModuleName)
 	if err != nil {
 		return err
 	}
 	if len(moduleDiscovery.Discovery) == 0 {
-		return errors.ModuleDiscoveryNotFound(run.Config.Action.Params.ModuleName)
+		return errors.ModuleDiscoveryNotFound(actionParams.ModuleName)
 	}
-	run.Config.Action.Params.ID = moduleDiscovery.Discovery[0].ID
+	actionParams.ID = moduleDiscovery.Discovery[0].ID
 
-	slog.Info(run.Config.Action.Name, "text", "UPDATING MODULE DISCOVERY URL", "module", run.Config.Action.Params.ModuleName, "id", run.Config.Action.Params.ID)
-	return run.Config.ManagementSvc.UpdateModuleDiscovery(run.Config.Action.Params.ID, run.Config.Action.Params.SidecarURL, run.Config.Action.Params.Restore)
+	return nil
 }
 
 func init() {
 	rootCmd.AddCommand(updateModuleDiscoveryCmd)
 	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&actionParams.ModuleName, "moduleName", "n", "", "Module name, e.g. mod-orders")
 	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&actionParams.SidecarURL, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
+	updateModuleDiscoveryCmd.PersistentFlags().IntVarP(&actionParams.PrivatePort, "privatePort", "j", 8081, "Private port e.g. 8081")
 	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&actionParams.Restore, "restore", "r", false, "Restore sidecar URL")
 	if err := updateModuleDiscoveryCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
 		slog.Error("failed to mark moduleName flag as required", "error", err)
+		os.Exit(1)
+	}
+	if err := updateModuleDiscoveryCmd.MarkPersistentFlagRequired("sidecarUrl"); err != nil {
+		slog.Error("failed to mark sidecarUrl flag as required", "error", err)
+		os.Exit(1)
+	}
+	if err := updateModuleDiscoveryCmd.MarkPersistentFlagRequired("privatePort"); err != nil {
+		slog.Error("failed to mark privatePort flag as required", "error", err)
 		os.Exit(1)
 	}
 }

@@ -43,7 +43,7 @@ func (us *UISvc) PreparePackageJSON(configPath string) error {
 		}
 	}
 	if updates > 0 {
-		slog.Info(us.Action.Name, "text", "Added extra modules to package.json", "moduleCount", len(modules))
+		slog.Info(us.Action.Name, "text", "Added extra modules to package.json", "count", len(modules))
 		err = helpers.WriteJsonToFile(packageJSONPath, packageJSON)
 		if err != nil {
 			return err

@@ -22,7 +22,7 @@ func (cs *ConsortiumSvc) EnableCentralOrdering(centralTenant string) error {
 		return err
 	}
 	if enableCentralOrdering {
-		slog.Info(cs.Action.Name, "text", "Central ordering for tenant is already enabled", "tenant", centralTenant)
+		slog.Info(cs.Action.Name, "text", "Central ordering is already enabled", "tenant", centralTenant)
 		return nil
 	}
 
@@ -40,13 +40,13 @@ func (cs *ConsortiumSvc) EnableCentralOrdering(centralTenant string) error {
 	if err != nil {
 		return err
 	}
-	slog.Info(cs.Action.Name, "text", "Enabled central ordering for tenant", "tenant", centralTenant)
+	slog.Info(cs.Action.Name, "text", "Enabled central ordering", "tenant", centralTenant)
 
 	return nil
 }
 
 func (cs *ConsortiumSvc) getEnableCentralOrderingByKey(centralTenant string, key string) (bool, error) {
-	requestURL := cs.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/orders-storage/settings?query=key==%s", key))
+	requestURL := cs.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/orders-storage/settings?query=key==%s&limit=1", key))
 	headers := helpers.TenantSecureApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
 	decodedResponse, err := cs.HTTPClient.GetRetryDecodeReturnAny(requestURL, headers)
 	if err != nil {

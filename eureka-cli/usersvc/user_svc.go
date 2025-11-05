@@ -28,7 +28,7 @@ func New(action *action.Action, httpClient httpclient.HTTPClientRunner) *UserSvc
 }
 
 func (us *UserSvc) Get(tenantName string, username string) (*models.User, error) {
-	requestURL := us.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/users?query=username==%s", username))
+	requestURL := us.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/users?query=username==%s&limit=1", username))
 	headers := helpers.TenantSecureApplicationJSONHeaders(tenantName, us.Action.KeycloakAccessToken)
 
 	var user models.UserResponse

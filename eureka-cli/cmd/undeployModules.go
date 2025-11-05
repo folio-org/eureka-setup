@@ -35,13 +35,15 @@ var undeployModulesCmd = &cobra.Command{
 			return err
 		}
 
-		return run.UndeployModules()
+		return run.UndeployModules(true)
 	},
 }
 
-func (run *Run) UndeployModules() error {
-	slog.Info(run.Config.Action.Name, "text", "REMOVING APPLICATIONS")
-	_ = run.Config.ManagementSvc.RemoveApplication(run.Config.Action.ConfigApplicationID)
+func (run *Run) UndeployModules(deleteApplication bool) error {
+	if deleteApplication {
+		slog.Info(run.Config.Action.Name, "text", "REMOVING APPLICATION")
+		_ = run.Config.ManagementSvc.RemoveApplication(run.Config.Action.ConfigApplicationID)
+	}
 
 	slog.Info(run.Config.Action.Name, "text", "UNDEPLOYING MODULES")
 	client, err := run.Config.DockerClient.Create()

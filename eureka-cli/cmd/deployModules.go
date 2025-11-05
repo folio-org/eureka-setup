@@ -74,7 +74,7 @@ func (run *Run) DeployModules() error {
 		return err
 	}
 
-	slog.Info(run.Config.Action.Name, "text", "CREATING APPLICATIONS")
+	slog.Info(run.Config.Action.Name, "text", "CREATING APPLICATION")
 	registryURLs := run.Config.Action.GetCombinedRegistryURLs()
 	registerModuleExtract := models.NewRegistryModuleExtract(registryURLs, registryModules, backendModules, frontendModules)
 	if err := run.Config.ManagementSvc.CreateApplications(registerModuleExtract); err != nil {

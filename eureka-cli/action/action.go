@@ -157,7 +157,7 @@ func getConfigGatewayURL(actionName string) (gatewayURL string, err error) {
 		gatewayURL = hostname
 	}
 
-	return
+	return gatewayURL, nil
 }
 
 func getDefaultGatewayURL(actionName string) (gatewayURL string, err error) {
@@ -178,6 +178,19 @@ func getOtherGatewayURL(actionName string) (gatewayURL string, err error) {
 	}
 
 	return fmt.Sprintf("http://%s", constant.DockerGatewayIP), nil
+}
+
+func (a *Action) GetPreReserverPortSet(fns []func() (int, error)) (ports []int, err error) {
+	for _, fn := range fns {
+		port, err := fn()
+		if err != nil {
+			return nil, err
+		}
+
+		ports = append(ports, port)
+	}
+
+	return ports, nil
 }
 
 func (a *Action) GetPreReservedPort() (int, error) {

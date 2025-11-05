@@ -109,7 +109,7 @@ func (cs *ConsortiumSvc) CreateConsortiumTenants(centralTenant string, consortiu
 			requestURL = fmt.Sprintf("/consortia/%s/tenants?adminUserId=%s", consortiumID, user.ID)
 		}
 
-		slog.Info(cs.Action.Name, "text", "Trying to create consortium tenant for consortium", "tenant", consortiumTenant.Tenant, "consortium", consortiumID)
+		slog.Info(cs.Action.Name, "text", "Trying to create consortium tenant", "tenant", consortiumTenant.Tenant, "consortium", consortiumID)
 		finalRequestURL := cs.Action.GetRequestURL(constant.KongPort, requestURL)
 		err = cs.HTTPClient.PostReturnNoContent(finalRequestURL, payload, headers)
 		if err != nil {
@@ -180,7 +180,7 @@ func (cs *ConsortiumSvc) checkConsortiumTenantStatus(centralTenant string, conso
 		return errors.TenantNotCreated(tenantName)
 	case COMPLETED:
 		isCentral := consortiumTenants["isCentral"]
-		slog.Info(cs.Action.Name, "text", "Created consortium tenant for consortium", "tenant", tenantName, "isCentral", isCentral, "consortium", consortiumID)
+		slog.Info(cs.Action.Name, "text", "Created consortium tenant", "tenant", tenantName, "isCentral", isCentral, "consortium", consortiumID)
 		return nil
 	}
 

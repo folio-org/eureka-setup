@@ -62,7 +62,7 @@ func (ks *KafkaSvc) PollConsumerGroup(tenantName string) error {
 				return errors.ConsumerGroupRebalanceTimeout(consumerGroup, err)
 			}
 
-			slog.Info(ks.Action.Name, "text", "Waiting form consumer group to rebalance", "retryCount", retryCount, "maxRetries", constant.ConsumerGroupRebalanceRetries, "waitSeconds", constant.AttachCapabilitySetsRebalanceWait.Seconds())
+			slog.Info(ks.Action.Name, "text", "Waiting form consumer group to rebalance", "count", retryCount, "max", constant.ConsumerGroupRebalanceRetries)
 			time.Sleep(constant.AttachCapabilitySetsRebalanceWait)
 			continue
 		}
@@ -71,7 +71,7 @@ func (ks *KafkaSvc) PollConsumerGroup(tenantName string) error {
 		if lag == 0 {
 			break
 		}
-		slog.Info(ks.Action.Name, "text", "Waiting for consumer group", "waitSeconds", constant.AttachCapabilitySetsPollWait.Seconds(), "consumerGroup", consumerGroup, "lag", lag)
+		slog.Info(ks.Action.Name, "text", "Waiting for consumer group", "consumerGroup", consumerGroup, "lag", lag)
 		time.Sleep(constant.AttachCapabilitySetsPollWait)
 	}
 	slog.Info(ks.Action.Name, "text", "Consumer group has no new message to process", "consumerGroup", consumerGroup)
