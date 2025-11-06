@@ -142,16 +142,19 @@ func GetModuleImageVersion(backendModule BackendModule, registryModule *Registry
 func GetSidecarImage(commandName string, registryModules []*RegistryModule) (string, bool) {
 	sidecarModule := viper.GetStringMap(SidecarModuleKey)
 	sidecarImageVersion := getSidecarImageVersion(commandName, registryModules, sidecarModule[SidecarModuleVersionEntryKey])
-
-	customNamespace, ok := sidecarModule[SidecarModuleCustomNamespaceEntryKey].(bool)
-	if !ok {
-		LogErrorPanic(commandName, "internal.GetSidecarImage error - Sidecar custom namespace key is invalid")
-		return "", false
-	}
-
 	finalImage := fmt.Sprintf("%s:%s", sidecarModule[SidecarModuleImageEntryKey].(string), sidecarImageVersion)
-	if customNamespace {
-		return finalImage, true
+
+	rawCustomNamespace, exists := sidecarModule[SidecarModuleCustomNamespaceEntryKey]
+	if exists {
+		customNamespace, ok := rawCustomNamespace.(bool)
+		if !ok {
+			LogErrorPanic(commandName, "internal.GetSidecarImage error - Sidecar custom namespace key is invalid")
+			return "", false
+		}
+
+		if customNamespace {
+			return finalImage, true
+		}
 	}
 
 	namespace := GetImageRegistryNamespace(commandName, sidecarImageVersion)
