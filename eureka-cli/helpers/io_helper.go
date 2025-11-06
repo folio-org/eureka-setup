@@ -78,6 +78,10 @@ func CopySingleFile(actionName, srcPath, dstPath string) error {
 	return nil
 }
 
+func CloseFile(file *os.File) {
+	_ = file.Close()
+}
+
 func CheckIsRegularFile(actionName, fileName string) error {
 	fileStat, err := os.Stat(fileName)
 	if err != nil {
@@ -121,10 +125,6 @@ func GetHomeDirPath() (string, error) {
 	}
 
 	return homeDir, nil
-}
-
-func CloseFile(file *os.File) {
-	_ = file.Close()
 }
 
 func CloseReader(reader io.ReadCloser) {
