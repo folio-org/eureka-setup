@@ -65,15 +65,15 @@ By default, public images from DockerHub (folioci & folioorg namespaces) will be
 
 Available flags:
 
-| Short | Long                | Description                                                             |
-|-------|---------------------|------------------------------------------------------------------------ |
-| `-p`  | `--profile`         | Select profile (combined, export, search, edge, ecs, ecs-single import) |
-| `-c`  | `--configFile`      | Specify config file path                                                |
-| `-o`  | `--overwriteFiles`  | Overwrite files in .eureka home directory                               |
-| `-d`  | `--enableDebug`     | Enable debug mode                                                       |
-| `-R`  | `--onlyRequired`    | Use only required system containers                                     |
-| `-b`  | `--buildImages`     | Build Docker images                                                     |
-| `-u`  | `--updateCloned`    | Update Git cloned projects                                              |
+| Short | Long                | Description                                                                              |
+|-------|---------------------|------------------------------------------------------------------------------------------|
+| `-p`  | `--profile`         | Select profile (combined, combined-native, export, search, edge, ecs, ecs-single import) |
+| `-c`  | `--configFile`      | Specify config file path                                                                 |
+| `-o`  | `--overwriteFiles`  | Overwrite files in .eureka home directory                                                |
+| `-d`  | `--enableDebug`     | Enable debug mode                                                                        |
+| `-R`  | `--onlyRequired`    | Use only required system containers                                                      |
+| `-b`  | `--buildImages`     | Build Docker images                                                                      |
+| `-u`  | `--updateCloned`    | Update Git cloned projects                                                               |
 
 ```bash
 eureka-cli -c ./config.combined.yaml deployApplication
@@ -99,7 +99,7 @@ eureka-cli deployApplication -R
 eureka-cli -p combined deployApplication
 ```
 
-> Available profiles are: _combined_, _export_, _search_, _edge_, _ecs_, _ecs-single_ and _import_ (_combined_, _ecs_, _ecs-single_ and _import_ are standalone applications)
+> Available profiles are: _combined_, _combined-native_, _export_, _search_, _edge_, _ecs_, _ecs-single_ and _import_ (_combined_, _combined-native_, _ecs_, _ecs-single_ and _import_ are standalone applications)
 
 - It can be combined with the `-o` flag to overwrite all existing files in the `.eureka` home directory to receive changes from upstream
 
@@ -442,10 +442,10 @@ As an alternative to building a native image locally, you can also use the defau
 
 > The `version` must be set explicitly
 
-- Deploy the environment as normal but make sure to remove `JAVA_OPTIONS` env var from the `sidecar-module` in the config, as this is not intepreted by the substrate VM in the image
+- Deploy the environment using the _combined-native_ profile that already has `JAVA_OPTIONS` env var removed from the `sidecar-module` in the config, as this is not intepreted by the substrate VM in the image
 
 ```bash
-eureka-cli deployApplication
+eureka-cli -p combined-native deployApplication
 ```
 
 ## Using local backend module images
@@ -502,7 +502,7 @@ The environment depends on the [platform-complete](https://github.com/folio-org/
 
 ```yaml
 namespaces:
-  platform-complete-ui: bkadirkhodjaev # Change to pull from a different namespace
+  platform-complete-ui: bkadirkhodjaev # Change to pull from a different namespace if necessary
 ```
 
 - If you haven't built the image yet, the CLI has a dedicated command to build the UI image separately from the deployment lifecycle
@@ -576,7 +576,7 @@ curl --request POST \
   --verbose
 ```
 
-> Using combined or import standalone profiles, because these profiles create _diku\_admin_ and _diku\_user_ users
+> Using _combined_, _combined-native_ or _import_ standalone profiles, because these profiles create _diku\_admin_ and _diku\_user_ users
 
 ```bash
 # Admin user: ecs_admin
