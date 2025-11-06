@@ -349,8 +349,8 @@ services:
     networks:
       - eureka-net
     ports:
-      - 19000:19000
-      - 19001:19001
+      - 9000:9000
+      - 9001:9001
     healthcheck:
       test: curl -k -f http://127.0.0.1:19001/minio/health/live || exit 1
       interval: 30s
@@ -371,7 +371,7 @@ services:
       - minio
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc config host add minio http://minio.eureka:19000 minioadmin minioadmin;
+      /usr/bin/mc config host add minio http://minio.eureka:9000 minioadmin minioadmin;
       /usr/bin/mc rm -r --force minio/example-bucket;
       /usr/bin/mc mb minio/example-bucket;
       exit 0;

@@ -103,7 +103,7 @@ backend-modules:
       MT_CLIENT_URL: http://mgr-tenants.eureka:8081
       TE_URL: http://mgr-tenant-entitlements.eureka:8081
   edge-orders:
-    port: 9000
+    port: 19000
     environment:
       JAVA_OPTIONS: >-
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
