@@ -45,22 +45,20 @@ func New(action *action.Action) *GitClient {
 
 func (gc *GitClient) KongRepository() (*gitrepository.GitRepository, error) {
 	var (
-		label                         = constant.FolioKeycloakLabel
-		url                           = constant.FolioKeycloakRepositoryURL
-		dir                           = constant.FolioKeycloakOutputDir
-		branch plumbing.ReferenceName = constant.FolioKeycloakBranch
+		label = constant.FolioKeycloakLabel
+		url   = constant.FolioKeycloakRepositoryURL
+		dir   = constant.FolioKeycloakOutputDir
 	)
-	return gitrepository.New(gc.Action, label, url, dir, branch)
+	return gitrepository.New(gc.Action, label, url, dir, constant.FolioKeycloakBranch)
 }
 
 func (gc *GitClient) KeycloakRepository() (*gitrepository.GitRepository, error) {
 	var (
-		label                         = constant.FolioKongLabel
-		url                           = constant.FolioKongRepositoryURL
-		dir                           = constant.FolioKongOutputDir
-		branch plumbing.ReferenceName = constant.FolioKongBranch
+		label = constant.FolioKongLabel
+		url   = constant.FolioKongRepositoryURL
+		dir   = constant.FolioKongOutputDir
 	)
-	return gitrepository.New(gc.Action, label, url, dir, branch)
+	return gitrepository.New(gc.Action, label, url, dir, constant.FolioKongBranch)
 }
 
 func (gc *GitClient) PlatformCompleteRepository(branch plumbing.ReferenceName) (*gitrepository.GitRepository, error) {

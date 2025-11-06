@@ -32,7 +32,7 @@ func (is *InterceptModuleSvc) DeployDefaultModuleAndSidecarPair(pair *ModulePair
 
 func (is *InterceptModuleSvc) prepareModuleAndSidecarPairNetwork() error {
 	slog.Info(is.Action.Name, "text", "PREPARING MODULE AND SIDECAR PAIR NETWORK")
-	ports, err := is.Action.GetPreReserverPortSet([]func() (int, error){
+	ports, err := is.Action.GetPreReservedPortSet([]func() (int, error){
 		func() (int, error) { return is.Action.GetPreReservedPort() },
 		func() (int, error) { return is.Action.GetPreReservedPort() },
 		func() (int, error) { return is.Action.GetPreReservedPort() },

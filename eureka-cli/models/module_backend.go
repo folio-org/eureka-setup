@@ -59,7 +59,7 @@ func NewBackendModuleWithSidecar(action *action.Action, properties BackendModule
 		sidecarDebugPort  = 0
 	)
 	if properties.DeployModule {
-		ports, err := action.GetPreReserverPortSet([]func() (int, error){
+		ports, err := action.GetPreReservedPortSet([]func() (int, error){
 			func() (int, error) { return action.GetPreReservedPort() },
 			func() (int, error) { return action.GetPreReservedPort() },
 			func() (int, error) { return action.GetPreReservedPort() },

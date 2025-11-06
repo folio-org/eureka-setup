@@ -180,7 +180,7 @@ func getOtherGatewayURL(actionName string) (gatewayURL string, err error) {
 	return fmt.Sprintf("http://%s", constant.DockerGatewayIP), nil
 }
 
-func (a *Action) GetPreReserverPortSet(fns []func() (int, error)) (ports []int, err error) {
+func (a *Action) GetPreReservedPortSet(fns []func() (int, error)) (ports []int, err error) {
 	for _, fn := range fns {
 		port, err := fn()
 		if err != nil {
