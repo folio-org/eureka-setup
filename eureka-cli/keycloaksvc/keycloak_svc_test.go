@@ -720,7 +720,7 @@ func TestCreateRoles_Success(t *testing.T) {
 		}),
 		mock.MatchedBy(func(payload []byte) bool {
 			var data map[string]string
-			json.Unmarshal(payload, &data)
+			_ = json.Unmarshal(payload, &data)
 			return data["description"] == "Default"
 		}),
 		mock.Anything).
