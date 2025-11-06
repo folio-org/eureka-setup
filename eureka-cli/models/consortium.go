@@ -68,3 +68,18 @@ type CentralOrderingSetting struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
 }
+
+// ==================== Settings Management ====================
+
+// SettingsResponse represents the response containing a list of settings
+type SettingsResponse struct {
+	Settings     []Setting `json:"settings"`
+	TotalRecords int       `json:"totalRecords,omitempty"`
+}
+
+// Setting represents a key-value configuration setting
+type Setting struct {
+	ID    string `json:"id,omitempty"`
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}

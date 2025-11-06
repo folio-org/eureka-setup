@@ -1,10 +1,7 @@
 package registrysvc
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"sort"
 	"strings"
@@ -21,8 +18,8 @@ import (
 // RegistryProcessor defines the interface for registry-related operations
 type RegistryProcessor interface {
 	GetNamespace(version string) string
-	GetModules(installJsonURLs map[string]string, printModules bool) (map[string][]*models.RegistryModule, error)
-	ExtractModuleNameAndVersion(registryModules map[string][]*models.RegistryModule)
+	GetModules(installJsonURLs map[string]string, verbose bool) (*models.ProxyModulesByRegistry, error)
+	ExtractModuleMetadata(modules *models.ProxyModulesByRegistry)
 	GetAuthorizationToken() (string, error)
 }
 
@@ -55,37 +52,11 @@ func (rs *RegistrySvc) GetNamespace(version string) string {
 	}
 }
 
-func (rs *RegistrySvc) ExtractModuleNameAndVersion(registryModules map[string][]*models.RegistryModule) {
-	for _, modules := range registryModules {
-		for moduleIndex, module := range modules {
-			if module.ID == "okapi" {
-				continue
-			}
-
-			module.Name = helpers.GetModuleNameFromID(module.ID)
-			module.Version = helpers.GetModuleVersionPFromID(module.ID)
-			if strings.HasPrefix(module.Name, "edge") {
-				module.SidecarName = module.Name
-			} else {
-				module.SidecarName = helpers.GetSidecarName(module.Name)
-			}
-			modules[moduleIndex] = module
-		}
-	}
-}
-
-func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, printModules bool) (map[string][]*models.RegistryModule, error) {
-	registryModules := make(map[string][]*models.RegistryModule)
+func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, verbose bool) (*models.ProxyModulesByRegistry, error) {
+	var folioModules, eurekaModules []*models.ProxyModule
 	for registryName, installJsonURL := range installJsonURLs {
-		installJsonResp, err := rs.HTTPClient.GetReturnResponse(installJsonURL, map[string]string{})
-		if err != nil {
-			return nil, err
-		}
-		defer helpers.CloseReader(installJsonResp.Body)
-
-		var decodedRegistryModules []*models.RegistryModule
-		err = json.NewDecoder(installJsonResp.Body).Decode(&decodedRegistryModules)
-		if err != nil && !errors.Is(err, io.EOF) {
+		var decodedResponse []*models.ProxyModule
+		if err := rs.HTTPClient.GetRetryReturnStruct(installJsonURL, map[string]string{}, &decodedResponse); err != nil {
 			return nil, err
 		}
 
@@ -100,31 +71,57 @@ func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, printModule
 					continue
 				}
 
-				registryModule := &models.RegistryModule{
+				module := &models.ProxyModule{
 					ID:     fmt.Sprintf("%s-%s", name, entry[field.ModuleVersionEntry].(string)),
 					Action: "enable",
 				}
-				decodedRegistryModules = append(decodedRegistryModules, registryModule)
+				decodedResponse = append(decodedResponse, module)
 			}
 		}
 
-		if len(decodedRegistryModules) > 0 {
-			if printModules {
-				slog.Info(rs.Action.Name, "text", "Read registry with modules", "registry", registryName, "count", len(decodedRegistryModules))
+		if len(decodedResponse) > 0 {
+			if verbose {
+				slog.Info(rs.Action.Name, "text", "Read registry with modules", "registry", registryName, "count", len(decodedResponse))
 			}
-			sort.Slice(decodedRegistryModules, func(i, j int) bool {
-				switch strings.Compare(decodedRegistryModules[i].ID, decodedRegistryModules[j].ID) {
+			sort.Slice(decodedResponse, func(i, j int) bool {
+				switch strings.Compare(decodedResponse[i].ID, decodedResponse[j].ID) {
 				case -1:
 					return true
 				case 1:
 					return false
 				}
 
-				return decodedRegistryModules[i].ID > decodedRegistryModules[j].ID
+				return decodedResponse[i].ID > decodedResponse[j].ID
 			})
 		}
-		registryModules[registryName] = decodedRegistryModules
+
+		switch registryName {
+		case constant.FolioRegistry:
+			folioModules = decodedResponse
+		case constant.EurekaRegistry:
+			eurekaModules = decodedResponse
+		}
 	}
 
-	return registryModules, nil
+	return models.NewProxyModulesByRegistry(folioModules, eurekaModules), nil
+}
+
+func (rs *RegistrySvc) ExtractModuleMetadata(modules *models.ProxyModulesByRegistry) {
+	allModules := [][]*models.ProxyModule{modules.FolioModules, modules.EurekaModules}
+	for _, moduleByRegistry := range allModules {
+		for moduleIndex, module := range moduleByRegistry {
+			if module.ID == "okapi" {
+				continue
+			}
+
+			module.Name = helpers.GetModuleNameFromID(module.ID)
+			module.Version = helpers.GetOptionalModuleVersion(module.ID)
+			if strings.HasPrefix(module.Name, "edge") {
+				module.SidecarName = module.Name
+			} else {
+				module.SidecarName = helpers.GetSidecarName(module.Name)
+			}
+			moduleByRegistry[moduleIndex] = module
+		}
+	}
 }

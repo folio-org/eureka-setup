@@ -42,7 +42,7 @@ var removeUsersCmd = &cobra.Command{
 
 func (run *Run) RemoveUsers(consortiumName string, tenantType constant.TenantType) error {
 	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
-		slog.Info(run.Config.Action.Name, "text", "REMOVING USERS FOR TENANT", "tenant", configTenant)
+		slog.Info(run.Config.Action.Name, "text", "REMOVING USERS", "tenant", configTenant)
 		keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
 		if err != nil {
 			return err

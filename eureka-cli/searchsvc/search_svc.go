@@ -6,6 +6,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/httpclient"
 	"github.com/folio-org/eureka-cli/models"
@@ -42,22 +43,32 @@ func (ss *SearchSvc) ReindexInventoryRecords(tenantName string) error {
 		}
 
 		var job models.ReindexJobResponse
-		err = ss.HTTPClient.PostReturnStruct(requestURL, payload, headers, &job)
-		if err != nil {
+		if err = ss.HTTPClient.PostReturnStruct(requestURL, payload, headers, &job); err != nil {
 			slog.Warn(ss.Action.Name, "text", err)
 			continue
 		}
-		if len(job.Errors) > 0 {
-			slog.Warn(ss.Action.Name, "text", "Reindex inventory records was unsuccessful", "tenant", tenantName, "record", record, "errorType", job.Errors[0].Type)
+		if err := ss.validateInventoryRecordsResponse(job); err != nil {
+			slog.Warn(ss.Action.Name, "text", "Reindex inventory records was unsuccessful", "tenant", tenantName, "record", record, "error", err)
 			continue
 		}
-		if job.ID == "" {
-			slog.Warn(ss.Action.Name, "text", "Reindex inventory records was unsuccessful with job not being created", "tenant", tenantName, "record", record)
-			continue
-		}
-		slog.Info(ss.Action.Name, "text", "Reindexed inventory records", "tenant", tenantName, "record", record, "jobId", job.ID, "jobStatus", job.JobStatus)
+
+		slog.Info(ss.Action.Name, "text", "Reindexed inventory records", "tenant", tenantName, "record", record, "id", job.ID, "status", job.JobStatus)
 	}
 
+	return nil
+}
+
+func (ss *SearchSvc) validateInventoryRecordsResponse(job models.ReindexJobResponse) error {
+	if len(job.Errors) > 0 {
+		jobErrors := make([]any, len(job.Errors))
+		for i, err := range job.Errors {
+			jobErrors[i] = err
+		}
+		return errors.ReindexJobHasErrors(jobErrors)
+	}
+	if job.ID == "" {
+		return errors.ReindexJobIDBlank()
+	}
 	return nil
 }
 
@@ -69,8 +80,7 @@ func (ss *SearchSvc) ReindexInstanceRecords(tenantName string) error {
 
 	requestURL := ss.Action.GetRequestURL(constant.KongPort, "/search/index/instance-records/reindex/full")
 	headers := helpers.TenantSecureApplicationJSONHeaders(tenantName, ss.Action.KeycloakAccessToken)
-	err = ss.HTTPClient.PostReturnNoContent(requestURL, payload, headers)
-	if err != nil {
+	if err = ss.HTTPClient.PostReturnNoContent(requestURL, payload, headers); err != nil {
 		return err
 	}
 	slog.Info(ss.Action.Name, "text", "Reindexed instance records for tenant", "tenant", tenantName)

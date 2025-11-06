@@ -38,11 +38,11 @@ func New(action *action.Action, httpClient httpclient.HTTPClientGetManager) Kong
 
 func (ks *KongSvc) CheckRouteExists(routeID string) (bool, *models.KongRoute, error) {
 	requestURL := ks.Action.GetRequestURL(constant.KongAdminPort, fmt.Sprintf("/routes/%s", routeID))
-	httpResponse, err := ks.HTTPClient.GetReturnResponse(requestURL, nil)
+	httpResponse, err := ks.HTTPClient.GetReturnResponse(requestURL, map[string]string{})
 	if err != nil {
 		return false, nil, err
 	}
-	defer func() { _ = httpResponse.Body.Close() }()
+	defer httpclient.CloseResponse(httpResponse)
 
 	if httpResponse.StatusCode == http.StatusNotFound {
 		return false, nil, nil
@@ -51,25 +51,23 @@ func (ks *KongSvc) CheckRouteExists(routeID string) (bool, *models.KongRoute, er
 		return false, nil, errors.KongAdminAPIFailed(httpResponse.StatusCode, httpResponse.Status)
 	}
 
-	var route models.KongRoute
-	err = ks.HTTPClient.GetReturnStruct(requestURL, nil, &route)
-	if err != nil {
+	var decodedResponse models.KongRoute
+	if err = ks.HTTPClient.GetRetryReturnStruct(requestURL, nil, &decodedResponse); err != nil {
 		return false, nil, err
 	}
 
-	return true, &route, nil
+	return true, &decodedResponse, nil
 }
 
 func (ks *KongSvc) ListAllRoutes() ([]models.KongRoute, error) {
 	requestURL := ks.Action.GetRequestURL(constant.KongAdminPort, "/routes")
 
-	var response models.KongRoutesResponse
-	err := ks.HTTPClient.GetReturnStruct(requestURL, nil, &response)
-	if err != nil {
+	var decodedResponse models.KongRoutesResponse
+	if err := ks.HTTPClient.GetRetryReturnStruct(requestURL, nil, &decodedResponse); err != nil {
 		return nil, err
 	}
 
-	return response.Data, nil
+	return decodedResponse.Data, nil
 }
 
 func (ks *KongSvc) FindRouteByExpressions(expressions []string) ([]*models.KongRoute, error) {

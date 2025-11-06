@@ -1,5 +1,16 @@
 package models
 
+// ==================== Keycloak Client ====================
+
+// KeycloakClientsResponse represents the response containing a list of Keycloak clients
+type KeycloakClientsResponse []KeycloakClientInfo
+
+// KeycloakClientInfo represents basic information about a Keycloak client
+type KeycloakClientInfo struct {
+	ID       string `json:"id"`
+	ClientID string `json:"clientId"`
+}
+
 // ==================== User Management ====================
 
 // KeycloakUserCreateRequest represents the payload for creating a new Keycloak user
@@ -90,7 +101,10 @@ type KeycloakCapabilitySetsResponse struct {
 type KeycloakCapabilitySet struct {
 	ID            string `json:"id"`
 	Name          string `json:"name"`
+	Description   string `json:"description,omitempty"`
 	ApplicationID string `json:"applicationId,omitempty"`
+	Resource      string `json:"resource,omitempty"`
+	Action        string `json:"action,omitempty"`
 }
 
 // ==================== Client Configuration ====================

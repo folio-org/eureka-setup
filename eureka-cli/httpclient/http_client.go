@@ -58,7 +58,7 @@ func (hc *HTTPClient) validateResponse(method, url string, httpResponse *http.Re
 	}
 	_ = helpers.DumpResponse(method, url, httpResponse, true)
 
-	return errors.RequestFailed(httpResponse.StatusCode, httpResponse.Request.URL.String())
+	return errors.RequestFailed(httpResponse.StatusCode, httpResponse.Request.Method, httpResponse.Request.URL.String())
 }
 
 func (hc *HTTPClient) doRequest(method, url string, payload []byte, headers map[string]string, useRetry bool) (*http.Response, error) {
@@ -122,6 +122,11 @@ func setRequestHeaders(httpRequest *http.Request, headers map[string]string) {
 	}
 }
 
+// CloseResponse drains and closes the HTTP response body to enable connection reuse
 func CloseResponse(httpResponse *http.Response) {
-	_ = httpResponse.Body.Close()
+	if httpResponse != nil && httpResponse.Body != nil {
+		// Drain any remaining data to enable connection reuse
+		_, _ = io.Copy(io.Discard, httpResponse.Body)
+		_ = httpResponse.Body.Close()
+	}
 }

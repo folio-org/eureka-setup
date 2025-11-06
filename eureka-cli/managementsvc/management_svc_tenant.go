@@ -8,6 +8,7 @@ import (
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/models"
 )
 
 // ManagementTenantManager defines the interface for tenant management operations
@@ -23,18 +24,26 @@ func (ms *ManagementSvc) GetTenants(consortiumName string, tenantType constant.T
 		requestURL += fmt.Sprintf("?query=description==%s-%s", consortiumName, tenantType)
 	}
 
-	decodedResponse, err := ms.HTTPClient.GetRetryDecodeReturnAny(requestURL, map[string]string{})
-	if err != nil {
+	var response models.TenantsResponse
+	if err := ms.HTTPClient.GetRetryReturnStruct(requestURL, map[string]string{}, &response); err != nil {
 		return nil, err
 	}
 
-	tenantsData := decodedResponse.(map[string]any)
-	if tenantsData["tenants"] == nil || len(tenantsData["tenants"].([]any)) == 0 {
-		slog.Warn(ms.Action.Name, "text", "Tenants are not found by consortium and tenant type", "consortium", consortiumName, "tenantType", tenantType)
+	if len(response.Tenants) == 0 {
+		slog.Warn(ms.Action.Name, "text", "Tenants are not found", "consortium", consortiumName, "tenantType", tenantType)
 		return nil, nil
 	}
 
-	return tenantsData["tenants"].([]any), nil
+	result := make([]any, len(response.Tenants))
+	for i, tenant := range response.Tenants {
+		result[i] = map[string]any{
+			"id":          tenant.ID,
+			"name":        tenant.Name,
+			"description": tenant.Description,
+		}
+	}
+
+	return result, nil
 }
 
 func (ms *ManagementSvc) CreateTenants() error {

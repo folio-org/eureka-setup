@@ -1,6 +1,7 @@
 package uisvc
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os/exec"
@@ -12,6 +13,7 @@ import (
 	"github.com/folio-org/eureka-cli/gitclient"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/tenantsvc"
+	"github.com/go-git/go-git/v5"
 )
 
 // UIProcessor defines the composite interface for all UI-related operations
@@ -59,7 +61,7 @@ func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
 	}
 
 	err = us.GitClient.Clone(repository)
-	if err != nil {
+	if err != nil && !errors.Is(err, git.ErrRepositoryAlreadyExists) {
 		return "", err
 	}
 

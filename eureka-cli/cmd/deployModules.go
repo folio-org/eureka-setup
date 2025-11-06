@@ -59,11 +59,11 @@ func (run *Run) DeployModules() error {
 
 	slog.Info(run.Config.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
 	instalJsonURLs := run.Config.Action.GetCombinedInstallJsonURLs()
-	registryModules, err := run.Config.RegistrySvc.GetModules(instalJsonURLs, true)
+	modules, err := run.Config.RegistrySvc.GetModules(instalJsonURLs, true)
 	if err != nil {
 		return err
 	}
-	run.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules)
+	run.Config.RegistrySvc.ExtractModuleMetadata(modules)
 
 	client, err := run.Config.DockerClient.Create()
 	if err != nil {
@@ -76,16 +76,16 @@ func (run *Run) DeployModules() error {
 
 	slog.Info(run.Config.Action.Name, "text", "CREATING APPLICATION")
 	registryURLs := run.Config.Action.GetCombinedRegistryURLs()
-	registerModuleExtract := models.NewRegistryModuleExtract(registryURLs, registryModules, backendModules, frontendModules)
-	if err := run.Config.ManagementSvc.CreateApplications(registerModuleExtract); err != nil {
+	registerExtract := models.NewRegistryExtract(registryURLs, modules, backendModules, frontendModules)
+	if err := run.Config.ManagementSvc.CreateApplications(registerExtract); err != nil {
 		return err
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "PULLING SIDECAR IMAGE")
 	globalEnv := run.Config.Action.GetConfigEnvVars(field.Env)
 	sidecarEnv := run.Config.Action.GetConfigEnvVars(field.SidecarModuleEnv)
-	containers := models.NewCoreAndBusinessContainers(run.Config.Action.VaultRootToken, registryModules, backendModules, globalEnv, sidecarEnv)
-	sidecarImage, pullSidecarImage, err := run.Config.ModuleSvc.GetSidecarImage(containers.RegistryModules[constant.EurekaRegistry])
+	containers := models.NewCoreAndBusinessContainers(run.Config.Action.VaultRootToken, modules, backendModules, globalEnv, sidecarEnv)
+	sidecarImage, pullSidecarImage, err := run.Config.ModuleSvc.GetSidecarImage(containers.Modules.EurekaModules)
 	if err != nil {
 		return err
 	}

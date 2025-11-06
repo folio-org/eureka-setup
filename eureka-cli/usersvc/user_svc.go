@@ -31,14 +31,13 @@ func (us *UserSvc) Get(tenantName string, username string) (*models.User, error)
 	requestURL := us.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/users?query=username==%s&limit=1", username))
 	headers := helpers.TenantSecureApplicationJSONHeaders(tenantName, us.Action.KeycloakAccessToken)
 
-	var user models.UserResponse
-	err := us.HTTPClient.GetReturnStruct(requestURL, headers, &user)
-	if err != nil {
+	var decodedResponse models.UserResponse
+	if err := us.HTTPClient.GetReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return nil, err
 	}
-	if len(user.Users) == 0 {
+	if len(decodedResponse.Users) == 0 {
 		return nil, errors.UserNotFound(username, tenantName)
 	}
 
-	return &user.Users[0], nil
+	return &decodedResponse.Users[0], nil
 }

@@ -49,6 +49,10 @@ const (
 	HTTPClientDisableCompression     = false
 	HTTPClientForceAttemptHTTP2      = false
 
+	// Docker log properties
+	DockerLogHeaderSize = 8
+	DockerLogSizeOffset = 4
+
 	// Retry HTTP client properties
 	RetryHTTPClientRetryMax     = 3
 	RetryHTTPClientRetryWaitMin = 2 * time.Second

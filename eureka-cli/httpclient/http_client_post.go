@@ -2,6 +2,8 @@ package httpclient
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -42,7 +44,17 @@ func (hc *HTTPClient) PostReturnStruct(url string, payload []byte, headers map[s
 	}
 	defer CloseResponse(httpResponse)
 
-	return json.NewDecoder(httpResponse.Body).Decode(target)
+	if httpResponse.ContentLength == 0 {
+		return nil
+	}
+	if err := json.NewDecoder(httpResponse.Body).Decode(target); err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (hc *HTTPClient) PostFormDataReturnStruct(url string, formValues url.Values, headers map[string]string, target any) error {
@@ -62,5 +74,15 @@ func (hc *HTTPClient) PostFormDataReturnStruct(url string, formValues url.Values
 		return err
 	}
 
-	return json.NewDecoder(httpResponse.Body).Decode(target)
+	if httpResponse.ContentLength == 0 {
+		return nil
+	}
+	if err := json.NewDecoder(httpResponse.Body).Decode(target); err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }

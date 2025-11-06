@@ -1,6 +1,7 @@
 package keycloaksvc
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -12,6 +13,7 @@ import (
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/httpclient"
 	"github.com/folio-org/eureka-cli/managementsvc"
+	"github.com/folio-org/eureka-cli/models"
 	"github.com/folio-org/eureka-cli/vaultclient"
 )
 
@@ -52,7 +54,7 @@ func (ks *KeycloakSvc) GetKeycloakAccessToken(tenantName string) (string, error)
 		return "", err
 	}
 
-	secrets, err := ks.VaultClient.GetSecretKey(client, ks.Action.VaultRootToken, fmt.Sprintf("folio/%s", tenantName))
+	secrets, err := ks.VaultClient.GetSecretKey(context.Background(), client, ks.Action.VaultRootToken, fmt.Sprintf("folio/%s", tenantName))
 	if err != nil {
 		return "", err
 	}
@@ -71,15 +73,16 @@ func (ks *KeycloakSvc) GetKeycloakAccessToken(tenantName string) (string, error)
 
 	requestURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", constant.KeycloakHTTP, tenantName)
 	headers := helpers.ApplicationFormURLEncodedHeaders()
-	var tokensMap map[string]any
-	if err := ks.HTTPClient.PostFormDataReturnStruct(requestURL, formData, headers, &tokensMap); err != nil {
+
+	var tokenData map[string]any
+	if err := ks.HTTPClient.PostFormDataReturnStruct(requestURL, formData, headers, &tokenData); err != nil {
 		return "", err
 	}
-	if tokensMap["access_token"] == nil {
+	if tokenData["access_token"] == nil {
 		return "", errors.AccessTokenNotFound(requestURL)
 	}
 
-	return tokensMap["access_token"].(string), nil
+	return tokenData["access_token"].(string), nil
 }
 
 func (ks *KeycloakSvc) GetKeycloakMasterAccessToken() (string, error) {
@@ -91,6 +94,7 @@ func (ks *KeycloakSvc) GetKeycloakMasterAccessToken() (string, error) {
 
 	requestURL := fmt.Sprintf("%s/realms/master/protocol/openid-connect/token", constant.KeycloakHTTP)
 	headers := helpers.ApplicationFormURLEncodedHeaders()
+
 	var tokenData map[string]any
 	if err := ks.HTTPClient.PostFormDataReturnStruct(requestURL, formData, headers, &tokenData); err != nil {
 		return "", err
@@ -106,17 +110,16 @@ func (ks *KeycloakSvc) UpdateKeycloakPublicClientParams(tenantName string, url s
 	clientID := fmt.Sprintf("%s%s", tenantName, action.GetConfigEnv("KC_LOGIN_CLIENT_SUFFIX", ks.Action.ConfigGlobalEnv))
 	getRequestURL := fmt.Sprintf("%s/admin/realms/%s/clients?clientId=%s", constant.KeycloakHTTP, tenantName, clientID)
 	headers := helpers.SecureApplicationJSONHeaders(ks.Action.KeycloakMasterAccessToken)
-	resp1, err := ks.HTTPClient.GetRetryDecodeReturnAny(getRequestURL, headers)
-	if err != nil {
+
+	var decodedResponse models.KeycloakClientsResponse
+	if err := ks.HTTPClient.GetRetryReturnStruct(getRequestURL, headers, &decodedResponse); err != nil {
 		return err
 	}
-
-	clients := resp1.([]any)
-	if len(clients) != 1 {
+	if len(decodedResponse) != 1 {
 		return errors.ClientNotFound(clientID)
 	}
 
-	clientUUID := clients[0].(map[string]any)["id"].(string)
+	clientUUID := decodedResponse[0].ID
 	payload, err := json.Marshal(map[string]any{
 		"rootUrl":                      url,
 		"baseUrl":                      url,

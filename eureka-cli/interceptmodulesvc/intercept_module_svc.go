@@ -35,8 +35,8 @@ func New(action *action.Action, ModuleSvc modulesvc.ModuleProcessor, managementS
 }
 
 func (is *InterceptModuleSvc) updateModuleDiscovery() error {
-	slog.Info(is.Action.Name, "text", "UPDATING MODULE DISCOVERY", "module", is.Action.Params.ModuleName, "id", is.Action.Params.ID, "port", is.pair.BackendModule.ModuleServerPort)
-	if err := is.ManagementSvc.UpdateModuleDiscovery(is.Action.Params.ID, is.Action.Params.Restore, is.pair.BackendModule.ModuleServerPort, is.pair.SidecarURL); err != nil {
+	slog.Info(is.Action.Name, "text", "UPDATING MODULE DISCOVERY", "module", is.Action.Params.ModuleName, "id", is.Action.Params.ID, "port", is.pair.BackendModule.PrivatePort)
+	if err := is.ManagementSvc.UpdateModuleDiscovery(is.Action.Params.ID, is.Action.Params.Restore, is.pair.BackendModule.PrivatePort, is.pair.SidecarURL); err != nil {
 		return err
 	}
 
@@ -54,10 +54,10 @@ func (is *InterceptModuleSvc) undeployModuleAndSidecarPair() error {
 }
 
 func (is *InterceptModuleSvc) deployModule() error {
-	version := is.ModuleSvc.GetModuleImageVersion(*is.pair.BackendModule, is.pair.RegistryModule)
-	image := is.ModuleSvc.GetModuleImage(version, is.pair.RegistryModule)
-	env := is.ModuleSvc.GetModuleEnv(is.pair.Containers, is.pair.RegistryModule, *is.pair.BackendModule)
-	container := models.NewModuleContainer(is.pair.RegistryModule.Name, image, env, *is.pair.BackendModule, is.pair.NetworkConfig)
+	version := is.ModuleSvc.GetModuleImageVersion(*is.pair.BackendModule, is.pair.Module)
+	image := is.ModuleSvc.GetModuleImage(version, is.pair.Module)
+	env := is.ModuleSvc.GetModuleEnv(is.pair.Containers, is.pair.Module, *is.pair.BackendModule)
+	container := models.NewModuleContainer(is.pair.Module.Name, image, env, *is.pair.BackendModule, is.pair.NetworkConfig)
 	if err := is.ModuleSvc.DeployModule(is.client, container); err != nil {
 		return err
 	}
@@ -66,14 +66,14 @@ func (is *InterceptModuleSvc) deployModule() error {
 }
 
 func (is *InterceptModuleSvc) deploySidecar() error {
-	image, pullImage, err := is.ModuleSvc.GetSidecarImage(is.pair.Containers.RegistryModules[constant.EurekaRegistry])
+	image, pullImage, err := is.ModuleSvc.GetSidecarImage(is.pair.Containers.Modules.EurekaModules)
 	if err != nil {
 		return err
 	}
 
 	resources := helpers.CreateResources(false, is.Action.ConfigSidecarResources)
-	env := is.ModuleSvc.GetSidecarEnv(is.pair.Containers, is.pair.RegistryModule, *is.pair.BackendModule, is.pair.ModuleURL, is.pair.SidecarURL)
-	container := models.NewSidecarContainer(is.pair.RegistryModule.SidecarName, image, env, *is.pair.BackendModule, is.pair.NetworkConfig, resources)
+	env := is.ModuleSvc.GetSidecarEnv(is.pair.Containers, is.pair.Module, *is.pair.BackendModule, is.pair.ModuleURL, is.pair.SidecarURL)
+	container := models.NewSidecarContainer(is.pair.Module.SidecarName, image, env, *is.pair.BackendModule, is.pair.NetworkConfig, resources)
 	container.PullImage = pullImage
 	if err := is.ModuleSvc.DeployModule(is.client, container); err != nil {
 		return err

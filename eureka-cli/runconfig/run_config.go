@@ -7,6 +7,7 @@ import (
 	"github.com/folio-org/eureka-cli/awssvc"
 	"github.com/folio-org/eureka-cli/consortiumsvc"
 	"github.com/folio-org/eureka-cli/dockerclient"
+	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/gitclient"
 	"github.com/folio-org/eureka-cli/httpclient"
 	"github.com/folio-org/eureka-cli/interceptmodulesvc"
@@ -54,7 +55,14 @@ type RunConfig struct {
 	InterceptModuleSvc interceptmodulesvc.InterceptModuleProcessor
 }
 
-func New(action *action.Action, logger *slog.Logger) *RunConfig {
+func New(action *action.Action, logger *slog.Logger) (*RunConfig, error) {
+	if action == nil {
+		return nil, errors.ActionNil()
+	}
+	if logger == nil {
+		return nil, errors.LoggerNil()
+	}
+
 	// Create infrastructure
 	gitclient := gitclient.New(action)
 	httpClient := httpclient.New(action, logger)
@@ -93,5 +101,5 @@ func New(action *action.Action, logger *slog.Logger) *RunConfig {
 		UISvc:              uisvc.New(action, gitclient, dockerClient, tenantSvc),
 		SearchSvc:          searchsvc.New(action, httpClient),
 		InterceptModuleSvc: interceptmodulesvc.New(action, moduleSvc, managementSvc),
-	}
+	}, nil
 }

@@ -28,7 +28,7 @@ type BackendModule struct {
 	SidecarExposedDebugPort  int
 	SidecarExposedPorts      *nat.PortSet
 	SidecarPortBindings      *nat.PortMap
-	ModuleServerPort         int
+	PrivatePort              int
 }
 
 // BackendModuleProperties contains the properties needed to construct a BackendModule
@@ -83,7 +83,7 @@ func NewBackendModuleWithSidecar(action *action.Action, properties BackendModule
 		ModuleVersion:            properties.Version,
 		ModuleExposedServerPort:  moduleServerPort,
 		ModuleExposedDebugPort:   moduleDebugPort,
-		ModuleServerPort:         *properties.PrivatePort,
+		PrivatePort:              *properties.PrivatePort,
 		ModuleExposedPorts:       exposedPorts,
 		ModulePortBindings:       helpers.CreatePortBindings(moduleServerPort, moduleDebugPort, *properties.PrivatePort),
 		ModuleEnv:                properties.Env,
@@ -115,7 +115,7 @@ func NewBackendModule(action *action.Action, properties BackendModuleProperties)
 		ModuleVersion:           properties.Version,
 		ModuleExposedServerPort: moduleServerPort,
 		ModuleExposedDebugPort:  moduleDebugPort,
-		ModuleServerPort:        *properties.PrivatePort,
+		PrivatePort:             *properties.PrivatePort,
 		ModuleExposedPorts:      helpers.CreateExposedPorts(*properties.PrivatePort),
 		ModulePortBindings:      helpers.CreatePortBindings(moduleServerPort, moduleDebugPort, *properties.PrivatePort),
 		ModuleEnv:               properties.Env,

@@ -10,6 +10,7 @@ import (
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/httpclient"
+	"github.com/folio-org/eureka-cli/models"
 	"github.com/folio-org/eureka-cli/usersvc"
 	"github.com/google/uuid"
 )
@@ -45,17 +46,20 @@ func New(action *action.Action, httpClient httpclient.HTTPClientRunner, userSvc 
 func (cs *ConsortiumSvc) GetConsortiumByName(centralTenant string, consortiumName string) (any, error) {
 	requestURL := cs.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/consortia?query=name==%s&limit=1", consortiumName))
 	headers := helpers.TenantSecureApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
-	decodedResponse, err := cs.HTTPClient.GetRetryDecodeReturnAny(requestURL, headers)
-	if err != nil {
+
+	var decodedResponse models.ConsortiumResponse
+	if err := cs.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return nil, err
 	}
 
-	consortiaData := decodedResponse.(map[string]any)
-	if consortiaData["consortia"] == nil || len(consortiaData["consortia"].([]any)) == 0 {
+	if len(decodedResponse.Consortia) == 0 {
 		return nil, nil
 	}
 
-	return consortiaData["consortia"].([]any)[0], nil
+	return map[string]any{
+		"id":   decodedResponse.Consortia[0].ID,
+		"name": decodedResponse.Consortia[0].Name,
+	}, nil
 }
 
 func (cs *ConsortiumSvc) GetConsortiumCentralTenant(consortiumName string) string {

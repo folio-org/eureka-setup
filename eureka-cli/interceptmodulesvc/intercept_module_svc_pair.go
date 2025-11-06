@@ -10,14 +10,14 @@ import (
 
 // ModulePair represents a module configured for traffic interception and debugging
 type ModulePair struct {
-	ID             string
-	ModuleName     string
-	ModuleURL      string
-	SidecarURL     string
-	RegistryModule *models.RegistryModule
-	Containers     *models.Containers
-	NetworkConfig  *network.NetworkingConfig
-	BackendModule  *models.BackendModule
+	ID            string
+	ModuleName    string
+	ModuleURL     string
+	SidecarURL    string
+	Module        *models.ProxyModule
+	Containers    *models.Containers
+	NetworkConfig *network.NetworkingConfig
+	BackendModule *models.BackendModule
 }
 
 // NewModulePair creates a new ModulePair instance with configured URLs for interception

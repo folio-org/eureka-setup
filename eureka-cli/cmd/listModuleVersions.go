@@ -26,6 +26,7 @@ import (
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/httpclient"
+	"github.com/folio-org/eureka-cli/models"
 	"github.com/spf13/cobra"
 	"golang.org/x/mod/semver"
 )
@@ -74,19 +75,18 @@ func (run *Run) getModuleDescriptorByID() error {
 
 func (run *Run) listModuleVersionsSortedDescendingOrder() error {
 	requestURL := fmt.Sprintf("%s/_/proxy/modules", run.Config.Action.ConfigRegistryURL)
-	modulesData, err := run.Config.HTTPClient.GetRetryDecodeReturnAny(requestURL, map[string]string{})
-	if err != nil {
+
+	var decodedResponse models.ProxyModulesResponse
+	if err := run.Config.HTTPClient.GetRetryReturnStruct(requestURL, map[string]string{}, &decodedResponse); err != nil {
 		return err
 	}
 
 	var versions []string
-	for _, value := range modulesData.([]any) {
-		entry := value.(map[string]any)
-		if helpers.MatchesModuleName(entry["id"].(string), actionParams.ModuleName) {
-			versions = append(versions, entry["id"].(string))
+	for _, module := range decodedResponse {
+		if helpers.MatchesModuleName(module.ID, actionParams.ModuleName) {
+			versions = append(versions, module.ID)
 		}
 	}
-
 	sort.Slice(versions, func(i, j int) bool {
 		vi := "v" + strings.TrimPrefix(versions[i], actionParams.ModuleName+"-")
 		vj := "v" + strings.TrimPrefix(versions[j], actionParams.ModuleName+"-")

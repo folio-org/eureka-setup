@@ -26,7 +26,7 @@ func (us *UISvc) GetStripesBranch() plumbing.ReferenceName {
 		slog.Info(us.Action.Name, "text", "Found stripes branch in config", "branch", branchStr)
 		return plumbing.ReferenceName(branchStr)
 	}
-	slog.Info(us.Action.Name, "text", "No stripes branch is defined in config, using default branch", "defaultBranch", constant.StripesBranch)
+	slog.Info(us.Action.Name, "text", "Using default branch", "branch", constant.StripesBranch)
 
 	return constant.StripesBranch
 }
@@ -63,7 +63,7 @@ func (us *UISvc) PrepareStripesConfigJS(tenantName string, configPath string) er
 	fmt.Println(newReadFileStr)
 	fmt.Println()
 
-	err = os.WriteFile(stripesConfigJSFilePath, []byte(newReadFileStr), 0)
+	err = os.WriteFile(stripesConfigJSFilePath, []byte(newReadFileStr), 0644)
 	if err != nil {
 		return err
 	}

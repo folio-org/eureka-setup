@@ -9,6 +9,7 @@ import (
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/models"
 )
 
 // KeycloakCapabilitySetManager defines the interface for Keycloak capability set management operations
@@ -29,16 +30,26 @@ func (ks *KeycloakSvc) GetCapabilitySets(headers map[string]string) ([]any, erro
 	for _, descriptor := range applications.ApplicationDescriptors {
 		applicationID := descriptor["id"].(string)
 		requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/capability-sets?query=applicationId==%s&offset=0&limit=10000", applicationID))
-		decodedResponse, err := ks.HTTPClient.GetRetryDecodeReturnAny(requestURL, headers)
-		if err != nil {
+
+		var decodedResponse models.KeycloakCapabilitySetsResponse
+		if err := ks.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 			return nil, err
 		}
 
-		capabilitySetsData := decodedResponse.(map[string]any)
-		if capabilitySetsData["capabilitySets"] == nil || len(capabilitySetsData["capabilitySets"].([]any)) == 0 {
-			return nil, nil
+		if len(decodedResponse.CapabilitySets) == 0 {
+			continue
 		}
-		capabilitySets = append(capabilitySets, capabilitySetsData["capabilitySets"].([]any)...)
+
+		for _, cs := range decodedResponse.CapabilitySets {
+			capabilitySets = append(capabilitySets, map[string]any{
+				"id":            cs.ID,
+				"name":          cs.Name,
+				"description":   cs.Description,
+				"applicationId": cs.ApplicationID,
+				"resource":      cs.Resource,
+				"action":        cs.Action,
+			})
+		}
 	}
 
 	return capabilitySets, nil
@@ -46,17 +57,29 @@ func (ks *KeycloakSvc) GetCapabilitySets(headers map[string]string) ([]any, erro
 
 func (ks *KeycloakSvc) GetCapabilitySetsByName(headers map[string]string, capabilityName string) ([]any, error) {
 	requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/capability-sets?query=name==%s&limit=1", capabilityName))
-	decodedResponse, err := ks.HTTPClient.GetRetryDecodeReturnAny(requestURL, headers)
-	if err != nil {
+
+	var decodedResponse models.KeycloakCapabilitySetsResponse
+	if err := ks.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return nil, err
 	}
 
-	capabilitySetsData := decodedResponse.(map[string]any)
-	if capabilitySetsData["capabilitySets"] == nil || len(capabilitySetsData["capabilitySets"].([]any)) == 0 {
+	if len(decodedResponse.CapabilitySets) == 0 {
 		return nil, nil
 	}
 
-	return capabilitySetsData["capabilitySets"].([]any), nil
+	result := make([]any, len(decodedResponse.CapabilitySets))
+	for i, cs := range decodedResponse.CapabilitySets {
+		result[i] = map[string]any{
+			"id":            cs.ID,
+			"name":          cs.Name,
+			"description":   cs.Description,
+			"applicationId": cs.ApplicationID,
+			"resource":      cs.Resource,
+			"action":        cs.Action,
+		}
+	}
+
+	return result, nil
 }
 
 func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenantName string) error {
@@ -65,13 +88,12 @@ func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenantName string) error {
 	if err != nil {
 		return err
 	}
-
-	requestURL := ks.Action.GetRequestURL(constant.KongPort, "/roles/capability-sets")
 	if len(roles) == 0 {
-		slog.Warn(ks.Action.Name, "text", "Cannot attach capability sets, found no roles", "tenant", tenantName)
+		slog.Warn(ks.Action.Name, "text", "Found no roles with capability sets", "tenant", tenantName)
 		return nil
 	}
 
+	requestURL := ks.Action.GetRequestURL(constant.KongPort, "/roles/capability-sets")
 	for _, roleValue := range roles {
 		entry := roleValue.(map[string]any)
 		roleName := ks.Action.Caser.String(entry["name"].(string))
@@ -157,7 +179,7 @@ func (ks *KeycloakSvc) DetachCapabilitySetsFromRoles(tenantName string) error {
 		return err
 	}
 	if len(roles) == 0 {
-		slog.Warn(ks.Action.Name, "text", "Cannot detach capability sets, found no roles", "tenant", tenantName)
+		slog.Warn(ks.Action.Name, "text", "Found no roles with capability sets", "tenant", tenantName)
 		return nil
 	}
 

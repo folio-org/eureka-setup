@@ -1,34 +1,53 @@
 package models
 
-// RegistryModule represents a module fetched from a registry
-type RegistryModule struct {
-	ID          string  `json:"id"`
-	Action      string  `json:"action"`
+// ProxyModulesResponse represents the response containing a list of proxy modules from the registry
+type ProxyModulesResponse []ProxyModule
+
+// ProxyModule represents a proxy module with ID and metadata
+type ProxyModule struct {
+	ID     string `json:"id"`
+	Action string `json:"action,omitempty"`
+	ProxyModuleMetadata
+}
+
+// ProxyModuleMetadata represents proxy module metadata
+type ProxyModuleMetadata struct {
 	Name        string  `json:"-"`
 	SidecarName string  `json:"-"`
 	Version     *string `json:"-"`
 }
 
-// RegistryModules represents a collection of registry modules
-type RegistryModules []RegistryModule
+// ProxyModulesByRegistry organizes proxy modules by their registry source
+type ProxyModulesByRegistry struct {
+	FolioModules  []*ProxyModule
+	EurekaModules []*ProxyModule
+}
 
-// RegistryModuleExtract contains extracted information about modules from registries
-type RegistryModuleExtract struct {
+// NewProxyModulesByRegistry creates a new ProxyModulesByRegistry instance
+func NewProxyModulesByRegistry(folioModules, eurekaModules []*ProxyModule) *ProxyModulesByRegistry {
+	return &ProxyModulesByRegistry{
+		FolioModules:  folioModules,
+		EurekaModules: eurekaModules,
+	}
+}
+
+// RegistryExtract contains extracted information about modules from registries
+type RegistryExtract struct {
 	RegistryURLs      map[string]string
-	RegistryModules   map[string][]*RegistryModule
+	Modules           *ProxyModulesByRegistry
 	BackendModules    map[string]BackendModule
 	FrontendModules   map[string]FrontendModule
 	ModuleDescriptors map[string]any
 }
 
-// NewRegistryModuleExtract creates a new RegistryModuleExtract instance
-func NewRegistryModuleExtract(registryURLs map[string]string,
-	registryModules map[string][]*RegistryModule,
+// NewRegistryExtract creates a new RegistryModuleExtract instance
+func NewRegistryExtract(registryURLs map[string]string,
+	modules *ProxyModulesByRegistry,
 	backendModules map[string]BackendModule,
-	frontendModules map[string]FrontendModule) *RegistryModuleExtract {
-	return &RegistryModuleExtract{
+	frontendModules map[string]FrontendModule) *RegistryExtract {
+	return &RegistryExtract{
 		RegistryURLs:      registryURLs,
-		RegistryModules:   registryModules,
+		Modules:           modules,
 		BackendModules:    backendModules,
 		FrontendModules:   frontendModules,
 		ModuleDescriptors: make(map[string]any),

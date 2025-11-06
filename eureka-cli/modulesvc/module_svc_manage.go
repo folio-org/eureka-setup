@@ -34,7 +34,7 @@ type ModuleManager interface {
 type SidecarRequest struct {
 	Client           *client.Client
 	Containers       *models.Containers
-	RegistryModule   *models.RegistryModule
+	Module           *models.ProxyModule
 	BackendModule    models.BackendModule
 	SidecarImage     string
 	NetworkConfig    *network.NetworkingConfig
@@ -96,35 +96,36 @@ func (ms *ModuleSvc) PullModule(client *client.Client, imageName string) error {
 
 func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Containers, sidecarImage string, sidecarResources *container.Resources) (map[string]int, error) {
 	deployedModules := make(map[string]int)
-	networkConfig := helpers.NewModuleNetworkConfig()
+	networkConfig := helpers.GetModuleNetworkConfig()
 
 	var sidecarWG sync.WaitGroup
 	sidecarErrCh := make(chan error, 10)
-	for _, registryModules := range containers.RegistryModules {
-		for _, registryModule := range registryModules {
-			if ms.shouldSkipModule(registryModule, containers.ManagementOnly) {
+	allModules := [][]*models.ProxyModule{containers.Modules.FolioModules, containers.Modules.EurekaModules}
+	for _, modules := range allModules {
+		for _, module := range modules {
+			if ms.shouldSkipModule(module, containers.ManagementOnly) {
 				continue
 			}
-			if !ms.shouldDeployModule(registryModule, containers.BackendModules) {
+			if !ms.shouldDeployModule(module, containers.BackendModules) {
 				continue
 			}
 
-			backendModule := containers.BackendModules[registryModule.Name]
-			version := ms.GetModuleImageVersion(backendModule, registryModule)
-			image := ms.GetModuleImage(version, registryModule)
-			env := ms.GetModuleEnv(containers, registryModule, backendModule)
-			container := models.NewModuleContainer(registryModule.Name, image, env, backendModule, networkConfig)
+			backendModule := containers.BackendModules[module.Name]
+			version := ms.GetModuleImageVersion(backendModule, module)
+			image := ms.GetModuleImage(version, module)
+			env := ms.GetModuleEnv(containers, module, backendModule)
+			container := models.NewModuleContainer(module.Name, image, env, backendModule, networkConfig)
 			if err := ms.DeployModule(client, container); err != nil {
 				return nil, err
 			}
-			deployedModules[registryModule.Name] = backendModule.ModuleExposedServerPort
+			deployedModules[module.Name] = backendModule.ModuleExposedServerPort
 
 			if backendModule.DeploySidecar && sidecarImage != "" {
 				sidecarWG.Add(1)
 				go ms.deploySidecarAsync(&sidecarWG, sidecarErrCh, &SidecarRequest{
 					Client:           client,
 					Containers:       containers,
-					RegistryModule:   registryModule,
+					Module:           module,
 					BackendModule:    backendModule,
 					SidecarImage:     sidecarImage,
 					NetworkConfig:    networkConfig,
@@ -145,23 +146,23 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 	return deployedModules, nil
 }
 
-func (ms *ModuleSvc) shouldSkipModule(registryModule *models.RegistryModule, managementOnly bool) bool {
-	isManagementModule := strings.Contains(registryModule.Name, constant.ManagementModulePattern)
+func (ms *ModuleSvc) shouldSkipModule(module *models.ProxyModule, managementOnly bool) bool {
+	isManagementModule := strings.Contains(module.Name, constant.ManagementModulePattern)
 	return (managementOnly && !isManagementModule) || (!managementOnly && isManagementModule)
 }
 
-func (ms *ModuleSvc) shouldDeployModule(registryModule *models.RegistryModule, backendModules map[string]models.BackendModule) bool {
-	backendModule, exists := backendModules[registryModule.Name]
+func (ms *ModuleSvc) shouldDeployModule(module *models.ProxyModule, backendModules map[string]models.BackendModule) bool {
+	backendModule, exists := backendModules[module.Name]
 	return exists && backendModule.DeployModule
 }
 
 func (ms *ModuleSvc) deploySidecarAsync(wg *sync.WaitGroup, errCh chan<- error, r *SidecarRequest) {
 	defer wg.Done()
 
-	env := ms.GetSidecarEnv(r.Containers, r.RegistryModule, r.BackendModule, "", "")
-	container := models.NewSidecarContainer(r.RegistryModule.SidecarName, r.SidecarImage, env, r.BackendModule, r.NetworkConfig, r.SidecarResources)
+	env := ms.GetSidecarEnv(r.Containers, r.Module, r.BackendModule, "", "")
+	container := models.NewSidecarContainer(r.Module.SidecarName, r.SidecarImage, env, r.BackendModule, r.NetworkConfig, r.SidecarResources)
 	if err := ms.DeployModule(r.Client, container); err != nil {
-		err := appErrors.SidecarDeployFailed(r.RegistryModule.SidecarName, err)
+		err := appErrors.SidecarDeployFailed(r.Module.SidecarName, err)
 		select {
 		case errCh <- err:
 		default:

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -75,8 +74,6 @@ func CopySingleFile(actionName, srcPath, dstPath string) error {
 	if err != nil {
 		return err
 	}
-
-	slog.Info(actionName, "text", "Copied a single file", "srcPath", filepath.FromSlash(srcPath), "dstPath", filepath.FromSlash(dstPath))
 
 	return nil
 }

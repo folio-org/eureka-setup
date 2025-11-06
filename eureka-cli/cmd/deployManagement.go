@@ -52,11 +52,11 @@ func (run *Run) DeployManagement() error {
 
 	slog.Info(run.Config.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
 	instalJsonURLs := run.Config.Action.GetEurekaInstallJsonURLs()
-	registryModules, err := run.Config.RegistrySvc.GetModules(instalJsonURLs, true)
+	modules, err := run.Config.RegistrySvc.GetModules(instalJsonURLs, true)
 	if err != nil {
 		return err
 	}
-	run.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules)
+	run.Config.RegistrySvc.ExtractModuleMetadata(modules)
 
 	client, err := run.Config.DockerClient.Create()
 	if err != nil {
@@ -69,7 +69,7 @@ func (run *Run) DeployManagement() error {
 
 	slog.Info(run.Config.Action.Name, "text", "DEPLOYING MANAGEMENT MODULES")
 	env := run.Config.Action.GetConfigEnvVars(field.Env)
-	containers := models.NewManagementContainers(run.Config.Action.VaultRootToken, registryModules, backendModules, env)
+	containers := models.NewManagementContainers(run.Config.Action.VaultRootToken, modules, backendModules, env)
 	deployedModules, err := run.Config.ModuleSvc.DeployModules(client, containers, "", nil)
 	if err != nil {
 		return err

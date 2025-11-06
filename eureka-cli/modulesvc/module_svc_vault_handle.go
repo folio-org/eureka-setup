@@ -30,14 +30,14 @@ func (ms *ModuleSvc) GetVaultRootToken(client *client.Client) (string, error) {
 	}
 	defer helpers.CloseReader(logStream)
 
-	buffer := make([]byte, 8)
+	buffer := make([]byte, constant.DockerLogHeaderSize)
 	for {
 		_, err := logStream.Read(buffer)
 		if err != nil {
 			return "", err
 		}
 
-		count := binary.BigEndian.Uint32(buffer[4:])
+		count := binary.BigEndian.Uint32(buffer[constant.DockerLogSizeOffset:])
 		rawLogLine := make([]byte, count)
 		_, err = logStream.Read(rawLogLine)
 		if err != nil {

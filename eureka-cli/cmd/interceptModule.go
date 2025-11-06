@@ -54,11 +54,11 @@ func (run *Run) InterceptModule() error {
 
 	// TODO Cache or save already read install json
 	instalJsonURLs := run.Config.Action.GetCombinedInstallJsonURLs()
-	registryModules, err := run.Config.RegistrySvc.GetModules(instalJsonURLs, false)
+	modules, err := run.Config.RegistrySvc.GetModules(instalJsonURLs, false)
 	if err != nil {
 		return err
 	}
-	run.Config.RegistrySvc.ExtractModuleNameAndVersion(registryModules)
+	run.Config.RegistrySvc.ExtractModuleMetadata(modules)
 
 	client, err := run.Config.DockerClient.Create()
 	if err != nil {
@@ -76,7 +76,7 @@ func (run *Run) InterceptModule() error {
 
 	globalEnv := run.Config.Action.GetConfigEnvVars(field.Env)
 	sidecarEnv := run.Config.Action.GetConfigEnvVars(field.SidecarModuleEnv)
-	pair.Containers = models.NewCoreAndBusinessContainers(run.Config.Action.VaultRootToken, registryModules, backendModules, globalEnv, sidecarEnv)
+	pair.Containers = models.NewCoreAndBusinessContainers(run.Config.Action.VaultRootToken, modules, backendModules, globalEnv, sidecarEnv)
 	if actionParams.Restore {
 		return run.Config.InterceptModuleSvc.DeployDefaultModuleAndSidecarPair(pair, client)
 	}

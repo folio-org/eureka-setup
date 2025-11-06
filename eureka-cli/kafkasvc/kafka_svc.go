@@ -47,7 +47,7 @@ func (ks *KafkaSvc) CheckBrokenReadiness() error {
 func (ks *KafkaSvc) PollConsumerGroup(tenantName string) error {
 	slog.Info(ks.Action.Name, "text", "Preparing broker readiness check")
 	if err := ks.CheckBrokenReadiness(); err != nil {
-		slog.Warn(ks.Action.Name, "text", "Broker not fully ready", "error", err)
+		slog.Warn(ks.Action.Name, "text", "Broker is not fully ready", "error", err)
 	}
 
 	consumerGroup := fmt.Sprintf("%s-%s", ks.Action.ConfigEnvFolio, constant.ConsumerGroupSuffix)
@@ -62,21 +62,20 @@ func (ks *KafkaSvc) PollConsumerGroup(tenantName string) error {
 				return errors.ConsumerGroupRebalanceTimeout(consumerGroup, err)
 			}
 
-			slog.Info(ks.Action.Name, "text", "Waiting form consumer group to rebalance", "count", retryCount, "max", constant.ConsumerGroupRebalanceRetries)
+			slog.Warn(ks.Action.Name, "text", "Waiting form consumer group to rebalance", "count", retryCount, "max", constant.ConsumerGroupRebalanceRetries)
 			time.Sleep(constant.AttachCapabilitySetsRebalanceWait)
 			continue
 		}
 
 		retryCount = 0
 		if lag == 0 {
-			break
+			slog.Info(ks.Action.Name, "text", "Consumer group has no new message to process", "consumerGroup", consumerGroup)
+			return nil
 		}
-		slog.Info(ks.Action.Name, "text", "Waiting for consumer group", "consumerGroup", consumerGroup, "lag", lag)
+
+		slog.Warn(ks.Action.Name, "text", "Waiting for consumer group", "consumerGroup", consumerGroup, "lag", lag)
 		time.Sleep(constant.AttachCapabilitySetsPollWait)
 	}
-	slog.Info(ks.Action.Name, "text", "Consumer group has no new message to process", "consumerGroup", consumerGroup)
-
-	return nil
 }
 
 func (ks *KafkaSvc) getConsumerGroupLag(tenant string, consumerGroup string, initialLag int) (lag int, err error) {

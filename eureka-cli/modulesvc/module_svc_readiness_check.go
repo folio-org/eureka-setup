@@ -29,16 +29,13 @@ func (ms *ModuleSvc) CheckModuleReadiness(wg *sync.WaitGroup, errCh chan<- error
 			return
 		}
 
-		if retryCount == constant.ModuleReadinessMaxRetries {
-			select {
-			case errCh <- errors.ModuleNotReady(moduleName):
-			default:
-			}
-			return
-		}
-
-		slog.Info(ms.Action.Name, "text", "Module is unready", "module", moduleName, "count", retryCount, "max", constant.ModuleReadinessMaxRetries)
+		slog.Warn(ms.Action.Name, "text", "Module is unready", "module", moduleName, "count", retryCount, "max", constant.ModuleReadinessMaxRetries)
 		time.Sleep(constant.ModuleReadinessWait)
+	}
+
+	select {
+	case errCh <- errors.ModuleNotReady(moduleName):
+	default:
 	}
 }
 

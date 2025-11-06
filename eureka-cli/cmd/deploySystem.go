@@ -54,7 +54,7 @@ func (run *Run) DeploySystem() error {
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}
 	if actionParams.OnlyRequired {
 		initialRequiredContainers := constant.GetInitialRequiredContainers()
-		finalRequiredContainers := helpers.AppendAdditionalRequiredContainers(run.Config.Action.Name, initialRequiredContainers, run.Config.Action.ConfigBackendModules)
+		finalRequiredContainers := helpers.AppendRequiredContainers(run.Config.Action.Name, initialRequiredContainers, run.Config.Action.ConfigBackendModules)
 		subCommand = append(subCommand, finalRequiredContainers...)
 	}
 

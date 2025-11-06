@@ -58,9 +58,13 @@ var purgeTenantsCmd = &cobra.Command{
 				if err != nil {
 					return err
 				}
-				_ = run.Config.HTTPClient.DeleteWithBody(fmt.Sprintf("%s%s", requestURL, "?purge=true"), payload, map[string]string{})
 
-				slog.Info(run.Config.Action.Name, "text", "Purged tenant entitlement with applications", "tenant", key, "applications", value)
+				err = run.Config.HTTPClient.DeleteWithBody(fmt.Sprintf("%s%s", requestURL, "?purge=true"), payload, map[string]string{})
+				if err != nil {
+					slog.Warn(run.Config.Action.Name, "text", "Purge of tenant entitlements was unsuccessful", "tenant", key, "error", err)
+				}
+
+				slog.Info(run.Config.Action.Name, "text", "Purged tenant entitlements", "tenant", key, "applications", value)
 			}
 		}
 
@@ -70,9 +74,13 @@ var purgeTenantsCmd = &cobra.Command{
 			if err != nil {
 				return err
 			}
-			_ = run.Config.HTTPClient.Delete(fmt.Sprintf("%s%s", requestURL, "?purgeKafkaTopics=true"), map[string]string{})
 
-			slog.Info(run.Config.Action.Name, "text", "Purged tenant", "tenant", tenantID)
+			err = run.Config.HTTPClient.Delete(fmt.Sprintf("%s%s", requestURL, "?purgeKafkaTopics=true"), map[string]string{})
+			if err != nil {
+				slog.Warn(run.Config.Action.Name, "text", "Purge of tenants was unsuccessful", "tenant", tenantID, "error", err)
+			}
+
+			slog.Info(run.Config.Action.Name, "text", "Purged tenants", "tenant", tenantID)
 		}
 
 		return nil

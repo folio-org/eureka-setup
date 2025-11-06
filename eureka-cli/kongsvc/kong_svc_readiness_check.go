@@ -42,21 +42,16 @@ func (ks *KongSvc) CheckRouteReadiness() error {
 	slog.Info(ks.Action.Name, "text", "Preparing route readiness check", "expected", expected)
 	for retryCount := range constant.KongRouteReadinessMaxRetries {
 		matchedRoutes, _ := ks.FindRouteByExpressions(expressions)
-		actual := len(matchedRoutes)
-		if actual == expected {
+		if len(matchedRoutes) == expected {
 			for _, route := range matchedRoutes {
 				slog.Info(ks.Action.Name, "text", "Kong route is ready", "expression", route.Expression)
 			}
-			break
+			return nil
 		}
 
-		if retryCount == constant.KongRouteReadinessMaxRetries {
-			return errors.KongRoutesNotReady(actual, expected)
-		}
-
-		slog.Info(ks.Action.Name, "text", "Kong routes are unready", "count", retryCount, "max", constant.KongRouteReadinessMaxRetries)
+		slog.Warn(ks.Action.Name, "text", "Kong routes are unready", "count", retryCount, "max", constant.KongRouteReadinessMaxRetries)
 		time.Sleep(constant.KongReadinessWait)
 	}
 
-	return nil
+	return errors.KongRoutesNotReady(expected)
 }

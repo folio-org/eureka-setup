@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"log/slog"
 	"time"
 
 	"github.com/folio-org/eureka-cli/action"
@@ -84,7 +83,6 @@ func (run *Run) DeployApplication() error {
 			return err
 		}
 		if consortiumName != constant.NoneConsortium {
-			slog.Info(run.Config.Action.Name, "text", "Waiting for duration", "duration_seconds", constant.DeployApplicationPartitionWait.Seconds())
 			time.Sleep(constant.DeployApplicationPartitionWait)
 		}
 

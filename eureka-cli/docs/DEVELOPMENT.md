@@ -39,7 +39,7 @@
         "GOOS": "windows",
         "GOARCH": "amd64"
       },
-      "args": ["--config", "config.combined.yaml", "deployApplication", "-d"],
+      "args": ["--profile", "combined", "deployApplication", "-d"],
       "showLog": true
     },
     {
@@ -53,17 +53,7 @@
         "GOOS": "windows",
         "GOARCH": "amd64"
       },
-      "args": [
-        "--config",
-        "config.combined.yaml",
-        "interceptModule",
-        "-i",
-        "mod-orders:13.1.0-SNAPSHOT.1021",
-        "-m",
-        "http://host.docker.internal:36001",
-        "-s",
-        "http://host.docker.internal:37001"
-      ],
+      "args": ["--profile", "combined", "interceptModule", "-n", "mod-orders", "-g", "-m", "36001", "-s", "37001"],
       "showLog": true
     }
   ]
@@ -79,21 +69,25 @@
 ### Enable Module Interception in IntelliJ (an example for mod-orders and mod-finance)
 
 - `cd` into `eureka-setup/eureka-cli`
-- Deploy the Eureka environment using the _combined_ profile: `eureka-cli -c config.combined.yaml deployApplication`
+- Deploy the Eureka environment using the _combined_ profile: `eureka-cli deployApplication`
+
+> If `--profile` flag is not explicitly specified, __combined__ is assumed as the default profile
+
 - Deploy the custom sidecars into the Eureka environment
 
 > Verify that `host.docker.internal` is set in `/etc/hosts` or use default Docker Gateway IP `172.17.0.1` in Linux in the URLs
 
 ```bash
 # Find the module id that you want to intercept with listModules command
-eureka-cli -c config.combined.yaml listModules
+eureka-cli listModules -n mod-finance
+eureka-cli listModules -n mod-orders
 
-eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -m http://host.docker.internal:36001 -s http://host.docker.internal:37001
-eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -m http://host.docker.internal:36002 -s http://host.docker.internal:37002
+eureka-cli interceptModule -n mod-orders -m http://host.docker.internal:36001 -s http://host.docker.internal:37001
+eureka-cli interceptModule -n mod-finance -m http://host.docker.internal:36002 -s http://host.docker.internal:37002
 
 # Alternatively, you can use the default Kong gateway with --defaultGateway/-g flag, and by passing module and sidecar ports directly
-eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -g -m 36001 -s 37001
-eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -g -m 36002 -s 37002
+eureka-cli interceptModule -n mod-orders -gm 36001 -s 37001
+eureka-cli interceptModule -n mod-finance -gm 36002 -s 37002
 ```
 
 > Module and sidecar exposed ports in the example are not fixed and can be changed to suit your needs, e.g. if your mod-orders in IntelliJ is usually started on port 9800, `--moduleUrl` / `-m` will be <http://host.docker.internal:9800>
@@ -117,7 +111,6 @@ eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT
 <td>
 
 ```conf
-; PostgreSQL
 DB_HOST=localhost
 DB_PORT=5432
 DB_DATABASE=folio
@@ -127,25 +120,15 @@ DB_CHARSET=UTF-8
 DB_MAXPOOLSIZE=50
 DB_QUERYTIMEOUT=60000
 
-; Kafka
 ENV=folio
 KAFKA_HOST=localhost
 KAFKA_PORT=9092
-
-; Okapi (compatible with Kong)
-OKAPI_HOST=localhost
-OKAPI_PORT=37001
-OKAPI_SERVICE_HOST=localhost
-OKAPI_SERVICE_PORT=37001
-OKAPI_SERVICE_URL=http://localhost:37001
-OKAPI_URL=http://localhost:37001
 ```
 
 </td>
 <td>
 
 ```conf
-; PostgreSQL
 DB_HOST=localhost
 DB_PORT=5432
 DB_DATABASE=folio
@@ -155,18 +138,9 @@ DB_CHARSET=UTF-8
 DB_MAXPOOLSIZE=50
 DB_QUERYTIMEOUT=60000
 
-; Kafka
 ENV=folio
 KAFKA_HOST=localhost
 KAFKA_PORT=9092
-
-; Okapi (compatible with Kong)
-OKAPI_HOST=localhost
-OKAPI_PORT=37002
-OKAPI_SERVICE_HOST=localhost
-OKAPI_SERVICE_PORT=37002
-OKAPI_SERVICE_URL=http://localhost:37002
-OKAPI_URL=http://localhost:37002
 ```
 
 </td>
@@ -174,15 +148,7 @@ OKAPI_URL=http://localhost:37002
 </tbody>
 </table>
 
-- Perform module health checks: `curl -sw "\n" --connect-timeout 3 http://localhost:36001/admin/health http://localhost:36002/admin/health`
-
-> Expect: _"OK"_
-
-- Perform sidecar healthchecks: `curl -sw "\n" --connect-timeout 3 http://localhost:37001/admin/health http://localhost:37002/admin/health`
-
-> Expect: _{ "status": "UP" }_
-
-- Finally test _mod-finance_ interception by creating a _Fund Budget_ in the _Finance App_
+- Test _mod-finance_ interception by creating a _Fund Budget_ in the _Finance App_
 
 > Expect: Logs being created for _mod-finance_ deployed in IntelliJ
 
@@ -196,6 +162,6 @@ OKAPI_URL=http://localhost:37002
 - Restore the default modules and sidecars in the Eureka environment
 
 ```bash
-eureka-cli -c config.combined.yaml interceptModule -i mod-orders:13.1.0-SNAPSHOT.1021 -r
-eureka-cli -c config.combined.yaml interceptModule -i mod-finance:5.2.0-SNAPSHOT.289 -r
+eureka-cli interceptModule -n mod-orders -r
+eureka-cli interceptModule -n mod-finance -r
 ```

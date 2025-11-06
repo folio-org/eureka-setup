@@ -53,7 +53,7 @@ func (run *Run) AttachCapabilitySets(consortiumName string, tenantType constant.
 			return err
 		}
 
-		slog.Info(run.Config.Action.Name, "text", "ATTACHING CAPABILITY SETS TO ROLES FOR TENANT", "tenant", configTenant)
+		slog.Info(run.Config.Action.Name, "text", "ATTACHING CAPABILITY SETS", "tenant", configTenant)
 		keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
 		if err != nil {
 			return err

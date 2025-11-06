@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"log/slog"
 	"time"
 
 	"github.com/folio-org/eureka-cli/action"
@@ -54,7 +55,9 @@ var undeployApplicationCmd = &cobra.Command{
 }
 
 func (run *Run) UndeployApplication() error {
-	_ = run.UndeployUi()
+	if err := run.UndeployUI(); err != nil {
+		slog.Warn(run.Config.Action.Name, "text", "UI undeploy was unsuccessful", "error", err)
+	}
 	if err := run.UndeployModules(false); err != nil {
 		return err
 	}

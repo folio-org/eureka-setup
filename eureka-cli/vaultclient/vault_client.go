@@ -12,7 +12,7 @@ import (
 // VaultClientRunner defines the interface for Vault client operations
 type VaultClientRunner interface {
 	Create() (*vault.Client, error)
-	GetSecretKey(client *vault.Client, vaultRootToken string, secretPath string) (map[string]any, error)
+	GetSecretKey(ctx context.Context, client *vault.Client, vaultRootToken string, secretPath string) (map[string]any, error)
 }
 
 // VaultClient provides functionality for interacting with HashiCorp Vault
@@ -36,13 +36,13 @@ func (vc *VaultClient) Create() (*vault.Client, error) {
 	return client, nil
 }
 
-func (vc *VaultClient) GetSecretKey(client *vault.Client, vaultRootToken string, secretPath string) (map[string]any, error) {
+func (vc *VaultClient) GetSecretKey(ctx context.Context, client *vault.Client, vaultRootToken string, secretPath string) (map[string]any, error) {
 	err := client.SetToken(vaultRootToken)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), constant.ContextTimeoutVaultClient)
+	ctx, cancel := context.WithTimeout(ctx, constant.ContextTimeoutVaultClient)
 	defer cancel()
 
 	secret, err := client.Secrets.KvV2Read(ctx, secretPath, vault.WithMountPath("secret"))

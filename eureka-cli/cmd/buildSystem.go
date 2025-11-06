@@ -65,7 +65,9 @@ func (run *Run) CloneUpdateRepositories() error {
 	repositories := []*gitrepository.GitRepository{kongRepository, keycloakRepository}
 	slog.Info(run.Config.Action.Name, "text", "Cloning repositories", "repositories", repositories)
 	for _, repository := range repositories {
-		_ = run.Config.GitClient.Clone(repository)
+		if err := run.Config.GitClient.Clone(repository); err != nil {
+			slog.Warn(run.Config.Action.Name, "text", "Cloning was unsuccessful", "error", err)
+		}
 	}
 
 	if actionParams.UpdateCloned {

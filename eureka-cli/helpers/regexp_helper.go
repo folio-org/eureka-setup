@@ -28,8 +28,12 @@ func getModuleIDRegexp() *regexp.Regexp {
 	return regexp.MustCompile(constant.ModuleIDPattern)
 }
 
-func GetModuleVersionPFromID(id string) *string {
-	return StringP(GetModuleVersionFromID(id))
+func GetOptionalModuleVersion(id string) *string {
+	version := GetModuleVersionFromID(id)
+	if version == "" {
+		return nil
+	}
+	return &version
 }
 
 func GetModuleVersionFromID(id string) string {

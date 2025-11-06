@@ -42,7 +42,9 @@ var undeployModulesCmd = &cobra.Command{
 func (run *Run) UndeployModules(deleteApplication bool) error {
 	if deleteApplication {
 		slog.Info(run.Config.Action.Name, "text", "REMOVING APPLICATION")
-		_ = run.Config.ManagementSvc.RemoveApplication(run.Config.Action.ConfigApplicationID)
+		if err := run.Config.ManagementSvc.RemoveApplication(run.Config.Action.ConfigApplicationID); err != nil {
+			slog.Warn(run.Config.Action.Name, "text", "Application removal was unsuccessful", "error", err)
+		}
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "UNDEPLOYING MODULES")

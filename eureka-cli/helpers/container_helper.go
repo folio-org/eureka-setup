@@ -12,7 +12,7 @@ import (
 	"github.com/folio-org/eureka-cli/field"
 )
 
-func NewModuleNetworkConfig() *network.NetworkingConfig {
+func GetModuleNetworkConfig() *network.NetworkingConfig {
 	endpointConfig := map[string]*network.EndpointSettings{constant.NetworkID: {
 		NetworkID: constant.NetworkID,
 		Aliases:   []string{constant.NetworkAlias},
@@ -25,31 +25,31 @@ func GetSidecarName(moduleName string) string {
 	return fmt.Sprintf("%s-sc", moduleName)
 }
 
-func CreateExposedPorts(serverPort int) *nat.PortSet {
-	moduleExposedPorts := make(map[nat.Port]struct{})
-	moduleExposedPorts[nat.Port(strconv.Itoa(serverPort))] = struct{}{}
-	moduleExposedPorts[nat.Port(constant.PrivateDebugPort)] = struct{}{}
-	portSet := nat.PortSet(moduleExposedPorts)
+func CreateExposedPorts(privateServerPort int) *nat.PortSet {
+	exposedPorts := make(map[nat.Port]struct{})
+	exposedPorts[nat.Port(strconv.Itoa(privateServerPort))] = struct{}{}
+	exposedPorts[nat.Port(constant.PrivateDebugPort)] = struct{}{}
+	portSet := nat.PortSet(exposedPorts)
 
 	return &portSet
 }
 
-func CreatePortBindings(hostServerPort int, hostServerDebugPort int, serverPort int) *nat.PortMap {
+func CreatePortBindings(hostServerPort int, hostServerDebugPort int, privateServerPort int) *nat.PortMap {
 	var (
-		serverPortBinding      []nat.PortBinding
-		serverDebugPortBinding []nat.PortBinding
+		serverPortBinding []nat.PortBinding
+		debugPortBinding  []nat.PortBinding
 	)
 	serverPortBinding = append(serverPortBinding, nat.PortBinding{
 		HostIP:   constant.HostIP,
 		HostPort: strconv.Itoa(hostServerPort),
 	})
-	serverDebugPortBinding = append(serverDebugPortBinding, nat.PortBinding{
+	debugPortBinding = append(debugPortBinding, nat.PortBinding{
 		HostIP:   constant.HostIP,
 		HostPort: strconv.Itoa(hostServerDebugPort),
 	})
 	portBindings := make(map[nat.Port][]nat.PortBinding)
-	portBindings[nat.Port(strconv.Itoa(serverPort))] = serverPortBinding
-	portBindings[nat.Port(constant.PrivateDebugPort)] = serverDebugPortBinding
+	portBindings[nat.Port(strconv.Itoa(privateServerPort))] = serverPortBinding
+	portBindings[nat.Port(constant.PrivateDebugPort)] = debugPortBinding
 	portMap := nat.PortMap(portBindings)
 
 	return &portMap
@@ -89,19 +89,19 @@ func createDefaultResources(isModule bool) *container.Resources {
 	}
 }
 
-func AppendAdditionalRequiredContainers(actionName string, initialRequiredContainers []string, configBackendModules map[string]any) []string {
+func AppendRequiredContainers(actionName string, requiredContainers []string, configBackendModules map[string]any) []string {
 	if IsModuleEnabled(constant.ModSearchModule, configBackendModules) {
-		initialRequiredContainers = append(initialRequiredContainers, constant.ElasticsearchContainer)
+		requiredContainers = append(requiredContainers, constant.ElasticsearchContainer)
 	}
 	if IsModuleEnabled(constant.ModDataExportWorkerModule, configBackendModules) {
 		extraContainers := []string{constant.MinIOContainer, constant.CreateBucketsContainer, constant.FTPServerContainer}
-		initialRequiredContainers = append(initialRequiredContainers, extraContainers...)
+		requiredContainers = append(requiredContainers, extraContainers...)
 	}
-	if len(initialRequiredContainers) > 0 {
-		slog.Info(actionName, "text", "Retrieved required containers", "containers", initialRequiredContainers)
+	if len(requiredContainers) > 0 {
+		slog.Info(actionName, "text", "Retrieved required containers", "containers", requiredContainers)
 	}
 
-	return initialRequiredContainers
+	return requiredContainers
 }
 
 func IsModuleEnabled(module string, configBackendModules map[string]any) bool {

@@ -45,7 +45,7 @@ var reindexIndicesCmd = &cobra.Command{
 func (run *Run) ReindexIndices(consortiumName string, tenantType constant.TenantType) error {
 	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
 		if action.IsSet(field.Consortiums) && tenantType == fmt.Sprintf("%s-%s", consortiumName, constant.Central) {
-			slog.Info(run.Config.Action.Name, "text", "RE-INDEXING INDICES FOR TENANT", "tenant", configTenant)
+			slog.Info(run.Config.Action.Name, "text", "RE-INDEXING INDICES", "tenant", configTenant)
 			keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
 			if err != nil {
 				return err

@@ -8,6 +8,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/models"
 )
 
 // ConsortiumCentralOrderingManager defines the interface for consortium central ordering operations
@@ -48,18 +49,17 @@ func (cs *ConsortiumSvc) EnableCentralOrdering(centralTenant string) error {
 func (cs *ConsortiumSvc) getEnableCentralOrderingByKey(centralTenant string, key string) (bool, error) {
 	requestURL := cs.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/orders-storage/settings?query=key==%s&limit=1", key))
 	headers := helpers.TenantSecureApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
-	decodedResponse, err := cs.HTTPClient.GetRetryDecodeReturnAny(requestURL, headers)
-	if err != nil {
+
+	var response models.SettingsResponse
+	if err := cs.HTTPClient.GetRetryReturnStruct(requestURL, headers, &response); err != nil {
 		return false, err
 	}
 
-	settingsData := decodedResponse.(map[string]any)
-	if settingsData["settings"] == nil || len(settingsData["settings"].([]any)) == 0 {
+	if len(response.Settings) == 0 {
 		return false, nil
 	}
 
-	firstSettings := settingsData["settings"].([]any)[0]
-	value := firstSettings.(map[string]any)["value"].(string)
+	value := response.Settings[0].Value
 	enableCentralOrdering, err := strconv.ParseBool(value)
 	if err != nil {
 		return false, err

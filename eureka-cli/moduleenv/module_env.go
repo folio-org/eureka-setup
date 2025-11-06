@@ -17,7 +17,7 @@ type ModuleEnvProcessor interface {
 	DisabledSystemUserEnv(env []string, moduleName string) []string
 	KeycloakEnv(env []string) []string
 	ModuleEnv(env []string, newEnv map[string]any) []string
-	SidecarEnv(env []string, module *models.RegistryModule, privatePort int, moduleURL, sidecarURL string) []string
+	SidecarEnv(env []string, module *models.ProxyModule, privatePort int, moduleURL, sidecarURL string) []string
 }
 
 // ModuleEnv provides functionality for constructing environment variables for modules
@@ -86,7 +86,7 @@ func (mv *ModuleEnv) ModuleEnv(envVars []string, newEnv map[string]any) []string
 	return envVars
 }
 
-func (mv *ModuleEnv) SidecarEnv(env []string, module *models.RegistryModule, privatePort int, moduleURL, sidecarURL string) []string {
+func (mv *ModuleEnv) SidecarEnv(env []string, module *models.ProxyModule, privatePort int, moduleURL, sidecarURL string) []string {
 	var newEnv []string
 	if moduleURL == "" && sidecarURL == "" {
 		newEnv = []string{fmt.Sprintf("MODULE_NAME=%s", module.Name),

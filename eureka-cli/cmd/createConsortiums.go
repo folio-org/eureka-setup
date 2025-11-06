@@ -80,11 +80,11 @@ func (run *Run) CreateConsortium() error {
 			return err
 		}
 		if !helpers.GetBool(entry, field.ConsortiumEnableCentralOrderingEntry) {
-			slog.Info(run.Config.Action.Name, "text", "IGNORING ENABLEMENT OF CENTRAL ORDERING FOR TENANT IN CONSORTIUM", "tenant", centralTenant, "consortium", consortium)
+			slog.Warn(run.Config.Action.Name, "text", "Ignoring enablement of central ordering", "tenant", centralTenant, "consortium", consortium)
 			continue
 		}
 
-		slog.Info(run.Config.Action.Name, "text", "ENABLING CENTRAL ORDERING FOR TENANT IN CONSORTIUM", "tenant", centralTenant, "consortium", consortium)
+		slog.Info(run.Config.Action.Name, "text", "ENABLING CENTRAL ORDERING", "tenant", centralTenant, "consortium", consortium)
 		if err := run.Config.ConsortiumSvc.EnableCentralOrdering(centralTenant); err != nil {
 			return err
 		}

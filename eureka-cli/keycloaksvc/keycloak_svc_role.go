@@ -8,6 +8,7 @@ import (
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/models"
 )
 
 // KeycloakRoleManager defines the interface for Keycloak role management operations
@@ -20,37 +21,49 @@ type KeycloakRoleManager interface {
 
 func (ks *KeycloakSvc) GetRoles(headers map[string]string) ([]any, error) {
 	requestURL := ks.Action.GetRequestURL(constant.KongPort, "/roles?offset=0&limit=10000")
-	decodedResponse, err := ks.HTTPClient.GetRetryDecodeReturnAny(requestURL, headers)
-	if err != nil {
+
+	var decodedResponse models.KeycloakRolesResponse
+	if err := ks.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return nil, err
 	}
 
-	rolesData := decodedResponse.(map[string]any)
-	if rolesData["roles"] == nil || len(rolesData["roles"].([]any)) == 0 {
-		return nil, err
+	if len(decodedResponse.Roles) == 0 {
+		return nil, nil
 	}
 
-	return rolesData["roles"].([]any), nil
+	result := make([]any, len(decodedResponse.Roles))
+	for i, role := range decodedResponse.Roles {
+		result[i] = map[string]any{
+			"id":          role.ID,
+			"name":        role.Name,
+			"description": role.Description,
+		}
+	}
+
+	return result, nil
 }
 
 func (ks *KeycloakSvc) GetRoleByName(roleName string, headers map[string]string) (map[string]any, error) {
 	requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/roles?query=name==%s&limit=1", roleName))
-	decodedResponse, err := ks.HTTPClient.GetRetryDecodeReturnAny(requestURL, headers)
-	if err != nil {
+
+	var decodedResponse models.KeycloakRolesResponse
+	if err := ks.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return nil, err
 	}
 
-	rolesData := decodedResponse.(map[string]any)
-	if rolesData["roles"] == nil {
+	if len(decodedResponse.Roles) == 0 {
 		return nil, nil
 	}
 
-	roles := rolesData["roles"].([]any)
-	if len(roles) != 1 {
+	if len(decodedResponse.Roles) != 1 {
 		return nil, errors.RoleNotFound(roleName)
 	}
 
-	return roles[0].(map[string]any), nil
+	return map[string]any{
+		"id":          decodedResponse.Roles[0].ID,
+		"name":        decodedResponse.Roles[0].Name,
+		"description": decodedResponse.Roles[0].Description,
+	}, nil
 }
 
 func (ks *KeycloakSvc) CreateRoles(configTenant string) error {

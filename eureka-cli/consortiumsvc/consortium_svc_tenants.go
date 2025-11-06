@@ -11,6 +11,7 @@ import (
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/models"
 )
 
 // ConsortiumTenantHandler defines the interface for consortium tenant operations
@@ -128,20 +129,19 @@ func (cs *ConsortiumSvc) CreateConsortiumTenants(centralTenant string, consortiu
 func (cs *ConsortiumSvc) getConsortiumTenantByIDAndName(centralTenant string, consortiumID string, tenant string) (any, error) {
 	requestURL := cs.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/consortia/%s/tenants", consortiumID))
 	headers := helpers.TenantSecureApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
-	decodedResponse, err := cs.HTTPClient.GetRetryDecodeReturnAny(requestURL, headers)
-	if err != nil {
+
+	var decodedResponse models.ConsortiumTenantsResponse
+	if err := cs.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return nil, err
 	}
 
-	consortiumTenantsData := decodedResponse.(map[string]any)
-	if consortiumTenantsData["tenants"] == nil || len(consortiumTenantsData["tenants"].([]any)) == 0 {
+	if len(decodedResponse.Tenants) == 0 {
 		return nil, nil
 	}
 
-	for _, value := range consortiumTenantsData["tenants"].([]any) {
-		matchedConsortiumTenant := value.(map[string]any)["name"]
-		if matchedConsortiumTenant != nil && matchedConsortiumTenant.(string) == tenant {
-			return matchedConsortiumTenant, nil
+	for _, t := range decodedResponse.Tenants {
+		if t.Name == tenant {
+			return t.Name, nil
 		}
 	}
 
@@ -150,15 +150,11 @@ func (cs *ConsortiumSvc) getConsortiumTenantByIDAndName(centralTenant string, co
 
 func (cs *ConsortiumSvc) checkConsortiumTenantStatus(centralTenant string, consortiumID string, tenantName string, headers map[string]string) error {
 	requestURL := fmt.Sprintf("/consortia/%s/tenants/%s", consortiumID, tenantName)
-	consortiumTenantsAny, err := cs.HTTPClient.GetRetryDecodeReturnAny(cs.Action.GetRequestURL(constant.KongPort, requestURL), headers)
-	if err != nil {
+
+	var decodedResponse models.ConsortiumTenantStatus
+	if err := cs.HTTPClient.GetRetryReturnStruct(cs.Action.GetRequestURL(constant.KongPort, requestURL), headers, &decodedResponse); err != nil {
 		return err
 	}
-	if consortiumTenantsAny == nil {
-		return nil
-	}
-
-	consortiumTenants := consortiumTenantsAny.(map[string]any)
 
 	const (
 		IN_PROGRESS           string = "IN_PROGRESS"
@@ -166,12 +162,11 @@ func (cs *ConsortiumSvc) checkConsortiumTenantStatus(centralTenant string, conso
 		COMPLETED             string = "COMPLETED"
 		COMPLETED_WITH_ERRORS string = "COMPLETED_WITH_ERRORS"
 	)
-	switch consortiumTenants["setupStatus"] {
+	switch decodedResponse.SetupStatus {
 	case IN_PROGRESS:
-		slog.Info(cs.Action.Name, "text", "Waiting for consortium tenant creation", "tenant", tenantName)
+		slog.Warn(cs.Action.Name, "text", "Waiting for consortium tenant creation", "tenant", tenantName)
 		time.Sleep(constant.ConsortiumTenantStatusWait)
-		err = cs.checkConsortiumTenantStatus(centralTenant, consortiumID, tenantName, headers)
-		if err != nil {
+		if err := cs.checkConsortiumTenantStatus(centralTenant, consortiumID, tenantName, headers); err != nil {
 			return err
 		}
 		return nil
@@ -179,8 +174,7 @@ func (cs *ConsortiumSvc) checkConsortiumTenantStatus(centralTenant string, conso
 	case COMPLETED_WITH_ERRORS:
 		return errors.TenantNotCreated(tenantName)
 	case COMPLETED:
-		isCentral := consortiumTenants["isCentral"]
-		slog.Info(cs.Action.Name, "text", "Created consortium tenant", "tenant", tenantName, "isCentral", isCentral, "consortium", consortiumID)
+		slog.Info(cs.Action.Name, "text", "Created consortium tenant", "tenant", tenantName, "isCentral", decodedResponse.IsCentral, "consortium", consortiumID)
 		return nil
 	}
 

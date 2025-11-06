@@ -42,14 +42,24 @@ func Newf(format string, args ...interface{}) error {
 	return fmt.Errorf(format, args...)
 }
 
+// ==================== Validation Errors ====================
+
+func ActionNil() error {
+	return errors.New("action cannot be nil")
+}
+
+func LoggerNil() error {
+	return errors.New("logger cannot be nil")
+}
+
 // ==================== HTTP Errors ====================
 
 func PingFailed(url string, err error) error {
 	return fmt.Errorf("failed to ping %s: %w", url, err)
 }
 
-func RequestFailed(statusCode int, url string) error {
-	return fmt.Errorf("request failed with status %d for URL: %s", statusCode, url)
+func RequestFailed(statusCode int, method, url string) error {
+	return fmt.Errorf("request failed with status %d for URL: %s %s", statusCode, method, url)
 }
 
 // ==================== Action Errors ====================
@@ -144,8 +154,8 @@ func UserNotFound(username, tenantName string) error {
 
 // ==================== Kong Errors ====================
 
-func KongRoutesNotReady(actual, expected int) error {
-	return fmt.Errorf("%w: kong routes %d/%d", ErrNotReady, actual, expected)
+func KongRoutesNotReady(expected int) error {
+	return fmt.Errorf("%w: kong routes %d", ErrNotReady, expected)
 }
 
 func KongAdminAPIFailed(statusCode int, status string) error {
@@ -202,4 +212,14 @@ func CentralTenantNotFound(consortiumName string) error {
 
 func TenantNotCreated(tenantName string) error {
 	return fmt.Errorf("%w: consortium tenant %s not created", ErrDeploymentFailed, tenantName)
+}
+
+// ==================== Search/Reindex Errors ====================
+
+func ReindexJobHasErrors(jobErrors []any) error {
+	return fmt.Errorf("reindex job has %d error(s): %+v", len(jobErrors), jobErrors)
+}
+
+func ReindexJobIDBlank() error {
+	return errors.New("reindex job id is blank")
 }

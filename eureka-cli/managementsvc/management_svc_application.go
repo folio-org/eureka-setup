@@ -26,7 +26,7 @@ type ManagementProcessor interface {
 // ManagementApplicationManager defines the interface for application management operations
 type ManagementApplicationManager interface {
 	GetApplications() (models.ApplicationsResponse, error)
-	CreateApplications(extract *models.RegistryModuleExtract) error
+	CreateApplications(extract *models.RegistryExtract) error
 	RemoveApplication(applicationID string) error
 	GetModuleDiscovery(name string) (models.ModuleDiscoveryResponse, error)
 	UpdateModuleDiscovery(id string, restore bool, privatePort int, sidecarURL string) error
@@ -64,7 +64,7 @@ func (ms *ManagementSvc) GetApplications() (models.ApplicationsResponse, error) 
 	return applications, nil
 }
 
-func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtract) error {
+func (ms *ManagementSvc) CreateApplications(extract *models.RegistryExtract) error {
 	var (
 		backendModules            []map[string]string
 		frontendModules           []map[string]string
@@ -77,7 +77,8 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 		dependencies = ms.Action.ConfigApplicationDependencies
 	}
 
-	for _, modules := range extract.RegistryModules {
+	allModules := [][]*models.ProxyModule{extract.Modules.FolioModules, extract.Modules.EurekaModules}
+	for _, modules := range allModules {
 		for _, module := range modules {
 			if strings.Contains(module.Name, constant.ManagementModulePattern) {
 				continue
@@ -122,17 +123,17 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 					slog.Info(ms.Action.Name, "text", "Successfully loaded module descriptor from local file path", "module", module.ID)
 				} else {
 					slog.Info(ms.Action.Name, "text", "Fetching module descriptor from URL", "module", module.ID, "url", moduleDescriptorURL)
-					moduleDescriptorData, err := ms.HTTPClient.GetRetryDecodeReturnAny(moduleDescriptorURL, map[string]string{})
-					if err != nil {
+					var decodedResponse any
+					if err := ms.HTTPClient.GetRetryReturnStruct(moduleDescriptorURL, map[string]string{}, &decodedResponse); err != nil {
 						return err
 					}
-					extract.ModuleDescriptors[module.ID] = moduleDescriptorData
+					extract.ModuleDescriptors[module.ID] = decodedResponse
 					slog.Info(ms.Action.Name, "text", "Successfully loaded module descriptor from the remote", "module", module.ID)
 				}
 			}
 
 			if okBackend {
-				serverPort := backendModule.ModuleServerPort
+				privatePort := backendModule.PrivatePort
 				backendModule := map[string]string{
 					"id":      module.ID,
 					"name":    module.Name,
@@ -145,7 +146,7 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryModuleExtrac
 				}
 				backendModules = append(backendModules, backendModule)
 
-				sidecarURL := fmt.Sprintf("http://%s.eureka:%d", module.SidecarName, serverPort)
+				sidecarURL := fmt.Sprintf("http://%s.eureka:%d", module.SidecarName, privatePort)
 				discoveryModules = append(discoveryModules, map[string]string{
 					"id":       module.ID,
 					"name":     module.Name,

@@ -46,10 +46,10 @@ func (is *InterceptModuleSvc) prepareModuleAndSidecarPairNetwork() error {
 	sidecarServerPort := ports[2]
 	sidecarDebugPort := ports[3]
 
-	is.pair.NetworkConfig = helpers.NewModuleNetworkConfig()
-	is.pair.BackendModule, is.pair.RegistryModule = is.ModuleSvc.GetBackendModule(is.pair.Containers, is.pair.ModuleName)
-	is.pair.BackendModule.ModulePortBindings = helpers.CreatePortBindings(moduleServerPort, moduleDebugPort, is.pair.BackendModule.ModuleServerPort)
-	is.pair.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, is.pair.BackendModule.ModuleServerPort)
+	is.pair.NetworkConfig = helpers.GetModuleNetworkConfig()
+	is.pair.BackendModule, is.pair.Module = is.ModuleSvc.GetBackendModule(is.pair.Containers, is.pair.ModuleName)
+	is.pair.BackendModule.ModulePortBindings = helpers.CreatePortBindings(moduleServerPort, moduleDebugPort, is.pair.BackendModule.PrivatePort)
+	is.pair.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, is.pair.BackendModule.PrivatePort)
 	is.pair.BackendModule.ModuleExposedServerPort = moduleServerPort
 	is.pair.BackendModule.ModuleExposedDebugPort = moduleDebugPort
 	is.pair.BackendModule.SidecarExposedServerPort = sidecarServerPort

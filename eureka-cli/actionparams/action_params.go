@@ -29,3 +29,7 @@ type ActionParams struct {
 	Versions            int
 	PrivatePort         int
 }
+
+func New() *ActionParams {
+	return &ActionParams{}
+}

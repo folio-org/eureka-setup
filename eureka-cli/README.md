@@ -79,24 +79,25 @@ Available flags:
 
 **Command-specific flags:**
 
-| Short | Long                   | Description                                                | Command(s)                                                       |
-|-------|------------------------|------------------------------------------------------------|------------------------------------------------------------------|
-| `-y`  | `--moduleType`         | Filter by module type (module, sidecar, management)        | listModules                                                      |
-| `-v`  | `--versions`           | Number of versions to display                              | listModuleVersions                                               |
-| `-z`  | `--purgeSchemas`       | Purge PostgreSQL schemas on uninstallation                 | removeTenantEntitlements, undeployApplication                    |
-| `-l`  | `--platformCompleteURL`| Platform Complete UI URL                                   | buildAndPushUi                                                   |
-| `-w`  | `--singleTenant`       | Use for Single Tenant workflow                             | deployUi, buildAndPushUi                                         |
-| `-x`  | `--user`               | User for edge API key generation                           | getEdgeApiKey                                                    |
-| `-e`  | `--enableEcsRequests`  | Enable ECS requests                                        | deployUi, buildAndPushUi                                         |
-| `-t`  | `--tenant`             | Tenant name                                                | getKeycloakAccessToken, getEdgeApiKey, buildAndPushUi            |
-| `-n`  | `--moduleName`         | Module name (e.g., mod-orders)                             | interceptModule, listModules, listModuleVersions, undeployModule |
-| `-i`  | `--id`                 | Module ID (e.g., mod-orders:13.1.0-SNAPSHOT.1021)          | updateModuleDiscovery, listModuleVersions                        |
-| `-s`  | `--sidecarUrl`         | Sidecar URL                                                | interceptModule, updateModuleDiscovery                           |
-| `-r`  | `--restore`            | Restore module & sidecar                                   | interceptModule, updateModuleDiscovery                           |
-| `-g`  | `--defaultGateway`     | Use default gateway in URLs                                | interceptModule                                                  |
-| `-a`  | `--all`                | All modules for all profiles                               | listModules                                                      |
-| `-c`  | `--namespace`          | DockerHub namespace                                        | buildAndPushUi                                                   |
-| `-j`  | `--privatePort`        | Private port                                               | updateModuleDiscovery                                            |
+| Short | Long                   | Description                                                | Command(s)                                                                              |
+|-------|------------------------|------------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| `-y`  | `--moduleType`         | Filter by module type (module, sidecar, management)        | listModules                                                                             |
+| `-v`  | `--versions`           | Number of versions to display                              | listModuleVersions                                                                      |
+| `-z`  | `--purgeSchemas`       | Purge PostgreSQL schemas on uninstallation                 | removeTenantEntitlements, undeployApplication                                           |
+| `-f`  | `--platformCompleteURL`| Platform Complete UI URL                                   | buildAndPushUi                                                                          |
+| `-w`  | `--singleTenant`       | Use for Single Tenant workflow                             | deployUi, buildAndPushUi                                                                |
+| `-x`  | `--user`               | User for edge API key generation                           | getEdgeApiKey                                                                           |
+| `-l`  | `--length`             | Salt length for edge API key                               | getEdgeApiKey                                                                           |
+| `-e`  | `--enableEcsRequests`  | Enable ECS requests                                        | deployUi, buildAndPushUi                                                                |
+| `-t`  | `--tenant`             | Tenant name                                                | getKeycloakAccessToken, getEdgeApiKey, buildAndPushUi                                   |
+| `-n`  | `--moduleName`         | Module name (e.g., mod-orders)                             | interceptModule, listModules, listModuleVersions, undeployModule, updateModuleDiscovery |
+| `-i`  | `--id`                 | Module ID (e.g., mod-orders:13.1.0-SNAPSHOT.1021)          | listModuleVersions                                                                      |
+| `-s`  | `--sidecarUrl`         | Sidecar URL                                                | interceptModule, updateModuleDiscovery                                                  |
+| `-r`  | `--restore`            | Restore module & sidecar                                   | interceptModule, updateModuleDiscovery                                                  |
+| `-g`  | `--defaultGateway`     | Use default gateway in URLs                                | interceptModule                                                                         |
+| `-a`  | `--all`                | All modules for all profiles                               | listModules                                                                             |
+| `-k`  | `--namespace`          | DockerHub namespace                                        | buildAndPushUi                                                                          |
+| `-j`  | `--privatePort`        | Private port                                               | updateModuleDiscovery                                                                   |
 
 ```bash
 eureka-cli -c ./config.combined.yaml deployApplication
@@ -110,10 +111,10 @@ eureka-cli -c ./config.combined.yaml deployApplication
 eureka-cli deployApplication -d
 ```
 
-- For resource-constrained environments, use the `-R` flag to deploy only the required system containers
+- For resource-constrained environments, use the `-q` flag to deploy only the required system containers
 
 ```bash
-eureka-cli deployApplication -R
+eureka-cli deployApplication -q
 ```
 
 - The profile `-p` flag eliminates the need to define a config file path by relying on the default configs that are automatically created in the `.eureka` home directory
@@ -185,7 +186,7 @@ AWS_SDK_LOAD_CONFIG=true eureka-cli deployApplication
 The _ecs_ application is a standalone application that deploys a UI container for each consortium. By default, it creates 3 tenants for the first consortium (ecs) and 2 tenants for the second one (ecs2). This profile also deploys _mod-okapi-facade_ and _mod-search_ modules along with the _elasticsearch_ system container.
 
 ```bash
-eureka-cli -p ecs deployApplication -oR
+eureka-cli -p ecs deployApplication -oq
 ```
 
 ### Undeploy the _ecs_ application
@@ -199,7 +200,7 @@ eureka-cli -p ecs undeployApplication
 We can use the _ecs-single_ profile to deploy an environment with just a single consortium. This profile will provision only 3 tenants (i.e. ecs, university and college) with just a single UI container. This profile is preferred over the _ecs_ when there is an obvious resource constraint on the host machine because of how many Kafka topics there needs to be maintained during and after tenant entitlement.
 
 ```bash
-eureka-cli -p ecs-single deployApplication -oR
+eureka-cli -p ecs-single deployApplication -oq
 ```
 
 ### Undeploy the _ecs-single_ application
@@ -213,7 +214,7 @@ eureka-cli -p ecs-single undeployApplication
 The import application is another standalone application that contains a combination of modules required by the team responsible for data-import functionality in FOLIO.
 
 ```bash
-eureka-cli -p import deployApplication -oR
+eureka-cli -p import deployApplication -oq
 ```
 
 ### Undeploy the import application

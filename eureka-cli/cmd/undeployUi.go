@@ -35,11 +35,11 @@ var undeployUiCmd = &cobra.Command{
 			return err
 		}
 
-		return run.UndeployUi()
+		return run.UndeployUI()
 	},
 }
 
-func (run *Run) UndeployUi() error {
+func (run *Run) UndeployUI() error {
 	slog.Info(run.Config.Action.Name, "text", "UNDEPLOYING UI CONTAINERS")
 	client, err := run.Config.DockerClient.Create()
 	if err != nil {

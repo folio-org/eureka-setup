@@ -7,6 +7,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/models"
 )
 
 // KeycloakUserManager defines the interface for Keycloak user management operations
@@ -19,17 +20,28 @@ type KeycloakUserManager interface {
 func (ks *KeycloakSvc) GetUsers(tenantName string) ([]any, error) {
 	requestURL := ks.Action.GetRequestURL(constant.KongPort, "/users?offset=0&limit=10000")
 	headers := helpers.TenantSecureApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
-	decodedResponse, err := ks.HTTPClient.GetRetryDecodeReturnAny(requestURL, headers)
-	if err != nil {
+
+	var decodedResponse models.KeycloakUsersResponse
+	if err := ks.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return nil, err
 	}
 
-	usersData := decodedResponse.(map[string]any)
-	if usersData["users"] == nil || len(usersData["users"].([]any)) == 0 {
+	if len(decodedResponse.Users) == 0 {
 		return nil, nil
 	}
 
-	return usersData["users"].([]any), nil
+	result := make([]any, len(decodedResponse.Users))
+	for i, user := range decodedResponse.Users {
+		result[i] = map[string]any{
+			"id":       user.ID,
+			"username": user.Username,
+			"active":   user.Active,
+			"type":     user.Type,
+			"personal": user.Personal,
+		}
+	}
+
+	return result, nil
 }
 
 func (ks *KeycloakSvc) CreateUsers(configTenant string) error {
@@ -64,6 +76,7 @@ func (ks *KeycloakSvc) CreateUsers(configTenant string) error {
 
 		okapiBasedHeaders := helpers.TenantSecureApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
 		nonOkapiBasedHeaders := helpers.TenantSecureNonOkapiApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+
 		var createdUser map[string]any
 		err = ks.HTTPClient.PostReturnStruct(postUserRequestURL, payload1, okapiBasedHeaders, &createdUser)
 		if err != nil {
@@ -97,7 +110,7 @@ func (ks *KeycloakSvc) CreateUsers(configTenant string) error {
 			roleID := role["id"].(string)
 			roleName := role["name"].(string)
 			if roleID == "" {
-				slog.Warn(ks.Action.Name, "text", "Roles are not found by name", "role", roleName)
+				slog.Warn(ks.Action.Name, "text", "Roles are not found", "role", roleName)
 				continue
 			}
 			roleIDs = append(roleIDs, roleID)

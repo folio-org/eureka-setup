@@ -44,9 +44,14 @@ func New(name string) (*Run, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	action := action.New(name, gatewayURLTemplate, &actionParams)
-	return &Run{Config: runconfig.New(action, logger)}, nil
+
+	runConfig, err := runconfig.New(action, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Run{Config: runConfig}, nil
 }
 
 func (run *Run) PingGateway() error {
