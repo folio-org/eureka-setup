@@ -9,6 +9,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/errors"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/httpclient"
 )
 
@@ -21,16 +22,18 @@ func (ms *ModuleSvc) CheckModuleReadiness(wg *sync.WaitGroup, errCh chan<- error
 	defer wg.Done()
 
 	slog.Info(ms.Action.Name, "text", "Preparing module readiness check", "module", moduleName, "port", port)
+	maxRetries := helpers.DefaultInt(ms.ReadinessMaxRetries, constant.ModuleReadinessMaxRetries)
+	waitDuration := helpers.DefaultDuration(ms.ReadinessWait, constant.ModuleReadinessWait)
 	requestURL := ms.Action.GetRequestURL(strconv.Itoa(port), "/admin/health")
-	for retryCount := range constant.ModuleReadinessMaxRetries {
+	for retryCount := range maxRetries {
 		ready, _ := ms.checkContainerStatusCode(requestURL)
 		if ready {
 			slog.Info(ms.Action.Name, "text", "Module is ready", "module", moduleName)
 			return
 		}
 
-		slog.Warn(ms.Action.Name, "text", "Module is unready", "module", moduleName, "count", retryCount, "max", constant.ModuleReadinessMaxRetries)
-		time.Sleep(constant.ModuleReadinessWait)
+		slog.Warn(ms.Action.Name, "text", "Module is unready", "module", moduleName, "count", retryCount, "max", maxRetries)
+		time.Sleep(waitDuration)
 	}
 
 	select {

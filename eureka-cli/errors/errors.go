@@ -130,6 +130,10 @@ func ConsumerGroupRebalanceTimeout(consumerGroup string, err error) error {
 	return fmt.Errorf("%w: consumer group %s rebalance exceeded: %w", ErrTimeout, consumerGroup, err)
 }
 
+func ConsumerGroupPollTimeout(consumerGroup string, maxRetries int) error {
+	return fmt.Errorf("%w: consumer group %s polling exceeded maximum retries (%d)", ErrTimeout, consumerGroup, maxRetries)
+}
+
 func ContainerCommandFailed(stderr string) error {
 	return fmt.Errorf("failed to execute container command, stderr: %s", stderr)
 }

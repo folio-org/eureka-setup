@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"time"
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
@@ -27,8 +28,10 @@ type KongRouteReader interface {
 
 // KongSvc provides functionality for Kong API gateway operations
 type KongSvc struct {
-	Action     *action.Action
-	HTTPClient httpclient.HTTPClientGetManager
+	Action              *action.Action
+	HTTPClient          httpclient.HTTPClientGetManager
+	ReadinessMaxRetries int
+	ReadinessWait       time.Duration
 }
 
 // New creates a new KongSvc instance

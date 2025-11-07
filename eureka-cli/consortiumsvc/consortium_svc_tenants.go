@@ -53,14 +53,10 @@ func (c ConsortiumTenants) String() string {
 func (cs *ConsortiumSvc) GetSortedConsortiumTenants(consortiumName string) ConsortiumTenants {
 	var consortiumTenants ConsortiumTenants
 	for tenantName, properties := range cs.Action.ConfigTenants {
-		if !cs.isValidConsortium(consortiumName, properties) {
+		if properties == nil {
 			continue
 		}
-		if properties == nil {
-			consortiumTenants = append(consortiumTenants, &ConsortiumTenant{
-				Tenant:    tenantName,
-				IsCentral: 0,
-			})
+		if !cs.isValidConsortium(consortiumName, properties) {
 			continue
 		}
 

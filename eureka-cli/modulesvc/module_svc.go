@@ -2,6 +2,7 @@ package modulesvc
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
@@ -22,15 +23,6 @@ type ModuleProcessor interface {
 	ModuleManager
 }
 
-// ModuleSvc provides comprehensive functionality for managing backend modules
-type ModuleSvc struct {
-	Action       *action.Action
-	HTTPClient   httpclient.HTTPClientRunner
-	DockerClient dockerclient.DockerClientRunner
-	RegistrySvc  registrysvc.RegistryProcessor
-	ModuleEnv    moduleenv.ModuleEnvProcessor
-}
-
 // ModuleProvisioner defines the interface for module provisioning operations
 type ModuleProvisioner interface {
 	GetBackendModule(containers *models.Containers, moduleName string) (*models.BackendModule, *models.ProxyModule)
@@ -39,6 +31,17 @@ type ModuleProvisioner interface {
 	GetModuleImage(moduleVersion string, module *models.ProxyModule) string
 	GetModuleEnv(container *models.Containers, module *models.ProxyModule, backendModule models.BackendModule) []string
 	GetSidecarEnv(containers *models.Containers, module *models.ProxyModule, backendModule models.BackendModule, moduleURL, sidecarURL string) []string
+}
+
+// ModuleSvc provides comprehensive functionality for managing backend modules
+type ModuleSvc struct {
+	Action              *action.Action
+	HTTPClient          httpclient.HTTPClientRunner
+	DockerClient        dockerclient.DockerClientRunner
+	RegistrySvc         registrysvc.RegistryProcessor
+	ModuleEnv           moduleenv.ModuleEnvProcessor
+	ReadinessMaxRetries int
+	ReadinessWait       time.Duration
 }
 
 func New(action *action.Action,

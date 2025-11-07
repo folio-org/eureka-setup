@@ -30,14 +30,12 @@ import (
 // manually injected through composition and dependency injection
 type RunConfig struct {
 	// Core Infrastructure
-	Action       *action.Action
-	Logger       *slog.Logger
-	GitClient    gitclient.GitClientRunner
-	HTTPClient   httpclient.HTTPClientRunner
-	DockerClient dockerclient.DockerClientRunner
-	VaultClient  vaultclient.VaultClientRunner
-
-	// Business Services
+	Action             *action.Action
+	Logger             *slog.Logger
+	GitClient          gitclient.GitClientRunner
+	HTTPClient         httpclient.HTTPClientRunner
+	DockerClient       dockerclient.DockerClientRunner
+	VaultClient        vaultclient.VaultClientRunner
 	AWSSvc             awssvc.AWSProcessor
 	KafkaSvc           kafkasvc.KafkaProcessor
 	KeycloakSvc        keycloaksvc.KeycloakProcessor

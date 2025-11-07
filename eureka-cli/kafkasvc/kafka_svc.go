@@ -22,7 +22,12 @@ type KafkaProcessor interface {
 
 // KafkaSvc provides functionality for Kafka operations including health checks and consumer lag monitoring
 type KafkaSvc struct {
-	Action *action.Action
+	Action           *action.Action
+	RebalanceRetries int
+	PollMaxRetries   int
+	RebalanceWait    time.Duration
+	PollWait         time.Duration
+	TimeoutWait      time.Duration
 }
 
 // New creates a new KafkaSvc instance
@@ -51,34 +56,44 @@ func (ks *KafkaSvc) PollConsumerGroup(tenantName string) error {
 	}
 
 	consumerGroup := fmt.Sprintf("%s-%s", ks.Action.ConfigEnvFolio, constant.ConsumerGroupSuffix)
-	retryCount := 0
+	slog.Info(ks.Action.Name, "text", "Polling consumer group", "consumerGroup", consumerGroup, "tenant", tenantName)
 
 	var lag int
-	for {
+	rebalanceRetryCount := 0
+	rebalanceMaxRetries := helpers.DefaultInt(ks.RebalanceRetries, constant.ConsumerGroupRebalanceRetries)
+	pollMaxRetries := helpers.DefaultInt(ks.PollMaxRetries, constant.ConsumerGroupPollMaxRetries)
+	rebalanceWait := helpers.DefaultDuration(ks.RebalanceWait, constant.AttachCapabilitySetsRebalanceWait)
+	pollWait := helpers.DefaultDuration(ks.PollWait, constant.AttachCapabilitySetsPollWait)
+	for pollRetryCount := range pollMaxRetries {
 		lag, err := ks.getConsumerGroupLag(tenantName, consumerGroup, lag)
 		if err != nil {
-			retryCount++
-			if retryCount >= constant.ConsumerGroupRebalanceRetries {
+			rebalanceRetryCount++
+			if rebalanceRetryCount >= rebalanceMaxRetries {
 				return errors.ConsumerGroupRebalanceTimeout(consumerGroup, err)
 			}
 
-			slog.Warn(ks.Action.Name, "text", "Waiting form consumer group to rebalance", "count", retryCount, "max", constant.ConsumerGroupRebalanceRetries)
-			time.Sleep(constant.AttachCapabilitySetsRebalanceWait)
+			slog.Warn(ks.Action.Name, "text", "Waiting for consumer group to rebalance", "count", rebalanceRetryCount, "max", rebalanceMaxRetries)
+			time.Sleep(rebalanceWait)
 			continue
 		}
 
-		retryCount = 0
+		rebalanceRetryCount = 0
 		if lag == 0 {
 			slog.Info(ks.Action.Name, "text", "Consumer group has no new message to process", "consumerGroup", consumerGroup)
 			return nil
 		}
 
-		slog.Warn(ks.Action.Name, "text", "Waiting for consumer group", "consumerGroup", consumerGroup, "lag", lag)
-		time.Sleep(constant.AttachCapabilitySetsPollWait)
+		slog.Warn(ks.Action.Name, "text", "Waiting for consumer group", "consumerGroup", consumerGroup, "lag", lag, "count", pollRetryCount, "max", pollMaxRetries)
+		time.Sleep(pollWait)
 	}
+
+	return errors.ConsumerGroupPollTimeout(consumerGroup, pollMaxRetries)
 }
 
 func (ks *KafkaSvc) getConsumerGroupLag(tenant string, consumerGroup string, initialLag int) (lag int, err error) {
+	rebalanceWait := helpers.DefaultDuration(ks.RebalanceWait, constant.AttachCapabilitySetsRebalanceWait)
+	timeoutWait := helpers.DefaultDuration(ks.TimeoutWait, constant.AttachCapabilitySetsTimeoutWait)
+
 	kafkaCmd := fmt.Sprintf("timeout 30s kafka-consumer-groups.sh --bootstrap-server %s --describe --group %s | grep %s | awk '{print $6}'", constant.KafkaTCP, consumerGroup, tenant)
 	stdout, stderr, err := helpers.ExecReturnOutput(exec.Command("docker", "exec", "-i", "kafka-tools", "bash", "-c", kafkaCmd))
 	if err != nil {
@@ -89,11 +104,11 @@ func (ks *KafkaSvc) getConsumerGroupLag(tenant string, consumerGroup string, ini
 		stderrText := stderr.String()
 		if strings.Contains(stderrText, constant.ErrNoActiveMembers) ||
 			strings.Contains(stderrText, constant.ErrRebalancing) {
-			time.Sleep(constant.AttachCapabilitySetsRebalanceWait)
+			time.Sleep(rebalanceWait)
 			return initialLag, nil
 		}
 		if strings.Contains(stderrText, constant.ErrTimeoutException) {
-			time.Sleep(constant.AttachCapabilitySetsTimeoutWait)
+			time.Sleep(timeoutWait)
 			return initialLag, nil
 		}
 

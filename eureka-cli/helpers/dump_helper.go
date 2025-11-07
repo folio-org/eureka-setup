@@ -14,6 +14,10 @@ func DumpRequestJSON(bodyBytes []byte) {
 		return
 	}
 
+	dumpRequestJSONInternal(bodyBytes)
+}
+
+func dumpRequestJSONInternal(bodyBytes []byte) {
 	fmt.Printf("\nDUMPING HTTP REQUEST BODY\n")
 	fmt.Println(string(bodyBytes))
 	fmt.Println()
@@ -24,6 +28,10 @@ func DumpRequestFormData(formData url.Values) {
 		return
 	}
 
+	dumpRequestFormDataInternal(formData)
+}
+
+func dumpRequestFormDataInternal(formData url.Values) {
 	fmt.Printf("\nDUMPING HTTP REQUEST BODY\n")
 	fmt.Println(formData)
 	fmt.Println()
@@ -34,6 +42,10 @@ func DumpRequest(httpRequest *http.Request) error {
 		return nil
 	}
 
+	return dumpRequestInternal(httpRequest)
+}
+
+func dumpRequestInternal(httpRequest *http.Request) error {
 	payload, err := httputil.DumpRequest(httpRequest, true)
 	if err != nil {
 		return err
@@ -51,6 +63,10 @@ func DumpResponse(method, url string, httpResponse *http.Response, forceDump boo
 		return nil
 	}
 
+	return dumpResponseInternal(method, url, httpResponse)
+}
+
+func dumpResponseInternal(method, url string, httpResponse *http.Response) error {
 	payload, err := httputil.DumpResponse(httpResponse, true)
 	if err != nil {
 		return err

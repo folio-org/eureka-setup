@@ -22,6 +22,7 @@ const (
 	ModuleReadinessMaxRetries     = 50
 	KongRouteReadinessMaxRetries  = 30
 	ConsumerGroupRebalanceRetries = 30
+	ConsumerGroupPollMaxRetries   = 30
 
 	// Context timeout durations
 	ContextTimeoutDockerAPIVersion   = 15 * time.Second

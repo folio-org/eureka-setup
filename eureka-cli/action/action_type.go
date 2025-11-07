@@ -18,9 +18,9 @@ const (
 	DeploySystem                = "Deploy System"
 	DeployUi                    = "Deploy UI"
 	DetachCapabilitySets        = "Detach Capability Sets"
-	GetEdgeApiKey               = "Get Edge Api Key"
-	GetKeycloakAccessToken      = "Get Keycloak Access Token"
-	GetVaultRootToken           = "Get Vault Root Token"
+	GetEdgeApiKey               = "Get Edge Api Key"          //nolint:gosec // G101: Not a hardcoded credential, just an action name
+	GetKeycloakAccessToken      = "Get Keycloak Access Token" //nolint:gosec // G101: Not a hardcoded credential, just an action name
+	GetVaultRootToken           = "Get Vault Root Token"      //nolint:gosec // G101: Not a hardcoded credential, just an action name
 	InterceptModule             = "Intercept Module"
 	ListModules                 = "List Modules"
 	ListModuleVersions          = "List Module Versions"

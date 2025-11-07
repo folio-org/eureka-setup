@@ -6,6 +6,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/errors"
+	"github.com/folio-org/eureka-cli/helpers"
 )
 
 // KongRouteReadinessChecker defines the interface for Kong route readiness check operations
@@ -37,10 +38,12 @@ func (ks *KongSvc) CheckRouteReadiness() error {
 			`(http.path == "/entitlements" && http.method == "PUT")`,
 			`(http.path == "/entitlements" && http.method == "DELETE")`,
 		}
-		expected = len(expressions)
+		expected     = len(expressions)
+		maxRetries   = helpers.DefaultInt(ks.ReadinessMaxRetries, constant.KongRouteReadinessMaxRetries)
+		waitDuration = helpers.DefaultDuration(ks.ReadinessWait, constant.KongReadinessWait)
 	)
 	slog.Info(ks.Action.Name, "text", "Preparing route readiness check", "expected", expected)
-	for retryCount := range constant.KongRouteReadinessMaxRetries {
+	for retryCount := range maxRetries {
 		matchedRoutes, _ := ks.FindRouteByExpressions(expressions)
 		if len(matchedRoutes) == expected {
 			for _, route := range matchedRoutes {
@@ -49,8 +52,8 @@ func (ks *KongSvc) CheckRouteReadiness() error {
 			return nil
 		}
 
-		slog.Warn(ks.Action.Name, "text", "Kong routes are unready", "count", retryCount, "max", constant.KongRouteReadinessMaxRetries)
-		time.Sleep(constant.KongReadinessWait)
+		slog.Warn(ks.Action.Name, "text", "Kong routes are unready", "count", retryCount, "max", maxRetries)
+		time.Sleep(waitDuration)
 	}
 
 	return errors.KongRoutesNotReady(expected)
