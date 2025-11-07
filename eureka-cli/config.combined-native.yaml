@@ -105,6 +105,10 @@ sidecar-module:
     ROOT_LOG_LEVEL: INFO
     REQUEST_TIMEOUT: 604800000
     ALLOW_CROSS_TENANT_REQUESTS: "true"
+  resources:
+    cpus: 1
+    memory-reservation: 20
+    memory: 80
 backend-modules:
   mgr-applications:
     port: 9901

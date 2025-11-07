@@ -16,8 +16,8 @@ const (
 	DefaultModuleSwap              int64 = -1
 
 	DefaultSidecarCpus              int64 = 1
-	DefaultSidecarMemoryReservation int64 = 40
-	DefaultSidecarMemory            int64 = 80
+	DefaultSidecarMemoryReservation int64 = 64
+	DefaultSidecarMemory            int64 = 450
 	DefaultSidecarSwap              int64 = -1
 )
 
