@@ -1,11 +1,11 @@
 module github.com/folio-org/eureka-cli
 
-go 1.25.1
+go 1.25.3
 
 require (
-	github.com/containerd/errdefs v1.0.0
 	github.com/aws/aws-sdk-go-v2/config v1.28.5
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.36.5
+	github.com/containerd/errdefs v1.0.0
 	github.com/docker/docker v28.5.1+incompatible
 	github.com/docker/go-connections v0.6.0
 	github.com/go-git/go-git/v5 v5.16.3

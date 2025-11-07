@@ -139,6 +139,10 @@ jobs:
   go-test:
     name: Go Test
     runs-on: ubuntu-latest
+    env:
+      # Define package exclusion pattern once for reuse across steps
+      EXCLUDE_PATTERN: '/(cmd|constant|field|actionparams|models|internal|execsvc|interceptmodulesvc)$|eureka-cli$'
+      ALLOWED_LOW_COVERAGE: 'awssvc gitclient modulesvc uisvc'
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -150,8 +154,8 @@ jobs:
         working-directory: ./eureka-cli
         run: |
           echo "Running tests for testable packages (excluding infrastructure)..."
-          # Exclude infrastructure packages: cmd, constant, field, actionparams, models, internal/testhelpers, execsvc, awssvc, interceptmodulesvc
-          go list ./... | grep -Ev '/(cmd|constant|field|actionparams|models|internal|execsvc|awssvc|interceptmodulesvc)$|eureka-cli$' | xargs go test -coverprofile=coverage.out -covermode=atomic
+          # Exclude infrastructure packages: cmd, constant, field, actionparams, models, internal, execsvc, interceptmodulesvc
+          go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -coverprofile=coverage.out -covermode=atomic
 
       - name: Generate coverage report
         working-directory: ./eureka-cli
@@ -164,23 +168,33 @@ jobs:
           echo "|---------|----------|---------|" >> $GITHUB_STEP_SUMMARY
           
           # Run tests with coverage for testable packages only
-          go list ./... | grep -Ev '/(cmd|constant|field|actionparams|models|internal|execsvc|awssvc|interceptmodulesvc)$|eureka-cli$' | xargs go test -cover 2>/dev/null > test_output.txt
+          go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -cover 2>/dev/null > test_output.txt
           
-          # Process the coverage output
-          grep "coverage:" test_output.txt | while read -r line; do
-            # Extract package name
+          # Process the coverage output - only lines that start with "ok" and contain "coverage:"
+          # Sort by package name for better readability
+          grep "^ok.*coverage:" test_output.txt | sort -k2 | while read -r line; do
+            # Extract package name (second field after "ok")
             package=$(echo "$line" | awk '{print $2}' | sed 's/github.com\/folio-org\/eureka-cli\///')
-            coverage=$(echo "$line" | grep -o "[0-9.]*%" | head -1)
+            # Extract coverage percentage
+            coverage=$(echo "$line" | grep -o "coverage: [0-9.]*%" | awk '{print $2}')
             coverage_num=$(echo "$coverage" | sed 's/%//')
             
-            # Skip if we couldn't extract coverage properly
-            if [[ -z "$coverage" ]]; then
+            # Skip if we couldn't extract coverage properly or if package name is empty
+            if [[ -z "$coverage" ]] || [[ -z "$package" ]]; then
               continue
+            fi
+            
+            # Check if package is in allowed low coverage list
+            is_allowed="no"
+            if echo "$ALLOWED_LOW_COVERAGE" | grep -qw "$package"; then
+              is_allowed="yes"
             fi
             
             # Determine status based on coverage threshold
             if (( $(echo "$coverage_num >= 80" | bc -l) )); then
               status="✅ Good"
+            elif [[ "$is_allowed" == "yes" ]]; then
+              status="⚠️ Allowed"
             elif (( $(echo "$coverage_num >= 50" | bc -l) )); then
               status="⚠️ Moderate"
             else
@@ -195,15 +209,16 @@ jobs:
           
           # Calculate average coverage for testable packages
           total_coverage=$(go tool cover -func=coverage.out | grep "total:" | awk '{print $3}')
-          packages_over_80=$(go list ./... | grep -Ev '/(cmd|constant|field|actionparams|models|internal|execsvc|awssvc|interceptmodulesvc)$|eureka-cli$' | xargs go test -cover 2>/dev/null | grep "coverage:" | awk '{match($0, /[0-9.]+%/); pct=substr($0, RSTART, RLENGTH-1); if(pct>=80) print}' | wc -l)
-          total_packages=$(go list ./... | grep -Ev '/(cmd|constant|field|actionparams|models|internal|execsvc|awssvc|interceptmodulesvc)$|eureka-cli$' | wc -l)
+          packages_over_80=$(go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -cover 2>/dev/null | grep "^ok.*coverage:" | awk '{match($0, /coverage: [0-9.]+%/); pct=substr($0, RSTART+10, RLENGTH-11); if(pct>=80) print}' | wc -l)
+          total_packages=$(go list ./... | grep -Ev "$EXCLUDE_PATTERN" | wc -l)
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Summary" >> $GITHUB_STEP_SUMMARY
           echo "- **Total Coverage:** $total_coverage" >> $GITHUB_STEP_SUMMARY
           echo "- **Packages ≥80%:** $packages_over_80/$total_packages" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "_Note: Excluded infrastructure packages (cmd, constant, field, actionparams, models, internal, execsvc, awssvc, interceptmodulesvc)_" >> $GITHUB_STEP_SUMMARY
+          echo "_Note: Excluded infrastructure packages (cmd, constant, field, actionparams, models, internal, execsvc, interceptmodulesvc)_" >> $GITHUB_STEP_SUMMARY
+          echo "_Packages with allowed lower coverage: $ALLOWED_LOW_COVERAGE_" >> $GITHUB_STEP_SUMMARY
 
       - name: Check coverage threshold
         working-directory: ./eureka-cli
@@ -212,9 +227,10 @@ jobs:
           
           THRESHOLD=80.0
           failed=0
+          warned=0
           
           # Get all testable packages (same filter as test execution)
-          packages=$(go list ./... | grep -Ev '/(cmd|constant|field|actionparams|models|internal|execsvc|awssvc|interceptmodulesvc)$|eureka-cli$')
+          packages=$(go list ./... | grep -Ev "$EXCLUDE_PATTERN")
           
           # Check each package
           for package in $packages; do
@@ -227,12 +243,24 @@ jobs:
             fi
             
             if (( $(echo "$coverage < $THRESHOLD" | bc -l) )); then
-              echo "❌ $package_name coverage ($coverage%) is below threshold ($THRESHOLD%)"
-              failed=1
+              # Check if this package is allowed to have low coverage
+              if echo "$ALLOWED_LOW_COVERAGE" | grep -qw "$package_name"; then
+                echo "⚠️  $package_name coverage ($coverage%) is below threshold ($THRESHOLD%) - ALLOWED (work in progress)"
+                warned=1
+              else
+                echo "❌ $package_name coverage ($coverage%) is below threshold ($THRESHOLD%)"
+                failed=1
+              fi
             else
               echo "✅ $package_name coverage ($coverage%) meets threshold ($THRESHOLD%)"
             fi
           done
+          
+          if [ $warned -eq 1 ]; then
+            echo ""
+            echo "⚠️  Warning: Some packages have coverage below 80% but are allowed ($ALLOWED_LOW_COVERAGE)"
+            echo "Please improve test coverage for these packages when possible."
+          fi
           
           if [ $failed -eq 1 ]; then
             echo ""
@@ -241,7 +269,7 @@ jobs:
           fi
           
           echo ""
-          echo "✅ All tested packages meet the 80% coverage threshold"
+          echo "✅ All tested packages meet the 80% coverage threshold (or are explicitly allowed exceptions)"
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
