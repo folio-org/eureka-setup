@@ -584,15 +584,12 @@ func TestSidecarDeployFailed(t *testing.T) {
 
 func TestSidecarVersionNotFound(t *testing.T) {
 	t.Run("TestSidecarVersionNotFound_Success", func(t *testing.T) {
-		// Arrange
-		version := "1.2.3"
-
 		// Act
-		result := apperrors.SidecarVersionNotFound(version)
+		result := apperrors.SidecarVersionNotFound()
 
 		// Assert
 		assert.Error(t, result)
-		assert.Contains(t, result.Error(), "sidecar version 1.2.3 in registry")
+		assert.Contains(t, result.Error(), "sidecar version in registry")
 		assert.True(t, errors.Is(result, apperrors.ErrNotFound))
 	})
 }

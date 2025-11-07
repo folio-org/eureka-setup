@@ -64,7 +64,19 @@ func TestConvertMemory_LargeValue(t *testing.T) {
 	assert.Equal(t, int64(1024), result)
 }
 
-func TestConvertMapToSlice_WithMultipleEntries(t *testing.T) {
+func TestConvertMemory_InvalidMode(t *testing.T) {
+	// Arrange
+	value := int64(1048576)
+	invalidMode := helpers.ConversionMode(99)
+
+	// Act
+	result := helpers.ConvertMemory(invalidMode, value)
+
+	// Assert
+	assert.Equal(t, int64(1048576), result) // Returns original value unchanged
+}
+
+func TestConvertMapKeyToSlice_WithMultipleEntries(t *testing.T) {
 	// Arrange
 	testMap := map[string]any{
 		"key1": "value1",
@@ -73,7 +85,7 @@ func TestConvertMapToSlice_WithMultipleEntries(t *testing.T) {
 	}
 
 	// Act
-	result := helpers.ConvertMapToSlice(testMap)
+	result := helpers.ConvertMapKeyToSlice(testMap)
 
 	// Assert
 	assert.Len(t, result, 3)
@@ -82,23 +94,23 @@ func TestConvertMapToSlice_WithMultipleEntries(t *testing.T) {
 	assert.Contains(t, result, "key3")
 }
 
-func TestConvertMapToSlice_EmptyMap(t *testing.T) {
+func TestConvertMapKeyToSlice_EmptyMap(t *testing.T) {
 	// Arrange
 	testMap := map[string]any{}
 
 	// Act
-	result := helpers.ConvertMapToSlice(testMap)
+	result := helpers.ConvertMapKeyToSlice(testMap)
 
 	// Assert
 	assert.Empty(t, result)
 }
 
-func TestConvertMapToSlice_SingleEntry(t *testing.T) {
+func TestConvertMapKeyToSlice_SingleEntry(t *testing.T) {
 	// Arrange
 	testMap := map[string]any{"onlyKey": "onlyValue"}
 
 	// Act
-	result := helpers.ConvertMapToSlice(testMap)
+	result := helpers.ConvertMapKeyToSlice(testMap)
 
 	// Assert
 	assert.Len(t, result, 1)

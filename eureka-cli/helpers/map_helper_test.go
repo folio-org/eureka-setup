@@ -254,3 +254,124 @@ func TestSetString_NonStringValue(t *testing.T) {
 	// Assert
 	assert.Equal(t, "original", result) // Should remain unchanged
 }
+
+func TestGetString_ValidString(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"name": "test-value"}
+
+	// Act
+	result := helpers.GetString(entry, "name")
+
+	// Assert
+	assert.Equal(t, "test-value", result)
+}
+
+func TestGetString_EmptyString(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"name": ""}
+
+	// Act
+	result := helpers.GetString(entry, "name")
+
+	// Assert
+	assert.Equal(t, "", result)
+}
+
+func TestGetString_NilValue(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"name": nil}
+
+	// Act
+	result := helpers.GetString(entry, "name")
+
+	// Assert
+	assert.Equal(t, "", result)
+}
+
+func TestGetString_NonStringValue(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"name": 123}
+
+	// Act
+	result := helpers.GetString(entry, "name")
+
+	// Assert
+	assert.Equal(t, "", result)
+}
+
+func TestGetString_KeyNotExists(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"other": "value"}
+
+	// Act
+	result := helpers.GetString(entry, "name")
+
+	// Assert
+	assert.Equal(t, "", result)
+}
+
+func TestGetStringOrDefault_ValidString(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"name": "actual-value"}
+
+	// Act
+	result := helpers.GetStringOrDefault(entry, "name", "default-value")
+
+	// Assert
+	assert.Equal(t, "actual-value", result)
+}
+
+func TestGetStringOrDefault_EmptyString(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"name": ""}
+
+	// Act
+	result := helpers.GetStringOrDefault(entry, "name", "default-value")
+
+	// Assert
+	assert.Equal(t, "", result) // Empty string is a valid value, not default
+}
+
+func TestGetStringOrDefault_NilValue(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"name": nil}
+
+	// Act
+	result := helpers.GetStringOrDefault(entry, "name", "default-value")
+
+	// Assert
+	assert.Equal(t, "default-value", result)
+}
+
+func TestGetStringOrDefault_NonStringValue(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"name": 123}
+
+	// Act
+	result := helpers.GetStringOrDefault(entry, "name", "default-value")
+
+	// Assert
+	assert.Equal(t, "default-value", result)
+}
+
+func TestGetStringOrDefault_KeyNotExists(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"other": "value"}
+
+	// Act
+	result := helpers.GetStringOrDefault(entry, "name", "default-value")
+
+	// Assert
+	assert.Equal(t, "default-value", result)
+}
+
+func TestGetBoolOrDefault_KeyNotExists(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"other": true}
+
+	// Act
+	result := helpers.GetBoolOrDefault(entry, "enabled", true)
+
+	// Assert
+	assert.True(t, result)
+}

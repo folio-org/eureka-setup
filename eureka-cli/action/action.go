@@ -51,6 +51,7 @@ type Action struct {
 	ConfigEnvFolio                    string
 	ConfigSidecarModule               map[string]any
 	ConfigSidecarResources            map[string]any
+	ConfigSidecarNativeBinaryCmd      []string
 	ConfigBackendModules              map[string]any
 	ConfigFrontendModules             map[string]any
 	ConfigCustomFrontendModules       map[string]any
@@ -102,6 +103,7 @@ func newGeneric(name, gatewayURL string, actionParams *actionparams.ActionParams
 		ConfigEnvFolio:                    viper.GetString(field.EnvFolio),
 		ConfigSidecarModule:               viper.GetStringMap(field.SidecarModule),
 		ConfigSidecarResources:            viper.GetStringMap(field.SidecarModuleResources),
+		ConfigSidecarNativeBinaryCmd:      viper.GetStringSlice(field.SidecarModuleNativeBinaryCmd),
 		ConfigBackendModules:              viper.GetStringMap(field.BackendModules),
 		ConfigFrontendModules:             viper.GetStringMap(field.FrontendModules),
 		ConfigCustomFrontendModules:       viper.GetStringMap(field.CustomFrontendModules),

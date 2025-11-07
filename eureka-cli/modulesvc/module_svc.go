@@ -9,6 +9,7 @@ import (
 	"github.com/folio-org/eureka-cli/dockerclient"
 	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/field"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/httpclient"
 	"github.com/folio-org/eureka-cli/models"
 	"github.com/folio-org/eureka-cli/moduleenv"
@@ -56,8 +57,8 @@ func (ms *ModuleSvc) GetBackendModule(containers *models.Containers, moduleName 
 	allModules := [][]*models.ProxyModule{containers.Modules.FolioModules, containers.Modules.EurekaModules}
 	for _, modules := range allModules {
 		for _, module := range modules {
-			backendModule, ok := containers.BackendModules[module.Name]
-			if !ok || !backendModule.DeployModule {
+			backendModule, exists := containers.BackendModules[module.Name]
+			if !exists || !backendModule.DeployModule {
 				continue
 			}
 			if module.Name == moduleName {
@@ -78,38 +79,51 @@ func (ms *ModuleSvc) GetModuleImageVersion(backendModule models.BackendModule, m
 }
 
 func (ms *ModuleSvc) GetSidecarImage(modules []*models.ProxyModule) (string, bool, error) {
-	sidecarImageVersion, err := ms.getSidecarImageVersion(modules, ms.Action.ConfigSidecarModule[field.SidecarModuleVersionEntry])
+	configSidecarVersion := ms.Action.ConfigSidecarModule[field.SidecarModuleVersionEntry]
+	sidecarImageVersion, err := ms.getSidecarImageVersion(modules, configSidecarVersion)
 	if err != nil {
 		return "", false, err
 	}
-	if ms.Action.ConfigSidecarModule[field.SidecarModuleLocalImageEntry] != nil && ms.Action.ConfigSidecarModule[field.SidecarModuleLocalImageEntry].(string) != "" {
-		return fmt.Sprintf("%s:%s", ms.Action.ConfigSidecarModule[field.SidecarModuleLocalImageEntry].(string), sidecarImageVersion), false, nil
+
+	image := helpers.GetString(ms.Action.ConfigSidecarModule, field.SidecarModuleImageEntry)
+	if image == "" {
+		return "", false, errors.New("sidecar image is blank")
+	}
+	finalImage := fmt.Sprintf("%s:%s", image, sidecarImageVersion)
+
+	customNamespace := helpers.GetBool(ms.Action.ConfigSidecarModule, field.SidecarModuleCustomNamespaceEntry)
+	if customNamespace {
+		return finalImage, true, nil
 	}
 	namespace := ms.RegistrySvc.GetNamespace(sidecarImageVersion)
 
-	return fmt.Sprintf("%s/%s", namespace, fmt.Sprintf("%s:%s", ms.Action.ConfigSidecarModule[field.SidecarModuleImageEntry].(string), sidecarImageVersion)), true, nil
+	return fmt.Sprintf("%s/%s", namespace, finalImage), true, nil
 }
 
-func (ms *ModuleSvc) getSidecarImageVersion(modules []*models.ProxyModule, sidecarConfigVersion any) (string, error) {
-	ok, sidecarRegistryVersion := ms.findSidecarVersion(modules)
-	if !ok && sidecarConfigVersion == nil {
-		return "", errors.SidecarVersionNotFound(fmt.Sprintf("%v", sidecarConfigVersion))
-	}
-	if sidecarConfigVersion != nil {
-		return sidecarConfigVersion.(string), nil
-	}
-
-	return sidecarRegistryVersion, nil
-}
-
-func (ms *ModuleSvc) findSidecarVersion(modules []*models.ProxyModule) (bool, string) {
-	for _, module := range modules {
-		if module.Name == constant.SidecarProjectName {
-			return true, *module.Version
+func (ms *ModuleSvc) getSidecarImageVersion(modules []*models.ProxyModule, rawConfigSidecarVersion any) (string, error) {
+	if rawConfigSidecarVersion != nil {
+		configSidecarVersion, ok := rawConfigSidecarVersion.(string)
+		if ok {
+			return configSidecarVersion, nil
 		}
 	}
 
-	return false, ""
+	registrySidecarVersion, exists := ms.findRegistrySidecarImageVersion(modules)
+	if !exists || registrySidecarVersion == "" {
+		return "", errors.SidecarVersionNotFound()
+	}
+
+	return registrySidecarVersion, nil
+}
+
+func (ms *ModuleSvc) findRegistrySidecarImageVersion(modules []*models.ProxyModule) (string, bool) {
+	for _, module := range modules {
+		if module.Name == constant.SidecarProjectName {
+			return *module.Version, true
+		}
+	}
+
+	return "", false
 }
 
 func (ms *ModuleSvc) GetModuleImage(moduleVersion string, module *models.ProxyModule) string {
@@ -117,8 +131,7 @@ func (ms *ModuleSvc) GetModuleImage(moduleVersion string, module *models.ProxyMo
 }
 
 func (ms *ModuleSvc) GetModuleEnv(container *models.Containers, module *models.ProxyModule, backendModule models.BackendModule) []string {
-	var env []string
-	env = append(env, container.GlobalEnv...)
+	env := container.GlobalEnv
 	if backendModule.UseVault {
 		env = ms.ModuleEnv.VaultEnv(env, container.VaultRootToken)
 	}
@@ -134,8 +147,7 @@ func (ms *ModuleSvc) GetModuleEnv(container *models.Containers, module *models.P
 }
 
 func (ms *ModuleSvc) GetSidecarEnv(containers *models.Containers, module *models.ProxyModule, backendModule models.BackendModule, moduleURL, sidecarURL string) []string {
-	var env []string
-	env = append(env, containers.SidecarEnv...)
+	env := containers.SidecarEnv
 	env = ms.ModuleEnv.VaultEnv(env, containers.VaultRootToken)
 	env = ms.ModuleEnv.KeycloakEnv(env)
 	env = ms.ModuleEnv.SidecarEnv(env, module, backendModule.PrivatePort, moduleURL, sidecarURL)

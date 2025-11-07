@@ -90,7 +90,7 @@ const (
 
 	// Container resources
 	ModuleCPU               = 1
-	ModuleMemoryReservation = 128
+	ModuleMemoryReservation = 120
 	ModuleMemory            = 750
 	ModuleSwap              = -1
 
@@ -193,13 +193,14 @@ const (
 	ErrTimeoutException = "TimeoutException"
 
 	// Profile names
-	CombinedProfile  = "combined"
-	ExportProfile    = "export"
-	SearchProfile    = "search"
-	EdgeProfile      = "edge"
-	ECSProfile       = "ecs"
-	ECSSingleProfile = "ecs-single"
-	ImportProfile    = "import"
+	CombinedProfile       = "combined"
+	CombinedNativeProfile = "combined-native"
+	ExportProfile         = "export"
+	SearchProfile         = "search"
+	EdgeProfile           = "edge"
+	ECSProfile            = "ecs"
+	ECSSingleProfile      = "ecs-single"
+	ImportProfile         = "import"
 )
 
 // Container types
@@ -242,6 +243,7 @@ func GetInitialRequiredContainers() []string {
 func GetProfiles() []string {
 	return []string{
 		CombinedProfile,
+		CombinedNativeProfile,
 		ExportProfile,
 		SearchProfile,
 		EdgeProfile,

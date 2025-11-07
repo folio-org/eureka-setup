@@ -184,8 +184,8 @@ func SidecarDeployFailed(sidecarName string, err error) error {
 	return fmt.Errorf("%w: failed to deploy sidecar %s: %w", ErrDeploymentFailed, sidecarName, err)
 }
 
-func SidecarVersionNotFound(version string) error {
-	return fmt.Errorf("%w: sidecar version %s in registry", ErrNotFound, version)
+func SidecarVersionNotFound() error {
+	return fmt.Errorf("%w: sidecar version in registry", ErrNotFound)
 }
 
 func LocalDescriptorNotFound(path, moduleName string) error {

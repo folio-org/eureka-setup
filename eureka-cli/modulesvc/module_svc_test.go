@@ -195,13 +195,13 @@ func TestGetModuleImageVersion_UseProxyModuleVersion(t *testing.T) {
 	assert.Equal(t, "1.0.0", version)
 }
 
-func TestGetSidecarImage_LocalImage(t *testing.T) {
+func TestGetSidecarImage_CustomNamespace(t *testing.T) {
 	// Arrange
 	action := testhelpers.NewMockAction()
 	action.ConfigSidecarModule = map[string]any{
-		field.SidecarModuleVersionEntry:    "3.0.0",
-		field.SidecarModuleLocalImageEntry: "my-local-sidecar",
-		field.SidecarModuleImageEntry:      "mgr-tenant-entitlement",
+		field.SidecarModuleVersionEntry:         "3.0.0",
+		field.SidecarModuleCustomNamespaceEntry: true,
+		field.SidecarModuleImageEntry:           "my-custom-sidecar",
 	}
 	svc := New(action, nil, nil, nil, nil)
 
@@ -220,17 +220,17 @@ func TestGetSidecarImage_LocalImage(t *testing.T) {
 
 	// Assert
 	assert.NoError(t, err)
-	assert.Equal(t, "my-local-sidecar:3.0.0", image)
-	assert.False(t, shouldPull)
+	assert.Equal(t, "my-custom-sidecar:3.0.0", image)
+	assert.True(t, shouldPull)
 }
 
 func TestGetSidecarImage_RegistryImage(t *testing.T) {
 	// Arrange
 	action := testhelpers.NewMockAction()
 	action.ConfigSidecarModule = map[string]any{
-		field.SidecarModuleVersionEntry:    "3.0.0",
-		field.SidecarModuleLocalImageEntry: nil,
-		field.SidecarModuleImageEntry:      "mgr-tenant-entitlement",
+		field.SidecarModuleVersionEntry:         "3.0.0",
+		field.SidecarModuleCustomNamespaceEntry: false,
+		field.SidecarModuleImageEntry:           "mgr-tenant-entitlement",
 	}
 
 	mockRegistry := new(testhelpers.MockRegistrySvc)
@@ -262,9 +262,8 @@ func TestGetSidecarImage_NoSidecarVersionFound(t *testing.T) {
 	// Arrange
 	action := testhelpers.NewMockAction()
 	action.ConfigSidecarModule = map[string]any{
-		field.SidecarModuleVersionEntry:    nil,
-		field.SidecarModuleLocalImageEntry: nil,
-		field.SidecarModuleImageEntry:      "mgr-tenant-entitlement",
+		field.SidecarModuleVersionEntry: nil,
+		field.SidecarModuleImageEntry:   "mgr-tenant-entitlement",
 	}
 
 	svc := New(action, nil, nil, nil, nil)
@@ -287,6 +286,99 @@ func TestGetSidecarImage_NoSidecarVersionFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "resource not found")
 	assert.Empty(t, image)
 	assert.False(t, shouldPull)
+}
+
+func TestGetSidecarImage_BlankImageName(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	action.ConfigSidecarModule = map[string]any{
+		field.SidecarModuleVersionEntry: "3.0.0",
+		field.SidecarModuleImageEntry:   "",
+	}
+
+	svc := New(action, nil, nil, nil, nil)
+
+	sidecarVersion := "3.0.0"
+	modules := []*models.ProxyModule{
+		{
+			ProxyModuleMetadata: models.ProxyModuleMetadata{
+				Name:    constant.SidecarProjectName,
+				Version: &sidecarVersion,
+			},
+		},
+	}
+
+	// Act
+	image, shouldPull, err := svc.GetSidecarImage(modules)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "sidecar image is blank")
+	assert.Empty(t, image)
+	assert.False(t, shouldPull)
+}
+
+func TestGetSidecarImage_EmptyVersionString(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	action.ConfigSidecarModule = map[string]any{
+		field.SidecarModuleVersionEntry: nil,
+		field.SidecarModuleImageEntry:   "mgr-tenant-entitlement",
+	}
+
+	svc := New(action, nil, nil, nil, nil)
+
+	emptyVersion := ""
+	modules := []*models.ProxyModule{
+		{
+			ProxyModuleMetadata: models.ProxyModuleMetadata{
+				Name:    constant.SidecarProjectName,
+				Version: &emptyVersion, // Empty string version
+			},
+		},
+	}
+
+	// Act
+	image, shouldPull, err := svc.GetSidecarImage(modules)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "resource not found")
+	assert.Empty(t, image)
+	assert.False(t, shouldPull)
+}
+
+func TestGetSidecarImage_InvalidVersionType(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	action.ConfigSidecarModule = map[string]any{
+		field.SidecarModuleVersionEntry: 123, // Invalid type (int instead of string)
+		field.SidecarModuleImageEntry:   "mgr-tenant-entitlement",
+	}
+
+	mockRegistry := new(testhelpers.MockRegistrySvc)
+	mockRegistry.On("GetNamespace", "3.0.0").Return("docker.io/folioorg")
+
+	svc := New(action, nil, nil, mockRegistry, nil)
+
+	sidecarVersion := "3.0.0"
+	modules := []*models.ProxyModule{
+		{
+			ProxyModuleMetadata: models.ProxyModuleMetadata{
+				Name:    constant.SidecarProjectName,
+				Version: &sidecarVersion,
+			},
+		},
+	}
+
+	// Act
+	image, shouldPull, err := svc.GetSidecarImage(modules)
+
+	// Assert - Falls back to registry version when config version is invalid type
+	assert.NoError(t, err)
+	assert.Equal(t, "docker.io/folioorg/mgr-tenant-entitlement:3.0.0", image)
+	assert.True(t, shouldPull)
+	mockRegistry.AssertExpectations(t)
 }
 
 func TestGetModuleImage(t *testing.T) {

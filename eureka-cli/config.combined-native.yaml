@@ -159,7 +159,6 @@ backend-modules:
       KAFKA_CAPABILITY_TOPIC_PARTITIONS: "1"
       KAFKA_SYS_USER_TOPIC_PARTITIONS: "1"
       KAFKA_PRODUCER_TENANT_COLLECTION: "false"
-      FLOW_ENGINE_PRINT_FLOW_RESULTS: "true"
     resources:
       cpus: 4
   mod-users-keycloak:
@@ -210,7 +209,7 @@ backend-modules:
   mod-tags:
   mod-inventory-storage:
   mod-inventory:
-    port-server: 9403
+    private-port: 9403
   mod-organizations-storage:
   mod-organizations:
   mod-invoice-storage:
@@ -225,7 +224,7 @@ backend-modules:
     disable-system-user: true
   mod-circulation-storage:
   mod-circulation:
-    port-server: 9801
+    private-port: 9801
   mod-template-engine:
   mod-feesfines:
 frontend-modules:

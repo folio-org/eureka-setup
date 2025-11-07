@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
@@ -57,6 +58,14 @@ func (ms *ModuleSvc) GetDeployedModules(client *client.Client, filters filters.A
 }
 
 func (ms *ModuleSvc) PullModule(client *client.Client, imageName string) error {
+	_, err := client.ImageInspect(context.Background(), imageName)
+	if err == nil {
+		slog.Debug(ms.Action.Name, "text", "Image already exists locally", "image", imageName)
+		return nil
+	}
+	if !errdefs.IsNotFound(err) {
+		return err
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), constant.ContextTimeoutDockerImagePull)
 	defer cancel()
 
@@ -161,6 +170,10 @@ func (ms *ModuleSvc) deploySidecarAsync(wg *sync.WaitGroup, errCh chan<- error, 
 
 	env := ms.GetSidecarEnv(r.Containers, r.Module, r.BackendModule, "", "")
 	container := models.NewSidecarContainer(r.Module.SidecarName, r.SidecarImage, env, r.BackendModule, r.NetworkConfig, r.SidecarResources)
+	nativeBinaryCmd := ms.Action.ConfigSidecarNativeBinaryCmd
+	if len(nativeBinaryCmd) > 0 {
+		container.Config.Cmd = nativeBinaryCmd
+	}
 	if err := ms.DeployModule(r.Client, container); err != nil {
 		err := appErrors.SidecarDeployFailed(r.Module.SidecarName, err)
 		select {

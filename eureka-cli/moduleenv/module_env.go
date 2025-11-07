@@ -31,7 +31,8 @@ func New(action *action.Action) *ModuleEnv {
 }
 
 func (mv *ModuleEnv) VaultEnv(env []string, vaultRootToken string) []string {
-	newEnv := []string{"SECRET_STORE_TYPE=VAULT",
+	newEnv := []string{
+		"SECRET_STORE_TYPE=VAULT",
 		fmt.Sprintf("SECRET_STORE_VAULT_TOKEN=%s", vaultRootToken),
 		fmt.Sprintf("SECRET_STORE_VAULT_ADDRESS=%s", constant.VaultHTTP),
 	}
@@ -41,7 +42,8 @@ func (mv *ModuleEnv) VaultEnv(env []string, vaultRootToken string) []string {
 }
 
 func (mv *ModuleEnv) OkapiEnv(env []string, sidecarName string, privatePort int) []string {
-	newEnv := []string{fmt.Sprintf("OKAPI_HOST=%s.eureka", sidecarName),
+	newEnv := []string{fmt.Sprintf(
+		"OKAPI_HOST=%s.eureka", sidecarName),
 		fmt.Sprintf("OKAPI_PORT=%d", privatePort),
 		fmt.Sprintf("OKAPI_SERVICE_HOST=%s.eureka", sidecarName),
 		fmt.Sprintf("OKAPI_SERVICE_URL=http://%s.eureka:%d", sidecarName, privatePort),
@@ -53,7 +55,8 @@ func (mv *ModuleEnv) OkapiEnv(env []string, sidecarName string, privatePort int)
 }
 
 func (mv *ModuleEnv) DisabledSystemUserEnv(env []string, moduleName string) []string {
-	newEnv := []string{"FOLIO_SYSTEM_USER_ENABLED=false",
+	newEnv := []string{
+		"FOLIO_SYSTEM_USER_ENABLED=false",
 		"SYSTEM_USER_CREATE=false",
 		"SYSTEM_USER_ENABLED=false",
 		fmt.Sprintf("SYSTEM_USER_NAME=%s", moduleName),
@@ -65,7 +68,8 @@ func (mv *ModuleEnv) DisabledSystemUserEnv(env []string, moduleName string) []st
 }
 
 func (mv *ModuleEnv) KeycloakEnv(env []string) []string {
-	newEnv := []string{fmt.Sprintf("KC_URL=%s", constant.KeycloakHTTP),
+	newEnv := []string{
+		fmt.Sprintf("KC_URL=%s", constant.KeycloakHTTP),
 		fmt.Sprintf("KC_ADMIN_CLIENT_ID=%s", action.GetConfigEnv("KC_ADMIN_CLIENT_ID", mv.Action.ConfigGlobalEnv)),
 		fmt.Sprintf("KC_SERVICE_CLIENT_ID=%s", action.GetConfigEnv("KC_SERVICE_CLIENT_ID", mv.Action.ConfigGlobalEnv)),
 		fmt.Sprintf("KC_LOGIN_CLIENT_SUFFIX=%s", action.GetConfigEnv("KC_LOGIN_CLIENT_SUFFIX", mv.Action.ConfigGlobalEnv)),
@@ -75,28 +79,30 @@ func (mv *ModuleEnv) KeycloakEnv(env []string) []string {
 	return env
 }
 
-func (mv *ModuleEnv) ModuleEnv(envVars []string, newEnv map[string]any) []string {
+func (mv *ModuleEnv) ModuleEnv(env []string, newEnv map[string]any) []string {
 	for key, value := range newEnv {
 		if key == "" {
 			continue
 		}
-		envVars = append(envVars, fmt.Sprintf("%s=%s", strings.ToUpper(key), value))
+		env = append(env, fmt.Sprintf("%s=%s", strings.ToUpper(key), value))
 	}
 
-	return envVars
+	return env
 }
 
 func (mv *ModuleEnv) SidecarEnv(env []string, module *models.ProxyModule, privatePort int, moduleURL, sidecarURL string) []string {
 	var newEnv []string
 	if moduleURL == "" && sidecarURL == "" {
-		newEnv = []string{fmt.Sprintf("MODULE_NAME=%s", module.Name),
+		newEnv = []string{
+			fmt.Sprintf("MODULE_NAME=%s", module.Name),
 			fmt.Sprintf("MODULE_VERSION=%s", *module.Version),
 			fmt.Sprintf("MODULE_URL=http://%s.eureka:%d", module.Name, privatePort),
 			fmt.Sprintf("SIDECAR_NAME=%s", module.SidecarName),
 			fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%d", module.SidecarName, privatePort),
 		}
 	} else {
-		newEnv = []string{fmt.Sprintf("MODULE_NAME=%s", module.Name),
+		newEnv = []string{
+			fmt.Sprintf("MODULE_NAME=%s", module.Name),
 			fmt.Sprintf("MODULE_VERSION=%s", *module.Version),
 			fmt.Sprintf("MODULE_URL=%s", moduleURL),
 			fmt.Sprintf("SIDECAR_NAME=%s", module.SidecarName),

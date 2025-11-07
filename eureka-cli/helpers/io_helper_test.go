@@ -185,3 +185,17 @@ func TestCloseFile_NoError(t *testing.T) {
 	// Act & Assert - Should not panic
 	helpers.CloseFile(file)
 }
+
+func TestCloseReader_NoError(t *testing.T) {
+	// Arrange
+	tmpDir := t.TempDir()
+	filePath := filepath.Join(tmpDir, "test.txt")
+	err := os.WriteFile(filePath, []byte("test content"), 0644)
+	assert.NoError(t, err)
+
+	file, err := os.Open(filePath)
+	assert.NoError(t, err)
+
+	// Act & Assert - Should not panic
+	helpers.CloseReader(file)
+}

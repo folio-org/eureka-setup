@@ -43,5 +43,6 @@ func IsUIEnabled(tenantName string, configTenants map[string]any) bool {
 }
 
 func HasTenant(tenantName string, configTenants map[string]any) bool {
-	return slices.Contains(ConvertMapToSlice(configTenants), tenantName)
+	tenants := ConvertMapKeyToSlice(configTenants)
+	return slices.Contains(tenants, tenantName)
 }

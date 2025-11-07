@@ -20,11 +20,11 @@ func ConvertMemory(m ConversionMode, n int64) int64 {
 	return n
 }
 
-func ConvertMapToSlice(m map[string]any) []string {
-	keys := make([]string, 0, len(m))
+func ConvertMapKeyToSlice(m map[string]any) []string {
+	k := make([]string, 0, len(m))
 	for key := range m {
-		keys = append(keys, key)
+		k = append(k, key)
 	}
 
-	return keys
+	return k
 }
