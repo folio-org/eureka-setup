@@ -471,11 +471,9 @@ sidecar-module:
   ]
 ```
 
-As an alternative to building a native image locally, you can also use the default image, `bkadirkhodjaev/folio-module-sidecar-native` on the Docker Hub in your configs. This public image will be updated on a regular basis.
-
 > The `version` must be set explicitly
 
-- Deploy the environment using the _combined-native_ profile that already has `JAVA_OPTIONS` env var removed from the `sidecar-module` in the config, as this is not intepreted by the substrate VM in the image
+- Deploy the environment using the _combined-native_ profile that already has `JAVA_OPTIONS` env var removed from the `sidecar-module` in the config, as this is not interpreted by the substrate VM in the image
 
 ```bash
 eureka-cli -p combined-native deployApplication

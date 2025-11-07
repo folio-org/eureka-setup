@@ -170,9 +170,8 @@ func (ms *ModuleSvc) deploySidecarAsync(wg *sync.WaitGroup, errCh chan<- error, 
 
 	env := ms.GetSidecarEnv(r.Containers, r.Module, r.BackendModule, "", "")
 	container := models.NewSidecarContainer(r.Module.SidecarName, r.SidecarImage, env, r.BackendModule, r.NetworkConfig, r.SidecarResources)
-	nativeBinaryCmd := ms.Action.ConfigSidecarNativeBinaryCmd
-	if len(nativeBinaryCmd) > 0 {
-		container.Config.Cmd = nativeBinaryCmd
+	if len(ms.Action.ConfigSidecarNativeBinaryCmd) > 0 {
+		container.Config.Cmd = ms.Action.ConfigSidecarNativeBinaryCmd
 	}
 	if err := ms.DeployModule(r.Client, container); err != nil {
 		err := appErrors.SidecarDeployFailed(r.Module.SidecarName, err)
