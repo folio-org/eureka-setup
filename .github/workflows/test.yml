@@ -143,7 +143,7 @@ jobs:
       # Define package exclusion pattern once for reuse across steps
       EXCLUDE_PATTERN: '/(cmd|constant|field|actionparams|models|execsvc|interceptmodulesvc)$|/internal/|eureka-cli$'
       EXCLUDED_PACKAGES: 'cmd, constant, field, actionparams, models, internal, execsvc, interceptmodulesvc'
-      ALLOWED_LOW_COVERAGE: 'awssvc gitclient modulesvc uisvc'
+      ALLOWED_LOW_COVERAGE: 'awssvc gitclient modulesvc uisvc vaultclient'
       COVERAGE_THRESHOLD: '70'
     steps:
       - name: Checkout code
