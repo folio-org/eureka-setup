@@ -1,12 +1,12 @@
 profile:
-  name: import
+  name: combined
 application:
-  name: app-import
+  name: app-combined
   version: 1.0.0
   platform: base
   fetch-descriptors: false
-  port-start: 34000
-  port-end: 34999
+  port-start: 30000
+  port-end: 30999
 registry:
   url: https://folio-registry.dev.folio.org
 install:
@@ -51,19 +51,6 @@ environment:
     -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
     -XX:MaxRAMPercentage=80.0 -Xms128m -Xmx400m 
     -Djdk.internal.httpclient.disableHostnameVerification=true
-  # AWS S3/MinIO
-  AWS_URL: http://minio.eureka:9000
-  AWS_REGION: us-east-1
-  AWS_BUCKET: example-bucket
-  AWS_ACCESS_KEY_ID: minioadmin
-  AWS_SECRET_ACCESS_KEY: minioadmin
-  S3_IS_AWS: false
-  S3_URL: http://minio.eureka:9000
-  S3_REGION: us-east-1
-  S3_ACCESS_KEY_ID: minioadmin
-  S3_SECRET_ACCESS_KEY: minioadmin
-  S3_BUCKET: example-bucket
-  SPLIT_FILES_ENABLED: true
 tenants:
   diku:
     deploy-ui: true
@@ -88,7 +75,12 @@ users:
     first-name: Doe
     roles: ["diku_user_role"]
 sidecar-module:
-  image: folio-module-sidecar
+  image: bkadirkhodjaev/folio-module-sidecar-native
+  version: latest
+  custom-namespace: true
+  native-binary-cmd: [
+    "./application", "-Dquarkus.http.host=0.0.0.0", "-Dquarkus.log.category.'org.apache.kafka'.level=INFO"
+  ]
   environment:
     # Kafka
     ENV: folio
@@ -113,12 +105,10 @@ sidecar-module:
     ROOT_LOG_LEVEL: INFO
     REQUEST_TIMEOUT: 604800000
     ALLOW_CROSS_TENANT_REQUESTS: "true"
-    # Java
-    JAVA_OPTIONS: >-
-      -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
-      -XX:+UseZGC -XX:MaxRAMPercentage=80.0 -Xms64m -Xmx64m
-      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=INFO -Dquarkus.log.category.'org.apache.kafka'.level=INFO 
-      -Djava.util.logging.manager=org.jboss.logmanager.LogManager
+  resources:
+    cpus: 1
+    memory-reservation: 20
+    memory: 80
 backend-modules:
   mgr-applications:
     port: 9901
@@ -169,6 +159,7 @@ backend-modules:
       KAFKA_CAPABILITY_TOPIC_PARTITIONS: "1"
       KAFKA_SYS_USER_TOPIC_PARTITIONS: "1"
       KAFKA_PRODUCER_TENANT_COLLECTION: "false"
+      FLOW_ENGINE_PRINT_FLOW_RESULTS: "true"
     resources:
       cpus: 4
   mod-users-keycloak:
@@ -217,67 +208,47 @@ backend-modules:
   mod-settings:
   mod-notes:
   mod-tags:
-  ### Inventory Modules
   mod-inventory-storage:
   mod-inventory:
     port-server: 9403
-  mod-quick-marc:
-  ### Data Import Modules
-  mod-data-import:
-  mod-di-converter-storage:
-  mod-source-record-manager:
-  mod-source-record-storage:
-  mod-entities-links:
-    disable-system-user: true
-  mod-copycat:
-  ### Data Export Modules
-  mod-data-export:
-  mod-data-export-spring:
-    disable-system-user: true
-  mod-data-export-worker:
-  ### Acquisition Modules
-  mod-orders-storage:
-  mod-orders:
-  mod-invoice-storage:
-  mod-invoice:
   mod-organizations-storage:
   mod-organizations:
+  mod-invoice-storage:
+  mod-invoice:
+  mod-orders-storage:
+  mod-orders:
   mod-finance:
   mod-finance-storage:
     use-vault: true
   mod-audit:
-    deploy-module: false
-  ### Circulation Modules
-  mod-circulation-storage:
-    deploy-module: false
-  mod-circulation:
-    deploy-module: false
-    port-server: 9801
   mod-pubsub:
-    deploy-module: false
     disable-system-user: true
-  # Search Module
-  mod-search:
-    deploy-module: false
-    disable-system-user: true
-    environment:
-      ELASTICSEARCH_URL: http://opensearch.eureka:9200
+  mod-circulation-storage:
+  mod-circulation:
+    port-server: 9801
+  mod-template-engine:
+  mod-feesfines:
 frontend-modules:
-  folio_data-import:
-  folio_users:
-  folio_tenant-settings:
-  folio_inventory:
   folio_stripes-core:
   folio_developer:
   folio_notes:
   folio_tags:
+  folio_stripes-smart-components:
+  folio_users:
+  folio_tenant-settings:
   folio_organizations:
+  folio_inventory:
   folio_invoice:
   folio_orders:
-  folio_quick-marc:
-  folio_data-export:
-  folio_stripes-smart-components:
+  folio_finance:
+  folio_receiving:
+  folio_claims:
+  folio_servicepoints:
+  folio_acquisition-units:
+  folio_requests:
   folio_plugin-find-instance:
+  folio_plugin-find-organization:
+  folio_plugin-find-po-line:
   folio_plugin-find-user:
   folio_plugin-find-authority:
 custom-frontend-modules:

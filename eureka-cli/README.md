@@ -22,7 +22,7 @@
   - [Vault](http://localhost:8200) UI: Find a Vault root token in the container logs using `docker logs vault` or use `getVaultRootToken` command
   - [Kafka](http://localhost:9080) UI: No auth
   - [Kong](http://localhost:8002) Admin GUI: No auth
-  - [MinIO](http://localhost:19001) Console: minioadmin/minioadmin
+  - [MinIO](http://localhost:9001) Console: minioadmin/minioadmin
   - [Kibana](http://localhost:15601) UI: No auth
 
 ## Commands
@@ -65,15 +65,15 @@ By default, public images from DockerHub (folioci & folioorg namespaces) will be
 
 Available flags:
 
-| Short | Long                | Description                                                             |
-|-------|---------------------|------------------------------------------------------------------------ |
-| `-p`  | `--profile`         | Select profile (combined, export, search, edge, ecs, ecs-single import) |
-| `-c`  | `--configFile`      | Specify config file path                                                |
-| `-o`  | `--overwriteFiles`  | Overwrite files in .eureka home directory                               |
-| `-d`  | `--enableDebug`     | Enable debug mode                                                       |
-| `-R`  | `--onlyRequired`    | Use only required system containers                                     |
-| `-b`  | `--buildImages`     | Build Docker images                                                     |
-| `-u`  | `--updateCloned`    | Update Git cloned projects                                              |
+| Short | Long                | Description                                                                              |
+|-------|---------------------|------------------------------------------------------------------------------------------|
+| `-p`  | `--profile`         | Select profile (combined, combined-native, export, search, edge, ecs, ecs-single import) |
+| `-c`  | `--configFile`      | Specify config file path                                                                 |
+| `-o`  | `--overwriteFiles`  | Overwrite files in .eureka home directory                                                |
+| `-d`  | `--enableDebug`     | Enable debug mode                                                                        |
+| `-R`  | `--onlyRequired`    | Use only required system containers                                                      |
+| `-b`  | `--buildImages`     | Build Docker images                                                                      |
+| `-u`  | `--updateCloned`    | Update Git cloned projects                                                               |
 
 ```bash
 eureka-cli -c ./config.combined.yaml deployApplication
@@ -99,7 +99,7 @@ eureka-cli deployApplication -R
 eureka-cli -p combined deployApplication
 ```
 
-> Available profiles are: _combined_, _export_, _search_, _edge_, _ecs_, _ecs-single_ and _import_ (_combined_, _ecs_, _ecs-single_ and _import_ are standalone applications)
+> Available profiles are: _combined_, _combined-native_, _export_, _search_, _edge_, _ecs_, _ecs-single_ and _import_ (_combined_, _combined-native_, _ecs_, _ecs-single_ and _import_ are standalone applications)
 
 - It can be combined with the `-o` flag to overwrite all existing files in the `.eureka` home directory to receive changes from upstream
 
@@ -372,13 +372,16 @@ docker build --tag custom-folio-module-sidecar:1.0.0 .
 
 > This example uses a non-native image build, see <https://github.com/folio-org/folio-module-sidecar/blob/master/README.md> for how to build a native Docker image
 
-- Use the newly built `custom-folio-module-sidecar:1.0.0` local image in your config by replacing `sidecar-module.image` with `sidecar-module.local-image` key
+- Use the newly built `custom-folio-module-sidecar:1.0.0` local image in your config by setting `sidecar-module.custom-namespace` to true
 
 ```yaml
 sidecar-module:
-  local-image: custom-folio-module-sidecar
+  image: custom-folio-module-sidecar
   version: 1.0.0
+  custom-namespace: true
 ```
+
+> The `version` must be set explicitly
 
 - Deploy the environment with this config, in our example we deploy an _edge_ application with `custom-folio-module-sidecar:1.0.0` sidecars
 
@@ -395,6 +398,55 @@ eureka-cli -p edge listModules
 ```
 
 ![CLI Use Custom Folio Module Sidecar (2/2)](images/cli_use_custom_folio_module_sidecar_2.png)
+
+## Using a native folio-module-sidecar
+
+The CLI also supports using native sidecars built with GraalVM. These sidecars have a different and more lighter resource profile making them ideal for deployments with only few resources to spare.
+
+- Git clone **folio-module-sidecar** from GitHub
+
+```bash
+git clone https://github.com/folio-org/folio-module-sidecar.git
+```
+
+- Build the artefact locally
+
+```bash
+cd folio-module-sidecar
+mvn clean install -Pnative -DskipTests \
+  -Dquarkus.native.remote-container-build=true \
+  -Dquarkus.native.builder-image=quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-21
+```
+
+> Builds a native binary using a container-based GraalVM with a Linux toolchain
+
+- Build a custom local docker image
+
+```bash
+docker build -f docker/Dockerfile.native-micro -t folio-module-sidecar-native .
+```
+
+- Use the newly built `folio-module-sidecar-native:latest` local image in your config by setting `sidecar-module.custom-namespace` to true and `sidecar-module.native-binary-cmd` with valid args
+
+```yaml
+sidecar-module:
+  image: folio-module-sidecar-native
+  version: latest
+  custom-namespace: true
+  native-binary-cmd: [
+    "./application", "-Dquarkus.http.host=0.0.0.0", "-Dquarkus.log.category.'org.apache.kafka'.level=INFO"
+  ]
+```
+
+As an alternative to building a native image locally, you can also use the default image, `bkadirkhodjaev/folio-module-sidecar-native` on the Docker Hub in your configs. This public image will be updated on a regular basis.
+
+> The `version` must be set explicitly
+
+- Deploy the environment using the _combined-native_ profile that already has `JAVA_OPTIONS` env var removed from the `sidecar-module` in the config, as this is not intepreted by the substrate VM in the image
+
+```bash
+eureka-cli -p combined-native deployApplication
+```
 
 ## Using local backend module images
 
@@ -450,7 +502,7 @@ The environment depends on the [platform-complete](https://github.com/folio-org/
 
 ```yaml
 namespaces:
-  platform-complete-ui: bkadirkhodjaev # Change to pull from a different namespace
+  platform-complete-ui: bkadirkhodjaev # Change to pull from a different namespace if necessary
 ```
 
 - If you haven't built the image yet, the CLI has a dedicated command to build the UI image separately from the deployment lifecycle
@@ -524,7 +576,7 @@ curl --request POST \
   --verbose
 ```
 
-> Using combined or import standalone profiles, because these profiles create _diku\_admin_ and _diku\_user_ users
+> Using _combined_, _combined-native_ or _import_ standalone profiles, because these profiles create _diku\_admin_ and _diku\_user_ users
 
 ```bash
 # Admin user: ecs_admin

@@ -11,7 +11,7 @@ import (
 
 const (
 	DefaultModuleCpus              int64 = 1
-	DefaultModuleMemoryReservation int64 = 128
+	DefaultModuleMemoryReservation int64 = 120
 	DefaultModuleMemory            int64 = 750
 	DefaultModuleSwap              int64 = -1
 

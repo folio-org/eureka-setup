@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
@@ -104,7 +105,7 @@ func DeployModules(commandName string, client *client.Client, dto *DeployModules
 					sidecarEnvironment := GetSidecarEnvironment(dto, registryModule, backendModule, nil, nil)
 					sidecarDeployDto := NewDeploySidecarDto(registryModule.SidecarName, sidecarImage, sidecarEnvironment, backendModule, networkConfig, sidecarResources)
 
-					DeployModule(commandName, client, sidecarDeployDto)
+					DeploySidecarModule(commandName, client, sidecarDeployDto)
 				}()
 			}
 		}
@@ -141,15 +142,23 @@ func GetModuleImageVersion(backendModule BackendModule, registryModule *Registry
 func GetSidecarImage(commandName string, registryModules []*RegistryModule) (string, bool) {
 	sidecarModule := viper.GetStringMap(SidecarModuleKey)
 	sidecarImageVersion := getSidecarImageVersion(commandName, registryModules, sidecarModule[SidecarModuleVersionEntryKey])
+	finalImage := fmt.Sprintf("%s:%s", sidecarModule[SidecarModuleImageEntryKey].(string), sidecarImageVersion)
 
-	localImage := sidecarModule[SidecarModuleLocalImageEntryKey]
-	if localImage != nil && localImage.(string) != "" {
-		return fmt.Sprintf("%s:%s", localImage.(string), sidecarImageVersion), false
+	rawCustomNamespace, exists := sidecarModule[SidecarModuleCustomNamespaceEntryKey]
+	if exists {
+		customNamespace, ok := rawCustomNamespace.(bool)
+		if !ok {
+			LogErrorPanic(commandName, "internal.GetSidecarImage error - Sidecar custom namespace key is invalid")
+			return "", false
+		}
+
+		if customNamespace {
+			return finalImage, true
+		}
 	}
 
 	namespace := GetImageRegistryNamespace(commandName, sidecarImageVersion)
-	image := sidecarModule[SidecarModuleImageEntryKey]
-	return fmt.Sprintf("%s/%s", namespace, fmt.Sprintf("%s:%s", image.(string), sidecarImageVersion)), true
+	return fmt.Sprintf("%s/%s", namespace, finalImage), true
 }
 
 func getSidecarImageVersion(commandName string, registryModules []*RegistryModule, sidecarConfigVersion any) string {
@@ -208,6 +217,15 @@ func GetSidecarEnvironment(deployModulesDto *DeployModulesDto, module *RegistryM
 	return combinedEnvironment
 }
 
+func DeploySidecarModule(commandName string, client *client.Client, dto *DeployModuleDto) {
+	nativeBinaryCmd := viper.GetStringSlice(SidecarModuleNativeBinaryCmdKey)
+	if len(nativeBinaryCmd) > 0 {
+		dto.Config.Cmd = nativeBinaryCmd
+	}
+
+	DeployModule(commandName, client, dto)
+}
+
 func DeployModule(commandName string, client *client.Client, dto *DeployModuleDto) {
 	containerName := getContainerName(dto)
 
@@ -243,8 +261,18 @@ func getContainerName(dto *DeployModuleDto) string {
 }
 
 func PullModule(commandName string, client *client.Client, imageName string) {
-	registryAuthToken := GetRegistryAuthTokenIfPresent(commandName)
+	_, err := client.ImageInspect(context.Background(), imageName)
+	if err == nil {
+		slog.Debug(commandName, GetFuncName(), fmt.Sprintf("Image %s already exists locally, skipping pull", imageName))
+		return
+	}
+	if !errdefs.IsNotFound(err) {
+		slog.Error(commandName, GetFuncName(), "client.ImageInspect error")
+		panic(err)
+	}
 
+	slog.Info(commandName, GetFuncName(), fmt.Sprintf("Pulling image %s", imageName))
+	registryAuthToken := GetRegistryAuthTokenIfPresent(commandName)
 	reader, err := client.ImagePull(context.Background(), imageName, image.PullOptions{RegistryAuth: registryAuthToken})
 	if err != nil {
 		slog.Error(commandName, GetFuncName(), "client.ImagePull error")
