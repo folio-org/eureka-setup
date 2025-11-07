@@ -10,8 +10,8 @@ import (
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/errors"
+	"github.com/folio-org/eureka-cli/execsvc"
 	"github.com/folio-org/eureka-cli/field"
-	"github.com/folio-org/eureka-cli/helpers"
 )
 
 // DockerClientRunner defines the interface for Docker client operations
@@ -24,12 +24,16 @@ type DockerClientRunner interface {
 
 // DockerClient provides functionality for Docker operations
 type DockerClient struct {
-	Action *action.Action
+	Action  *action.Action
+	ExecSvc execsvc.CommandRunner
 }
 
 // New creates a new DockerClient instance
-func New(action *action.Action) *DockerClient {
-	return &DockerClient{Action: action}
+func New(action *action.Action, execSvc execsvc.CommandRunner) *DockerClient {
+	return &DockerClient{
+		Action:  action,
+		ExecSvc: execSvc,
+	}
 }
 
 func (dc *DockerClient) Create() (*client.Client, error) {
@@ -54,13 +58,13 @@ func (dc *DockerClient) PushImage(namespace string, imageName string) error {
 	finalImageName := fmt.Sprintf("%s/%s", namespace, imageName)
 
 	slog.Info(dc.Action.Name, "text", "Tagging platform complete UI image")
-	err := helpers.Exec(exec.Command("docker", "tag", imageName, finalImageName))
+	err := dc.ExecSvc.Exec(exec.Command("docker", "tag", imageName, finalImageName))
 	if err != nil {
 		return err
 	}
 
 	slog.Info(dc.Action.Name, "text", "Pushing new platform complete UI image to Docker Hub")
-	err = helpers.Exec(exec.Command("docker", "push", finalImageName))
+	err = dc.ExecSvc.Exec(exec.Command("docker", "push", finalImageName))
 	if err != nil {
 		return err
 	}
@@ -76,13 +80,13 @@ func (dc *DockerClient) ForcePullImage(imageName string) (finalImageName string,
 
 	finalImageName = fmt.Sprintf("%s/%s", dc.Action.ConfigNamespacePlatformCompleteUI, imageName)
 	slog.Info(dc.Action.Name, "text", "Removing old platform complete UI image")
-	err = helpers.Exec(exec.Command("docker", "image", "rm", "--force", finalImageName))
+	err = dc.ExecSvc.Exec(exec.Command("docker", "image", "rm", "--force", finalImageName))
 	if err != nil {
 		return "", err
 	}
 
 	slog.Info(dc.Action.Name, "text", "Pulling new platform complete UI image from Docker Hub")
-	err = helpers.Exec(exec.Command("docker", "image", "pull", finalImageName))
+	err = dc.ExecSvc.Exec(exec.Command("docker", "image", "pull", finalImageName))
 	if err != nil {
 		return "", err
 	}

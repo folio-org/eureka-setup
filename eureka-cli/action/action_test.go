@@ -16,7 +16,7 @@ import (
 // ==================== Constructor Tests ====================
 
 func TestNew(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestNew_Success", func(t *testing.T) {
 		// Arrange
 		vc := testhelpers.SetupViperForTest(map[string]any{
 			field.ApplicationName:    "test-app",
@@ -47,7 +47,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestNewWithCredentials(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestNewWithCredentials_Success", func(t *testing.T) {
 		// Arrange
 		vc := testhelpers.SetupViperForTest(map[string]any{
 			field.ApplicationName:    "test-app",
@@ -83,7 +83,7 @@ func TestNewWithCredentials(t *testing.T) {
 }
 
 func TestNewGeneric_AllViperFields(t *testing.T) {
-	t.Run("LoadsAllViperConfigurationFields", func(t *testing.T) {
+	t.Run("TestNewGeneric_AllViperFields_LoadsAllViperConfigurationFields", func(t *testing.T) {
 		// Arrange
 		viper.Reset() // Reset viper state before this test
 		vc := testhelpers.SetupViperForTest(map[string]any{
@@ -182,7 +182,7 @@ func TestNewGeneric_AllViperFields(t *testing.T) {
 // ==================== GetGatewayURLTemplate Tests ====================
 
 func TestGetGatewayURLTemplate(t *testing.T) {
-	t.Run("Success_WithHostnameReachable", func(t *testing.T) {
+	t.Run("TestGetGatewayURLTemplate_Success_WithHostnameReachable", func(t *testing.T) {
 		// Arrange
 		vc := testhelpers.SetupViperForTest(map[string]any{
 			field.ApplicationGatewayHostname: "localhost",
@@ -197,7 +197,7 @@ func TestGetGatewayURLTemplate(t *testing.T) {
 		assert.Equal(t, "http://localhost:%s", result)
 	})
 
-	t.Run("Success_WithDefaultHostname", func(t *testing.T) {
+	t.Run("TestGetGatewayURLTemplate_Success_WithDefaultHostname", func(t *testing.T) {
 		// Arrange
 		viper.Reset()
 
@@ -220,7 +220,7 @@ func TestGetGatewayURLTemplate(t *testing.T) {
 		}
 	})
 
-	t.Run("Fallback_WhenConfigHostnameUnreachable", func(t *testing.T) {
+	t.Run("TestGetGatewayURLTemplate_Fallback_WhenConfigHostnameUnreachable", func(t *testing.T) {
 		// Arrange - Set unreachable hostname, should fall back to default
 		vc := testhelpers.SetupViperForTest(map[string]any{
 			field.ApplicationGatewayHostname: "unreachable-host-12345.invalid",
@@ -242,7 +242,7 @@ func TestGetGatewayURLTemplate(t *testing.T) {
 // ==================== GetGatewayURL Tests ====================
 
 func TestGetGatewayURL(t *testing.T) {
-	t.Run("Success_ConfigHostname", func(t *testing.T) {
+	t.Run("TestGetGatewayURL_Success_ConfigHostname", func(t *testing.T) {
 		// Arrange
 		vc := testhelpers.SetupViperForTest(map[string]any{
 			field.ApplicationGatewayHostname: "localhost",
@@ -261,7 +261,7 @@ func TestGetGatewayURL(t *testing.T) {
 // ==================== Port Management Tests ====================
 
 func TestGetPreReservedPort(t *testing.T) {
-	t.Run("Success_FindsFreePort", func(t *testing.T) {
+	t.Run("TestGetPreReservedPort_Success_FindsFreePort", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -280,7 +280,7 @@ func TestGetPreReservedPort(t *testing.T) {
 		assert.Contains(t, act.ReservedPorts, port)
 	})
 
-	t.Run("Success_ReservesMultiplePorts", func(t *testing.T) {
+	t.Run("TestGetPreReservedPort_Success_ReservesMultiplePorts", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -307,7 +307,7 @@ func TestGetPreReservedPort(t *testing.T) {
 		assert.Contains(t, act.ReservedPorts, port3)
 	})
 
-	t.Run("Error_NoFreePorts", func(t *testing.T) {
+	t.Run("TestGetPreReservedPort_Error_NoFreePorts", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -327,7 +327,7 @@ func TestGetPreReservedPort(t *testing.T) {
 }
 
 func TestGetPreReservedPortSet(t *testing.T) {
-	t.Run("Success_ReservesMultiplePortsViaFunctions", func(t *testing.T) {
+	t.Run("TestGetPreReservedPortSet_Success_ReservesMultiplePortsViaFunctions", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -353,7 +353,7 @@ func TestGetPreReservedPortSet(t *testing.T) {
 		assert.NotEqual(t, ports[0], ports[2])
 	})
 
-	t.Run("Error_PropagatesPortReservationError", func(t *testing.T) {
+	t.Run("TestGetPreReservedPortSet_Error_PropagatesPortReservationError", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -378,7 +378,7 @@ func TestGetPreReservedPortSet(t *testing.T) {
 // ==================== URL Generation Tests ====================
 
 func TestGetRequestURL(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestGetRequestURL_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			GatewayURLTemplate: "http://localhost:%s",
@@ -391,7 +391,7 @@ func TestGetRequestURL(t *testing.T) {
 		assert.Equal(t, "http://localhost:8080/api/users", result)
 	})
 
-	t.Run("Success_WithEmptyRoute", func(t *testing.T) {
+	t.Run("TestGetRequestURL_Success_WithEmptyRoute", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			GatewayURLTemplate: "http://test:%s",
@@ -408,7 +408,7 @@ func TestGetRequestURL(t *testing.T) {
 // ==================== Environment Variable Tests ====================
 
 func TestGetConfigEnvVars(t *testing.T) {
-	t.Run("Success_ReturnsEnvVars", func(t *testing.T) {
+	t.Run("TestGetConfigEnvVars_Success_ReturnsEnvVars", func(t *testing.T) {
 		// Arrange
 		vc := testhelpers.SetupViperForTest(map[string]any{
 			"test-env": map[string]any{
@@ -429,7 +429,7 @@ func TestGetConfigEnvVars(t *testing.T) {
 		assert.Contains(t, result, "DB_PORT=5432")
 	})
 
-	t.Run("Success_EmptyMap", func(t *testing.T) {
+	t.Run("TestGetConfigEnvVars_Success_EmptyMap", func(t *testing.T) {
 		// Arrange
 		vc := testhelpers.SetupViperForTest(map[string]any{
 			"empty-env": map[string]any{},
@@ -447,7 +447,7 @@ func TestGetConfigEnvVars(t *testing.T) {
 }
 
 func TestGetConfigEnv(t *testing.T) {
-	t.Run("Success_FindsValueWithLowercaseKey", func(t *testing.T) {
+	t.Run("TestGetConfigEnv_Success_FindsValueWithLowercaseKey", func(t *testing.T) {
 		// Arrange
 		configEnv := map[string]string{
 			"db_host": "localhost",
@@ -461,7 +461,7 @@ func TestGetConfigEnv(t *testing.T) {
 		assert.Equal(t, "localhost", result)
 	})
 
-	t.Run("Success_FindsValueWithUppercaseInput", func(t *testing.T) {
+	t.Run("TestGetConfigEnv_Success_FindsValueWithUppercaseInput", func(t *testing.T) {
 		// Arrange
 		configEnv := map[string]string{
 			"db_host": "localhost",
@@ -474,7 +474,7 @@ func TestGetConfigEnv(t *testing.T) {
 		assert.Equal(t, "localhost", result)
 	})
 
-	t.Run("Success_ReturnsEmptyForMissingKey", func(t *testing.T) {
+	t.Run("TestGetConfigEnv_Success_ReturnsEmptyForMissingKey", func(t *testing.T) {
 		// Arrange
 		configEnv := map[string]string{
 			"db_host": "localhost",
@@ -491,7 +491,7 @@ func TestGetConfigEnv(t *testing.T) {
 // ==================== Configuration Check Tests ====================
 
 func TestIsSet(t *testing.T) {
-	t.Run("Success_KeyExists", func(t *testing.T) {
+	t.Run("TestIsSet_Success_KeyExists", func(t *testing.T) {
 		// Arrange
 		vc := testhelpers.SetupViperForTest(map[string]any{
 			"test-key": "test-value",
@@ -505,7 +505,7 @@ func TestIsSet(t *testing.T) {
 		assert.True(t, result)
 	})
 
-	t.Run("Success_KeyDoesNotExist", func(t *testing.T) {
+	t.Run("TestIsSet_Success_KeyDoesNotExist", func(t *testing.T) {
 		// Arrange
 		viper.Reset()
 
@@ -520,7 +520,7 @@ func TestIsSet(t *testing.T) {
 // ==================== Registry URL Tests ====================
 
 func TestGetCombinedInstallJsonURLs(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestGetCombinedInstallJsonURLs_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			ConfigFolioRegistry:  "https://folio.registry.com/install.json",
@@ -538,7 +538,7 @@ func TestGetCombinedInstallJsonURLs(t *testing.T) {
 }
 
 func TestGetEurekaInstallJsonURLs(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestGetEurekaInstallJsonURLs_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			ConfigEurekaRegistry: "https://eureka.registry.com/install.json",
@@ -554,7 +554,7 @@ func TestGetEurekaInstallJsonURLs(t *testing.T) {
 }
 
 func TestGetCombinedRegistryURLs(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestGetCombinedRegistryURLs_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			ConfigRegistryURL: "https://registry.test.com",

@@ -66,7 +66,7 @@ func (m *MockConsortiumSvc) EnableCentralOrdering(centralTenant string) error {
 // ==================== Constructor Tests ====================
 
 func TestNew(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestNew_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mockConsortiumSvc := new(MockConsortiumSvc)
@@ -84,7 +84,7 @@ func TestNew(t *testing.T) {
 // ==================== GetEntitlementTenantParameters Tests ====================
 
 func TestGetEntitlementTenantParameters_NoneConsortium(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestGetEntitlementTenantParameters_NoneConsortium_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mockConsortiumSvc := new(MockConsortiumSvc)
@@ -100,7 +100,7 @@ func TestGetEntitlementTenantParameters_NoneConsortium(t *testing.T) {
 }
 
 func TestGetEntitlementTenantParameters_WithCentralTenant(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestGetEntitlementTenantParameters_WithCentralTenant_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mockConsortiumSvc := new(MockConsortiumSvc)
@@ -121,7 +121,7 @@ func TestGetEntitlementTenantParameters_WithCentralTenant(t *testing.T) {
 }
 
 func TestGetEntitlementTenantParameters_NoCentralTenant(t *testing.T) {
-	t.Run("Error_MissingCentralTenant", func(t *testing.T) {
+	t.Run("TestGetEntitlementTenantParameters_NoCentralTenant_Error_MissingCentralTenant", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mockConsortiumSvc := new(MockConsortiumSvc)
@@ -144,7 +144,7 @@ func TestGetEntitlementTenantParameters_NoCentralTenant(t *testing.T) {
 // ==================== SetConfigTenantParams Tests ====================
 
 func TestSetConfigTenantParams_Success(t *testing.T) {
-	t.Run("AllFieldsSet", func(t *testing.T) {
+	t.Run("TestSetConfigTenantParams_Success_AllFieldsSet", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:   "test-action",
@@ -170,7 +170,7 @@ func TestSetConfigTenantParams_Success(t *testing.T) {
 		assert.Equal(t, "http://localhost:8080", svc.Action.Params.PlatformCompleteURL)
 	})
 
-	t.Run("PartialFieldsSet", func(t *testing.T) {
+	t.Run("TestSetConfigTenantParams_Success_PartialFieldsSet", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:   "test-action",
@@ -192,7 +192,7 @@ func TestSetConfigTenantParams_Success(t *testing.T) {
 		assert.False(t, svc.Action.Params.SingleTenant)
 	})
 
-	t.Run("EmptyConfigTenant", func(t *testing.T) {
+	t.Run("TestSetConfigTenantParams_Success_EmptyConfigTenant", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:   "test-action",
@@ -213,7 +213,7 @@ func TestSetConfigTenantParams_Success(t *testing.T) {
 }
 
 func TestSetConfigTenantParams_TenantNotFound(t *testing.T) {
-	t.Run("NilConfigTenants", func(t *testing.T) {
+	t.Run("TestSetConfigTenantParams_TenantNotFound_NilConfigTenants", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:          "test-action",
@@ -231,7 +231,7 @@ func TestSetConfigTenantParams_TenantNotFound(t *testing.T) {
 		assert.Contains(t, err.Error(), "tenant nonexistent in config")
 	})
 
-	t.Run("TenantNotInConfig", func(t *testing.T) {
+	t.Run("TestSetConfigTenantParams_TenantNotFound_TenantNotInConfig", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name: "test-action",
@@ -251,7 +251,7 @@ func TestSetConfigTenantParams_TenantNotFound(t *testing.T) {
 		assert.Contains(t, err.Error(), "tenant nonexistent in config")
 	})
 
-	t.Run("TenantIsNil", func(t *testing.T) {
+	t.Run("TestSetConfigTenantParams_TenantNotFound_TenantIsNil", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name: "test-action",

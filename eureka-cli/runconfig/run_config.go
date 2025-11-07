@@ -8,6 +8,7 @@ import (
 	"github.com/folio-org/eureka-cli/consortiumsvc"
 	"github.com/folio-org/eureka-cli/dockerclient"
 	"github.com/folio-org/eureka-cli/errors"
+	"github.com/folio-org/eureka-cli/execsvc"
 	"github.com/folio-org/eureka-cli/gitclient"
 	"github.com/folio-org/eureka-cli/httpclient"
 	"github.com/folio-org/eureka-cli/interceptmodulesvc"
@@ -32,6 +33,7 @@ type RunConfig struct {
 	// Core Infrastructure
 	Action             *action.Action
 	Logger             *slog.Logger
+	ExecSvc            execsvc.CommandRunner
 	GitClient          gitclient.GitClientRunner
 	HTTPClient         httpclient.HTTPClientRunner
 	DockerClient       dockerclient.DockerClientRunner
@@ -62,9 +64,10 @@ func New(action *action.Action, logger *slog.Logger) (*RunConfig, error) {
 	}
 
 	// Create infrastructure
+	execSvc := execsvc.New(action)
 	gitclient := gitclient.New(action)
 	httpClient := httpclient.New(action, logger)
-	dockerClient := dockerclient.New(action)
+	dockerClient := dockerclient.New(action, execSvc)
 	vaultClient := vaultclient.New(action, httpClient)
 
 	// Create services
@@ -80,13 +83,14 @@ func New(action *action.Action, logger *slog.Logger) (*RunConfig, error) {
 	return &RunConfig{
 		Action:             action,
 		Logger:             logger,
+		ExecSvc:            execSvc,
 		GitClient:          gitclient,
 		HTTPClient:         httpClient,
 		DockerClient:       dockerClient,
 		VaultClient:        vaultClient,
 		AWSSvc:             awsSvc,
 		KongSvc:            kongsvc.New(action, httpClient),
-		KafkaSvc:           kafkasvc.New(action),
+		KafkaSvc:           kafkasvc.New(action, execSvc),
 		KeycloakSvc:        keycloaksvc.New(action, httpClient, vaultClient, managementSvc),
 		RegistrySvc:        registrySvc,
 		ModuleParams:       moduleparams.New(action),
@@ -96,7 +100,7 @@ func New(action *action.Action, logger *slog.Logger) (*RunConfig, error) {
 		TenantSvc:          tenantSvc,
 		UserSvc:            userSvc,
 		ConsortiumSvc:      consortiumSvc,
-		UISvc:              uisvc.New(action, gitclient, dockerClient, tenantSvc),
+		UISvc:              uisvc.New(action, execSvc, gitclient, dockerClient, tenantSvc),
 		SearchSvc:          searchsvc.New(action, httpClient),
 		InterceptModuleSvc: interceptmodulesvc.New(action, moduleSvc, managementSvc),
 	}, nil

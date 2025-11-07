@@ -11,6 +11,7 @@ import (
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/errors"
+	"github.com/folio-org/eureka-cli/execsvc"
 	"github.com/folio-org/eureka-cli/helpers"
 )
 
@@ -23,6 +24,7 @@ type KafkaProcessor interface {
 // KafkaSvc provides functionality for Kafka operations including health checks and consumer lag monitoring
 type KafkaSvc struct {
 	Action           *action.Action
+	ExecSvc          execsvc.CommandRunner
 	RebalanceRetries int
 	PollMaxRetries   int
 	RebalanceWait    time.Duration
@@ -31,13 +33,16 @@ type KafkaSvc struct {
 }
 
 // New creates a new KafkaSvc instance
-func New(action *action.Action) *KafkaSvc {
-	return &KafkaSvc{Action: action}
+func New(action *action.Action, execSvc execsvc.CommandRunner) *KafkaSvc {
+	return &KafkaSvc{
+		Action:  action,
+		ExecSvc: execSvc,
+	}
 }
 
 func (ks *KafkaSvc) CheckBrokenReadiness() error {
 	kafkaCmd := fmt.Sprintf("timeout 30s kafka-broker-api-versions.sh --bootstrap-server %s", constant.KafkaTCP)
-	stdout, stderr, err := helpers.ExecReturnOutput(exec.Command("docker", "exec", "-i", "kafka-tools", "bash", "-c", kafkaCmd))
+	stdout, stderr, err := ks.ExecSvc.ExecReturnOutput(exec.Command("docker", "exec", "-i", "kafka-tools", "bash", "-c", kafkaCmd))
 	if err != nil || stderr.Len() > 0 {
 		return errors.KafkaNotReady(err)
 	}
@@ -95,7 +100,7 @@ func (ks *KafkaSvc) getConsumerGroupLag(tenant string, consumerGroup string, ini
 	timeoutWait := helpers.DefaultDuration(ks.TimeoutWait, constant.AttachCapabilitySetsTimeoutWait)
 
 	kafkaCmd := fmt.Sprintf("timeout 30s kafka-consumer-groups.sh --bootstrap-server %s --describe --group %s | grep %s | awk '{print $6}'", constant.KafkaTCP, consumerGroup, tenant)
-	stdout, stderr, err := helpers.ExecReturnOutput(exec.Command("docker", "exec", "-i", "kafka-tools", "bash", "-c", kafkaCmd))
+	stdout, stderr, err := ks.ExecSvc.ExecReturnOutput(exec.Command("docker", "exec", "-i", "kafka-tools", "bash", "-c", kafkaCmd))
 	if err != nil {
 		return initialLag, err
 	}

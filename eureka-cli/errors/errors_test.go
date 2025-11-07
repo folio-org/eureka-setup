@@ -36,7 +36,7 @@ func TestBaseErrors(t *testing.T) {
 // ==================== Generic Error Helpers Tests ====================
 
 func TestWrap(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestWrap_Success", func(t *testing.T) {
 		// Arrange
 		baseErr := errors.New("base error")
 		message := "wrapped error"
@@ -51,7 +51,7 @@ func TestWrap(t *testing.T) {
 		assert.True(t, errors.Is(result, baseErr))
 	})
 
-	t.Run("NilError", func(t *testing.T) {
+	t.Run("TestWrap_NilError", func(t *testing.T) {
 		// Arrange & Act
 		result := apperrors.Wrap(nil, "message")
 
@@ -61,7 +61,7 @@ func TestWrap(t *testing.T) {
 }
 
 func TestWrapf(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestWrapf_Success", func(t *testing.T) {
 		// Arrange
 		baseErr := errors.New("base error")
 		format := "operation %s failed with code %d"
@@ -76,7 +76,7 @@ func TestWrapf(t *testing.T) {
 		assert.True(t, errors.Is(result, baseErr))
 	})
 
-	t.Run("NilError", func(t *testing.T) {
+	t.Run("TestWrapf_NilError", func(t *testing.T) {
 		// Arrange & Act
 		result := apperrors.Wrapf(nil, "format %s", "arg")
 
@@ -86,7 +86,7 @@ func TestWrapf(t *testing.T) {
 }
 
 func TestNew(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestNew_Success", func(t *testing.T) {
 		// Arrange
 		message := "custom error message"
 
@@ -100,7 +100,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestNewf(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestNewf_Success", func(t *testing.T) {
 		// Arrange
 		format := "error code %d: %s"
 
@@ -116,7 +116,7 @@ func TestNewf(t *testing.T) {
 // ==================== Validation Errors Tests ====================
 
 func TestActionNil(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestActionNil_Success", func(t *testing.T) {
 		// Act
 		result := apperrors.ActionNil()
 
@@ -127,7 +127,7 @@ func TestActionNil(t *testing.T) {
 }
 
 func TestLoggerNil(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestLoggerNil_Success", func(t *testing.T) {
 		// Act
 		result := apperrors.LoggerNil()
 
@@ -140,7 +140,7 @@ func TestLoggerNil(t *testing.T) {
 // ==================== HTTP Errors Tests ====================
 
 func TestPingFailed(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestPingFailed_Success", func(t *testing.T) {
 		// Arrange
 		url := "http://localhost:9130"
 		baseErr := errors.New("connection refused")
@@ -156,7 +156,7 @@ func TestPingFailed(t *testing.T) {
 }
 
 func TestRequestFailed(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestRequestFailed_Success", func(t *testing.T) {
 		// Arrange
 		statusCode := 404
 		method := "GET"
@@ -175,7 +175,7 @@ func TestRequestFailed(t *testing.T) {
 // ==================== Action Errors Tests ====================
 
 func TestUnsupportedPlatform(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestUnsupportedPlatform_Success", func(t *testing.T) {
 		// Arrange
 		platform := "docker"
 		address := "mgr-tenants"
@@ -190,7 +190,7 @@ func TestUnsupportedPlatform(t *testing.T) {
 }
 
 func TestGatewayURLConstructFailed(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestGatewayURLConstructFailed_Success", func(t *testing.T) {
 		// Arrange
 		platform := "ecs"
 		baseErr := errors.New("invalid config")
@@ -206,7 +206,7 @@ func TestGatewayURLConstructFailed(t *testing.T) {
 }
 
 func TestNoFreeTCPPort(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestNoFreeTCPPort_Success", func(t *testing.T) {
 		// Arrange
 		portStart := 8000
 		portEnd := 9000
@@ -223,7 +223,7 @@ func TestNoFreeTCPPort(t *testing.T) {
 // ==================== AWS Errors Tests ====================
 
 func TestAWSConfigLoadFailed(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestAWSConfigLoadFailed_Success", func(t *testing.T) {
 		// Arrange
 		baseErr := errors.New("credentials not found")
 
@@ -238,7 +238,7 @@ func TestAWSConfigLoadFailed(t *testing.T) {
 }
 
 func TestECRAuthFailed(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestECRAuthFailed_Success", func(t *testing.T) {
 		// Arrange
 		baseErr := errors.New("invalid credentials")
 
@@ -254,7 +254,7 @@ func TestECRAuthFailed(t *testing.T) {
 }
 
 func TestECRNoAuthData(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestECRNoAuthData_Success", func(t *testing.T) {
 		// Act
 		result := apperrors.ECRNoAuthData()
 
@@ -266,7 +266,7 @@ func TestECRNoAuthData(t *testing.T) {
 }
 
 func TestECRTokenNil(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestECRTokenNil_Success", func(t *testing.T) {
 		// Act
 		result := apperrors.ECRTokenNil()
 
@@ -278,7 +278,7 @@ func TestECRTokenNil(t *testing.T) {
 }
 
 func TestECRTokenDecodeFailed(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestECRTokenDecodeFailed_Success", func(t *testing.T) {
 		// Arrange
 		baseErr := errors.New("invalid base64")
 
@@ -296,7 +296,7 @@ func TestECRTokenDecodeFailed(t *testing.T) {
 // ==================== Consortium Errors Tests ====================
 
 func TestConsortiumMissingCentralTenant(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestConsortiumMissingCentralTenant_Success", func(t *testing.T) {
 		// Arrange
 		consortiumName := "test-consortium"
 
@@ -313,7 +313,7 @@ func TestConsortiumMissingCentralTenant(t *testing.T) {
 // ==================== File Errors Tests ====================
 
 func TestNotRegularFile(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestNotRegularFile_Success", func(t *testing.T) {
 		// Arrange
 		fileName := "/dev/null"
 
@@ -330,7 +330,7 @@ func TestNotRegularFile(t *testing.T) {
 // ==================== Git Errors Tests ====================
 
 func TestCloneFailed(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestCloneFailed_Success", func(t *testing.T) {
 		// Arrange
 		repoLabel := "platform-complete"
 		baseErr := errors.New("repository not found")
@@ -348,7 +348,7 @@ func TestCloneFailed(t *testing.T) {
 // ==================== Kafka Errors Tests ====================
 
 func TestKafkaNotReady(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestKafkaNotReady_Success", func(t *testing.T) {
 		// Arrange
 		baseErr := errors.New("connection timeout")
 
@@ -364,7 +364,7 @@ func TestKafkaNotReady(t *testing.T) {
 }
 
 func TestKafkaBrokerAPIFailed(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestKafkaBrokerAPIFailed_Success", func(t *testing.T) {
 		// Act
 		result := apperrors.KafkaBrokerAPIFailed()
 
@@ -376,7 +376,7 @@ func TestKafkaBrokerAPIFailed(t *testing.T) {
 }
 
 func TestConsumerGroupRebalanceTimeout(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestConsumerGroupRebalanceTimeout_Success", func(t *testing.T) {
 		// Arrange
 		consumerGroup := "test-group"
 		baseErr := errors.New("max retries exceeded")
@@ -393,7 +393,7 @@ func TestConsumerGroupRebalanceTimeout(t *testing.T) {
 }
 
 func TestConsumerGroupPollTimeout(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestConsumerGroupPollTimeout_Success", func(t *testing.T) {
 		// Arrange
 		consumerGroup := "test-group"
 		maxRetries := 10
@@ -409,7 +409,7 @@ func TestConsumerGroupPollTimeout(t *testing.T) {
 }
 
 func TestContainerCommandFailed(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestContainerCommandFailed_Success", func(t *testing.T) {
 		// Arrange
 		stderr := "permission denied"
 
@@ -425,7 +425,7 @@ func TestContainerCommandFailed(t *testing.T) {
 // ==================== Keycloak Errors Tests ====================
 
 func TestAccessTokenNotFound(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestAccessTokenNotFound_Success", func(t *testing.T) {
 		// Arrange
 		requestURL := "http://localhost:8080/token"
 
@@ -440,7 +440,7 @@ func TestAccessTokenNotFound(t *testing.T) {
 }
 
 func TestClientNotFound(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestClientNotFound_Success", func(t *testing.T) {
 		// Arrange
 		clientID := "test-client"
 
@@ -455,7 +455,7 @@ func TestClientNotFound(t *testing.T) {
 }
 
 func TestRoleNotFound(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestRoleNotFound_Success", func(t *testing.T) {
 		// Arrange
 		roleName := "admin"
 
@@ -470,7 +470,7 @@ func TestRoleNotFound(t *testing.T) {
 }
 
 func TestUserNotFound(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestUserNotFound_Success", func(t *testing.T) {
 		// Arrange
 		username := "testuser"
 		tenantName := "diku"
@@ -488,7 +488,7 @@ func TestUserNotFound(t *testing.T) {
 // ==================== Kong Errors Tests ====================
 
 func TestKongRoutesNotReady(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestKongRoutesNotReady_Success", func(t *testing.T) {
 		// Arrange
 		expected := 5
 
@@ -503,7 +503,7 @@ func TestKongRoutesNotReady(t *testing.T) {
 }
 
 func TestKongAdminAPIFailed(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestKongAdminAPIFailed_Success", func(t *testing.T) {
 		// Arrange
 		statusCode := 500
 		status := "Internal Server Error"
@@ -520,7 +520,7 @@ func TestKongAdminAPIFailed(t *testing.T) {
 // ==================== Module Errors Tests ====================
 
 func TestModulesNotDeployed(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestModulesNotDeployed_Success", func(t *testing.T) {
 		// Arrange
 		expectedModules := 3
 
@@ -534,7 +534,7 @@ func TestModulesNotDeployed(t *testing.T) {
 }
 
 func TestModuleNotReady(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestModuleNotReady_Success", func(t *testing.T) {
 		// Arrange
 		moduleName := "mod-inventory"
 
@@ -549,7 +549,7 @@ func TestModuleNotReady(t *testing.T) {
 }
 
 func TestModulePullFailed(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestModulePullFailed_Success", func(t *testing.T) {
 		// Arrange
 		imageName := "mod-inventory:1.0.0"
 		baseErr := errors.New("image not found")
@@ -566,7 +566,7 @@ func TestModulePullFailed(t *testing.T) {
 }
 
 func TestSidecarDeployFailed(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestSidecarDeployFailed_Success", func(t *testing.T) {
 		// Arrange
 		sidecarName := "mod-inventory-sidecar"
 		baseErr := errors.New("port already allocated")
@@ -583,7 +583,7 @@ func TestSidecarDeployFailed(t *testing.T) {
 }
 
 func TestSidecarVersionNotFound(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestSidecarVersionNotFound_Success", func(t *testing.T) {
 		// Arrange
 		version := "1.2.3"
 
@@ -598,7 +598,7 @@ func TestSidecarVersionNotFound(t *testing.T) {
 }
 
 func TestLocalDescriptorNotFound(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestLocalDescriptorNotFound_Success", func(t *testing.T) {
 		// Arrange
 		path := "/path/to/descriptor.json"
 		moduleName := "mod-inventory"
@@ -614,7 +614,7 @@ func TestLocalDescriptorNotFound(t *testing.T) {
 }
 
 func TestEmptyLineNotFound(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestEmptyLineNotFound_Success", func(t *testing.T) {
 		// Arrange
 		id := "test-id"
 
@@ -628,7 +628,7 @@ func TestEmptyLineNotFound(t *testing.T) {
 }
 
 func TestImageKeyNotSet(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestImageKeyNotSet_Success", func(t *testing.T) {
 		// Arrange
 		imageName := "mod-inventory"
 		fieldName := "version"
@@ -644,7 +644,7 @@ func TestImageKeyNotSet(t *testing.T) {
 }
 
 func TestModuleDiscoveryNotFound(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestModuleDiscoveryNotFound_Success", func(t *testing.T) {
 		// Arrange
 		moduleName := "mod-inventory"
 
@@ -661,7 +661,7 @@ func TestModuleDiscoveryNotFound(t *testing.T) {
 // ==================== Tenant Errors Tests ====================
 
 func TestTenantNotFound(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestTenantNotFound_Success", func(t *testing.T) {
 		// Arrange
 		tenantName := "diku"
 
@@ -676,7 +676,7 @@ func TestTenantNotFound(t *testing.T) {
 }
 
 func TestCentralTenantNotFound(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestCentralTenantNotFound_Success", func(t *testing.T) {
 		// Arrange
 		consortiumName := "test-consortium"
 
@@ -691,7 +691,7 @@ func TestCentralTenantNotFound(t *testing.T) {
 }
 
 func TestTenantNotCreated(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestTenantNotCreated_Success", func(t *testing.T) {
 		// Arrange
 		tenantName := "diku"
 
@@ -708,7 +708,7 @@ func TestTenantNotCreated(t *testing.T) {
 // ==================== Search/Reindex Errors Tests ====================
 
 func TestReindexJobHasErrors(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestReindexJobHasErrors_Success", func(t *testing.T) {
 		// Arrange
 		jobErrors := []any{"error1", "error2", "error3"}
 
@@ -723,7 +723,7 @@ func TestReindexJobHasErrors(t *testing.T) {
 }
 
 func TestReindexJobIDBlank(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestReindexJobIDBlank_Success", func(t *testing.T) {
 		// Act
 		result := apperrors.ReindexJobIDBlank()
 

@@ -14,7 +14,7 @@ import (
 // ==================== Constructor Tests ====================
 
 func TestNew(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestNew_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 
@@ -30,7 +30,7 @@ func TestNew(t *testing.T) {
 // ==================== VaultEnv Tests ====================
 
 func TestVaultEnv(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestVaultEnv_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mv := moduleenv.New(act)
@@ -48,7 +48,7 @@ func TestVaultEnv(t *testing.T) {
 		assert.Contains(t, result, "SECRET_STORE_VAULT_ADDRESS=http://vault.eureka:8200")
 	})
 
-	t.Run("EmptyEnv", func(t *testing.T) {
+	t.Run("TestVaultEnv_EmptyEnv", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mv := moduleenv.New(act)
@@ -68,7 +68,7 @@ func TestVaultEnv(t *testing.T) {
 // ==================== OkapiEnv Tests ====================
 
 func TestOkapiEnv(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestOkapiEnv_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mv := moduleenv.New(act)
@@ -89,7 +89,7 @@ func TestOkapiEnv(t *testing.T) {
 		assert.Contains(t, result, "OKAPI_URL=http://mod-inventory-sidecar.eureka:8081")
 	})
 
-	t.Run("DifferentPort", func(t *testing.T) {
+	t.Run("TestOkapiEnv_DifferentPort", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mv := moduleenv.New(act)
@@ -110,7 +110,7 @@ func TestOkapiEnv(t *testing.T) {
 // ==================== DisabledSystemUserEnv Tests ====================
 
 func TestDisabledSystemUserEnv(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestDisabledSystemUserEnv_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mv := moduleenv.New(act)
@@ -130,7 +130,7 @@ func TestDisabledSystemUserEnv(t *testing.T) {
 		assert.Contains(t, result, "SYSTEM_USER_USERNAME=mod-inventory")
 	})
 
-	t.Run("EmptyEnv", func(t *testing.T) {
+	t.Run("TestDisabledSystemUserEnv_EmptyEnv", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mv := moduleenv.New(act)
@@ -149,7 +149,7 @@ func TestDisabledSystemUserEnv(t *testing.T) {
 // ==================== KeycloakEnv Tests ====================
 
 func TestKeycloakEnv(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestKeycloakEnv_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name: "test-action",
@@ -174,7 +174,7 @@ func TestKeycloakEnv(t *testing.T) {
 		assert.Contains(t, result, "KC_LOGIN_CLIENT_SUFFIX=-login")
 	})
 
-	t.Run("EmptyGlobalEnv", func(t *testing.T) {
+	t.Run("TestKeycloakEnv_EmptyGlobalEnv", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:            "test-action",
@@ -195,7 +195,7 @@ func TestKeycloakEnv(t *testing.T) {
 // ==================== ModuleEnv Tests ====================
 
 func TestModuleEnv(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestModuleEnv_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mv := moduleenv.New(act)
@@ -217,7 +217,7 @@ func TestModuleEnv(t *testing.T) {
 		assert.Contains(t, result, "DB_USERNAME=admin")
 	})
 
-	t.Run("EmptyKey", func(t *testing.T) {
+	t.Run("TestModuleEnv_EmptyKey", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mv := moduleenv.New(act)
@@ -238,7 +238,7 @@ func TestModuleEnv(t *testing.T) {
 		}
 	})
 
-	t.Run("EmptyNewEnv", func(t *testing.T) {
+	t.Run("TestModuleEnv_EmptyNewEnv", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mv := moduleenv.New(act)
@@ -253,7 +253,7 @@ func TestModuleEnv(t *testing.T) {
 		assert.Contains(t, result, "EXISTING=value")
 	})
 
-	t.Run("UppercaseConversion", func(t *testing.T) {
+	t.Run("TestModuleEnv_UppercaseConversion", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mv := moduleenv.New(act)
@@ -276,7 +276,7 @@ func TestModuleEnv(t *testing.T) {
 // ==================== SidecarEnv Tests ====================
 
 func TestSidecarEnv(t *testing.T) {
-	t.Run("BothURLsEmpty", func(t *testing.T) {
+	t.Run("TestSidecarEnv_BothURLsEmpty", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mv := moduleenv.New(act)
@@ -304,7 +304,7 @@ func TestSidecarEnv(t *testing.T) {
 		assert.Contains(t, result, "SIDECAR_URL=http://mod-inventory-sidecar.eureka:8081")
 	})
 
-	t.Run("WithCustomURLs", func(t *testing.T) {
+	t.Run("TestSidecarEnv_WithCustomURLs", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mv := moduleenv.New(act)
@@ -331,7 +331,7 @@ func TestSidecarEnv(t *testing.T) {
 		assert.Contains(t, result, "SIDECAR_URL=http://custom-sidecar:9001")
 	})
 
-	t.Run("NonStandardPort", func(t *testing.T) {
+	t.Run("TestSidecarEnv_NonStandardPort", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mv := moduleenv.New(act)
@@ -356,7 +356,7 @@ func TestSidecarEnv(t *testing.T) {
 		assert.Contains(t, result, "QUARKUS_HTTP_PORT=9999")
 	})
 
-	t.Run("StandardPort8081", func(t *testing.T) {
+	t.Run("TestSidecarEnv_StandardPort8081", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 		mv := moduleenv.New(act)

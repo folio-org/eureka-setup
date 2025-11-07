@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -59,7 +58,7 @@ func (run *Run) BuildAndPushUi() error {
 	if err := run.Config.DockerClient.PushImage(actionParams.Namespace, imageName); err != nil {
 		return err
 	}
-	helpers.LogCompletion(run.Config.Action.Name, start)
+	slog.Info(run.Config.Action.Name, "text", "Command completed", "duration", time.Since(start))
 
 	return nil
 }

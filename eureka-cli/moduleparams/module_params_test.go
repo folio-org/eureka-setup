@@ -18,7 +18,7 @@ import (
 // ==================== Constructor Tests ====================
 
 func TestNew(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
+	t.Run("TestNew_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{Name: "test-action"}
 
@@ -34,7 +34,7 @@ func TestNew(t *testing.T) {
 // ==================== ReadBackendModulesFromConfig Tests ====================
 
 func TestReadBackendModulesFromConfig_EmptyConfig(t *testing.T) {
-	t.Run("NoBackendModules", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_EmptyConfig_NoBackendModules", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                 "test-action",
@@ -53,7 +53,7 @@ func TestReadBackendModulesFromConfig_EmptyConfig(t *testing.T) {
 }
 
 func TestReadBackendModulesFromConfig_Management(t *testing.T) {
-	t.Run("FilterManagementModules", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_Management_FilterManagementModules", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -80,7 +80,7 @@ func TestReadBackendModulesFromConfig_Management(t *testing.T) {
 		assert.NotContains(t, result, "mod-inventory")
 	})
 
-	t.Run("FilterNonManagementModules", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_Management_FilterNonManagementModules", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -109,7 +109,7 @@ func TestReadBackendModulesFromConfig_Management(t *testing.T) {
 }
 
 func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
-	t.Run("WithStringVersion", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_ConfigurableProperties_WithStringVersion", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -136,7 +136,7 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 		assert.Equal(t, "1.0.0", *module.ModuleVersion)
 	})
 
-	t.Run("WithNumericVersion", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_ConfigurableProperties_WithNumericVersion", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -163,7 +163,7 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 		assert.Equal(t, "2.5", *module.ModuleVersion)
 	})
 
-	t.Run("WithCustomPort", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_ConfigurableProperties_WithCustomPort", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -189,7 +189,7 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 		assert.Equal(t, 9000, module.ModuleExposedServerPort)
 	})
 
-	t.Run("WithPrivatePort", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_ConfigurableProperties_WithPrivatePort", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -215,7 +215,7 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 		assert.Equal(t, 8090, module.PrivatePort)
 	})
 
-	t.Run("WithDeployModuleFalse", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_ConfigurableProperties_WithDeployModuleFalse", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -241,7 +241,7 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 		assert.Equal(t, 0, module.ModuleExposedServerPort)
 	})
 
-	t.Run("WithDeploySidecarFalse", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_ConfigurableProperties_WithDeploySidecarFalse", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -267,7 +267,7 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 		assert.Equal(t, 0, module.SidecarExposedServerPort)
 	})
 
-	t.Run("WithBooleanFlags", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_ConfigurableProperties_WithBooleanFlags", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -297,7 +297,7 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 		assert.True(t, module.UseOkapiURL)
 	})
 
-	t.Run("WithEnvAndResources", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_ConfigurableProperties_WithEnvAndResources", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -331,7 +331,7 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 }
 
 func TestReadBackendModulesFromConfig_LocalDescriptor(t *testing.T) {
-	t.Run("ValidLocalDescriptor", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_LocalDescriptor_ValidLocalDescriptor", func(t *testing.T) {
 		// Arrange
 		tmpFile := filepath.Join(t.TempDir(), "descriptor.json")
 		err := os.WriteFile(tmpFile, []byte(`{}`), 0600)
@@ -361,7 +361,7 @@ func TestReadBackendModulesFromConfig_LocalDescriptor(t *testing.T) {
 		assert.Equal(t, tmpFile, module.LocalDescriptorPath)
 	})
 
-	t.Run("InvalidLocalDescriptor", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_LocalDescriptor_InvalidLocalDescriptor", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:   "test-action",
@@ -385,7 +385,7 @@ func TestReadBackendModulesFromConfig_LocalDescriptor(t *testing.T) {
 }
 
 func TestReadBackendModulesFromConfig_Volumes(t *testing.T) {
-	t.Run("ValidVolume", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_Volumes_ValidVolume", func(t *testing.T) {
 		// Arrange
 		tmpDir := t.TempDir()
 
@@ -414,7 +414,7 @@ func TestReadBackendModulesFromConfig_Volumes(t *testing.T) {
 		assert.Contains(t, module.ModuleVolumes, tmpDir)
 	})
 
-	t.Run("VolumeWithEurekaVariable_Windows", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_Volumes_VolumeWithEurekaVariable_Windows", func(t *testing.T) {
 		if runtime.GOOS != "windows" {
 			t.Skip("Skipping Windows-specific test")
 		}
@@ -457,7 +457,7 @@ func TestReadBackendModulesFromConfig_Volumes(t *testing.T) {
 		}
 	})
 
-	t.Run("EmptyVolumes", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_Volumes_EmptyVolumes", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -485,7 +485,7 @@ func TestReadBackendModulesFromConfig_Volumes(t *testing.T) {
 }
 
 func TestReadBackendModulesFromConfig_EdgeModules(t *testing.T) {
-	t.Run("EdgeModuleNoSidecar", func(t *testing.T) {
+	t.Run("TestReadBackendModulesFromConfig_EdgeModules_EdgeModuleNoSidecar", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
@@ -514,7 +514,7 @@ func TestReadBackendModulesFromConfig_EdgeModules(t *testing.T) {
 // ==================== ReadFrontendModulesFromConfig Tests ====================
 
 func TestReadFrontendModulesFromConfig_EmptyConfig(t *testing.T) {
-	t.Run("NoFrontendModules", func(t *testing.T) {
+	t.Run("TestReadFrontendModulesFromConfig_EmptyConfig_NoFrontendModules", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                        "test-action",
@@ -534,7 +534,7 @@ func TestReadFrontendModulesFromConfig_EmptyConfig(t *testing.T) {
 }
 
 func TestReadFrontendModulesFromConfig_DefaultProperties(t *testing.T) {
-	t.Run("NilValueCreatesDefault", func(t *testing.T) {
+	t.Run("TestReadFrontendModulesFromConfig_DefaultProperties_NilValueCreatesDefault", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                        "test-action",
@@ -556,7 +556,7 @@ func TestReadFrontendModulesFromConfig_DefaultProperties(t *testing.T) {
 		assert.Nil(t, module.ModuleVersion)
 	})
 
-	t.Run("WithVersion", func(t *testing.T) {
+	t.Run("TestReadFrontendModulesFromConfig_DefaultProperties_WithVersion", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name: "test-action",
@@ -580,7 +580,7 @@ func TestReadFrontendModulesFromConfig_DefaultProperties(t *testing.T) {
 		assert.Equal(t, "2.0.0", *module.ModuleVersion)
 	})
 
-	t.Run("WithDeployModuleFalse", func(t *testing.T) {
+	t.Run("TestReadFrontendModulesFromConfig_DefaultProperties_WithDeployModuleFalse", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name: "test-action",
@@ -603,7 +603,7 @@ func TestReadFrontendModulesFromConfig_DefaultProperties(t *testing.T) {
 		assert.False(t, module.DeployModule)
 	})
 
-	t.Run("WithLocalDescriptor", func(t *testing.T) {
+	t.Run("TestReadFrontendModulesFromConfig_DefaultProperties_WithLocalDescriptor", func(t *testing.T) {
 		// Arrange
 		tmpFile := filepath.Join(t.TempDir(), "frontend-descriptor.json")
 		err := os.WriteFile(tmpFile, []byte(`{}`), 0600)
@@ -630,7 +630,7 @@ func TestReadFrontendModulesFromConfig_DefaultProperties(t *testing.T) {
 		assert.Equal(t, tmpFile, module.LocalDescriptorPath)
 	})
 
-	t.Run("InvalidLocalDescriptor", func(t *testing.T) {
+	t.Run("TestReadFrontendModulesFromConfig_DefaultProperties_InvalidLocalDescriptor", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name: "test-action",
@@ -654,7 +654,7 @@ func TestReadFrontendModulesFromConfig_DefaultProperties(t *testing.T) {
 }
 
 func TestReadFrontendModulesFromConfig_CustomModules(t *testing.T) {
-	t.Run("BothFrontendAndCustom", func(t *testing.T) {
+	t.Run("TestReadFrontendModulesFromConfig_CustomModules_BothFrontendAndCustom", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                        "test-action",

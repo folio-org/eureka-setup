@@ -21,7 +21,6 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -48,7 +47,7 @@ var undeployApplicationCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		helpers.LogCompletion(run.Config.Action.Name, start)
+		slog.Info(run.Config.Action.Name, "text", "Command completed", "duration", time.Since(start))
 
 		return nil
 	},

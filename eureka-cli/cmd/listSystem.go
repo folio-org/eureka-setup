@@ -19,7 +19,6 @@ import (
 	"os/exec"
 
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +38,7 @@ var listSystemCmd = &cobra.Command{
 }
 
 func (run *Run) ListSystem() error {
-	return helpers.Exec(exec.Command("docker", "compose", "--project-name", "eureka", "ps", "--all"))
+	return run.Config.ExecSvc.Exec(exec.Command("docker", "compose", "--project-name", "eureka", "ps", "--all"))
 }
 
 func init() {

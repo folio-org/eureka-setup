@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"log/slog"
 	"time"
 
 	"github.com/folio-org/eureka-cli/action"
@@ -47,7 +48,7 @@ var deployApplicationCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		helpers.LogCompletion(run.Config.Action.Name, start)
+		slog.Info(run.Config.Action.Name, "text", "Command completed", "duration", time.Since(start))
 
 		return nil
 	},

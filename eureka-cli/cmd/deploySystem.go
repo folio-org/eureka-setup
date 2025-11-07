@@ -63,7 +63,7 @@ func (run *Run) DeploySystem() error {
 	if err != nil {
 		return err
 	}
-	if err := helpers.ExecFromDir(exec.Command("docker", subCommand...), dir); err != nil {
+	if err := run.Config.ExecSvc.ExecFromDir(exec.Command("docker", subCommand...), dir); err != nil {
 		return err
 	}
 	slog.Info(run.Config.Action.Name, "text", "WAITING FOR SYSTEM CONTAINERS TO BECOME READY")

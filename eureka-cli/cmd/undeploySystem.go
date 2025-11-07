@@ -20,7 +20,6 @@ import (
 	"os/exec"
 
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +41,7 @@ var undeploySystemCmd = &cobra.Command{
 func (run *Run) UndeploySystem() error {
 	slog.Info(run.Config.Action.Name, "text", "UNDEPLOYING SYSTEM CONTAINERS")
 	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "down", "--volumes", "--remove-orphans")
-	return helpers.Exec(preparedCommand)
+	return run.Config.ExecSvc.Exec(preparedCommand)
 }
 
 func init() {

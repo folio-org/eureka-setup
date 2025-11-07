@@ -48,12 +48,12 @@ func (run *Run) UndeployAdditionalSystem() error {
 	}
 
 	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "stop"}, finalRequiredContainers...)
-	if err := helpers.Exec(exec.Command("docker", subCommand...)); err != nil {
+	if err := run.Config.ExecSvc.Exec(exec.Command("docker", subCommand...)); err != nil {
 		return err
 	}
 
 	subCommand = append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "rm", "--volumes", "--force"}, finalRequiredContainers...)
-	return helpers.Exec(exec.Command("docker", subCommand...))
+	return run.Config.ExecSvc.Exec(exec.Command("docker", subCommand...))
 }
 
 func init() {

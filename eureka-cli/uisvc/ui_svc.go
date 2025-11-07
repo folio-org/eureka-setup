@@ -10,6 +10,7 @@ import (
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/dockerclient"
+	"github.com/folio-org/eureka-cli/execsvc"
 	"github.com/folio-org/eureka-cli/gitclient"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/tenantsvc"
@@ -39,6 +40,7 @@ type UIContainerManager interface {
 // UISvc provides functionality for building and deploying UI modules
 type UISvc struct {
 	Action       *action.Action
+	ExecSvc      execsvc.CommandRunner
 	GitClient    gitclient.GitClientRunner
 	DockerClient dockerclient.DockerClientRunner
 	TenantSvc    tenantsvc.TenantProcessor
@@ -46,10 +48,17 @@ type UISvc struct {
 
 // New creates a new UISvc instance
 func New(action *action.Action,
+	execSvc execsvc.CommandRunner,
 	gitClient gitclient.GitClientRunner,
 	dockerClient dockerclient.DockerClientRunner,
 	tenantSvc tenantsvc.TenantProcessor) *UISvc {
-	return &UISvc{Action: action, GitClient: gitClient, DockerClient: dockerClient, TenantSvc: tenantSvc}
+	return &UISvc{
+		Action:       action,
+		ExecSvc:      execSvc,
+		GitClient:    gitClient,
+		DockerClient: dockerClient,
+		TenantSvc:    tenantSvc,
+	}
 }
 
 func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
@@ -115,7 +124,7 @@ func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error)
 	}
 
 	slog.Info(us.Action.Name, "text", "Building UI from a Dockerfile")
-	err = helpers.ExecFromDir(exec.Command("docker", "build", "--tag", finalImageName,
+	err = us.ExecSvc.ExecFromDir(exec.Command("docker", "build", "--tag", finalImageName,
 		"--build-arg", fmt.Sprintf("OKAPI_URL=%s", constant.KongExternalHTTP),
 		"--build-arg", fmt.Sprintf("TENANT_ID=%s", tenantName),
 		"--file", "./docker/Dockerfile",
@@ -133,7 +142,7 @@ func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error)
 func (us *UISvc) DeployContainer(tenantName string, imageName string, externalPort int) error {
 	slog.Info(us.Action.Name, "text", "Deploying UI container for tenant", "tenant", tenantName)
 	containerName := fmt.Sprintf("eureka-platform-complete-ui-%s", tenantName)
-	err := helpers.Exec(exec.Command("docker", "run", "--name", containerName,
+	err := us.ExecSvc.Exec(exec.Command("docker", "run", "--name", containerName,
 		"--hostname", containerName,
 		"--publish", fmt.Sprintf("%d:80", externalPort),
 		"--restart", "unless-stopped",
@@ -148,7 +157,7 @@ func (us *UISvc) DeployContainer(tenantName string, imageName string, externalPo
 	}
 
 	slog.Info(us.Action.Name, "text", "Connecting UI container for tenant to network", "tenant", tenantName, "network", constant.NetworkID)
-	err = helpers.Exec(exec.Command("docker", "network", "connect", constant.NetworkID, containerName))
+	err = us.ExecSvc.Exec(exec.Command("docker", "network", "connect", constant.NetworkID, containerName))
 	if err != nil {
 		return err
 	}

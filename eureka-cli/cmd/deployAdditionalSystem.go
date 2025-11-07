@@ -55,7 +55,7 @@ func (run *Run) DeployAdditionalSystem() error {
 	}
 
 	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}, finalRequiredContainers...)
-	if err := helpers.ExecFromDir(exec.Command("docker", subCommand...), dir); err != nil {
+	if err := run.Config.ExecSvc.ExecFromDir(exec.Command("docker", subCommand...), dir); err != nil {
 		return err
 	}
 	slog.Info(run.Config.Action.Name, "text", "WAITING FOR ADDITIONAL SYSTEM CONTAINERS TO BECOME READY")

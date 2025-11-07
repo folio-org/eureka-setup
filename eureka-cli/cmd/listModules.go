@@ -23,7 +23,6 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -44,7 +43,7 @@ var listModulesCmd = &cobra.Command{
 
 func (run *Run) ListModules() error {
 	filter := fmt.Sprintf("name=%s", run.createFilter(actionParams.ModuleName, actionParams.ModuleType, actionParams.All))
-	return helpers.Exec(exec.Command("docker", "container", "ls", "--all", "--filter", filter))
+	return run.Config.ExecSvc.Exec(exec.Command("docker", "container", "ls", "--all", "--filter", filter))
 }
 
 func (run *Run) createFilter(moduleName string, moduleType string, all bool) string {

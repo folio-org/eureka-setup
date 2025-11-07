@@ -44,7 +44,7 @@ var buildSystemCmd = &cobra.Command{
 		if err := run.BuildSystem(); err != nil {
 			return err
 		}
-		helpers.LogCompletion(run.Config.Action.Name, start)
+		slog.Info(run.Config.Action.Name, "text", "Command completed", "duration", time.Since(start))
 
 		return nil
 	},
@@ -90,7 +90,7 @@ func (run *Run) BuildSystem() error {
 		return err
 	}
 
-	return helpers.ExecFromDir(exec.Command("docker", subCommand...), dir)
+	return run.Config.ExecSvc.ExecFromDir(exec.Command("docker", subCommand...), dir)
 }
 
 func init() {

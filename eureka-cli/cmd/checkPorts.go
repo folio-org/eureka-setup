@@ -68,7 +68,7 @@ func (run *Run) deployNetcatContainer() error {
 		return err
 	}
 
-	return helpers.ExecFromDir(preparedCommand, dir)
+	return run.Config.ExecSvc.ExecFromDir(preparedCommand, dir)
 }
 
 func (run *Run) getDeployedModules() ([]container.Summary, error) {
@@ -93,10 +93,10 @@ func (run *Run) getDeployedModules() ([]container.Summary, error) {
 func (run *Run) runNetcat(modules []container.Summary) {
 	slog.Info(run.Config.Action.Name, "text", "Running netcat -zv [container] [private port]")
 	for _, module := range modules {
-		moduleName := fmt.Sprintf("%s.eureka", strings.ReplaceAll(module.Names[0], "/", ""))
+		name := fmt.Sprintf("%s.eureka", strings.ReplaceAll(module.Names[0], "/", ""))
 		for _, portPair := range module.Ports {
-			modulePrivatePort := strconv.Itoa(int(portPair.PrivatePort))
-			helpers.ExecIgnoreError(exec.Command("docker", "exec", "-i", "netcat", "nc", "-zv", moduleName, modulePrivatePort))
+			privatePort := strconv.Itoa(int(portPair.PrivatePort))
+			run.Config.ExecSvc.ExecIgnoreError(exec.Command("docker", "exec", "-i", "netcat", "nc", "-zv", name, privatePort))
 		}
 	}
 }
