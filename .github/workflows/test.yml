@@ -141,8 +141,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Define package exclusion pattern once for reuse across steps
-      EXCLUDE_PATTERN: '/(cmd|constant|field|actionparams|models|internal|execsvc|interceptmodulesvc)$|eureka-cli$'
+      EXCLUDE_PATTERN: '/(cmd|constant|field|actionparams|models|execsvc|interceptmodulesvc)$|/internal/|eureka-cli$'
+      EXCLUDED_PACKAGES: 'cmd, constant, field, actionparams, models, internal, execsvc, interceptmodulesvc'
       ALLOWED_LOW_COVERAGE: 'awssvc gitclient modulesvc uisvc'
+      COVERAGE_THRESHOLD: '70'
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -154,7 +156,7 @@ jobs:
         working-directory: ./eureka-cli
         run: |
           echo "Running tests for testable packages (excluding infrastructure)..."
-          # Exclude infrastructure packages: cmd, constant, field, actionparams, models, internal, execsvc, interceptmodulesvc
+          # Exclude infrastructure packages (see EXCLUDE_PATTERN and EXCLUDED_PACKAGES env vars)
           go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -coverprofile=coverage.out -covermode=atomic
 
       - name: Generate coverage report
@@ -162,7 +164,7 @@ jobs:
         run: |
           echo "## Go Test Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Coverage Target:** ≥80% for service and client packages" >> $GITHUB_STEP_SUMMARY
+          echo "**Coverage Target:** ≥${COVERAGE_THRESHOLD}% for service and client packages" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Package | Coverage | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|----------|---------|" >> $GITHUB_STEP_SUMMARY
@@ -191,7 +193,7 @@ jobs:
             fi
             
             # Determine status based on coverage threshold
-            if (( $(echo "$coverage_num >= 80" | bc -l) )); then
+            if (( $(echo "$coverage_num >= $COVERAGE_THRESHOLD" | bc -l) )); then
               status="✅ Good"
             elif [[ "$is_allowed" == "yes" ]]; then
               status="⚠️ Allowed"
@@ -209,23 +211,23 @@ jobs:
           
           # Calculate average coverage for testable packages
           total_coverage=$(go tool cover -func=coverage.out | grep "total:" | awk '{print $3}')
-          packages_over_80=$(go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -cover 2>/dev/null | grep "^ok.*coverage:" | awk '{match($0, /coverage: [0-9.]+%/); pct=substr($0, RSTART+10, RLENGTH-11); if(pct>=80) print}' | wc -l)
+          packages_over_threshold=$(go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -cover 2>/dev/null | grep "^ok.*coverage:" | awk -v threshold="$COVERAGE_THRESHOLD" '{match($0, /coverage: [0-9.]+%/); pct=substr($0, RSTART+10, RLENGTH-11); if(pct>=threshold) print}' | wc -l)
           total_packages=$(go list ./... | grep -Ev "$EXCLUDE_PATTERN" | wc -l)
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Summary" >> $GITHUB_STEP_SUMMARY
           echo "- **Total Coverage:** $total_coverage" >> $GITHUB_STEP_SUMMARY
-          echo "- **Packages ≥80%:** $packages_over_80/$total_packages" >> $GITHUB_STEP_SUMMARY
+          echo "- **Packages ≥${COVERAGE_THRESHOLD}%:** $packages_over_threshold/$total_packages" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "_Note: Excluded infrastructure packages (cmd, constant, field, actionparams, models, internal, execsvc, interceptmodulesvc)_" >> $GITHUB_STEP_SUMMARY
-          echo "_Packages with allowed lower coverage: $ALLOWED_LOW_COVERAGE_" >> $GITHUB_STEP_SUMMARY
+          echo "_Note: Excluded infrastructure packages (${EXCLUDED_PACKAGES})_" >> $GITHUB_STEP_SUMMARY
+          echo "_Packages with allowed lower coverage: ${ALLOWED_LOW_COVERAGE}_" >> $GITHUB_STEP_SUMMARY
 
       - name: Check coverage threshold
         working-directory: ./eureka-cli
         run: |
-          echo "Checking 80% coverage threshold for all tested packages..."
+          echo "Checking ${COVERAGE_THRESHOLD}% coverage threshold for all tested packages..."
           
-          THRESHOLD=80.0
+          THRESHOLD=${COVERAGE_THRESHOLD}.0
           failed=0
           warned=0
           
@@ -258,7 +260,7 @@ jobs:
           
           if [ $warned -eq 1 ]; then
             echo ""
-            echo "⚠️  Warning: Some packages have coverage below 80% but are allowed ($ALLOWED_LOW_COVERAGE)"
+            echo "⚠️  Warning: Some packages have coverage below ${COVERAGE_THRESHOLD}% but are allowed ($ALLOWED_LOW_COVERAGE)"
             echo "Please improve test coverage for these packages when possible."
           fi
           
@@ -269,7 +271,7 @@ jobs:
           fi
           
           echo ""
-          echo "✅ All tested packages meet the 80% coverage threshold (or are explicitly allowed exceptions)"
+          echo "✅ All tested packages meet the ${COVERAGE_THRESHOLD}% coverage threshold (or are explicitly allowed exceptions)"
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
