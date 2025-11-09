@@ -2,7 +2,7 @@
 
 ## Purpose
 
-- A CLI to deploy a local Eureka development environment
+- A CLI to orchestrate the deployment of a local Eureka-based development environment
 
 ## Prerequisites
 
@@ -11,15 +11,19 @@
   - [Rancher Desktop](https://rancherdesktop.io/) container daemon: last development-tested version is `v1.20.1`
     - Enable **dockerd (Moby)** container engine
     - Disable **Check for updates automatically**
-- Configure hosts:
-  - Add `127.0.0.1 postgres.eureka` entry to `/etc/hosts`
-  - Add `127.0.0.1 kafka.eureka` entry to `/etc/hosts`
-  - Add `127.0.0.1 vault.eureka` entry to `/etc/hosts`
-  - Add `127.0.0.1 keycloak.eureka` entry to `/etc/hosts`
-  - Add `127.0.0.1 kong.eureka` entry to `/etc/hosts`
+- Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc\hosts`):
+  - **Option 1 - Automated (recommended):**
+    - **Linux/macOS:** `sudo ./misc/add-hosts.sh`
+    - **Windows:** Open PowerShell as Administrator and run: `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process; .\misc\add-hosts.ps1`
+  - **Option 2 - Manual:** Add the following entries:
+    - `127.0.0.1 postgres.eureka`
+    - `127.0.0.1 kafka.eureka`
+    - `127.0.0.1 vault.eureka`
+    - `127.0.0.1 keycloak.eureka`
+    - `127.0.0.1 kong.eureka`
 - Monitor using system components:
   - [Keycloak](http://keycloak.eureka:8080) Admin Console: admin/admin
-  - [Vault](http://localhost:8200) UI: Find a Vault root token in the container logs using `docker logs vault` or use `getVaultRootToken` command
+  - [Vault](http://localhost:8200) UI: Find a Vault root token using `eureka-cli getVaultRootToken` command
   - [Kafka](http://localhost:9080) UI: No auth
   - [Kong](http://localhost:8002) Admin GUI: No auth
   - [MinIO](http://localhost:9001) Console: minioadmin/minioadmin

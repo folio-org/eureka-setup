@@ -8,4 +8,4 @@
 
 ## Content
 
-- Eureka CLI (under **/eureka-cli**), a CLI written in GO to automate the deployment of both UI and Backend modules locally
+- **Eureka CLI**: A CLI to orchestrate the deployment of a local Eureka-based development environment

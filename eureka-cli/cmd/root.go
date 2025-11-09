@@ -37,7 +37,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "eureka-cli",
 	Short: "Eureka CLI",
-	Long:  `Eureka CLI to deploy a local development environment.`,
+	Long:  `Eureka CLI orchestrates the deployment of a local Eureka-based development environment.`,
 }
 
 func Execute(mainEmbedFS *embed.FS) {
