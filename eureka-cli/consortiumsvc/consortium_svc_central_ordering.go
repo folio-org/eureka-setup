@@ -54,13 +54,11 @@ func (cs *ConsortiumSvc) getEnableCentralOrderingByKey(centralTenant string, key
 	if err := cs.HTTPClient.GetRetryReturnStruct(requestURL, headers, &response); err != nil {
 		return false, err
 	}
-
 	if len(response.Settings) == 0 {
 		return false, nil
 	}
 
-	value := response.Settings[0].Value
-	enableCentralOrdering, err := strconv.ParseBool(value)
+	enableCentralOrdering, err := strconv.ParseBool(response.Settings[0].Value)
 	if err != nil {
 		return false, err
 	}

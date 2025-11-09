@@ -60,8 +60,6 @@ func (run *Run) CreateConsortium() error {
 			return errors.ConsortiumMissingCentralTenant(consortium)
 		}
 
-		consortiumTenants := run.Config.ConsortiumSvc.GetSortedConsortiumTenants(consortium)
-		consortiumUsers := run.Config.ConsortiumSvc.GetConsortiumUsers(consortium)
 		keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(centralTenant)
 		if err != nil {
 			return err
@@ -73,6 +71,8 @@ func (run *Run) CreateConsortium() error {
 		if err != nil {
 			return err
 		}
+		consortiumTenants := run.Config.ConsortiumSvc.GetSortedConsortiumTenants(consortium)
+		consortiumUsers := run.Config.ConsortiumSvc.GetConsortiumUsers(consortium)
 
 		slog.Info(run.Config.Action.Name, "text", "ADDING TENANTS TO CONSORTIUM", "tenants", consortiumTenants, "count", len(consortiumTenants), "consortium", consortium)
 		adminUsername := run.Config.ConsortiumSvc.GetAdminUsername(centralTenant, consortiumUsers)

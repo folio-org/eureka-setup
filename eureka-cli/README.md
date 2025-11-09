@@ -79,7 +79,6 @@ Available flags:
 | `--onlyRequired`    | `-q`  | Use only required system containers (deploySystem, deployApplication)                    |
 | `--overwriteFiles`  | `-o`  | Overwrite files in .eureka home directory                                                |
 | `--profile`         | `-p`  | Select profile (combined, combined-native, export, search, edge, ecs, ecs-single import) |
-| `--updateCloned`    | `-u`  | Update Git cloned projects                                                               |
 
 **Command-specific flags:**
 
@@ -102,6 +101,7 @@ Available flags:
 | `--singleTenant`       |       | Use for Single Tenant workflow                      | deployUi, buildAndPushUi                                                                |
 | `--skipCapabilitySets` |       | Skip refreshing capability sets                     | undeployApplication                                                                     |
 | `--tenant`             | `-t`  | Tenant name                                         | getKeycloakAccessToken, getEdgeApiKey, buildAndPushUi                                   |
+| `--updateCloned`       | `-u`  | Update Git cloned projects                          | buildSystem, deployApplication, deployUi, buildAndPushUi                                |
 | `--user`               | `-x`  | User for edge API key generation                    | getEdgeApiKey                                                                           |
 | `--versions`           | `-v`  | Number of versions to display                       | listModuleVersions                                                                      |
 
@@ -354,7 +354,7 @@ eureka-cli checkPorts
 
 > The CLI also exposes an internal port 5005 for all modules and sidecars that can be used for remote debugging in IntelliJ
 
-- Intercept command allows rerouting traffic from Kong service to a custom sidecar before reaching your local instance in IntelliJ
+- Intercept command allows rerouting traffic from a Kong service to a custom sidecar before reaching your local instance in IntelliJ
 - Start your local module instance in IntelliJ with correct environment variables and JVM flags
 
 ![CLI Intercept Module](images/cli_intercept_module_1.png)

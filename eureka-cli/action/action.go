@@ -147,8 +147,7 @@ func getConfigGatewayURL(actionName string) (gatewayURL string, err error) {
 	}
 
 	hostname := viper.GetString(field.ApplicationGatewayHostname)
-	err = helpers.IsHostnameReachable(actionName, hostname)
-	if err != nil {
+	if err = helpers.IsHostnameReachable(actionName, hostname); err != nil {
 		slog.Warn(actionName, "text", "Retrieving config gateway hostname was unsuccessful", "error", err)
 		return "", err
 	}
@@ -163,8 +162,7 @@ func getConfigGatewayURL(actionName string) (gatewayURL string, err error) {
 }
 
 func getDefaultGatewayURL(actionName string) (gatewayURL string, err error) {
-	err = helpers.IsHostnameReachable(actionName, constant.DockerHostname)
-	if err != nil {
+	if err = helpers.IsHostnameReachable(actionName, constant.DockerHostname); err != nil {
 		slog.Warn(actionName, "text", "Retrieving default gateway URL was unsuccessful", "error", err)
 		return "", nil
 	}

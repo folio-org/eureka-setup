@@ -6,9 +6,9 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/actionparams"
-	"github.com/folio-org/eureka-cli/consortiumsvc"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/errors"
+	"github.com/folio-org/eureka-cli/models"
 	"github.com/folio-org/eureka-cli/tenantsvc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -47,12 +47,12 @@ func (m *MockConsortiumSvc) CreateConsortium(centralTenant string, consortiumNam
 }
 
 // ConsortiumTenantHandler interface methods
-func (m *MockConsortiumSvc) GetSortedConsortiumTenants(consortiumName string) consortiumsvc.ConsortiumTenants {
+func (m *MockConsortiumSvc) GetSortedConsortiumTenants(consortiumName string) models.SortedConsortiumTenants {
 	args := m.Called(consortiumName)
-	return args.Get(0).(consortiumsvc.ConsortiumTenants)
+	return args.Get(0).(models.SortedConsortiumTenants)
 }
 
-func (m *MockConsortiumSvc) CreateConsortiumTenants(centralTenant string, consortiumID string, consortiumTenants consortiumsvc.ConsortiumTenants, adminUsername string) error {
+func (m *MockConsortiumSvc) CreateConsortiumTenants(centralTenant string, consortiumID string, consortiumTenants models.SortedConsortiumTenants, adminUsername string) error {
 	args := m.Called(centralTenant, consortiumID, consortiumTenants, adminUsername)
 	return args.Error(0)
 }

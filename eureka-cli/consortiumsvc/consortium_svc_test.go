@@ -545,7 +545,7 @@ func TestGetSortedConsortiumTenants_Success(t *testing.T) {
 	// Assert
 	assert.Len(t, result, 3)
 	// Central tenant should be first
-	assert.Equal(t, "central", result[0].Tenant)
+	assert.Equal(t, "central", result[0].Name)
 	assert.Equal(t, 1, result[0].IsCentral)
 	// Member tenants should follow
 	assert.Equal(t, 0, result[1].IsCentral)
@@ -593,7 +593,7 @@ func TestGetSortedConsortiumTenants_OnlyCentralTenant(t *testing.T) {
 
 	// Assert
 	assert.Len(t, result, 1)
-	assert.Equal(t, "central-tenant", result[0].Tenant)
+	assert.Equal(t, "central-tenant", result[0].Name)
 	assert.Equal(t, 1, result[0].IsCentral)
 }
 
@@ -649,10 +649,10 @@ func TestGetSortedConsortiumTenants_NilPropertiesHandled(t *testing.T) {
 	// Assert
 	assert.Len(t, result, 2)
 	// Central tenant should be first
-	assert.Equal(t, "tenant-with-properties", result[0].Tenant)
+	assert.Equal(t, "tenant-with-properties", result[0].Name)
 	assert.Equal(t, 1, result[0].IsCentral)
 	// Tenant without central property should have IsCentral = 0
-	assert.Equal(t, "tenant-nil", result[1].Tenant)
+	assert.Equal(t, "tenant-nil", result[1].Name)
 	assert.Equal(t, 0, result[1].IsCentral)
 }
 
@@ -684,7 +684,7 @@ func TestGetSortedConsortiumTenants_MixedConsortiums(t *testing.T) {
 	// Assert
 	// Only tenant-in-consortium should be included
 	assert.Len(t, result, 1)
-	assert.Equal(t, "tenant-in-consortium", result[0].Tenant)
+	assert.Equal(t, "tenant-in-consortium", result[0].Name)
 	assert.Equal(t, 1, result[0].IsCentral)
 }
 
@@ -717,7 +717,7 @@ func TestGetSortedConsortiumTenants_SortingOrder(t *testing.T) {
 	// Assert
 	assert.Len(t, result, 3)
 	// Central tenant should be first due to sorting by IsCentral descending
-	assert.Equal(t, "central", result[0].Tenant)
+	assert.Equal(t, "central", result[0].Name)
 	assert.Equal(t, 1, result[0].IsCentral)
 	// Member tenants follow (order between members may vary)
 	assert.Equal(t, 0, result[1].IsCentral)
@@ -746,7 +746,7 @@ func TestGetSortedConsortiumTenants_SkipsNilProperties(t *testing.T) {
 	// Assert
 	// Should only return tenant-valid, nil properties are skipped
 	assert.Len(t, result, 1)
-	assert.Equal(t, "tenant-valid", result[0].Tenant)
+	assert.Equal(t, "tenant-valid", result[0].Name)
 	assert.Equal(t, 1, result[0].IsCentral)
 }
 
@@ -761,8 +761,8 @@ func TestCreateConsortiumTenants_CentralTenant(t *testing.T) {
 	consortiumID := "consortium-123"
 	adminUsername := "admin-user"
 
-	consortiumTenants := consortiumsvc.ConsortiumTenants{
-		&consortiumsvc.ConsortiumTenant{Tenant: centralTenant, IsCentral: 1},
+	consortiumTenants := models.SortedConsortiumTenants{
+		&models.SortedConsortiumTenant{Name: centralTenant, IsCentral: 1},
 	}
 
 	// Mock getConsortiumTenantByIDAndName returns nil (not found)
@@ -798,7 +798,7 @@ func TestCreateConsortiumTenants_CentralTenant(t *testing.T) {
 	// Mock checkConsortiumTenantStatus
 	statusResponse := models.ConsortiumTenantStatus{
 		SetupStatus: "COMPLETED",
-		IsCentral:   1,
+		IsCentral:   true,
 	}
 
 	mockHTTP.On("GetRetryReturnStruct",
@@ -834,8 +834,8 @@ func TestCreateConsortiumTenants_MemberTenant(t *testing.T) {
 	adminUsername := "admin-user"
 	adminUserID := "admin-123"
 
-	consortiumTenants := consortiumsvc.ConsortiumTenants{
-		&consortiumsvc.ConsortiumTenant{Tenant: memberTenant, IsCentral: 0},
+	consortiumTenants := models.SortedConsortiumTenants{
+		&models.SortedConsortiumTenant{Name: memberTenant, IsCentral: 0},
 	}
 
 	// Mock getConsortiumTenantByIDAndName returns nil (not found)
@@ -877,7 +877,7 @@ func TestCreateConsortiumTenants_MemberTenant(t *testing.T) {
 	// Mock checkConsortiumTenantStatus
 	statusResponse := models.ConsortiumTenantStatus{
 		SetupStatus: "COMPLETED",
-		IsCentral:   0,
+		IsCentral:   false,
 	}
 
 	mockHTTP.On("GetRetryReturnStruct",
@@ -912,8 +912,8 @@ func TestCreateConsortiumTenants_AlreadyExists(t *testing.T) {
 	consortiumID := "consortium-123"
 	adminUsername := "admin-user"
 
-	consortiumTenants := consortiumsvc.ConsortiumTenants{
-		&consortiumsvc.ConsortiumTenant{Tenant: centralTenant, IsCentral: 1},
+	consortiumTenants := models.SortedConsortiumTenants{
+		&models.SortedConsortiumTenant{Name: centralTenant, IsCentral: 1},
 	}
 
 	// Mock getConsortiumTenantByIDAndName returns existing tenant
@@ -954,8 +954,8 @@ func TestCreateConsortiumTenants_GetTenantByIDError(t *testing.T) {
 	consortiumID := "consortium-123"
 	adminUsername := "admin-user"
 
-	consortiumTenants := consortiumsvc.ConsortiumTenants{
-		&consortiumsvc.ConsortiumTenant{Tenant: centralTenant, IsCentral: 1},
+	consortiumTenants := models.SortedConsortiumTenants{
+		&models.SortedConsortiumTenant{Name: centralTenant, IsCentral: 1},
 	}
 
 	mockHTTP.On("GetRetryReturnStruct",
@@ -985,8 +985,8 @@ func TestCreateConsortiumTenants_UserGetError(t *testing.T) {
 	consortiumID := "consortium-123"
 	adminUsername := "admin-user"
 
-	consortiumTenants := consortiumsvc.ConsortiumTenants{
-		&consortiumsvc.ConsortiumTenant{Tenant: memberTenant, IsCentral: 0},
+	consortiumTenants := models.SortedConsortiumTenants{
+		&models.SortedConsortiumTenant{Name: memberTenant, IsCentral: 0},
 	}
 
 	emptyTenantsResponse := models.ConsortiumTenantsResponse{
@@ -1027,8 +1027,8 @@ func TestCreateConsortiumTenants_PostError(t *testing.T) {
 	consortiumID := "consortium-123"
 	adminUsername := "admin-user"
 
-	consortiumTenants := consortiumsvc.ConsortiumTenants{
-		&consortiumsvc.ConsortiumTenant{Tenant: centralTenant, IsCentral: 1},
+	consortiumTenants := models.SortedConsortiumTenants{
+		&models.SortedConsortiumTenant{Name: centralTenant, IsCentral: 1},
 	}
 
 	emptyTenantsResponse := models.ConsortiumTenantsResponse{
@@ -1071,8 +1071,8 @@ func TestCreateConsortiumTenants_StatusCheckError(t *testing.T) {
 	consortiumID := "consortium-123"
 	adminUsername := "admin-user"
 
-	consortiumTenants := consortiumsvc.ConsortiumTenants{
-		&consortiumsvc.ConsortiumTenant{Tenant: centralTenant, IsCentral: 1},
+	consortiumTenants := models.SortedConsortiumTenants{
+		&models.SortedConsortiumTenant{Name: centralTenant, IsCentral: 1},
 	}
 
 	emptyTenantsResponse := models.ConsortiumTenantsResponse{
@@ -1265,12 +1265,12 @@ func TestEnableCentralOrdering_PostError(t *testing.T) {
 
 func TestConsortiumTenantString(t *testing.T) {
 	// Arrange & Act
-	central := consortiumsvc.ConsortiumTenant{
-		Tenant:    "central-tenant",
+	central := models.SortedConsortiumTenant{
+		Name:      "central-tenant",
 		IsCentral: 1,
 	}
-	member := consortiumsvc.ConsortiumTenant{
-		Tenant:    "member-tenant",
+	member := models.SortedConsortiumTenant{
+		Name:      "member-tenant",
 		IsCentral: 0,
 	}
 
@@ -1281,10 +1281,10 @@ func TestConsortiumTenantString(t *testing.T) {
 
 func TestConsortiumTenantsString(t *testing.T) {
 	// Arrange
-	tenants := consortiumsvc.ConsortiumTenants{
-		&consortiumsvc.ConsortiumTenant{Tenant: "tenant1", IsCentral: 1},
-		&consortiumsvc.ConsortiumTenant{Tenant: "tenant2", IsCentral: 0},
-		&consortiumsvc.ConsortiumTenant{Tenant: "tenant3", IsCentral: 0},
+	tenants := models.SortedConsortiumTenants{
+		&models.SortedConsortiumTenant{Name: "tenant1", IsCentral: 1},
+		&models.SortedConsortiumTenant{Name: "tenant2", IsCentral: 0},
+		&models.SortedConsortiumTenant{Name: "tenant3", IsCentral: 0},
 	}
 
 	// Act
@@ -1296,8 +1296,8 @@ func TestConsortiumTenantsString(t *testing.T) {
 
 func TestConsortiumTenantsString_Single(t *testing.T) {
 	// Arrange
-	tenants := consortiumsvc.ConsortiumTenants{
-		&consortiumsvc.ConsortiumTenant{Tenant: "tenant1", IsCentral: 1},
+	tenants := models.SortedConsortiumTenants{
+		&models.SortedConsortiumTenant{Name: "tenant1", IsCentral: 1},
 	}
 
 	// Act
@@ -1309,7 +1309,7 @@ func TestConsortiumTenantsString_Single(t *testing.T) {
 
 func TestConsortiumTenantsString_Empty(t *testing.T) {
 	// Arrange
-	tenants := consortiumsvc.ConsortiumTenants{}
+	tenants := models.SortedConsortiumTenants{}
 
 	// Act
 	result := tenants.String()

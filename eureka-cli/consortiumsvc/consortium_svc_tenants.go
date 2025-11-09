@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/folio-org/eureka-cli/constant"
@@ -16,42 +15,12 @@ import (
 
 // ConsortiumTenantHandler defines the interface for consortium tenant operations
 type ConsortiumTenantHandler interface {
-	GetSortedConsortiumTenants(consortiumName string) ConsortiumTenants
-	CreateConsortiumTenants(centralTenant string, consortiumID string, consortiumTenants ConsortiumTenants, adminUsername string) error
+	GetSortedConsortiumTenants(consortiumName string) models.SortedConsortiumTenants
+	CreateConsortiumTenants(centralTenant string, consortiumID string, consortiumTenants models.SortedConsortiumTenants, adminUsername string) error
 }
 
-// ConsortiumTenant represents a tenant within a consortium
-type ConsortiumTenant struct {
-	Consortium string
-	Tenant     string
-	IsCentral  int
-}
-
-// ConsortiumTenants represents a collection of consortium tenants
-type ConsortiumTenants []*ConsortiumTenant
-
-func (c ConsortiumTenant) String() string {
-	if c.IsCentral == 1 {
-		return fmt.Sprintf("%s (central)", c.Tenant)
-	}
-
-	return c.Tenant
-}
-
-func (c ConsortiumTenants) String() string {
-	var builder strings.Builder
-	for idx, value := range c {
-		builder.WriteString(value.Tenant)
-		if idx+1 < len(c) {
-			builder.WriteString(", ")
-		}
-	}
-
-	return builder.String()
-}
-
-func (cs *ConsortiumSvc) GetSortedConsortiumTenants(consortiumName string) ConsortiumTenants {
-	var consortiumTenants ConsortiumTenants
+func (cs *ConsortiumSvc) GetSortedConsortiumTenants(consortiumName string) models.SortedConsortiumTenants {
+	var consortiumTenants models.SortedConsortiumTenants
 	for tenantName, properties := range cs.Action.ConfigTenants {
 		if properties == nil {
 			continue
@@ -61,12 +30,11 @@ func (cs *ConsortiumSvc) GetSortedConsortiumTenants(consortiumName string) Conso
 		}
 
 		isCentral := cs.getSortableIsCentral(properties.(map[string]any))
-		consortiumTenants = append(consortiumTenants, &ConsortiumTenant{
-			Tenant:    tenantName,
+		consortiumTenants = append(consortiumTenants, &models.SortedConsortiumTenant{
+			Name:      tenantName,
 			IsCentral: isCentral,
 		})
 	}
-
 	sort.Slice(consortiumTenants, func(i, j int) bool {
 		return consortiumTenants[i].IsCentral > consortiumTenants[j].IsCentral
 	})
@@ -74,25 +42,25 @@ func (cs *ConsortiumSvc) GetSortedConsortiumTenants(consortiumName string) Conso
 	return consortiumTenants
 }
 
-func (cs *ConsortiumSvc) CreateConsortiumTenants(centralTenant string, consortiumID string, consortiumTenants ConsortiumTenants, adminUsername string) error {
+func (cs *ConsortiumSvc) CreateConsortiumTenants(centralTenant string, consortiumID string, consortiumTenants models.SortedConsortiumTenants, adminUsername string) error {
 	headers := helpers.TenantSecureApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
 	for _, consortiumTenant := range consortiumTenants {
 		payload, err := json.Marshal(map[string]any{
-			"id":        consortiumTenant.Tenant,
-			"code":      consortiumTenant.Tenant[0:3],
-			"name":      consortiumTenant.Tenant,
+			"id":        consortiumTenant.Name,
+			"code":      consortiumTenant.Name[0:3],
+			"name":      consortiumTenant.Name,
 			"isCentral": consortiumTenant.IsCentral,
 		})
 		if err != nil {
 			return err
 		}
 
-		existingTenant, err := cs.getConsortiumTenantByIDAndName(centralTenant, consortiumID, consortiumTenant.Tenant)
+		existingTenant, err := cs.getConsortiumTenantByIDAndName(centralTenant, consortiumID, consortiumTenant.Name)
 		if err != nil {
 			return err
 		}
 		if existingTenant != nil {
-			slog.Info(cs.Action.Name, "text", "Consortium tenant is already created", "tenant", consortiumTenant.Tenant)
+			slog.Info(cs.Action.Name, "text", "Consortium tenant is already created", "tenant", consortiumTenant.Name)
 			continue
 		}
 
@@ -106,15 +74,13 @@ func (cs *ConsortiumSvc) CreateConsortiumTenants(centralTenant string, consortiu
 			requestURL = fmt.Sprintf("/consortia/%s/tenants?adminUserId=%s", consortiumID, user.ID)
 		}
 
-		slog.Info(cs.Action.Name, "text", "Trying to create consortium tenant", "tenant", consortiumTenant.Tenant, "consortium", consortiumID)
+		slog.Info(cs.Action.Name, "text", "Trying to create consortium tenant", "tenant", consortiumTenant.Name, "consortium", consortiumID)
 		finalRequestURL := cs.Action.GetRequestURL(constant.KongPort, requestURL)
 		err = cs.HTTPClient.PostReturnNoContent(finalRequestURL, payload, headers)
 		if err != nil {
 			return err
 		}
-
-		err = cs.checkConsortiumTenantStatus(centralTenant, consortiumID, consortiumTenant.Tenant, headers)
-		if err != nil {
+		if err = cs.checkConsortiumTenantStatus(centralTenant, consortiumID, consortiumTenant.Name, headers); err != nil {
 			return err
 		}
 	}
@@ -130,11 +96,9 @@ func (cs *ConsortiumSvc) getConsortiumTenantByIDAndName(centralTenant string, co
 	if err := cs.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return nil, err
 	}
-
 	if len(decodedResponse.Tenants) == 0 {
 		return nil, nil
 	}
-
 	for _, t := range decodedResponse.Tenants {
 		if t.Name == tenant {
 			return t.Name, nil
@@ -145,10 +109,10 @@ func (cs *ConsortiumSvc) getConsortiumTenantByIDAndName(centralTenant string, co
 }
 
 func (cs *ConsortiumSvc) checkConsortiumTenantStatus(centralTenant string, consortiumID string, tenantName string, headers map[string]string) error {
-	requestURL := fmt.Sprintf("/consortia/%s/tenants/%s", consortiumID, tenantName)
+	requestURL := cs.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/consortia/%s/tenants/%s", consortiumID, tenantName))
 
 	var decodedResponse models.ConsortiumTenantStatus
-	if err := cs.HTTPClient.GetRetryReturnStruct(cs.Action.GetRequestURL(constant.KongPort, requestURL), headers, &decodedResponse); err != nil {
+	if err := cs.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return err
 	}
 
@@ -165,12 +129,13 @@ func (cs *ConsortiumSvc) checkConsortiumTenantStatus(centralTenant string, conso
 		if err := cs.checkConsortiumTenantStatus(centralTenant, consortiumID, tenantName, headers); err != nil {
 			return err
 		}
+
 		return nil
 	case FAILED:
 	case COMPLETED_WITH_ERRORS:
 		return errors.TenantNotCreated(tenantName)
 	case COMPLETED:
-		slog.Info(cs.Action.Name, "text", "Created consortium tenant", "tenant", tenantName, "isCentral", decodedResponse.IsCentral, "consortium", consortiumID)
+		slog.Info(cs.Action.Name, "text", "Created consortium tenant", "tenant", tenantName, "isCentral", decodedResponse.IsCentral)
 		return nil
 	}
 

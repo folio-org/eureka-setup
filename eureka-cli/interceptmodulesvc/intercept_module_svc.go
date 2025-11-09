@@ -44,7 +44,7 @@ func (is *InterceptModuleSvc) updateModuleDiscovery() error {
 }
 
 func (is *InterceptModuleSvc) undeployModuleAndSidecarPair() error {
-	slog.Info(is.Action.Name, "text", "UNDEPLOYING DEFAULT MODULE AND SIDECAR PAIR")
+	slog.Info(is.Action.Name, "text", "UNDEPLOYING MODULE AND SIDECAR PAIR")
 	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, is.Action.ConfigProfile, is.Action.Params.ModuleName)
 	if err := is.ModuleSvc.UndeployModuleByNamePattern(is.client, pattern); err != nil {
 		return err
