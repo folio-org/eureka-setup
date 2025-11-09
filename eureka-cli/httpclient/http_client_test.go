@@ -452,7 +452,7 @@ func TestDeleteWithBodyReturnStruct_Success(t *testing.T) {
 		body, _ := io.ReadAll(r.Body)
 		assert.Contains(t, string(body), "reason")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status": "deleted"}`))
+		_, _ = w.Write([]byte(`{"status": "deleted"}`))
 	}))
 	defer server.Close()
 
