@@ -51,7 +51,6 @@ func (cs *ConsortiumSvc) GetConsortiumByName(centralTenant string, consortiumNam
 	if err := cs.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return nil, err
 	}
-
 	if len(decodedResponse.Consortia) == 0 {
 		return nil, nil
 	}

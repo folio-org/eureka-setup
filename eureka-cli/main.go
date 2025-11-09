@@ -29,7 +29,8 @@ var (
 	//go:embed misc/folio-netcat
 	//go:embed misc/postgres
 	//go:embed misc/docker-compose.yaml
-	//go:embed misc/.env
+	//go:embed misc/add-hosts.ps1
+	//go:embed misc/add-hosts.sh
 	//go:embed *.yaml
 	embeddedFs embed.FS
 )
