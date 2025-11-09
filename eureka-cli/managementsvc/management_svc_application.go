@@ -2,9 +2,7 @@ package managementsvc
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"strings"
 
@@ -46,18 +44,10 @@ func New(action *action.Action, httpClient httpclient.HTTPClientRunner, tenantSv
 
 func (ms *ManagementSvc) GetApplications() (models.ApplicationsResponse, error) {
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, "/applications")
-	httpResponse, err := ms.HTTPClient.GetReturnResponse(requestURL, map[string]string{})
-	if err != nil {
-		return models.ApplicationsResponse{}, err
-	}
-	defer httpclient.CloseResponse(httpResponse)
-	if httpResponse == nil {
-		return models.ApplicationsResponse{}, nil
-	}
 
 	var applications models.ApplicationsResponse
-	err = json.NewDecoder(httpResponse.Body).Decode(&applications)
-	if err != nil && !errors.Is(err, io.EOF) {
+	err := ms.HTTPClient.GetReturnStruct(requestURL, map[string]string{}, &applications)
+	if err != nil {
 		return models.ApplicationsResponse{}, err
 	}
 
@@ -84,13 +74,12 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryExtract) err
 				continue
 			}
 
-			backendModule, okBackend := extract.BackendModules[module.Name]
-			frontendModule, okFrontend := extract.FrontendModules[module.Name]
-			if (!okBackend && !okFrontend) || (okBackend && !backendModule.DeployModule || okFrontend && !frontendModule.DeployModule) {
+			backendModule, existsBackend := extract.BackendModules[module.Name]
+			frontendModule, existsFrontend := extract.FrontendModules[module.Name]
+			if (!existsBackend && !existsFrontend) || (existsBackend && !backendModule.DeployModule || existsFrontend && !frontendModule.DeployModule) {
 				continue
 			}
-
-			if okBackend && backendModule.ModuleVersion != nil || okFrontend && frontendModule.ModuleVersion != nil {
+			if existsBackend && backendModule.ModuleVersion != nil || existsFrontend && frontendModule.ModuleVersion != nil {
 				if backendModule.ModuleVersion != nil {
 					module.Version = backendModule.ModuleVersion
 				} else if frontendModule.ModuleVersion != nil {
@@ -100,41 +89,25 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryExtract) err
 			}
 
 			moduleDescriptorURL := fmt.Sprintf("%s/_/proxy/modules/%s", extract.RegistryURLs[constant.FolioRegistry], module.ID)
-			isLocalBackendModule := okBackend && backendModule.LocalDescriptorPath != ""
-			isLocalFrontendModule := okFrontend && frontendModule.LocalDescriptorPath != ""
+			isLocalBackendModule := existsBackend && backendModule.LocalDescriptorPath != ""
+			isLocalFrontendModule := existsFrontend && frontendModule.LocalDescriptorPath != ""
 			isLocalModule := isLocalBackendModule || isLocalFrontendModule
-
 			if ms.Action.ConfigApplicationFetchDescriptors || isLocalModule {
-				if isLocalModule {
-					slog.Info(ms.Action.Name, "text", "Fetching local module descriptor from file path", "module", module.ID)
-					var moduleDescriptorPath string
-					if isLocalBackendModule {
-						moduleDescriptorPath = backendModule.LocalDescriptorPath
-					} else {
-						moduleDescriptorPath = frontendModule.LocalDescriptorPath
-					}
+				var descriptorPath string
+				if isLocalBackendModule {
+					descriptorPath = backendModule.LocalDescriptorPath
+				} else if isLocalFrontendModule {
+					descriptorPath = frontendModule.LocalDescriptorPath
+				}
 
-					var moduleDescriptorData map[string]any
-					err := helpers.ReadJsonFromFile(ms.Action.Name, moduleDescriptorPath, &moduleDescriptorData)
-					if err != nil {
-						return err
-					}
-					extract.ModuleDescriptors[module.ID] = moduleDescriptorData
-					slog.Info(ms.Action.Name, "text", "Successfully loaded module descriptor from local file path", "module", module.ID)
-				} else {
-					slog.Info(ms.Action.Name, "text", "Fetching module descriptor from URL", "module", module.ID, "url", moduleDescriptorURL)
-					var decodedResponse any
-					if err := ms.HTTPClient.GetRetryReturnStruct(moduleDescriptorURL, map[string]string{}, &decodedResponse); err != nil {
-						return err
-					}
-					extract.ModuleDescriptors[module.ID] = decodedResponse
-					slog.Info(ms.Action.Name, "text", "Successfully loaded module descriptor from the remote", "module", module.ID)
+				err := ms.FetchModuleDescriptor(extract, module.ID, moduleDescriptorURL, descriptorPath, isLocalModule)
+				if err != nil {
+					return err
 				}
 			}
 
-			if okBackend {
-				privatePort := backendModule.PrivatePort
-				backendModule := map[string]string{
+			if existsBackend {
+				newBackendModule := map[string]string{
 					"id":      module.ID,
 					"name":    module.Name,
 					"version": *module.Version,
@@ -142,19 +115,19 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryExtract) err
 				if ms.Action.ConfigApplicationFetchDescriptors || isLocalModule {
 					backendModuleDescriptors = append(backendModuleDescriptors, extract.ModuleDescriptors[module.ID])
 				} else {
-					backendModule["url"] = moduleDescriptorURL
+					newBackendModule["url"] = moduleDescriptorURL
 				}
-				backendModules = append(backendModules, backendModule)
+				backendModules = append(backendModules, newBackendModule)
 
-				sidecarURL := fmt.Sprintf("http://%s.eureka:%d", module.SidecarName, privatePort)
+				sidecarURL := fmt.Sprintf("http://%s.eureka:%d", module.SidecarName, backendModule.PrivatePort)
 				discoveryModules = append(discoveryModules, map[string]string{
 					"id":       module.ID,
 					"name":     module.Name,
 					"version":  *module.Version,
 					"location": sidecarURL,
 				})
-			} else if okFrontend {
-				frontendModule := map[string]string{
+			} else if existsFrontend {
+				newFrontendModule := map[string]string{
 					"id":      module.ID,
 					"name":    module.Name,
 					"version": *module.Version,
@@ -162,9 +135,9 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryExtract) err
 				if ms.Action.ConfigApplicationFetchDescriptors {
 					frontendModuleDescriptors = append(frontendModuleDescriptors, extract.ModuleDescriptors[module.ID])
 				} else {
-					frontendModule["url"] = moduleDescriptorURL
+					newFrontendModule["url"] = moduleDescriptorURL
 				}
-				frontendModules = append(frontendModules, frontendModule)
+				frontendModules = append(frontendModules, newFrontendModule)
 			}
 		}
 	}
@@ -185,11 +158,13 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryExtract) err
 		return err
 	}
 
-	err = ms.HTTPClient.PostReturnNoContent(ms.Action.GetRequestURL(constant.KongPort, "/applications?check=true"), payload1, map[string]string{})
+	var appResponse models.ApplicationDescriptor
+	appRequestURL := ms.Action.GetRequestURL(constant.KongPort, "/applications?check=true")
+	err = ms.HTTPClient.PostReturnStruct(appRequestURL, payload1, map[string]string{}, &appResponse)
 	if err != nil {
 		return err
 	}
-	slog.Info(ms.Action.Name, "text", "Created application", "id", ms.Action.ConfigApplicationID, "backendModules", len(backendModules), "frontendModules", len(frontendModules))
+	slog.Info(ms.Action.Name, "text", "Created application", "id", appResponse.ID, "backendModules", len(backendModules), "frontendModules", len(frontendModules))
 
 	if len(discoveryModules) > 0 {
 		payload2, err := json.Marshal(map[string]any{
@@ -199,41 +174,63 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryExtract) err
 			return err
 		}
 
-		err = ms.HTTPClient.PostReturnNoContent(ms.Action.GetRequestURL(constant.KongPort, "/modules/discovery"), payload2, map[string]string{})
+		var discoveryResponse models.ModuleDiscoveryResponse
+		discoveryRequestURL := ms.Action.GetRequestURL(constant.KongPort, "/modules/discovery")
+		err = ms.HTTPClient.PostReturnStruct(discoveryRequestURL, payload2, map[string]string{}, &discoveryResponse)
 		if err != nil {
 			return err
 		}
-		slog.Info(ms.Action.Name, "text", "Created module discovery", "count", len(discoveryModules))
+		slog.Info(ms.Action.Name, "text", "Created module discovery", "count", len(discoveryModules), "totalRecords", discoveryResponse.TotalRecords)
 	}
+
+	return nil
+}
+
+func (ms *ManagementSvc) FetchModuleDescriptor(extract *models.RegistryExtract, moduleID, moduleDescriptorURL, localPath string, isLocalModule bool) error {
+	if isLocalModule {
+		slog.Info(ms.Action.Name, "text", "Fetching local module descriptor", "module", moduleID)
+
+		var moduleDescriptorData map[string]any
+		err := helpers.ReadJsonFromFile(ms.Action.Name, localPath, &moduleDescriptorData)
+		if err != nil {
+			return err
+		}
+		extract.ModuleDescriptors[moduleID] = moduleDescriptorData
+		slog.Info(ms.Action.Name, "text", "Loaded module descriptor", "module", moduleID)
+
+		return nil
+	}
+	slog.Info(ms.Action.Name, "text", "Fetching module descriptor", "module", moduleID, "url", moduleDescriptorURL)
+
+	var decodedResponse any
+	if err := ms.HTTPClient.GetRetryReturnStruct(moduleDescriptorURL, map[string]string{}, &decodedResponse); err != nil {
+		return err
+	}
+	extract.ModuleDescriptors[moduleID] = decodedResponse
+	slog.Info(ms.Action.Name, "text", "Loaded module descriptor", "module", moduleID, "url", moduleDescriptorURL)
 
 	return nil
 }
 
 func (ms *ManagementSvc) RemoveApplication(applicationID string) error {
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/applications/%s", applicationID))
-	err := ms.HTTPClient.Delete(requestURL, map[string]string{})
+
+	var appResponse models.ApplicationDescriptor
+	err := ms.HTTPClient.DeleteReturnStruct(requestURL, map[string]string{}, &appResponse)
 	if err != nil {
 		return err
 	}
-	slog.Info(ms.Action.Name, "text", "Removed application", "id", applicationID)
+	slog.Info(ms.Action.Name, "text", "Removed application", "id", appResponse.ID)
 
 	return nil
 }
 
 func (ms *ManagementSvc) GetModuleDiscovery(name string) (models.ModuleDiscoveryResponse, error) {
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/modules/discovery?query=name==%s&limit=1", name))
-	httpResponse, err := ms.HTTPClient.GetReturnResponse(requestURL, map[string]string{})
-	if err != nil {
-		return models.ModuleDiscoveryResponse{}, err
-	}
-	defer httpclient.CloseResponse(httpResponse)
-	if httpResponse == nil {
-		return models.ModuleDiscoveryResponse{}, nil
-	}
 
 	var moduleDiscovery models.ModuleDiscoveryResponse
-	err = json.NewDecoder(httpResponse.Body).Decode(&moduleDiscovery)
-	if err != nil && !errors.Is(err, io.EOF) {
+	err := ms.HTTPClient.GetReturnStruct(requestURL, map[string]string{}, &moduleDiscovery)
+	if err != nil {
 		return models.ModuleDiscoveryResponse{}, err
 	}
 
@@ -262,11 +259,13 @@ func (ms *ManagementSvc) UpdateModuleDiscovery(id string, restore bool, privateP
 	}
 
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/modules/%s/discovery", id))
-	err = ms.HTTPClient.PutReturnNoContent(requestURL, payload, map[string]string{})
+
+	var discoveryResponse models.ModuleDiscovery
+	err = ms.HTTPClient.PutReturnStruct(requestURL, payload, map[string]string{}, &discoveryResponse)
 	if err != nil {
 		return err
 	}
-	slog.Info(ms.Action.Name, "text", "Updated module discovery", "module", name, "url", sidecarURL)
+	slog.Info(ms.Action.Name, "text", "Updated module discovery", "module", discoveryResponse.Name, "location", discoveryResponse.Location)
 
 	return nil
 }

@@ -67,46 +67,39 @@ Available flags:
 
 **Global flags (available for all commands):**
 
-| Short | Long                | Description                                                                              |
-|-------|---------------------|------------------------------------------------------------------------------------------|
-| `-p`  | `--profile`         | Select profile (combined, combined-native, export, search, edge, ecs, ecs-single import) |
-| `-c`  | `--configFile`      | Specify config file path                                                                 |
-| `-o`  | `--overwriteFiles`  | Overwrite files in .eureka home directory                                                |
-| `-d`  | `--enableDebug`     | Enable debug mode                                                                        |
-| `-R`  | `--onlyRequired`    | Use only required system containers                                                      |
-| `-b`  | `--buildImages`     | Build Docker images                                                                      |
-| `-u`  | `--updateCloned`    | Update Git cloned projects                                                               |
-| Short | Long                | Description                                                             |
-|-------|---------------------|------------------------------------------------------------------------ |
-| `-p`  | `--profile`         | Select profile (combined, export, search, edge, ecs, ecs-single import) |
-| `-c`  | `--configFile`      | Specify config file path                                                |
-| `-o`  | `--overwriteFiles`  | Overwrite files in .eureka home directory                               |
-| `-d`  | `--enableDebug`     | Enable debug mode                                                       |
-| `-q`  | `--onlyRequired`    | Use only required system containers (deploySystem, deployApplication)   |
-| `-b`  | `--buildImages`     | Build Docker images                                                     |
-| `-u`  | `--updateCloned`    | Update Git cloned projects                                              |
+| Long                | Short | Description                                                                              |
+|---------------------|-------|------------------------------------------------------------------------------------------|
+| `--buildImages`     | `-b`  | Build Docker images                                                                      |
+| `--configFile`      | `-c`  | Specify config file path                                                                 |
+| `--enableDebug`     | `-d`  | Enable debug mode                                                                        |
+| `--onlyRequired`    | `-q`  | Use only required system containers (deploySystem, deployApplication)                    |
+| `--overwriteFiles`  | `-o`  | Overwrite files in .eureka home directory                                                |
+| `--profile`         | `-p`  | Select profile (combined, combined-native, export, search, edge, ecs, ecs-single import) |
+| `--updateCloned`    | `-u`  | Update Git cloned projects                                                               |
 
 **Command-specific flags:**
 
-| Short | Long                   | Description                                                | Command(s)                                                                              |
-|-------|------------------------|------------------------------------------------------------|-----------------------------------------------------------------------------------------|
-| `-y`  | `--moduleType`         | Filter by module type (module, sidecar, management)        | listModules                                                                             |
-| `-v`  | `--versions`           | Number of versions to display                              | listModuleVersions                                                                      |
-| `-z`  | `--purgeSchemas`       | Purge PostgreSQL schemas on uninstallation                 | removeTenantEntitlements, undeployApplication                                           |
-| `-f`  | `--platformCompleteURL`| Platform Complete UI URL                                   | buildAndPushUi                                                                          |
-| `-w`  | `--singleTenant`       | Use for Single Tenant workflow                             | deployUi, buildAndPushUi                                                                |
-| `-x`  | `--user`               | User for edge API key generation                           | getEdgeApiKey                                                                           |
-| `-l`  | `--length`             | Salt length for edge API key                               | getEdgeApiKey                                                                           |
-| `-e`  | `--enableEcsRequests`  | Enable ECS requests                                        | deployUi, buildAndPushUi                                                                |
-| `-t`  | `--tenant`             | Tenant name                                                | getKeycloakAccessToken, getEdgeApiKey, buildAndPushUi                                   |
-| `-n`  | `--moduleName`         | Module name (e.g., mod-orders)                             | interceptModule, listModules, listModuleVersions, undeployModule, updateModuleDiscovery |
-| `-i`  | `--id`                 | Module ID (e.g., mod-orders:13.1.0-SNAPSHOT.1021)          | listModuleVersions                                                                      |
-| `-s`  | `--sidecarUrl`         | Sidecar URL                                                | interceptModule, updateModuleDiscovery                                                  |
-| `-r`  | `--restore`            | Restore module & sidecar                                   | interceptModule, updateModuleDiscovery                                                  |
-| `-g`  | `--defaultGateway`     | Use default gateway in URLs                                | interceptModule                                                                         |
-| `-a`  | `--all`                | All modules for all profiles                               | listModules                                                                             |
-| `-k`  | `--namespace`          | DockerHub namespace                                        | buildAndPushUi                                                                          |
-| `-j`  | `--privatePort`        | Private port                                               | updateModuleDiscovery                                                                   |
+| Long                   | Short | Description                                         | Command(s)                                                                              |
+|------------------------|-------|-----------------------------------------------------|-----------------------------------------------------------------------------------------|
+| `--all`                | `-a`  | All modules for all profiles                        | listModules                                                                             |
+| `--defaultGateway`     | `-g`  | Use default gateway in URLs                         | interceptModule                                                                         |
+| `--enableEcsRequests`  |       | Enable ECS requests                                 | deployUi, buildAndPushUi                                                                |
+| `--id`                 | `-i`  | Module ID (e.g. mod-orders:13.1.0-SNAPSHOT.1021)    | listModuleVersions                                                                      |
+| `--length`             | `-l`  | Salt length for edge API key                        | getEdgeApiKey                                                                           |
+| `--moduleName`         | `-n`  | Module name (e.g. mod-orders)                       | interceptModule, listModules, listModuleVersions, undeployModule, updateModuleDiscovery |
+| `--moduleType`         | `-y`  | Filter by module type (module, sidecar, management) | listModules                                                                             |
+| `--moduleUrl`          | `-m`  | Module URL                                          | interceptModule                                                                         |
+| `--namespace`          |       | DockerHub namespace                                 | buildAndPushUi                                                                          |
+| `--platformCompleteURL`|       | Platform Complete UI URL                            | buildAndPushUi                                                                          |
+| `--privatePort`        |       | Private port                                        | updateModuleDiscovery                                                                   |
+| `--purgeSchemas`       |       | Purge PostgreSQL schemas on uninstallation          | removeTenantEntitlements, undeployApplication                                           |
+| `--restore`            | `-r`  | Restore module & sidecar                            | interceptModule, updateModuleDiscovery                                                  |
+| `--sidecarUrl`         | `-s`  | Sidecar URL                                         | interceptModule, updateModuleDiscovery                                                  |
+| `--singleTenant`       |       | Use for Single Tenant workflow                      | deployUi, buildAndPushUi                                                                |
+| `--skipCapabilitySets` |       | Skip refreshing capability sets                     | undeployApplication                                                                     |
+| `--tenant`             | `-t`  | Tenant name                                         | getKeycloakAccessToken, getEdgeApiKey, buildAndPushUi                                   |
+| `--user`               | `-x`  | User for edge API key generation                    | getEdgeApiKey                                                                           |
+| `--versions`           | `-v`  | Number of versions to display                       | listModuleVersions                                                                      |
 
 ```bash
 eureka-cli -c ./config.combined.yaml deployApplication
@@ -114,7 +107,7 @@ eureka-cli -c ./config.combined.yaml deployApplication
 
 > If no profile or config file is passed, the _combined_ profile will be inferred and used
 
-- Use the debug `-d` flag to troubleshoot your environment deployment to see how the CLI interacts with **Kong** via HTTP
+- Use the debug `-d` flag to troubleshoot your environment deployment and see how the CLI interacts with services by logging in verbose mode
 
 ```bash
 eureka-cli deployApplication -d
@@ -137,7 +130,10 @@ eureka-cli -p combined deployApplication
 - It can be combined with the `-o` flag to overwrite all existing files in the `.eureka` home directory to receive changes from upstream
 
 ```bash
-eureka-cli -p combined -o deployApplication
+eureka-cli -p combined deployApplication -oq
+
+# Can be simplified without specifying the profile (combined is the default profile)
+eureka-cli deployApplication -oq 
 ```
 
 ![CLI Deploy Combined with Only Required System Containers](images/cli_deploy_combined_only_required.png)
@@ -206,7 +202,7 @@ eureka-cli -p ecs undeployApplication
 
 ### Deploy the _ecs-single_ application
 
-We can use the _ecs-single_ profile to deploy an environment with just a single consortium. This profile will provision only 3 tenants (i.e. ecs, university and college) with just a single UI container. This profile is preferred over the _ecs_ when there is an obvious resource constraint on the host machine because of how many Kafka topics there needs to be maintained during and after tenant entitlement.
+We can use the _ecs-single_ profile to deploy an environment with just a single consortium. This profile will provision only 3 tenants (i.e. ecs, university and college) with just a single UI container. This profile is preferred over the _ecs_ when there is an obvious resource constraint on the host machine because of how many Kafka topics need to be maintained during and after tenant entitlement.
 
 ```bash
 eureka-cli -p ecs-single deployApplication -oq
@@ -241,9 +237,6 @@ The CLI also supports deploying child applications on top of existing ones. The 
 - This application contains modules and system containers required for data export functionality that relies on MinIO and FTP
 
 ```bash
-eureka-cli -c ./config.export.yaml deployApplication
-
-# Or using a profile flag
 eureka-cli -p export deployApplication
 ```
 
@@ -254,9 +247,6 @@ eureka-cli -p export deployApplication
 - The search application provides Elasticsearch capabilities required by the Inventory App and ECS setup
 
 ```bash
-eureka-cli -c ./config.search.yaml deployApplication
-
-# Or using a profile flag
 eureka-cli -p search deployApplication
 ```
 
@@ -264,12 +254,9 @@ eureka-cli -p search deployApplication
 
 #### Deploy the edge application
 
-- Edge application provides modules with an included mod-okapi-facade to work with the Edge API, Karate tests, or with Mosaic integration
+- The edge application provides modules with an included mod-okapi-facade to work with the Edge API, Karate tests, or with Mosaic integration
 
 ```bash
-eureka-cli -c ./config.edge.yaml deployApplication
-
-# Or using a profile flag
 eureka-cli -p edge deployApplication
 ```
 
@@ -280,9 +267,6 @@ eureka-cli -p edge deployApplication
 - All child applications can be undeployed with the same `undeployApplication` command, which will remove both the modules and system containers used by the app
 
 ```bash
-eureka-cli -c ./config.{{app}}.yaml undeployApplication
-
-# Or using a profile flag
 eureka-cli -p {{profile}} undeployApplication
 ```
 
@@ -305,7 +289,7 @@ eureka-cli listSystem
 eureka-cli listModules
 
 # For a particular module and its sidecar in a profile
-eureka-cli listModules -m mod-orders
+eureka-cli listModules -n mod-orders
 
 # For only modules in a profile
 eureka-cli listModules -y module
@@ -324,10 +308,10 @@ eureka-cli listModules -a
 
 ```bash
 # List versions for a module
-eureka-cli listModuleVersions -m edge-orders
+eureka-cli listModuleVersions -n edge-orders
 
 # Get module descriptor for a particular version
-eureka-cli listModuleVersions -m edge-orders -i edge-orders-3.3.0-SNAPSHOT.88
+eureka-cli listModuleVersions -n edge-orders -i edge-orders-3.3.0-SNAPSHOT.88
 ```
 
 - Get current Vault Root Token used by the modules
@@ -366,24 +350,40 @@ eureka-cli checkPorts
 
 > The CLI also exposes an internal port 5005 for all modules and sidecars that can be used for remote debugging in IntelliJ
 
-- Intercept a module gateway service in Kong to reroute traffic from the environment to an instance started in IntelliJ
+- Intercept command allows rerouting traffic from Kong service to a custom sidecar before reaching your local instance in IntelliJ
+- Start your local module instance in IntelliJ with correct environment variables and JVM flags
+
+![CLI Intercept Module](images/cli_intercept_module_1.png)
+
+- Enable interception to instance in Intellij by deploying a custom sidecar
 
 ```bash
-# Using mod-orders and custom module and sidecar gateway URLs
+# With custom module and sidecar URLs
 eureka-cli interceptModule -n mod-orders -m http://host.docker.internal:36002 -s http://host.docker.internal:37002
 
-# Using mod-orders and default module and sidecar gateway URLs with only ports specified
-# will substitute 36002 for http://host.docker.internal:36002 and 37002 for http://host.docker.internal:37002 internally for Windows and MacOS
-# or http://172.17.0.1:36002 and http://172.17.0.1:37002 respectively for Linux or specify `application.gateway-hostname` explicitly in the config
-eureka-cli interceptModule -n mod-orders -g -m 36002 -s 37002
+# With default module and sidecar URLs (i.e. only with ports)
+eureka-cli interceptModule -n mod-orders -gm 36002 -s 37002
+```
 
-# To restore both the module and sidecar in the environment as before the gateway service interception
+![CLI Intercept Module](images/cli_intercept_module_2.png)
+
+- Create and open a new order in the Orders app
+
+![CLI Intercept Module](images/cli_intercept_module_3.png)
+
+- Check the logs of the instance started in IntelliJ; it should now be receiving traffic from the custom sidecar
+
+![CLI Intercept Module](images/cli_intercept_module_4.png)
+
+- Disable interception by redeploying the default containers of both the module and the sidecar into the environment
+
+```bash
 eureka-cli interceptModule -n mod-orders -r
 ```
 
-![CLI Intercept Module Default](images/cli_intercept_module_default.png)
+![CLI Intercept Module](images/cli_intercept_module_5.png)
 
-> See docs/DEVELOPMENT.md for more information on `interceptModule` command or use `-h` or `--help` flag to see some examples
+To intercept multiple modules, make sure to use the right set of environment variables, JVM flags and instance ports for each target module
 
 ## Using a custom folio-module-sidecar
 
@@ -422,19 +422,15 @@ sidecar-module:
 eureka-cli -p edge deployApplication
 ```
 
-![CLI Use Custom Folio Module Sidecar (1/2)](images/cli_use_custom_folio_module_sidecar_1.png)
-
 - Check the sidecar image version after application deployment
 
 ```bash
 eureka-cli -p edge listModules
 ```
 
-![CLI Use Custom Folio Module Sidecar (2/2)](images/cli_use_custom_folio_module_sidecar_2.png)
-
 ## Using a native folio-module-sidecar
 
-The CLI also supports using native sidecars built with GraalVM. These sidecars have a different and more lighter resource profile making them ideal for deployments with only few resources to spare.
+The CLI also supports using native sidecars built with GraalVM. These sidecars have a different and lighter resource profile, making them ideal for deployments with only a few resources to spare.
 
 - Git clone **folio-module-sidecar** from GitHub
 
@@ -442,7 +438,7 @@ The CLI also supports using native sidecars built with GraalVM. These sidecars h
 git clone https://github.com/folio-org/folio-module-sidecar.git
 ```
 
-- Build the artefact locally
+- Build the artifact locally
 
 ```bash
 cd folio-module-sidecar
@@ -453,7 +449,7 @@ mvn clean install -Pnative -DskipTests \
 
 > Builds a native binary using a container-based GraalVM with a Linux toolchain
 
-- Build a custom local docker image
+- Build a custom local Docker image
 
 ```bash
 docker build -f docker/Dockerfile.native-micro -t folio-module-sidecar-native .
@@ -573,7 +569,7 @@ eureka-cli deployUi -b -u
 
 ![UI Main page](images/ui_main_page.png)
 
-If your environment was deployed using the ecs profile, your consortiums are represented by two different UI instances.
+If your environment was deployed using the _ecs_ profile, your consortiums are represented by two different UI instances.
 
 - The first instance can be accessed from `http://localhost:3000` using `ecs_admin` username and `admin` password
 
@@ -581,7 +577,7 @@ If your environment was deployed using the ecs profile, your consortiums are rep
 
 > It contains 3 tenants, _ecs_ central tenant and _university_ and _college_ member tenants
 
-- And the second one can be accessed from `http://localhost:3001` (via an incognito Chrome Browser) using `ecs_admin2` username and `admin` password
+- And the second one can be accessed from `http://localhost:3001` (via an incognito Chrome browser) using `ecs_admin2` username and `admin` password
 
 ![UI ECS2 Main page](images/ui_ecs2_main_page.png)
 
@@ -627,18 +623,35 @@ curl --request POST \
   --verbose
 ```
 
-> Using an ecs profile that creates _ecs\_admin_ and _ecs\_admin2_ users in different consortiums
+- Using an _ecs_ profile that creates _ecs\_admin_ and _ecs\_admin2_ users in different consortiums
 
 ## Troubleshooting
 
 ### General
 
-- If using Rancher Desktop on a system that also uses Docker Desktop, make sure to set `DOCKER_HOST` to point to the correct container daemon, by default `/var/run/docker.sock` will be used
+- If there are multiple instances of container daemons (e.g. **Rancher Desktop**, **Docker Desktop**, **Podman**, etc.) on the host machine, verify that `DOCKER_HOST` is set to point to the correct daemon (otherwise `/var/run/docker.sock` will be used)
 
 ### Command-based
 
-- If during `Deploy System` or `Deploy Ui` shell commands are failing to execute, verify that all shell scripts located under `./misc` folder are saved using the **LF** (Line Feed) line break
-- If during `Deploy Management` or `Deploy Modules` the healthchecks are failing, make sure to either define **host.docker.internal** in `/etc/hosts` or set `application.gateway-hostname=172.17.0.1` in the `config.*.yaml`
-- If during `Deploy Modules` an exception contains **"Bind for 0.0.0.0:XXXXX failed: port is already allocated."** make sure to set `application.port-start=20000` in the `config.*.yaml`
-- If during `Deploy Modules` an exception contains **"Failed to load module descriptor by url: <https://folio-registry.dev.folio.org/_/proxy/modules/mod-XXX>"**, make sure that the module descriptor for this version exists or use an older module version by setting `mod-XXX.version` in the `config.*.yaml`
-- If during `Create Tenant Entitlement` an exception contains **"The module is not entitled on tenant ..."**, rerun `undeployApplication` and `deployApplication` once again with more available RAM
+Shell commands are failing to execute
+
+- Verify that all shell scripts located under `~/eureka/misc` folder are saved using the **LF** (Line Feed) line break
+
+Module readiness checks are failing
+
+- Verify that **host.docker.internal** is set in `/etc/hosts` and accessible on the host network
+- Or set `application.gateway-hostname` in the config to either your physical network IP or some locally accessible hostname
+
+`"Bind for 0.0.0.0:XXXXX failed: port is already allocated."`
+
+- Verify that the config port range is free from running processes (e.g. from some opened Kubernetes NodePort on port 30102)
+- Or reassign `application.port-start` and `application.port-end` in the config to a different range, e.g. to 20000-20999
+
+`"Failed to load module descriptor by url: <https://folio-registry.dev.folio.org/_/proxy/modules/mod-XXX>"`
+
+- Verify that the module descriptor for the latest snapshot version already exists in the registry (can check with `listModulesVersion` command)
+- Or set a fixed module version in config (i.e. using `<module>.version`)
+
+`"The module is not entitled on tenant ..."`
+
+- Rerun the deployment again with more available RAM

@@ -69,7 +69,11 @@ func (run *Run) UndeployApplication() error {
 
 func (run *Run) UndeployChildApplication() error {
 	if err := run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
-		return run.RemoveTenantEntitlements(consortiumName, tenantType)
+		if err := run.RemoveTenantEntitlements(consortiumName, tenantType); err != nil {
+			slog.Warn(run.Config.Action.Name, "text", "Remove tenant entitlement was unsuccessful", "error", err)
+		}
+
+		return nil
 	}); err != nil {
 		return err
 	}
@@ -78,6 +82,9 @@ func (run *Run) UndeployChildApplication() error {
 	}
 	if err := run.UndeployAdditionalSystem(); err != nil {
 		return err
+	}
+	if actionParams.SkipCapabilitySets {
+		return nil
 	}
 	return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
 		if err := run.DetachCapabilitySets(consortiumName, tenantType); err != nil {
@@ -90,5 +97,6 @@ func (run *Run) UndeployChildApplication() error {
 
 func init() {
 	rootCmd.AddCommand(undeployApplicationCmd)
-	undeployApplicationCmd.PersistentFlags().BoolVarP(&actionParams.PurgeSchemas, "purgeSchemas", "z", false, "Purge schemas in PostgreSQL on uninstallation")
+	undeployApplicationCmd.PersistentFlags().BoolVarP(&actionParams.PurgeSchemas, "purgeSchemas", "", false, "Purge schemas in PostgreSQL on uninstallation")
+	undeployApplicationCmd.PersistentFlags().BoolVarP(&actionParams.SkipCapabilitySets, "skipCapabilitySets", "", false, "Skip refreshing capability sets")
 }

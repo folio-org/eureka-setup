@@ -28,6 +28,19 @@ type TenantEntitlementRequest struct {
 	Applications []string `json:"applications"`
 }
 
+// TenantEntitlementResponse represents the response from creating/removing tenant entitlements
+type TenantEntitlementResponse struct {
+	TotalRecords int                    `json:"totalRecords"`
+	FlowID       string                 `json:"flowId"`
+	Entitlements []TenantEntitlementDTO `json:"entitlements"`
+}
+
+// TenantEntitlementDTO represents a single tenant entitlement
+type TenantEntitlementDTO struct {
+	ApplicationID string `json:"applicationId"`
+	TenantID      string `json:"tenantId"`
+}
+
 // ==================== Application Management ====================
 
 // ApplicationCreateRequest represents the payload for creating a new application with modules and descriptors
@@ -50,6 +63,16 @@ type ApplicationModule struct {
 	Name    string `json:"name"`
 	Version string `json:"version"`
 	URL     string `json:"url,omitempty"`
+}
+
+// ApplicationDescriptor represents an application descriptor response from the API
+type ApplicationDescriptor struct {
+	ID          string         `json:"id"`
+	Name        string         `json:"name"`
+	Version     string         `json:"version"`
+	Description string         `json:"description,omitempty"`
+	Platform    string         `json:"platform,omitempty"`
+	Metadata    map[string]any `json:"metadata,omitempty"`
 }
 
 // ApplicationsResponse represents the response containing a list of application descriptors

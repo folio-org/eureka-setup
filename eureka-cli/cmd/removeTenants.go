@@ -35,16 +35,6 @@ var removeTenantsCmd = &cobra.Command{
 		}
 
 		return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
-			if err := run.RemoveUsers(consortiumName, tenantType); err != nil {
-				return err
-			}
-			if err := run.RemoveRoles(consortiumName, tenantType); err != nil {
-				return err
-			}
-			if err := run.RemoveTenantEntitlements(consortiumName, tenantType); err != nil {
-				return err
-			}
-
 			return run.RemoveTenants(consortiumName, tenantType)
 		})
 	},

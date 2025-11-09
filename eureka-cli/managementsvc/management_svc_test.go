@@ -3,8 +3,6 @@ package managementsvc_test
 import (
 	"encoding/json"
 	"errors"
-	"io"
-	"net/http"
 	"strings"
 	"testing"
 
@@ -212,18 +210,18 @@ func TestGetApplications_Success(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	responseBody := `{"applicationDescriptors":[{"id":"app-1","name":"test-app"}],"totalRecords":1}`
-	mockResponse := &http.Response{
-		StatusCode: 200,
-		Body:       io.NopCloser(strings.NewReader(responseBody)),
-	}
-
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("GetReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
+		mock.Anything,
 		mock.Anything).
-		Return(mockResponse, nil)
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.ApplicationsResponse)
+			target.ApplicationDescriptors = []map[string]any{{"id": "app-1", "name": "test-app"}}
+			target.TotalRecords = 1
+		}).
+		Return(nil)
 
 	// Act
 	result, err := svc.GetApplications()
@@ -244,10 +242,11 @@ func TestGetApplications_HTTPError(t *testing.T) {
 
 	expectedError := errors.New("HTTP request failed")
 
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("GetReturnStruct",
+		mock.Anything,
 		mock.Anything,
 		mock.Anything).
-		Return(nil, expectedError)
+		Return(expectedError)
 
 	// Act
 	result, err := svc.GetApplications()
@@ -266,10 +265,11 @@ func TestGetApplications_NilResponse(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("GetReturnStruct",
+		mock.Anything,
 		mock.Anything,
 		mock.Anything).
-		Return(nil, nil)
+		Return(nil)
 
 	// Act
 	result, err := svc.GetApplications()
@@ -289,11 +289,18 @@ func TestRemoveApplication_Success(t *testing.T) {
 
 	applicationID := "app-123"
 
-	mockHTTP.On("Delete",
+	mockHTTP.On("DeleteReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return assert.Contains(t, url, "/applications/"+applicationID)
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(2).(*models.ApplicationDescriptor)
+			resp.ID = applicationID
+			resp.Name = "Test App"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
 	// Act
@@ -314,9 +321,10 @@ func TestRemoveApplication_HTTPError(t *testing.T) {
 	applicationID := "app-123"
 	expectedError := errors.New("delete failed")
 
-	mockHTTP.On("Delete",
+	mockHTTP.On("DeleteReturnStruct",
 		mock.Anything,
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
 		Return(expectedError)
 
 	// Act
@@ -336,18 +344,20 @@ func TestGetModuleDiscovery_Success(t *testing.T) {
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
 	moduleName := "mod-test"
-	responseBody := `{"totalRecords": 1, "discovery": [{"id": "discovery-1", "name": "mod-test", "version": "1.0.0", "location": "http://localhost:8081"}]}`
-	mockResponse := &http.Response{
-		StatusCode: 200,
-		Body:       io.NopCloser(strings.NewReader(responseBody)),
-	}
 
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("GetReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/modules/discovery") && strings.Contains(url, "name=="+moduleName)
 		}),
+		mock.Anything,
 		mock.Anything).
-		Return(mockResponse, nil)
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.ModuleDiscoveryResponse)
+			target.Discovery = []models.ModuleDiscovery{
+				{ID: "discovery-1"},
+			}
+		}).
+		Return(nil)
 
 	// Act
 	result, err := svc.GetModuleDiscovery(moduleName)
@@ -369,10 +379,11 @@ func TestGetModuleDiscovery_HTTPError(t *testing.T) {
 	moduleName := "mod-test"
 	expectedError := errors.New("HTTP request failed")
 
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("GetReturnStruct",
+		mock.Anything,
 		mock.Anything,
 		mock.Anything).
-		Return(nil, expectedError)
+		Return(expectedError)
 
 	// Act
 	result, err := svc.GetModuleDiscovery(moduleName)
@@ -394,7 +405,7 @@ func TestUpdateModuleDiscovery_Success(t *testing.T) {
 	moduleID := "mod-test-1.0.0"
 	sidecarURL := "http://custom-url:8080"
 
-	mockHTTP.On("PutReturnNoContent",
+	mockHTTP.On("PutReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/modules/"+moduleID+"/discovery")
 		}),
@@ -403,7 +414,15 @@ func TestUpdateModuleDiscovery_Success(t *testing.T) {
 			_ = json.Unmarshal(payload, &data)
 			return data["id"] == moduleID && data["location"] == sidecarURL
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ModuleDiscovery")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ModuleDiscovery)
+			resp.ID = moduleID
+			resp.Name = "mod-test"
+			resp.Version = "1.0.0"
+			resp.Location = sidecarURL
+		}).
 		Return(nil)
 
 	// Act
@@ -424,7 +443,7 @@ func TestUpdateModuleDiscovery_RestoreURL(t *testing.T) {
 	moduleID := "mod-test-1.0.0"
 	privatePort := 8080
 
-	mockHTTP.On("PutReturnNoContent",
+	mockHTTP.On("PutReturnStruct",
 		mock.Anything,
 		mock.MatchedBy(func(payload []byte) bool {
 			var data map[string]any
@@ -432,7 +451,15 @@ func TestUpdateModuleDiscovery_RestoreURL(t *testing.T) {
 			expectedURL := "http://mod-test-sc.eureka:8080"
 			return data["location"] == expectedURL
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ModuleDiscovery")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ModuleDiscovery)
+			resp.ID = moduleID
+			resp.Name = "mod-test"
+			resp.Version = "1.0.0"
+			resp.Location = "http://mod-test-sc.eureka:8080"
+		}).
 		Return(nil)
 
 	// Act
@@ -453,10 +480,11 @@ func TestUpdateModuleDiscovery_HTTPError(t *testing.T) {
 	moduleID := "mod-test-1.0.0"
 	expectedError := errors.New("HTTP PUT failed")
 
-	mockHTTP.On("PutReturnNoContent",
+	mockHTTP.On("PutReturnStruct",
 		mock.Anything,
 		mock.Anything,
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ModuleDiscovery")).
 		Return(expectedError)
 
 	// Act
@@ -481,7 +509,7 @@ func TestCreateTenants_Success(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/tenants")
 		}),
@@ -490,7 +518,14 @@ func TestCreateTenants_Success(t *testing.T) {
 			_ = json.Unmarshal(payload, &data)
 			return data["name"] == "test-tenant" && strings.Contains(data["description"], "test-consortium-member")
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.Tenant")).
+		Run(func(args mock.Arguments) {
+			tenant := args.Get(3).(*models.Tenant)
+			tenant.ID = "test-tenant-id"
+			tenant.Name = "test-tenant"
+			tenant.Description = "test-consortium-member"
+		}).
 		Return(nil)
 
 	// Act
@@ -514,14 +549,21 @@ func TestCreateTenants_CentralTenant(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.Anything,
 		mock.MatchedBy(func(payload []byte) bool {
 			var data map[string]string
 			_ = json.Unmarshal(payload, &data)
 			return strings.Contains(data["description"], "central")
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.Tenant")).
+		Run(func(args mock.Arguments) {
+			tenant := args.Get(3).(*models.Tenant)
+			tenant.ID = "central-tenant-id"
+			tenant.Name = "central-tenant"
+			tenant.Description = "test-consortium-central"
+		}).
 		Return(nil)
 
 	// Act
@@ -543,10 +585,11 @@ func TestCreateTenants_HTTPError(t *testing.T) {
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
 	expectedError := errors.New("HTTP POST failed")
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.Anything,
 		mock.Anything,
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.Tenant")).
 		Return(expectedError)
 
 	// Act
@@ -644,7 +687,7 @@ func TestCreateTenantEntitlement_Success(t *testing.T) {
 		}).
 		Return(nil)
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/entitlements") && strings.Contains(url, tenantParams)
 		}),
@@ -654,7 +697,13 @@ func TestCreateTenantEntitlement_Success(t *testing.T) {
 			apps := data["applications"].([]any)
 			return data["tenantId"] == "tenant-123" && len(apps) == 1 && apps[0] == "app-123"
 		}),
+		mock.Anything,
 		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(3).(*models.TenantEntitlementResponse)
+			target.FlowID = "flow-123"
+			target.TotalRecords = 1
+		}).
 		Return(nil)
 
 	// Act
@@ -708,7 +757,7 @@ func TestRemoveTenantEntitlements_Success(t *testing.T) {
 		}).
 		Return(nil)
 
-	mockHTTP.On("DeleteWithBody",
+	mockHTTP.On("DeleteWithBodyReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/entitlements") && strings.Contains(url, "purge=true")
 		}),
@@ -717,7 +766,13 @@ func TestRemoveTenantEntitlements_Success(t *testing.T) {
 			_ = json.Unmarshal(payload, &data)
 			return data["tenantId"] == "tenant-123"
 		}),
+		mock.Anything,
 		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(3).(*models.TenantEntitlementResponse)
+			target.FlowID = "flow-456"
+			target.TotalRecords = 1
+		}).
 		Return(nil)
 
 	// Act
@@ -758,10 +813,11 @@ func TestGetModuleDiscovery_NilResponse(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("GetReturnStruct",
+		mock.Anything,
 		mock.Anything,
 		mock.Anything).
-		Return(nil, nil)
+		Return(nil)
 
 	// Act
 	result, err := svc.GetModuleDiscovery("mod-test")
@@ -782,7 +838,7 @@ func TestUpdateModuleDiscovery_EdgeModule(t *testing.T) {
 	moduleID := "edge-test-1.0.0"
 	privatePort := 8080
 
-	mockHTTP.On("PutReturnNoContent",
+	mockHTTP.On("PutReturnStruct",
 		mock.Anything,
 		mock.MatchedBy(func(payload []byte) bool {
 			var data map[string]any
@@ -791,7 +847,15 @@ func TestUpdateModuleDiscovery_EdgeModule(t *testing.T) {
 			expectedURL := "http://edge-test.eureka:8080"
 			return data["location"] == expectedURL
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ModuleDiscovery")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ModuleDiscovery)
+			resp.ID = moduleID
+			resp.Name = "edge-test"
+			resp.Version = "1.0.0"
+			resp.Location = "http://edge-test.eureka:8080"
+		}).
 		Return(nil)
 
 	// Act
@@ -812,7 +876,7 @@ func TestCreateTenants_NoConsortium(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.Anything,
 		mock.MatchedBy(func(payload []byte) bool {
 			var data map[string]string
@@ -820,7 +884,14 @@ func TestCreateTenants_NoConsortium(t *testing.T) {
 			// When no consortium, description should be "nop-default"
 			return data["description"] == "nop-default"
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.Tenant")).
+		Run(func(args mock.Arguments) {
+			tenant := args.Get(3).(*models.Tenant)
+			tenant.ID = "standalone-tenant-id"
+			tenant.Name = "standalone-tenant"
+			tenant.Description = "nop-default"
+		}).
 		Return(nil)
 
 	// Act
@@ -895,8 +966,8 @@ func TestCreateTenantEntitlement_TenantNotInConfig(t *testing.T) {
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 	mockTenantSvc.AssertExpectations(t)
-	// Verify PostReturnNoContent was NOT called
-	mockHTTP.AssertNotCalled(t, "PostReturnNoContent", mock.Anything, mock.Anything, mock.Anything)
+	// Verify PostReturnStruct was NOT called
+	mockHTTP.AssertNotCalled(t, "PostReturnStruct", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestRemoveTenantEntitlements_TenantNotInConfig(t *testing.T) {
@@ -926,8 +997,8 @@ func TestRemoveTenantEntitlements_TenantNotInConfig(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
-	// Verify DeleteWithBody was NOT called
-	mockHTTP.AssertNotCalled(t, "DeleteWithBody", mock.Anything, mock.Anything, mock.Anything)
+	// Verify DeleteWithBodyReturnStruct was NOT called
+	mockHTTP.AssertNotCalled(t, "DeleteWithBodyReturnStruct", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestGetApplications_DecodeError(t *testing.T) {
@@ -937,24 +1008,21 @@ func TestGetApplications_DecodeError(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	// Invalid JSON to trigger decode error
-	responseBody := `{"applicationDescriptors": invalid json}`
-	mockResponse := &http.Response{
-		StatusCode: 200,
-		Body:       io.NopCloser(strings.NewReader(responseBody)),
-	}
+	// Simulate error from GetReturnStruct (e.g., decode error)
+	expectedError := errors.New("decode error: invalid character")
 
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("GetReturnStruct",
+		mock.Anything,
 		mock.Anything,
 		mock.Anything).
-		Return(mockResponse, nil)
+		Return(expectedError)
 
 	// Act
 	result, err := svc.GetApplications()
 
 	// Assert
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid")
+	assert.Equal(t, expectedError, err)
 	assert.Empty(t, result.ApplicationDescriptors)
 	mockHTTP.AssertExpectations(t)
 }
@@ -966,24 +1034,21 @@ func TestGetModuleDiscovery_DecodeError(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	// Invalid JSON to trigger decode error
-	responseBody := `{"discovery": invalid json}`
-	mockResponse := &http.Response{
-		StatusCode: 200,
-		Body:       io.NopCloser(strings.NewReader(responseBody)),
-	}
+	// Simulate error from GetReturnStruct (e.g., decode error)
+	expectedError := errors.New("decode error: invalid character")
 
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("GetReturnStruct",
+		mock.Anything,
 		mock.Anything,
 		mock.Anything).
-		Return(mockResponse, nil)
+		Return(expectedError)
 
 	// Act
 	result, err := svc.GetModuleDiscovery("mod-test")
 
 	// Assert
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid")
+	assert.Equal(t, expectedError, err)
 	assert.Empty(t, result.Discovery)
 	mockHTTP.AssertExpectations(t)
 }
@@ -1051,7 +1116,8 @@ func TestCreateTenantEntitlement_PostError(t *testing.T) {
 		Return(nil)
 
 	expectedError := errors.New("post failed")
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
+		mock.Anything,
 		mock.Anything,
 		mock.Anything,
 		mock.Anything).
@@ -1090,7 +1156,8 @@ func TestRemoveTenantEntitlements_DeleteError(t *testing.T) {
 		Return(nil)
 
 	expectedError := errors.New("delete failed")
-	mockHTTP.On("DeleteWithBody",
+	mockHTTP.On("DeleteWithBodyReturnStruct",
+		mock.Anything,
 		mock.Anything,
 		mock.Anything,
 		mock.Anything).
@@ -1145,7 +1212,7 @@ func TestCreateApplications_MinimalSuccess(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -1154,10 +1221,17 @@ func TestCreateApplications_MinimalSuccess(t *testing.T) {
 			_ = json.Unmarshal(payload, &data)
 			return data["id"] == "test-app" && data["name"] == "Test Application"
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/modules/discovery")
 		}),
@@ -1167,7 +1241,12 @@ func TestCreateApplications_MinimalSuccess(t *testing.T) {
 			discovery := data["discovery"].([]any)
 			return len(discovery) == 1
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ModuleDiscoveryResponse")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ModuleDiscoveryResponse)
+			resp.TotalRecords = 1
+		}).
 		Return(nil)
 
 	// Act
@@ -1215,7 +1294,7 @@ func TestCreateApplications_WithFrontendModule(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -1225,7 +1304,14 @@ func TestCreateApplications_WithFrontendModule(t *testing.T) {
 			uiModules := data["uiModules"].([]any)
 			return len(uiModules) == 1
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
 	// Act
@@ -1274,7 +1360,7 @@ func TestCreateApplications_SkipsManagementModule(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -1285,7 +1371,14 @@ func TestCreateApplications_SkipsManagementModule(t *testing.T) {
 			// Should be nil or empty since mgr-applications is skipped
 			return !ok || len(modules) == 0
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
 	// Act
@@ -1321,10 +1414,11 @@ func TestCreateApplications_HTTPError(t *testing.T) {
 	}
 
 	expectedError := errors.New("HTTP POST failed")
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.Anything,
 		mock.Anything,
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
 		Return(expectedError)
 
 	// Act
@@ -1377,7 +1471,7 @@ func TestCreateApplications_WithModuleVersionOverride(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -1392,15 +1486,27 @@ func TestCreateApplications_WithModuleVersionOverride(t *testing.T) {
 			}
 			return false
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/modules/discovery")
 		}),
 		mock.Anything,
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ModuleDiscoveryResponse")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ModuleDiscoveryResponse)
+			resp.TotalRecords = 1
+		}).
 		Return(nil)
 
 	// Act
@@ -1469,7 +1575,7 @@ func TestCreateApplications_WithFetchDescriptorsFromRemote(t *testing.T) {
 		}).
 		Return(nil)
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -1480,15 +1586,27 @@ func TestCreateApplications_WithFetchDescriptorsFromRemote(t *testing.T) {
 			// Should include fetched descriptor
 			return len(descriptors) == 1
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/modules/discovery")
 		}),
 		mock.Anything,
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ModuleDiscoveryResponse")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ModuleDiscoveryResponse)
+			resp.TotalRecords = 1
+		}).
 		Return(nil)
 
 	// Act
@@ -1582,7 +1700,7 @@ func TestCreateApplications_WithDependencies(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -1592,7 +1710,14 @@ func TestCreateApplications_WithDependencies(t *testing.T) {
 			deps := data["dependencies"].(map[string]any)
 			return deps["dependency1"] == "value1" && deps["dependency2"] == "value2"
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
 	// Act
@@ -1638,7 +1763,7 @@ func TestCreateApplications_SkipsModuleNotInConfig(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -1649,7 +1774,14 @@ func TestCreateApplications_SkipsModuleNotInConfig(t *testing.T) {
 			// Should be empty/nil since module is not in config
 			return !ok || len(modules) == 0
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
 	// Act
@@ -1698,7 +1830,7 @@ func TestCreateApplications_SkipsModuleWithDeployFalse(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -1709,7 +1841,14 @@ func TestCreateApplications_SkipsModuleWithDeployFalse(t *testing.T) {
 			// Should be empty since DeployModule is false
 			return !ok || len(modules) == 0
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
 	// Act
@@ -1759,7 +1898,7 @@ func TestCreateApplications_WithEurekaModules(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -1769,15 +1908,27 @@ func TestCreateApplications_WithEurekaModules(t *testing.T) {
 			modules := data["modules"].([]any)
 			return len(modules) == 1
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/modules/discovery")
 		}),
 		mock.Anything,
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ModuleDiscoveryResponse")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ModuleDiscoveryResponse)
+			resp.TotalRecords = 1
+		}).
 		Return(nil)
 
 	// Act
@@ -1827,21 +1978,29 @@ func TestCreateApplications_DiscoveryPostError(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
 		mock.Anything,
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
 	expectedError := errors.New("discovery post failed")
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/modules/discovery")
 		}),
 		mock.Anything,
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ModuleDiscoveryResponse")).
 		Return(expectedError)
 
 	// Act
@@ -1893,7 +2052,7 @@ func TestCreateApplications_WithModuleURLs(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -1909,15 +2068,27 @@ func TestCreateApplications_WithModuleURLs(t *testing.T) {
 			}
 			return false
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/modules/discovery")
 		}),
 		mock.Anything,
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ModuleDiscoveryResponse")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ModuleDiscoveryResponse)
+			resp.TotalRecords = 1
+		}).
 		Return(nil)
 
 	// Act
@@ -1983,7 +2154,7 @@ func TestCreateApplications_FrontendModuleWithFetchDescriptors(t *testing.T) {
 		}).
 		Return(nil)
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -1994,7 +2165,14 @@ func TestCreateApplications_FrontendModuleWithFetchDescriptors(t *testing.T) {
 			// Should include fetched UI descriptor
 			return len(uiDescriptors) == 1
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
 	// Act
@@ -2043,7 +2221,7 @@ func TestCreateApplications_FrontendModuleWithURL(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -2059,7 +2237,14 @@ func TestCreateApplications_FrontendModuleWithURL(t *testing.T) {
 			}
 			return false
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
 	// Act
@@ -2109,7 +2294,7 @@ func TestCreateApplications_FrontendVersionOverride(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -2124,7 +2309,14 @@ func TestCreateApplications_FrontendVersionOverride(t *testing.T) {
 			}
 			return false
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
 	// Act
@@ -2185,7 +2377,7 @@ func TestCreateApplications_MixedBackendAndFrontend(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -2197,10 +2389,17 @@ func TestCreateApplications_MixedBackendAndFrontend(t *testing.T) {
 			// Should have both backend and frontend
 			return len(backendModules) == 1 && len(uiModules) == 1
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/modules/discovery")
 		}),
@@ -2211,7 +2410,12 @@ func TestCreateApplications_MixedBackendAndFrontend(t *testing.T) {
 			// Should only have backend module in discovery (not UI)
 			return len(discovery) == 1
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ModuleDiscoveryResponse")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ModuleDiscoveryResponse)
+			resp.TotalRecords = 1
+		}).
 		Return(nil)
 
 	// Act
@@ -2268,7 +2472,7 @@ func TestCreateApplications_BothModulesBackendVersionOverride(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -2286,15 +2490,27 @@ func TestCreateApplications_BothModulesBackendVersionOverride(t *testing.T) {
 			}
 			return false
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/modules/discovery")
 		}),
 		mock.Anything,
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ModuleDiscoveryResponse")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ModuleDiscoveryResponse)
+			resp.TotalRecords = 1
+		}).
 		Return(nil)
 
 	// Act
@@ -2351,7 +2567,7 @@ func TestCreateApplications_BothModulesFrontendVersionOverride(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -2370,15 +2586,27 @@ func TestCreateApplications_BothModulesFrontendVersionOverride(t *testing.T) {
 			}
 			return false
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/modules/discovery")
 		}),
 		mock.Anything,
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ModuleDiscoveryResponse")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ModuleDiscoveryResponse)
+			resp.TotalRecords = 1
+		}).
 		Return(nil)
 
 	// Act
@@ -2436,7 +2664,7 @@ func TestCreateApplications_BothModulesBothVersionOverrides(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -2455,15 +2683,27 @@ func TestCreateApplications_BothModulesBothVersionOverrides(t *testing.T) {
 			}
 			return false
 		}),
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ApplicationDescriptor)
+			resp.ID = "test-app"
+			resp.Name = "Test Application"
+			resp.Version = "1.0.0"
+		}).
 		Return(nil)
 
-	mockHTTP.On("PostReturnNoContent",
+	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/modules/discovery")
 		}),
 		mock.Anything,
-		mock.Anything).
+		mock.Anything,
+		mock.AnythingOfType("*models.ModuleDiscoveryResponse")).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(3).(*models.ModuleDiscoveryResponse)
+			resp.TotalRecords = 1
+		}).
 		Return(nil)
 
 	// Act
@@ -2472,4 +2712,167 @@ func TestCreateApplications_BothModulesBothVersionOverrides(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
+}
+func TestFetchModuleDescriptor_RemoteModule_Success(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	extract := &models.RegistryExtract{
+		ModuleDescriptors: make(map[string]any),
+	}
+	moduleID := "mod-test-1.0.0"
+	moduleDescriptorURL := "http://registry.local/_/proxy/modules/mod-test-1.0.0"
+	expectedDescriptor := map[string]any{
+		"id":      "mod-test-1.0.0",
+		"name":    "mod-test",
+		"version": "1.0.0",
+	}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		moduleDescriptorURL,
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*any)
+			*target = expectedDescriptor
+		}).
+		Return(nil)
+
+	// Act
+	err := svc.FetchModuleDescriptor(extract, moduleID, moduleDescriptorURL, "", false)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, expectedDescriptor, extract.ModuleDescriptors[moduleID])
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestFetchModuleDescriptor_RemoteModule_HTTPError(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	extract := &models.RegistryExtract{
+		ModuleDescriptors: make(map[string]any),
+	}
+	moduleID := "mod-test-1.0.0"
+	moduleDescriptorURL := "http://registry.local/_/proxy/modules/mod-test-1.0.0"
+	expectedError := errors.New("network error")
+
+	mockHTTP.On("GetRetryReturnStruct",
+		moduleDescriptorURL,
+		mock.Anything,
+		mock.Anything).
+		Return(expectedError)
+
+	// Act
+	err := svc.FetchModuleDescriptor(extract, moduleID, moduleDescriptorURL, "", false)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	assert.Empty(t, extract.ModuleDescriptors)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestFetchModuleDescriptor_LocalBackendModule_Success(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	extract := &models.RegistryExtract{
+		ModuleDescriptors: make(map[string]any),
+	}
+	moduleID := "mod-test-1.0.0"
+	testFile := testhelpers.CreateTempJSONFile(t, map[string]any{
+		"id":      "mod-test-1.0.0",
+		"name":    "mod-test",
+		"version": "1.0.0",
+	})
+
+	// Act
+	err := svc.FetchModuleDescriptor(extract, moduleID, "", testFile, true)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.NotEmpty(t, extract.ModuleDescriptors[moduleID])
+	descriptor := extract.ModuleDescriptors[moduleID].(map[string]any)
+	assert.Equal(t, "mod-test-1.0.0", descriptor["id"])
+	assert.Equal(t, "mod-test", descriptor["name"])
+}
+
+func TestFetchModuleDescriptor_LocalFrontendModule_Success(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	extract := &models.RegistryExtract{
+		ModuleDescriptors: make(map[string]any),
+	}
+	moduleID := "folio-ui-test-1.0.0"
+	testFile := testhelpers.CreateTempJSONFile(t, map[string]any{
+		"id":      "folio-ui-test-1.0.0",
+		"name":    "folio-ui-test",
+		"version": "1.0.0",
+	})
+
+	// Act
+	err := svc.FetchModuleDescriptor(extract, moduleID, "", testFile, true)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.NotEmpty(t, extract.ModuleDescriptors[moduleID])
+	descriptor := extract.ModuleDescriptors[moduleID].(map[string]any)
+	assert.Equal(t, "folio-ui-test-1.0.0", descriptor["id"])
+	assert.Equal(t, "folio-ui-test", descriptor["name"])
+}
+
+func TestFetchModuleDescriptor_LocalModule_FileNotFound(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	extract := &models.RegistryExtract{
+		ModuleDescriptors: make(map[string]any),
+	}
+	moduleID := "mod-test-1.0.0"
+
+	// Act
+	err := svc.FetchModuleDescriptor(extract, moduleID, "", "/nonexistent/path.json", true)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Empty(t, extract.ModuleDescriptors)
+}
+
+func TestFetchModuleDescriptor_LocalModule_InvalidJSON(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	extract := &models.RegistryExtract{
+		ModuleDescriptors: make(map[string]any),
+	}
+	moduleID := "mod-test-1.0.0"
+	testFile := testhelpers.CreateTempFile(t, "invalid json content {")
+
+	// Act
+	err := svc.FetchModuleDescriptor(extract, moduleID, "", testFile, true)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Empty(t, extract.ModuleDescriptors)
 }

@@ -2,7 +2,6 @@ package testhelpers
 
 import (
 	"bytes"
-	"net/http"
 	"net/url"
 	"os/exec"
 
@@ -23,12 +22,17 @@ func (m *MockHTTPClient) Ping(url string) error {
 	return args.Error(0)
 }
 
-func (m *MockHTTPClient) GetReturnResponse(url string, headers map[string]string) (*http.Response, error) {
+func (m *MockHTTPClient) CheckStatus(url string) (int, error) {
+	args := m.Called(url)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *MockHTTPClient) GetReturnRawBytes(url string, headers map[string]string) ([]byte, error) {
 	args := m.Called(url, headers)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*http.Response), args.Error(1)
+	return args.Get(0).([]byte), args.Error(1)
 }
 
 func (m *MockHTTPClient) GetReturnStruct(url string, headers map[string]string, target any) error {
@@ -66,6 +70,11 @@ func (m *MockHTTPClient) PutReturnNoContent(url string, payload []byte, headers 
 	return args.Error(0)
 }
 
+func (m *MockHTTPClient) PutReturnStruct(url string, payload []byte, headers map[string]string, target any) error {
+	args := m.Called(url, payload, headers, target)
+	return args.Error(0)
+}
+
 func (m *MockHTTPClient) DeleteReturnNoContent(url string, headers map[string]string) error {
 	args := m.Called(url, headers)
 	return args.Error(0)
@@ -81,8 +90,13 @@ func (m *MockHTTPClient) Delete(url string, headers map[string]string) error {
 	return args.Error(0)
 }
 
-func (m *MockHTTPClient) DeleteWithBody(url string, payload []byte, headers map[string]string) error {
-	args := m.Called(url, payload, headers)
+func (m *MockHTTPClient) DeleteReturnStruct(url string, headers map[string]string, target any) error {
+	args := m.Called(url, headers, target)
+	return args.Error(0)
+}
+
+func (m *MockHTTPClient) DeleteWithBodyReturnStruct(url string, payload []byte, headers map[string]string, target any) error {
+	args := m.Called(url, payload, headers, target)
 	return args.Error(0)
 }
 

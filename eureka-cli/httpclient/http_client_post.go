@@ -2,7 +2,7 @@ package httpclient
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -30,6 +30,7 @@ func (hc *HTTPClient) PostReturnNoContent(url string, payload []byte, headers ma
 func (hc *HTTPClient) PostRetryReturnNoContent(url string, payload []byte, headers map[string]string) error {
 	httpResponse, err := hc.doRequest(http.MethodPost, url, payload, headers, true)
 	if err != nil {
+		fmt.Println("Failed=", err)
 		return err
 	}
 	defer CloseResponse(httpResponse)
@@ -47,14 +48,16 @@ func (hc *HTTPClient) PostReturnStruct(url string, payload []byte, headers map[s
 	if httpResponse.ContentLength == 0 {
 		return nil
 	}
-	if err := json.NewDecoder(httpResponse.Body).Decode(target); err != nil {
-		if errors.Is(err, io.EOF) {
-			return nil
-		}
+
+	body, err := io.ReadAll(httpResponse.Body)
+	if err != nil {
 		return err
 	}
+	if len(body) == 0 {
+		return nil
+	}
 
-	return nil
+	return json.Unmarshal(body, target)
 }
 
 func (hc *HTTPClient) PostFormDataReturnStruct(url string, formValues url.Values, headers map[string]string, target any) error {
@@ -77,12 +80,14 @@ func (hc *HTTPClient) PostFormDataReturnStruct(url string, formValues url.Values
 	if httpResponse.ContentLength == 0 {
 		return nil
 	}
-	if err := json.NewDecoder(httpResponse.Body).Decode(target); err != nil {
-		if errors.Is(err, io.EOF) {
-			return nil
-		}
+
+	body, err := io.ReadAll(httpResponse.Body)
+	if err != nil {
 		return err
 	}
+	if len(body) == 0 {
+		return nil
+	}
 
-	return nil
+	return json.Unmarshal(body, target)
 }

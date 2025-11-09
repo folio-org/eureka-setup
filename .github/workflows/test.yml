@@ -157,7 +157,7 @@ jobs:
         run: |
           echo "Running tests for testable packages (excluding infrastructure)..."
           # Exclude infrastructure packages (see EXCLUDE_PATTERN and EXCLUDED_PACKAGES env vars)
-          go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -coverprofile=coverage.out -covermode=atomic
+          go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -parallel 4 -coverprofile=coverage.out -covermode=atomic
 
       - name: Generate coverage report
         working-directory: ./eureka-cli
@@ -170,7 +170,7 @@ jobs:
           echo "|---------|----------|---------|" >> $GITHUB_STEP_SUMMARY
           
           # Run tests with coverage for testable packages only
-          go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -cover 2>/dev/null > test_output.txt
+          go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -parallel 4 -cover 2>/dev/null > test_output.txt
           
           # Process the coverage output - only lines that start with "ok" and contain "coverage:"
           # Sort by package name for better readability
@@ -237,7 +237,7 @@ jobs:
           # Check each package
           for package in $packages; do
             package_name=$(echo "$package" | sed 's/github.com\/folio-org\/eureka-cli\///')
-            coverage=$(go test -cover $package 2>/dev/null | grep -o "[0-9.]*%" | sed 's/%//')
+            coverage=$(go test -parallel 4 -cover $package 2>/dev/null | grep -o "[0-9.]*%" | sed 's/%//')
             
             if [[ -z "$coverage" ]]; then
               # Package has no tests, skip it
@@ -247,7 +247,7 @@ jobs:
             if (( $(echo "$coverage < $THRESHOLD" | bc -l) )); then
               # Check if this package is allowed to have low coverage
               if echo "$ALLOWED_LOW_COVERAGE" | grep -qw "$package_name"; then
-                echo "⚠️  $package_name coverage ($coverage%) is below threshold ($THRESHOLD%) - ALLOWED (work in progress)"
+                echo "⚠️ $package_name coverage ($coverage%) is below threshold ($THRESHOLD%) - ALLOWED (work in progress)"
                 warned=1
               else
                 echo "❌ $package_name coverage ($coverage%) is below threshold ($THRESHOLD%)"

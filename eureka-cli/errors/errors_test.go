@@ -155,6 +155,39 @@ func TestPingFailed(t *testing.T) {
 	})
 }
 
+func TestPingFailedWithStatus(t *testing.T) {
+	t.Run("TestPingFailedWithStatus_Success", func(t *testing.T) {
+		// Arrange
+		url := "http://example.com/health"
+		statusCode := 404
+
+		// Act
+		result := apperrors.PingFailedWithStatus(url, statusCode)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "failed to ping")
+		assert.Contains(t, result.Error(), url)
+		assert.Contains(t, result.Error(), "404")
+		assert.Contains(t, result.Error(), "Not Found")
+	})
+
+	t.Run("TestPingFailedWithStatus_ServerError", func(t *testing.T) {
+		// Arrange
+		url := "http://localhost:8080"
+		statusCode := 503
+
+		// Act
+		result := apperrors.PingFailedWithStatus(url, statusCode)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "failed to ping http://localhost:8080")
+		assert.Contains(t, result.Error(), "503")
+		assert.Contains(t, result.Error(), "Service Unavailable")
+	})
+}
+
 func TestRequestFailed(t *testing.T) {
 	t.Run("TestRequestFailed_Success", func(t *testing.T) {
 		// Arrange

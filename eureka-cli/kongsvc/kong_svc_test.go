@@ -2,7 +2,6 @@ package kongsvc_test
 
 import (
 	"errors"
-	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -39,18 +38,11 @@ func TestCheckRouteExists_Success(t *testing.T) {
 		Expression: `(http.path == "/test")`,
 	}
 
-	mockResponse := &http.Response{
-		StatusCode: http.StatusOK,
-		Status:     "200 OK",
-		Body:       io.NopCloser(strings.NewReader("")),
-	}
-
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("CheckStatus",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/routes/"+routeID)
-		}),
-		mock.Anything).
-		Return(mockResponse, nil)
+		})).
+		Return(http.StatusOK, nil)
 
 	mockHTTP.On("GetRetryReturnStruct",
 		mock.MatchedBy(func(urlStr string) bool {
@@ -83,18 +75,12 @@ func TestCheckRouteExists_NotFound(t *testing.T) {
 	svc := kongsvc.New(action, mockHTTP)
 
 	routeID := "nonexistent-route"
-	mockResponse := &http.Response{
-		StatusCode: http.StatusNotFound,
-		Status:     "404 Not Found",
-		Body:       io.NopCloser(strings.NewReader("")),
-	}
 
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("CheckStatus",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/routes/"+routeID)
-		}),
-		mock.Anything).
-		Return(mockResponse, nil)
+		})).
+		Return(http.StatusNotFound, nil)
 
 	// Act
 	exists, route, err := svc.CheckRouteExists(routeID)
@@ -115,12 +101,11 @@ func TestCheckRouteExists_HTTPError(t *testing.T) {
 	routeID := "route-123"
 	expectedError := errors.New("HTTP request failed")
 
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("CheckStatus",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/routes/"+routeID)
-		}),
-		mock.Anything).
-		Return(nil, expectedError)
+		})).
+		Return(0, expectedError)
 
 	// Act
 	exists, route, err := svc.CheckRouteExists(routeID)
@@ -140,18 +125,12 @@ func TestCheckRouteExists_InternalServerError(t *testing.T) {
 	svc := kongsvc.New(action, mockHTTP)
 
 	routeID := "route-123"
-	mockResponse := &http.Response{
-		StatusCode: http.StatusInternalServerError,
-		Status:     "500 Internal Server Error",
-		Body:       io.NopCloser(strings.NewReader("")),
-	}
 
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("CheckStatus",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/routes/"+routeID)
-		}),
-		mock.Anything).
-		Return(mockResponse, nil)
+		})).
+		Return(http.StatusInternalServerError, nil)
 
 	// Act
 	exists, route, err := svc.CheckRouteExists(routeID)
@@ -171,20 +150,13 @@ func TestCheckRouteExists_GetStructError(t *testing.T) {
 	svc := kongsvc.New(action, mockHTTP)
 
 	routeID := "route-123"
-	mockResponse := &http.Response{
-		StatusCode: http.StatusOK,
-		Status:     "200 OK",
-		Body:       io.NopCloser(strings.NewReader("")),
-	}
-
 	expectedError := errors.New("Failed to decode response")
 
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("CheckStatus",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/routes/"+routeID)
-		}),
-		mock.Anything).
-		Return(mockResponse, nil)
+		})).
+		Return(http.StatusOK, nil)
 
 	mockHTTP.On("GetRetryReturnStruct",
 		mock.MatchedBy(func(urlStr string) bool {

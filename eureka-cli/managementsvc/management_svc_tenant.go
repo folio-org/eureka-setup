@@ -71,11 +71,12 @@ func (ms *ManagementSvc) CreateTenants() error {
 			return err
 		}
 
-		err = ms.HTTPClient.PostReturnNoContent(requestURL, payload, map[string]string{})
+		var tenant models.Tenant
+		err = ms.HTTPClient.PostReturnStruct(requestURL, payload, map[string]string{}, &tenant)
 		if err != nil {
 			return err
 		}
-		slog.Info(ms.Action.Name, "text", "Created tenant with description", "tenant", tenantName, "description", description)
+		slog.Info(ms.Action.Name, "text", "Created tenant", "tenant", tenant.Name, "id", tenant.ID, "description", tenant.Description)
 	}
 
 	return nil
@@ -99,7 +100,7 @@ func (ms *ManagementSvc) RemoveTenants(consortiumName string, tenantType constan
 		if err != nil {
 			return err
 		}
-		slog.Info(ms.Action.Name, "text", "Removed tenant", "tenant", tenantName)
+		slog.Info(ms.Action.Name, "text", "Removed tenant", "tenant", tenantName, "tenantType", tenantType)
 	}
 
 	return nil

@@ -65,11 +65,11 @@ func (run *Run) BuildAndPushUi() error {
 
 func init() {
 	rootCmd.AddCommand(buildAndPushUiCmd)
-	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.Namespace, "namespace", "k", "", "DockerHub namespace")
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.Namespace, "namespace", "", "", "DockerHub namespace")
 	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.Tenant, "tenant", "t", "", "Tenant")
-	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.PlatformCompleteURL, "platformCompleteURL", "f", "http://localhost:3000", "Platform Complete UI url")
-	buildAndPushUiCmd.PersistentFlags().BoolVarP(&actionParams.SingleTenant, "singleTenant", "w", true, "Use for Single Tenant workflow")
-	buildAndPushUiCmd.PersistentFlags().BoolVarP(&actionParams.EnableECSRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.PlatformCompleteURL, "platformCompleteURL", "", "http://localhost:3000", "Platform Complete UI url")
+	buildAndPushUiCmd.PersistentFlags().BoolVarP(&actionParams.SingleTenant, "singleTenant", "", true, "Use for Single Tenant workflow")
+	buildAndPushUiCmd.PersistentFlags().BoolVarP(&actionParams.EnableECSRequests, "enableEcsRequests", "", false, "Enable ECS requests")
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&actionParams.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
 	if err := buildAndPushUiCmd.MarkPersistentFlagRequired("namespace"); err != nil {
 		slog.Error("failed to mark namespace flag as required", "error", err)

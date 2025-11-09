@@ -186,7 +186,6 @@ func (ms *ModuleSvc) DeployModule(client *client.Client, c *models.Container) er
 	ctx, cancel := context.WithTimeout(context.Background(), constant.ContextTimeoutDockerDeploy)
 	defer cancel()
 
-	containerName := ms.getContainerName(c)
 	if c.PullImage {
 		err := ms.PullModule(client, c.Image)
 		if err != nil {
@@ -194,6 +193,7 @@ func (ms *ModuleSvc) DeployModule(client *client.Client, c *models.Container) er
 		}
 	}
 
+	containerName := ms.getContainerName(c)
 	createResponse, err := client.ContainerCreate(ctx, c.Config, c.HostConfig, c.NetworkConfig, c.Platform, containerName)
 	if err != nil {
 		return err

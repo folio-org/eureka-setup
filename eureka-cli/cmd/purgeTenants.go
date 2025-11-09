@@ -22,6 +22,7 @@ import (
 	"net/url"
 
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/models"
 	"github.com/spf13/cobra"
 )
 
@@ -59,12 +60,13 @@ var purgeTenantsCmd = &cobra.Command{
 					return err
 				}
 
-				err = run.Config.HTTPClient.DeleteWithBody(fmt.Sprintf("%s%s", requestURL, "?purge=true"), payload, map[string]string{})
+				var response models.TenantEntitlementResponse
+				err = run.Config.HTTPClient.DeleteWithBodyReturnStruct(fmt.Sprintf("%s%s", requestURL, "?purge=true"), payload, map[string]string{}, &response)
 				if err != nil {
 					slog.Warn(run.Config.Action.Name, "text", "Purge of tenant entitlements was unsuccessful", "tenant", key, "error", err)
+				} else {
+					slog.Info(run.Config.Action.Name, "text", "Purged tenant entitlements", "tenant", key, "applications", value, "flowId", response.FlowID)
 				}
-
-				slog.Info(run.Config.Action.Name, "text", "Purged tenant entitlements", "tenant", key, "applications", value)
 			}
 		}
 

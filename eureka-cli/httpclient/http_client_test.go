@@ -29,68 +29,6 @@ func createTestLogger() *slog.Logger {
 
 // GET Tests
 
-func TestGetReturnResponse_Success(t *testing.T) {
-	// Arrange
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodGet, r.Method)
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"id": 1, "message": "success"}`))
-	}))
-	defer server.Close()
-
-	client := httpclient.New(createTestAction(), createTestLogger())
-
-	// Act
-	response, err := client.GetReturnResponse(server.URL, nil)
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, response)
-	assert.Equal(t, http.StatusOK, response.StatusCode)
-	httpclient.CloseResponse(response)
-}
-
-func TestGetReturnResponse_WithHeaders(t *testing.T) {
-	// Arrange
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
-		assert.Equal(t, "diku", r.Header.Get("X-Okapi-Tenant"))
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	client := httpclient.New(createTestAction(), createTestLogger())
-	headers := map[string]string{
-		"Authorization":  "Bearer token123",
-		"X-Okapi-Tenant": "diku",
-	}
-
-	// Act
-	response, err := client.GetReturnResponse(server.URL, headers)
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, response)
-	httpclient.CloseResponse(response)
-}
-
-func TestGetReturnResponse_ServerError(t *testing.T) {
-	// Arrange
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	defer server.Close()
-
-	client := httpclient.New(createTestAction(), createTestLogger())
-
-	// Act
-	response, err := client.GetReturnResponse(server.URL, nil)
-
-	// Assert
-	assert.Error(t, err)
-	assert.Nil(t, response)
-}
-
 func TestGetReturnStruct_Success(t *testing.T) {
 	// Arrange
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -507,24 +445,27 @@ func TestDelete_WithHeaders(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestDeleteWithBody_Success(t *testing.T) {
+func TestDeleteWithBodyReturnStruct_Success(t *testing.T) {
 	// Arrange
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
 		body, _ := io.ReadAll(r.Body)
 		assert.Contains(t, string(body), "reason")
 		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status": "deleted"}`))
 	}))
 	defer server.Close()
 
 	client := httpclient.New(createTestAction(), createTestLogger())
 	payload := []byte(`{"reason": "test deletion"}`)
+	var response map[string]any
 
 	// Act
-	err := client.DeleteWithBody(server.URL, payload, nil)
+	err := client.DeleteWithBodyReturnStruct(server.URL, payload, nil, &response)
 
 	// Assert
 	assert.NoError(t, err)
+	assert.Equal(t, "deleted", response["status"])
 }
 
 // Ping Tests
@@ -554,6 +495,52 @@ func TestPing_Failure(t *testing.T) {
 
 	// Assert
 	assert.Error(t, err)
+}
+
+func TestCheckStatus_Success(t *testing.T) {
+	// Arrange
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := httpclient.New(createTestAction(), createTestLogger())
+
+	// Act
+	statusCode, err := client.CheckStatus(server.URL)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, statusCode)
+}
+
+func TestCheckStatus_NonOKStatus(t *testing.T) {
+	// Arrange
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	client := httpclient.New(createTestAction(), createTestLogger())
+
+	// Act
+	statusCode, err := client.CheckStatus(server.URL)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusServiceUnavailable, statusCode)
+}
+
+func TestCheckStatus_NetworkError(t *testing.T) {
+	// Arrange
+	client := httpclient.New(createTestAction(), createTestLogger())
+
+	// Act
+	statusCode, err := client.CheckStatus("http://localhost:99999/nonexistent")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, 0, statusCode)
 }
 
 // CloseResponse Tests
@@ -668,18 +655,6 @@ func TestPutReturnNoContent_ServerError(t *testing.T) {
 
 	// Assert
 	assert.Error(t, err)
-}
-
-func TestGetReturnResponse_InvalidURL(t *testing.T) {
-	// Arrange
-	client := httpclient.New(createTestAction(), createTestLogger())
-
-	// Act
-	response, err := client.GetReturnResponse("http://localhost:99999/invalid", nil)
-
-	// Assert
-	assert.Error(t, err)
-	assert.Nil(t, response)
 }
 
 func TestGetReturnStruct_EOFHandling(t *testing.T) {

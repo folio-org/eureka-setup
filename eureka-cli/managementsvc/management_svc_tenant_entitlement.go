@@ -7,6 +7,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/models"
 )
 
 // ManagementTenantEntitlementManager defines the interface for tenant entitlement management operations
@@ -26,7 +27,7 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 		return nil
 	}
 
-	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/entitlements?purgeOnRollback=true&ignoreErrors=false&tenantParameters=%s", tenantParameters))
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/entitlements?purgeOnRollback=true&ignoreErrors=false&async=false&tenantParameters=%s", tenantParameters))
 	for _, value := range tenants {
 		entry := value.(map[string]any)
 		tenantName := entry["name"].(string)
@@ -42,11 +43,12 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 			return err
 		}
 
-		err = ms.HTTPClient.PostReturnNoContent(requestURL, payload, map[string]string{})
+		var decodedResponse models.TenantEntitlementResponse
+		err = ms.HTTPClient.PostReturnStruct(requestURL, payload, map[string]string{}, &decodedResponse)
 		if err != nil {
 			return err
 		}
-		slog.Info(ms.Action.Name, "text", "Created tenant entitlement for tenant", "tenant", tenantName)
+		slog.Info(ms.Action.Name, "text", "Created tenant entitlement", "tenant", tenantName, "flowId", decodedResponse.FlowID)
 	}
 
 	return nil
@@ -75,11 +77,12 @@ func (ms *ManagementSvc) RemoveTenantEntitlements(consortiumName string, tenantT
 			return err
 		}
 
-		err = ms.HTTPClient.DeleteWithBody(requestURL, payload, map[string]string{})
+		var decodedResponse models.TenantEntitlementResponse
+		err = ms.HTTPClient.DeleteWithBodyReturnStruct(requestURL, payload, map[string]string{}, &decodedResponse)
 		if err != nil {
 			return err
 		}
-		slog.Info(ms.Action.Name, "text", "Removed tenant entitlement for tenant", "tenant", tenantName)
+		slog.Info(ms.Action.Name, "text", "Removed tenant entitlement", "tenant", tenantName, "flowId", decodedResponse.FlowID)
 	}
 
 	return nil

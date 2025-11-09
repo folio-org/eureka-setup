@@ -81,7 +81,7 @@ func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, verbose boo
 
 		if len(decodedResponse) > 0 {
 			if verbose {
-				slog.Info(rs.Action.Name, "text", "Read registry with modules", "registry", registryName, "count", len(decodedResponse))
+				slog.Info(rs.Action.Name, "text", "Read registry", "registry", registryName, "count", len(decodedResponse))
 			}
 			sort.Slice(decodedResponse, func(i, j int) bool {
 				switch strings.Compare(decodedResponse[i].ID, decodedResponse[j].ID) {

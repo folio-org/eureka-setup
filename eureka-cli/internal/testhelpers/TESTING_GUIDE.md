@@ -12,6 +12,7 @@ This document provides a comprehensive guide for writing consistent, maintainabl
 - **Package naming**: Use `<package>_test` for black-box testing (preferred for exported functions)
 - **Package naming**: Use `<package>` for white-box testing (when testing internal/unexported functions)
 - **Test function naming**: `Test<FunctionName>_<Scenario>` (e.g., `TestReindexInventoryRecords_Success`)
+- **Subtest naming**: Subtests created with `t.Run()` MUST start with the parent test function name (e.g., `t.Run("TestFunctionName_Scenario", ...)` not `t.Run("Scenario", ...)`)
 
 ### 2. Test Structure (AAA Pattern)
 
@@ -31,6 +32,20 @@ func TestFunctionName_Scenario(t *testing.T) {
   assert.NoError(t, err)
   assert.Equal(t, expected, result)
   mockHTTP.AssertExpectations(t)
+}
+```
+
+**Important**: When using subtests with `t.Run()`, the subtest name MUST start with the parent test function name:
+
+```go
+func TestPingFailedWithStatus(t *testing.T) {
+  t.Run("TestPingFailedWithStatus_Success", func(t *testing.T) {  // ✅ Correct
+    // test code
+  })
+  
+  t.Run("Success", func(t *testing.T) {  // ❌ Incorrect - missing parent name
+    // test code
+  })
 }
 ```
 

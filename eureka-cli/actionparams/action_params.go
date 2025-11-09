@@ -28,4 +28,5 @@ type ActionParams struct {
 	PurgeSchemas        bool
 	Versions            int
 	PrivatePort         int
+	SkipCapabilitySets  bool
 }

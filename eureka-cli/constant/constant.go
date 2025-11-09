@@ -34,30 +34,36 @@ const (
 	ContextTimeoutVaultContainerLogs = 30 * time.Second
 	ContextTimeoutAWSConfig          = 30 * time.Second
 
-	// Default HTTP client properties
-	HTTPClientPingTimeout            = 15 * time.Second
-	HTTPClientTimeout                = 30 * time.Minute
-	HTTPClientDialTimeout            = 15 * time.Minute
-	HTTPClientKeepAlive              = 90 * time.Second
-	HTTPClientMaxIdleConns           = 50
-	HTTPClientMaxIdleConnsPerHost    = 10
-	HTTPClientIdleConnTimeout        = 120 * time.Second
-	HTTPClientMaxResponseHeaderBytes = 16 << 20
-	HTTPClientWriteBufferSize        = 64 << 10
-	HTTPClientReadBufferSize         = 64 << 10
-	HTTPClientResponseHeaderTimeout  = 15 * time.Minute
-	HTTPClientExpectContinueTimeout  = 15 * time.Second
-	HTTPClientDisableCompression     = false
-	HTTPClientForceAttemptHTTP2      = false
+	// HTTP client timeouts
+	HTTPClientPingTimeout = 15 * time.Second
+	HTTPClientTimeout     = 10 * time.Minute
+
+	// Custom HTTP client transport settings
+	HTTPClientDialTimeout           = 30 * time.Second
+	HTTPClientKeepAlive             = 30 * time.Second
+	HTTPClientMaxIdleConns          = 10
+	HTTPClientMaxIdleConnsPerHost   = 2
+	HTTPClientIdleConnTimeout       = 90 * time.Second
+	HTTPClientResponseHeaderTimeout = 5 * time.Minute
+	HTTPClientExpectContinueTimeout = 1 * time.Second
+
+	// Ping HTTP client transport settings
+	HTTPClientPingDialTimeout           = 5 * time.Second
+	HTTPClientPingKeepAlive             = -1 // Disable TCP keep-alive
+	HTTPClientPingDisableKeepAlives     = true
+	HTTPClientPingMaxIdleConns          = 0
+	HTTPClientPingMaxIdleConnsPerHost   = 0
+	HTTPClientPingIdleConnTimeout       = 0
+	HTTPClientPingResponseHeaderTimeout = 5 * time.Second
 
 	// Docker log properties
 	DockerLogHeaderSize = 8
 	DockerLogSizeOffset = 4
 
 	// Retry HTTP client properties
-	RetryHTTPClientRetryMax     = 3
+	RetryHTTPClientRetryMax     = 5
 	RetryHTTPClientRetryWaitMin = 2 * time.Second
-	RetryHTTPClientRetryWaitMax = 5 * time.Second
+	RetryHTTPClientRetryWaitMax = 10 * time.Second
 
 	SidecarProjectName = "folio-module-sidecar"
 

@@ -30,26 +30,40 @@ func (l *LoggingRoundTripper) RoundTrip(httpRequest *http.Request) (*http.Respon
 }
 
 func createCustomClient(timeout time.Duration) *http.Client {
+	lenientTransport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   constant.HTTPClientDialTimeout,
+			KeepAlive: constant.HTTPClientKeepAlive,
+		}).DialContext,
+		DisableKeepAlives:     false,
+		MaxIdleConns:          constant.HTTPClientMaxIdleConns,
+		MaxIdleConnsPerHost:   constant.HTTPClientMaxIdleConnsPerHost,
+		IdleConnTimeout:       constant.HTTPClientIdleConnTimeout,
+		ResponseHeaderTimeout: constant.HTTPClientResponseHeaderTimeout,
+		ExpectContinueTimeout: constant.HTTPClientExpectContinueTimeout,
+	}
+
 	return &http.Client{
-		Timeout: timeout,
-		Transport: &LoggingRoundTripper{
-			logger: slog.Default(),
-			next: &http.Transport{
-				DialContext: (&net.Dialer{
-					Timeout:   constant.HTTPClientDialTimeout,
-					KeepAlive: constant.HTTPClientKeepAlive,
-				}).DialContext,
-				MaxIdleConns:           constant.HTTPClientMaxIdleConns,
-				MaxIdleConnsPerHost:    constant.HTTPClientMaxIdleConnsPerHost,
-				IdleConnTimeout:        constant.HTTPClientIdleConnTimeout,
-				MaxResponseHeaderBytes: constant.HTTPClientMaxResponseHeaderBytes,
-				WriteBufferSize:        constant.HTTPClientWriteBufferSize,
-				ReadBufferSize:         constant.HTTPClientReadBufferSize,
-				ResponseHeaderTimeout:  constant.HTTPClientResponseHeaderTimeout,
-				ExpectContinueTimeout:  constant.HTTPClientExpectContinueTimeout,
-				DisableCompression:     constant.HTTPClientDisableCompression,
-				ForceAttemptHTTP2:      constant.HTTPClientForceAttemptHTTP2,
-			},
-		},
+		Timeout:   timeout,
+		Transport: &LoggingRoundTripper{logger: slog.Default(), next: lenientTransport},
+	}
+}
+
+func createPingClient(timeout time.Duration) *http.Client {
+	strictTransport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   constant.HTTPClientPingDialTimeout,
+			KeepAlive: constant.HTTPClientPingKeepAlive,
+		}).DialContext,
+		DisableKeepAlives:     constant.HTTPClientPingDisableKeepAlives,
+		MaxIdleConns:          constant.HTTPClientPingMaxIdleConns,
+		MaxIdleConnsPerHost:   constant.HTTPClientPingMaxIdleConnsPerHost,
+		IdleConnTimeout:       constant.HTTPClientPingIdleConnTimeout,
+		ResponseHeaderTimeout: constant.HTTPClientPingResponseHeaderTimeout,
+	}
+
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: &LoggingRoundTripper{logger: slog.Default(), next: strictTransport},
 	}
 }

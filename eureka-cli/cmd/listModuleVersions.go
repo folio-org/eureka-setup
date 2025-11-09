@@ -18,14 +18,12 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	"net/http/httputil"
 	"os"
 	"sort"
 	"strings"
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/httpclient"
 	"github.com/folio-org/eureka-cli/models"
 	"github.com/spf13/cobra"
 	"golang.org/x/mod/semver"
@@ -56,17 +54,12 @@ func (run *Run) ListModuleVersions() error {
 
 func (run *Run) getModuleDescriptorByID() error {
 	requestURL := fmt.Sprintf("%s/_/proxy/modules/%s", run.Config.Action.ConfigRegistryURL, actionParams.ID)
-	httpResponse, err := run.Config.HTTPClient.GetReturnResponse(requestURL, map[string]string{})
+	respBytes, err := run.Config.HTTPClient.GetReturnRawBytes(requestURL, map[string]string{})
 	if err != nil {
 		return err
 	}
-	defer httpclient.CloseResponse(httpResponse)
 
 	if !actionParams.EnableDebug {
-		respBytes, err := httputil.DumpResponse(httpResponse, true)
-		if err != nil {
-			return err
-		}
 		fmt.Println(string(respBytes))
 	}
 

@@ -10,7 +10,6 @@ import (
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/httpclient"
 )
 
 // ModuleReadinessChecker defines the interface for module readiness check operations
@@ -43,14 +42,10 @@ func (ms *ModuleSvc) CheckModuleReadiness(wg *sync.WaitGroup, errCh chan<- error
 }
 
 func (ms *ModuleSvc) checkContainerStatusCode(requestURL string) (bool, error) {
-	httpResponse, err := ms.HTTPClient.GetReturnResponse(requestURL, map[string]string{})
+	statusCode, err := ms.HTTPClient.CheckStatus(requestURL)
 	if err != nil {
 		return false, err
 	}
-	if httpResponse == nil {
-		return false, nil
-	}
-	defer httpclient.CloseResponse(httpResponse)
 
-	return httpResponse.StatusCode == http.StatusOK, nil
+	return statusCode == http.StatusOK, nil
 }

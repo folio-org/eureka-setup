@@ -55,8 +55,8 @@ func New(name string) (*Run, error) {
 }
 
 func (run *Run) PingGateway() error {
-	gatewayURL := fmt.Sprintf(run.Config.Action.GatewayURLTemplate, constant.KongPort)
-	return run.Config.HTTPClient.Ping(gatewayURL)
+	requestURL := run.Config.Action.GetRequestURL(constant.KongAdminPort, "/status")
+	return run.Config.HTTPClient.Ping(requestURL)
 }
 
 func setConfig(params *actionparams.ActionParams) {

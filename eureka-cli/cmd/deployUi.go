@@ -71,6 +71,6 @@ func init() {
 	rootCmd.AddCommand(deployUiCmd)
 	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.BuildImages, "buildImages", "b", false, "Build Docker images")
 	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
-	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.SingleTenant, "singleTenant", "w", true, "Use for Single Tenant workflow")
-	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.EnableECSRequests, "enableEcsRequests", "e", false, "Enable ECS requests")
+	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.SingleTenant, "singleTenant", "", true, "Use for Single Tenant workflow")
+	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.EnableECSRequests, "enableEcsRequests", "", false, "Enable ECS requests")
 }

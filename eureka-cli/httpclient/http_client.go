@@ -22,43 +22,23 @@ type HTTPClientRunner interface {
 	HTTPClientDeleteManager
 }
 
-// HTTPClientPinger defines the interface for HTTP ping operations
-type HTTPClientPinger interface {
-	Ping(url string) error
-}
-
 // HTTPClient provides functionality for HTTP client operations with retry logic
 type HTTPClient struct {
 	Action       *action.Action
 	customClient *http.Client
 	retryClient  *retryablehttp.Client
+	pingClient   *http.Client
 }
 
 // New creates a new HTTPClient instance
 func New(action *action.Action, logger *slog.Logger) *HTTPClient {
 	customClient := createCustomClient(constant.HTTPClientTimeout)
-	return &HTTPClient{Action: action, customClient: customClient, retryClient: createRetryClient(logger, customClient)}
-}
-
-func (hc *HTTPClient) Ping(url string) error {
-	httpResponse, err := hc.retryClient.Get(url)
-	if err != nil {
-		return errors.PingFailed(url, err)
+	return &HTTPClient{
+		Action:       action,
+		customClient: customClient,
+		retryClient:  createRetryClient(logger, customClient),
+		pingClient:   createPingClient(constant.HTTPClientPingTimeout),
 	}
-	defer CloseResponse(httpResponse)
-
-	slog.Info(hc.Action.Name, "text", "URL is accessible", "url", url)
-
-	return nil
-}
-
-func (hc *HTTPClient) validateResponse(method, url string, httpResponse *http.Response) error {
-	if httpResponse.StatusCode >= http.StatusOK && httpResponse.StatusCode < http.StatusMultipleChoices {
-		return nil
-	}
-	_ = helpers.DumpResponse(method, url, httpResponse, true)
-
-	return errors.RequestFailed(httpResponse.StatusCode, httpResponse.Request.Method, httpResponse.Request.URL.String())
 }
 
 func (hc *HTTPClient) doRequest(method, url string, payload []byte, headers map[string]string, useRetry bool) (*http.Response, error) {
@@ -68,7 +48,7 @@ func (hc *HTTPClient) doRequest(method, url string, payload []byte, headers map[
 
 	var bodyReader io.Reader
 	if payload != nil {
-		bodyReader = bytes.NewBuffer(payload)
+		bodyReader = bytes.NewReader(payload)
 	}
 
 	httpRequest, err := http.NewRequest(method, url, bodyReader)
@@ -97,14 +77,11 @@ func (hc *HTTPClient) doRequest(method, url string, payload []byte, headers map[
 			return nil, err
 		}
 	}
-
 	if err := hc.validateResponse(method, url, httpResponse); err != nil {
 		CloseResponse(httpResponse)
 		return nil, err
 	}
-
 	if err := helpers.DumpResponse(method, url, httpResponse, false); err != nil {
-		CloseResponse(httpResponse)
 		return nil, err
 	}
 
@@ -116,13 +93,20 @@ func setRequestHeaders(httpRequest *http.Request, headers map[string]string) {
 		httpRequest.Header.Add(constant.ContentTypeHeader, constant.ApplicationJSON)
 		return
 	}
-
 	for key, value := range headers {
 		httpRequest.Header.Add(key, value)
 	}
 }
 
-// CloseResponse drains and closes the HTTP response body to enable connection reuse
+func (hc *HTTPClient) validateResponse(method, url string, httpResponse *http.Response) error {
+	if httpResponse.StatusCode >= http.StatusOK && httpResponse.StatusCode < http.StatusMultipleChoices {
+		return nil
+	}
+	_ = helpers.DumpResponse(method, url, httpResponse, true)
+
+	return errors.RequestFailed(httpResponse.StatusCode, httpResponse.Request.Method, httpResponse.Request.URL.String())
+}
+
 func CloseResponse(httpResponse *http.Response) {
 	if httpResponse != nil && httpResponse.Body != nil {
 		// Drain any remaining data to enable connection reuse

@@ -1,7 +1,7 @@
 package modulesvc
 
 import (
-	"io"
+	"errors"
 	"net/http"
 	"strings"
 	"sync"
@@ -523,18 +523,12 @@ func TestCheckModuleReadiness_Success(t *testing.T) {
 	svc.ReadinessMaxRetries = 3
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	mockResponse := &http.Response{
-		StatusCode: http.StatusOK,
-		Status:     "200 OK",
-		Body:       io.NopCloser(strings.NewReader("")),
-	}
-
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("CheckStatus",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
 		mock.Anything).
-		Return(mockResponse, nil)
+		Return(http.StatusOK, nil)
 
 	wg := &sync.WaitGroup{}
 	errCh := make(chan error, 1)
@@ -563,12 +557,12 @@ func TestCheckModuleReadiness_HTTPError(t *testing.T) {
 	svc.ReadinessMaxRetries = 3
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("CheckStatus",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
 		mock.Anything).
-		Return(nil, nil)
+		Return(0, errors.New("connection error"))
 
 	wg := &sync.WaitGroup{}
 	errCh := make(chan error, 1)
@@ -594,12 +588,12 @@ func TestCheckModuleReadiness_NilResponse(t *testing.T) {
 	svc.ReadinessMaxRetries = 3
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("CheckStatus",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
 		mock.Anything).
-		Return(nil, nil)
+		Return(0, errors.New("nil response"))
 
 	wg := &sync.WaitGroup{}
 	errCh := make(chan error, 1)
@@ -625,18 +619,12 @@ func TestCheckModuleReadiness_NonOKStatusCode(t *testing.T) {
 	svc.ReadinessMaxRetries = 3
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	mockResponse := &http.Response{
-		StatusCode: http.StatusServiceUnavailable,
-		Status:     "503 Service Unavailable",
-		Body:       io.NopCloser(strings.NewReader("")),
-	}
-
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("CheckStatus",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
 		mock.Anything).
-		Return(mockResponse, nil)
+		Return(http.StatusServiceUnavailable, nil)
 
 	wg := &sync.WaitGroup{}
 	errCh := make(chan error, 1)
@@ -662,32 +650,20 @@ func TestCheckModuleReadiness_EventualSuccess(t *testing.T) {
 	svc.ReadinessMaxRetries = 3
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	failureResponse := &http.Response{
-		StatusCode: http.StatusServiceUnavailable,
-		Status:     "503 Service Unavailable",
-		Body:       io.NopCloser(strings.NewReader("")),
-	}
-
-	successResponse := &http.Response{
-		StatusCode: http.StatusOK,
-		Status:     "200 OK",
-		Body:       io.NopCloser(strings.NewReader("")),
-	}
-
 	// First 2 calls fail, third succeeds
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("CheckStatus",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
 		mock.Anything).
-		Return(failureResponse, nil).Times(2)
+		Return(http.StatusServiceUnavailable, nil).Times(2)
 
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("CheckStatus",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
 		mock.Anything).
-		Return(successResponse, nil).Once()
+		Return(http.StatusOK, nil).Once()
 
 	wg := &sync.WaitGroup{}
 	errCh := make(chan error, 1)
@@ -716,16 +692,10 @@ func TestCheckModuleReadiness_MultipleModulesConcurrent(t *testing.T) {
 	svc.ReadinessMaxRetries = 3
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	successResponse := &http.Response{
-		StatusCode: http.StatusOK,
-		Status:     "200 OK",
-		Body:       io.NopCloser(strings.NewReader("")),
-	}
-
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("CheckStatus",
 		mock.Anything,
 		mock.Anything).
-		Return(successResponse, nil)
+		Return(http.StatusOK, nil)
 
 	wg := &sync.WaitGroup{}
 	errCh := make(chan error, 3)
@@ -766,12 +736,12 @@ func TestCheckModuleReadiness_ErrorChannelFull(t *testing.T) {
 	svc.ReadinessMaxRetries = 3
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("CheckStatus",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
 		mock.Anything).
-		Return(nil, nil)
+		Return(0, errors.New("test error"))
 
 	wg := &sync.WaitGroup{}
 	errCh := make(chan error) // Unbuffered channel to test default case
@@ -795,19 +765,13 @@ func TestCheckModuleReadiness_VerifyRetryLogic(t *testing.T) {
 	svc.ReadinessMaxRetries = 5
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	failureResponse := &http.Response{
-		StatusCode: http.StatusServiceUnavailable,
-		Status:     "503 Service Unavailable",
-		Body:       io.NopCloser(strings.NewReader("")),
-	}
-
 	// Will retry until max retries
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("CheckStatus",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
 		mock.Anything).
-		Return(failureResponse, nil)
+		Return(http.StatusServiceUnavailable, nil)
 
 	wg := &sync.WaitGroup{}
 	errCh := make(chan error, 1)
@@ -823,7 +787,7 @@ func TestCheckModuleReadiness_VerifyRetryLogic(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "module test-module")
 	// Should have been called exactly maxRetries times
-	mockHTTP.AssertNumberOfCalls(t, "GetReturnResponse", 5)
+	mockHTTP.AssertNumberOfCalls(t, "CheckStatus", 5)
 }
 
 func TestCheckModuleReadiness_PortInURL(t *testing.T) {
@@ -834,20 +798,14 @@ func TestCheckModuleReadiness_PortInURL(t *testing.T) {
 	svc.ReadinessMaxRetries = 3
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	successResponse := &http.Response{
-		StatusCode: http.StatusOK,
-		Status:     "200 OK",
-		Body:       io.NopCloser(strings.NewReader("")),
-	}
-
 	var capturedURL string
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("CheckStatus",
 		mock.MatchedBy(func(urlStr string) bool {
 			capturedURL = urlStr
 			return true
 		}),
 		mock.Anything).
-		Return(successResponse, nil)
+		Return(http.StatusOK, nil)
 
 	wg := &sync.WaitGroup{}
 	errCh := make(chan error, 1)
@@ -872,18 +830,12 @@ func TestCheckModuleReadiness_DefaultMaxRetries(t *testing.T) {
 	// Don't set ReadinessMaxRetries - should default to constant value
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	successResponse := &http.Response{
-		StatusCode: http.StatusOK,
-		Status:     "200 OK",
-		Body:       io.NopCloser(strings.NewReader("")),
-	}
-
-	mockHTTP.On("GetReturnResponse",
+	mockHTTP.On("CheckStatus",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
 		mock.Anything).
-		Return(successResponse, nil)
+		Return(http.StatusOK, nil)
 
 	wg := &sync.WaitGroup{}
 	errCh := make(chan error, 1)

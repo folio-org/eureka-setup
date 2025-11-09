@@ -28,30 +28,35 @@ type KongRouteReader interface {
 
 // KongSvc provides functionality for Kong API gateway operations
 type KongSvc struct {
-	Action              *action.Action
-	HTTPClient          httpclient.HTTPClientGetManager
+	Action     *action.Action
+	HTTPClient interface {
+		httpclient.HTTPClientGetManager
+		httpclient.HTTPClientPinger
+	}
 	ReadinessMaxRetries int
 	ReadinessWait       time.Duration
 }
 
 // New creates a new KongSvc instance
-func New(action *action.Action, httpClient httpclient.HTTPClientGetManager) KongProcessor {
+func New(action *action.Action, httpClient interface {
+	httpclient.HTTPClientGetManager
+	httpclient.HTTPClientPinger
+}) KongProcessor {
 	return &KongSvc{Action: action, HTTPClient: httpClient}
 }
 
 func (ks *KongSvc) CheckRouteExists(routeID string) (bool, *models.KongRoute, error) {
 	requestURL := ks.Action.GetRequestURL(constant.KongAdminPort, fmt.Sprintf("/routes/%s", routeID))
-	httpResponse, err := ks.HTTPClient.GetReturnResponse(requestURL, map[string]string{})
+	statusCode, err := ks.HTTPClient.CheckStatus(requestURL)
 	if err != nil {
 		return false, nil, err
 	}
-	defer httpclient.CloseResponse(httpResponse)
 
-	if httpResponse.StatusCode == http.StatusNotFound {
+	if statusCode == http.StatusNotFound {
 		return false, nil, nil
 	}
-	if httpResponse.StatusCode != http.StatusOK {
-		return false, nil, errors.KongAdminAPIFailed(httpResponse.StatusCode, httpResponse.Status)
+	if statusCode != http.StatusOK {
+		return false, nil, errors.KongAdminAPIFailed(statusCode, http.StatusText(statusCode))
 	}
 
 	var decodedResponse models.KongRoute

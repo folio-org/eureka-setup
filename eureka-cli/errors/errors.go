@@ -3,6 +3,7 @@ package errors
 import (
 	"errors"
 	"fmt"
+	"net/http"
 )
 
 // ==================== Base Errors ====================
@@ -56,6 +57,10 @@ func LoggerNil() error {
 
 func PingFailed(url string, err error) error {
 	return fmt.Errorf("failed to ping %s: %w", url, err)
+}
+
+func PingFailedWithStatus(url string, statusCode int) error {
+	return fmt.Errorf("failed to ping %s: received status code %d (%s)", url, statusCode, http.StatusText(statusCode))
 }
 
 func RequestFailed(statusCode int, method, url string) error {

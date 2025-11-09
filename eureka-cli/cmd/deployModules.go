@@ -74,13 +74,6 @@ func (run *Run) DeployModules() error {
 		return err
 	}
 
-	slog.Info(run.Config.Action.Name, "text", "CREATING APPLICATION")
-	registryURLs := run.Config.Action.GetCombinedRegistryURLs()
-	registerExtract := models.NewRegistryExtract(registryURLs, modules, backendModules, frontendModules)
-	if err := run.Config.ManagementSvc.CreateApplications(registerExtract); err != nil {
-		return err
-	}
-
 	slog.Info(run.Config.Action.Name, "text", "PULLING SIDECAR IMAGE")
 	globalEnv := run.Config.Action.GetConfigEnvVars(field.Env)
 	sidecarEnv := run.Config.Action.GetConfigEnvVars(field.SidecarModuleEnv)
@@ -91,7 +84,6 @@ func (run *Run) DeployModules() error {
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "Using sidecar image", "image", sidecarImage)
-	sidecarResources := helpers.CreateResources(false, run.Config.Action.ConfigSidecarResources)
 	if pullSidecarImage {
 		err = run.Config.ModuleSvc.PullModule(client, sidecarImage)
 		if err != nil {
@@ -100,6 +92,7 @@ func (run *Run) DeployModules() error {
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "DEPLOYING MODULES")
+	sidecarResources := helpers.CreateResources(false, run.Config.Action.ConfigSidecarResources)
 	deployedModules, err := run.Config.ModuleSvc.DeployModules(client, containers, sidecarImage, sidecarResources)
 	if err != nil {
 		return err
@@ -126,7 +119,10 @@ func (run *Run) DeployModules() error {
 	}
 	slog.Info(run.Config.Action.Name, "text", "All modules are ready")
 
-	return nil
+	slog.Info(run.Config.Action.Name, "text", "CREATING APPLICATION")
+	registryURLs := run.Config.Action.GetCombinedRegistryURLs()
+	registerExtract := models.NewRegistryExtract(registryURLs, modules, backendModules, frontendModules)
+	return run.Config.ManagementSvc.CreateApplications(registerExtract)
 }
 
 func init() {

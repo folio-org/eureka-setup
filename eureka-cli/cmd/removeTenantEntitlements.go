@@ -35,13 +35,6 @@ var removeTenantEntitlementsCmd = &cobra.Command{
 		}
 
 		return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
-			if err := run.RemoveUsers(consortiumName, tenantType); err != nil {
-				return err
-			}
-			if err := run.RemoveRoles(consortiumName, tenantType); err != nil {
-				return err
-			}
-
 			return run.RemoveTenantEntitlements(consortiumName, tenantType)
 		})
 	},
@@ -54,5 +47,5 @@ func (run *Run) RemoveTenantEntitlements(consortiumName string, tenantType const
 
 func init() {
 	rootCmd.AddCommand(removeTenantEntitlementsCmd)
-	removeTenantEntitlementsCmd.PersistentFlags().BoolVarP(&actionParams.PurgeSchemas, "purgeSchemas", "z", false, "Purge schemas in PostgreSQL on uninstallation")
+	removeTenantEntitlementsCmd.PersistentFlags().BoolVarP(&actionParams.PurgeSchemas, "purgeSchemas", "", false, "Purge schemas in PostgreSQL on uninstallation")
 }
