@@ -27,17 +27,18 @@ type HTTPClient struct {
 	Action       *action.Action
 	customClient *http.Client
 	retryClient  *retryablehttp.Client
-	pingClient   *http.Client
+	pingClient   *retryablehttp.Client
 }
 
 // New creates a new HTTPClient instance
 func New(action *action.Action, logger *slog.Logger) *HTTPClient {
 	customClient := createCustomClient(constant.HTTPClientTimeout)
+	pingClient := createPingClient(constant.HTTPClientPingTimeout)
 	return &HTTPClient{
 		Action:       action,
 		customClient: customClient,
 		retryClient:  createRetryClient(logger, customClient),
-		pingClient:   createPingClient(constant.HTTPClientPingTimeout),
+		pingClient:   createRetryClient(logger, pingClient),
 	}
 }
 
