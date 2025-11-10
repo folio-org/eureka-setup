@@ -18,32 +18,34 @@ package cmd
 import (
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
 )
-
-const removeTenantEntitlementsCommand string = "Remove Tenant Entitlements"
 
 // removeTenantEntitlementsCmd represents the removeTenantEntitlements command
 var removeTenantEntitlementsCmd = &cobra.Command{
 	Use:   "removeTenantEntitlements",
 	Short: "Remove tenant entitlements",
 	Long:  `Remove all tenant entitlements.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		RunByConsortiumAndTenantType(removeTenantEntitlementsCommand, func(consortium string, tenantType internal.TenantType) {
-			RemoveUsers(consortium, tenantType)
-			RemoveRoles(consortium, tenantType)
-			RemoveTenantEntitlements(consortium, tenantType)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		run, err := New(action.RemoveTenantEntitlements)
+		if err != nil {
+			return err
+		}
+
+		return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+			return run.RemoveTenantEntitlements(consortiumName, tenantType)
 		})
 	},
 }
 
-func RemoveTenantEntitlements(consortium string, tenantType internal.TenantType) {
-	slog.Info(removeTenantEntitlementsCommand, internal.GetFuncName(), "### REMOVING TENANT ENTITLEMENTS ###")
-	internal.RemoveTenantEntitlements(removeTenantEntitlementsCommand, withEnableDebug, false, withPurgeSchemas, consortium, tenantType)
+func (run *Run) RemoveTenantEntitlements(consortiumName string, tenantType constant.TenantType) error {
+	slog.Info(run.Config.Action.Name, "text", "REMOVING TENANT ENTITLEMENTS")
+	return run.Config.ManagementSvc.RemoveTenantEntitlements(consortiumName, tenantType, actionParams.PurgeSchemas)
 }
 
 func init() {
 	rootCmd.AddCommand(removeTenantEntitlementsCmd)
-	removeTenantEntitlementsCmd.PersistentFlags().BoolVarP(&withPurgeSchemas, "purgeSchemas", "P", false, "Purge schemas in PostgreSQL on uninstallation")
+	removeTenantEntitlementsCmd.PersistentFlags().BoolVarP(&actionParams.PurgeSchemas, "purgeSchemas", "", false, "Purge schemas in PostgreSQL on uninstallation")
 }

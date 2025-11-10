@@ -18,31 +18,35 @@ package cmd
 import (
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
 )
-
-const undeployManagementCommand = "Undeploy Management"
 
 // undeployManagementCmd represents the undeployManagement command
 var undeployManagementCmd = &cobra.Command{
 	Use:   "undeployManagement",
 	Short: "Undeploy management",
 	Long:  `Undeploy all management modules.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		UndeployModules()
-		UndeployManagement()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		run, err := New(action.UndeployManagement)
+		if err != nil {
+			return err
+		}
+
+		return run.UndeployManagement()
 	},
 }
 
-func UndeployManagement() {
-	slog.Info(undeployManagementCommand, internal.GetFuncName(), "### UNDEPLOYING MANAGEMENT MODULES ###")
-	client := internal.CreateDockerClient(undeployManagementCommand)
-	defer func() {
-		_ = client.Close()
-	}()
+func (run *Run) UndeployManagement() error {
+	slog.Info(run.Config.Action.Name, "text", "UNDEPLOYING MANAGEMENT MODULES")
+	client, err := run.Config.DockerClient.Create()
+	if err != nil {
+		return err
+	}
+	defer run.Config.DockerClient.Close(client)
 
-	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, internal.ManagementContainerPattern)
+	return run.Config.ModuleSvc.UndeployModuleByNamePattern(client, constant.ManagementContainerPattern)
 }
 
 func init() {

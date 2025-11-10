@@ -16,74 +16,121 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 	"time"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
-
-const deployApplicationCommand string = "Deploy Application"
 
 // deployApplicationCmd represents the deployApplication command
 var deployApplicationCmd = &cobra.Command{
-	Use:   "deployApplication",
-	Short: "Deploy application",
-	Long:  `Deploy platform application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Use:     "deployApplication",
+	Short:   "Deploy application",
+	Long:    `Deploy platform application.`,
+	Aliases: []string{"deploy"},
+	RunE: func(cmd *cobra.Command, args []string) error {
 		start := time.Now()
-		if len(viper.GetStringMap(internal.ApplicationGatewayDependenciesKey)) > 0 {
-			DeployChildApplication()
-		} else {
-			DeployApplication()
+
+		var err error
+		run, err := New(action.DeployApplication)
+		if err != nil {
+			return err
 		}
-		slog.Info(deployApplicationCommand, "Elapsed, duration", time.Since(start))
+
+		if len(run.Config.Action.ConfigApplicationDependencies) > 0 {
+			err = run.DeployChildApplication()
+		} else {
+			err = run.DeployApplication()
+		}
+		if err != nil {
+			return err
+		}
+		slog.Info(run.Config.Action.Name, "text", "Command completed", "duration", time.Since(start))
+
+		return nil
 	},
 }
 
-func DeployApplication() {
-	DeploySystem()
-	DeployManagement()
-	DeployModules()
-	CreateTenants()
-	RunByConsortiumAndTenantType(deployApplicationCommand, func(consortium string, tenantType internal.TenantType) {
-		waitDuration := 10 * time.Second
-
-		CreateTenantEntitlements(consortium, tenantType)
-		CreateRoles(consortium, tenantType)
-		CreateUsers(consortium, tenantType)
-		AttachCapabilitySets(consortium, tenantType, waitDuration)
-
-		if consortium != internal.NoneConsortium {
-			slog.Info(deployApplicationCommand, internal.GetFuncName(), fmt.Sprintf("Waiting for %d duration", waitDuration))
-			time.Sleep(waitDuration)
-		}
-	})
-	CreateConsortium()
-	DeployUi()
-	UpdateKeycloakPublicClients()
-	if internal.HasModule(internal.ModSearchModuleName) {
-		RunByConsortiumAndTenantType(deployApplicationCommand, func(consortium string, tenantType internal.TenantType) {
-			ReindexElasticsearch(consortium, tenantType)
-		})
+func (run *Run) DeployApplication() error {
+	if err := run.DeploySystem(); err != nil {
+		return err
 	}
+	if err := run.PingGateway(); err != nil {
+		return err
+	}
+	if err := run.DeployManagement(); err != nil {
+		return err
+	}
+	if err := run.DeployModules(); err != nil {
+		return err
+	}
+	if err := run.CreateTenants(); err != nil {
+		return err
+	}
+	if err := run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+		if err := run.CreateTenantEntitlements(consortiumName, tenantType); err != nil {
+			return err
+		}
+		if err := run.CreateRoles(consortiumName, tenantType); err != nil {
+			return err
+		}
+		if err := run.CreateUsers(consortiumName, tenantType); err != nil {
+			return err
+		}
+		if err := run.AttachCapabilitySets(consortiumName, tenantType, constant.DeployApplicationPartitionWait); err != nil {
+			return err
+		}
+		if consortiumName != constant.NoneConsortium {
+			time.Sleep(constant.DeployApplicationPartitionWait)
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+	if err := run.CreateConsortium(); err != nil {
+		return err
+	}
+	return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+		if err := run.DeployUi(consortiumName, tenantType); err != nil {
+			return err
+		}
+		if err := run.UpdateKeycloakPublicClients(consortiumName, tenantType); err != nil {
+			return err
+		}
+		if helpers.IsModuleEnabled(constant.ModSearchModule, run.Config.Action.ConfigBackendModules) {
+			return run.ReindexIndices(consortiumName, tenantType)
+		}
+
+		return nil
+	})
 }
 
-func DeployChildApplication() {
-	DeployAdditionalSystem()
-	DeployModules()
-	RunByConsortiumAndTenantType(deployApplicationCommand, func(consortium string, tenantType internal.TenantType) {
-		CreateTenantEntitlements(consortium, tenantType)
-		DetachCapabilitySets(consortium, tenantType)
-		AttachCapabilitySets(consortium, tenantType, 0*time.Second)
+func (run *Run) DeployChildApplication() error {
+	if err := run.DeployAdditionalSystem(); err != nil {
+		return err
+	}
+	if err := run.DeployModules(); err != nil {
+		return err
+	}
+	return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+		if err := run.CreateTenantEntitlements(consortiumName, tenantType); err != nil {
+			return err
+		}
+		if err := run.DetachCapabilitySets(consortiumName, tenantType); err != nil {
+			return err
+		}
+
+		return run.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second)
 	})
 }
 
 func init() {
 	rootCmd.AddCommand(deployApplicationCmd)
-	deployApplicationCmd.PersistentFlags().BoolVarP(&withBuildImages, "buildImages", "b", false, "Build Docker images")
-	deployApplicationCmd.PersistentFlags().BoolVarP(&withUpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
-	deployApplicationCmd.PersistentFlags().BoolVarP(&withOnlyRequired, "onlyRequired", "R", false, "Use only required system containers")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&actionParams.BuildImages, "buildImages", "b", false, "Build Docker images")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&actionParams.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	deployApplicationCmd.PersistentFlags().BoolVarP(&actionParams.OnlyRequired, "onlyRequired", "q", false, "Use only required system containers")
 }

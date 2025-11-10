@@ -17,35 +17,66 @@ package cmd
 
 import (
 	"log/slog"
+	"os"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/errors"
 	"github.com/spf13/cobra"
 )
-
-const updateModuleDiscoveryCommand = "Update Module Discovery"
 
 // updateModuleDiscoveryCmd represents the redirect command
 var updateModuleDiscoveryCmd = &cobra.Command{
 	Use:   "updateModuleDiscovery",
 	Short: "Update module discovery",
 	Long:  `Update module discovery to point to a different sidecar URL.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		UpdateModuleDiscovery(withSidecarUrl)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		run, err := New(action.UpdateModuleDiscovery)
+		if err != nil {
+			return err
+		}
+
+		return run.UpdateModuleDiscovery()
 	},
 }
 
-func UpdateModuleDiscovery(sidecarUrl string) {
-	slog.Info(updateModuleDiscoveryCommand, internal.GetFuncName(), "### UPDATING MODULE DISCOVERY URL ###")
-	internal.UpdateModuleDiscovery(updateModuleDiscoveryCommand, withEnableDebug, withId, sidecarUrl, withRestore, internal.DefaultServerPort)
+func (run *Run) UpdateModuleDiscovery() error {
+	if err := run.setModuleDiscoveryDataIntoContext(); err != nil {
+		return err
+	}
+
+	slog.Info(run.Config.Action.Name, "text", "UPDATING MODULE DISCOVERY", "module", actionParams.ModuleName, "id", actionParams.ID)
+	return run.Config.ManagementSvc.UpdateModuleDiscovery(actionParams.ID, actionParams.Restore, actionParams.PrivatePort, actionParams.SidecarURL)
+}
+
+func (run *Run) setModuleDiscoveryDataIntoContext() error {
+	moduleDiscovery, err := run.Config.ManagementSvc.GetModuleDiscovery(actionParams.ModuleName)
+	if err != nil {
+		return err
+	}
+	if len(moduleDiscovery.Discovery) == 0 {
+		return errors.ModuleDiscoveryNotFound(actionParams.ModuleName)
+	}
+	actionParams.ID = moduleDiscovery.Discovery[0].ID
+
+	return nil
 }
 
 func init() {
 	rootCmd.AddCommand(updateModuleDiscoveryCmd)
-	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&withId, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021 (required)")
-	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&withSidecarUrl, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
-	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&withRestore, "restore", "r", false, "Restore sidecar URL")
-	if err := updateModuleDiscoveryCmd.MarkPersistentFlagRequired("id"); err != nil {
-		slog.Error(updateModuleDiscoveryCommand, internal.GetFuncName(), "updateModuleDiscoveryCmd.MarkPersistentFlagRequired error")
-		panic(err)
+	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&actionParams.ModuleName, "moduleName", "n", "", "Module name, e.g. mod-orders")
+	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&actionParams.SidecarURL, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
+	updateModuleDiscoveryCmd.PersistentFlags().IntVarP(&actionParams.PrivatePort, "privatePort", "", 8081, "Private port e.g. 8081")
+	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&actionParams.Restore, "restore", "r", false, "Restore sidecar URL")
+	if err := updateModuleDiscoveryCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
+		slog.Error("failed to mark moduleName flag as required", "error", err)
+		os.Exit(1)
+	}
+	if err := updateModuleDiscoveryCmd.MarkPersistentFlagRequired("sidecarUrl"); err != nil {
+		slog.Error("failed to mark sidecarUrl flag as required", "error", err)
+		os.Exit(1)
+	}
+	if err := updateModuleDiscoveryCmd.MarkPersistentFlagRequired("privatePort"); err != nil {
+		slog.Error("failed to mark privatePort flag as required", "error", err)
+		os.Exit(1)
 	}
 }

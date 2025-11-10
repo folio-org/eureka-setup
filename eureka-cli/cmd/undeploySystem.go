@@ -19,26 +19,29 @@ import (
 	"log/slog"
 	"os/exec"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
 	"github.com/spf13/cobra"
 )
-
-const undeploySystemCommand string = "Undeploy System"
 
 // undeploySystemCmd represents the undeploySystem command
 var undeploySystemCmd = &cobra.Command{
 	Use:   "undeploySystem",
 	Short: "Undeploy system",
 	Long:  `Undeploy all system containers.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		UndeploySystem()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		run, err := New(action.UndeploySystem)
+		if err != nil {
+			return err
+		}
+
+		return run.UndeploySystem()
 	},
 }
 
-func UndeploySystem() {
-	slog.Info(undeploySystemCommand, internal.GetFuncName(), "### UNDEPLOYING SYSTEM CONTAINERS ###")
+func (run *Run) UndeploySystem() error {
+	slog.Info(run.Config.Action.Name, "text", "UNDEPLOYING SYSTEM CONTAINERS")
 	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "down", "--volumes", "--remove-orphans")
-	internal.RunCommand(undeploySystemCommand, preparedCommand)
+	return run.Config.ExecSvc.Exec(preparedCommand)
 }
 
 func init() {

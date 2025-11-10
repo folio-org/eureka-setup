@@ -19,35 +19,43 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
-
-const undeployModulesCommand = "Undeploy Modules"
 
 // undeployModulesCmd represents the undeployModules command
 var undeployModulesCmd = &cobra.Command{
 	Use:   "undeployModules",
 	Short: "Undeploy modules",
 	Long:  `Undeploy multiple modules.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		UndeployModules()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		run, err := New(action.UndeployModules)
+		if err != nil {
+			return err
+		}
+
+		return run.UndeployModules(true)
 	},
 }
 
-func UndeployModules() {
-	slog.Info(undeployModulesCommand, internal.GetFuncName(), "### REMOVING APPLICATIONS ###")
-	applicationId := fmt.Sprintf("%s-%s", viper.GetString(internal.ApplicationNameKey), viper.GetString(internal.ApplicationVersionKey))
-	internal.RemoveApplication(undeployModulesCommand, withEnableDebug, false, applicationId)
+func (run *Run) UndeployModules(deleteApplication bool) error {
+	if deleteApplication {
+		slog.Info(run.Config.Action.Name, "text", "REMOVING APPLICATION")
+		if err := run.Config.ManagementSvc.RemoveApplication(run.Config.Action.ConfigApplicationID); err != nil {
+			slog.Warn(run.Config.Action.Name, "text", "Application removal was unsuccessful", "error", err)
+		}
+	}
 
-	slog.Info(undeployModulesCommand, internal.GetFuncName(), "### UNDEPLOYING MODULES ###")
-	client := internal.CreateDockerClient(undeployModulesCommand)
-	defer func() {
-		_ = client.Close()
-	}()
+	slog.Info(run.Config.Action.Name, "text", "UNDEPLOYING MODULES")
+	client, err := run.Config.DockerClient.Create()
+	if err != nil {
+		return err
+	}
+	defer run.Config.DockerClient.Close(client)
 
-	internal.UndeployModuleByNamePattern(undeployModulesCommand, client, fmt.Sprintf(internal.ProfileContainerPattern, viper.GetString(internal.ProfileNameKey)))
+	pattern := fmt.Sprintf(constant.ProfileContainerPattern, run.Config.Action.ConfigProfile)
+	return run.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
 }
 
 func init() {

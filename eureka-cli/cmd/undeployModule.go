@@ -18,39 +18,45 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
+	"os"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
-
-const undeployModuleCommand = "Undeploy Module"
 
 // undeployModuleCmd represents the undeployModule command
 var undeployModuleCmd = &cobra.Command{
 	Use:   "undeployModule",
 	Short: "Undeploy module",
 	Long:  `Undeploy a single module.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		UndeployModule()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		run, err := New(action.UndeployModule)
+		if err != nil {
+			return err
+		}
+
+		return run.UndeployModule()
 	},
 }
 
-func UndeployModule() {
-	slog.Info(undeployModuleCommand, internal.GetFuncName(), "### UNDEPLOYING MODULE ###")
-	client := internal.CreateDockerClient(undeployModuleCommand)
-	defer func() {
-		_ = client.Close()
-	}()
+func (run *Run) UndeployModule() error {
+	slog.Info(run.Config.Action.Name, "text", "UNDEPLOYING MODULE")
+	client, err := run.Config.DockerClient.Create()
+	if err != nil {
+		return err
+	}
+	defer run.Config.DockerClient.Close(client)
 
-	internal.UndeployModuleByNamePattern(undeployModuleCommand, client, fmt.Sprintf(internal.SingleModuleOrSidecarContainerPattern, viper.GetString(internal.ProfileNameKey), withModuleName))
+	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, run.Config.Action.ConfigProfile, actionParams.ModuleName)
+	return run.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
 }
 
 func init() {
 	rootCmd.AddCommand(undeployModuleCmd)
-	undeployModuleCmd.PersistentFlags().StringVarP(&withModuleName, "moduleName", "m", "", "Module name, e.g. mod-orders (required)")
+	undeployModuleCmd.PersistentFlags().StringVarP(&actionParams.ModuleName, "moduleName", "n", "", "Module name, e.g. mod-orders")
 	if err := undeployModuleCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
-		slog.Error(undeployModuleCommand, internal.GetFuncName(), "undeployModuleCmd.MarkPersistentFlagRequired error")
-		panic(err)
+		slog.Error("failed to mark moduleName flag as required", "error", err)
+		os.Exit(1)
 	}
 }

@@ -24,56 +24,79 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
-
-const checkPortsCommand = "Check Ports"
 
 // checkPortsCmd represents the checkPorts command
 var checkPortsCmd = &cobra.Command{
 	Use:   "checkPorts",
 	Short: "Check ports",
 	Long:  `Check container ports.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		CheckPorts()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		run, err := New(action.CheckPorts)
+		if err != nil {
+			return err
+		}
+
+		return run.CheckPorts()
 	},
 }
 
-func CheckPorts() {
-	slog.Info(checkPortsCommand, internal.GetFuncName(), "### CHECKING CONTAINER PORTS ###")
-	deployNetcatContainer()
+func (run *Run) CheckPorts() error {
+	slog.Info(run.Config.Action.Name, "text", "CHECKING CONTAINER PORTS")
+	if err := run.deployNetcatContainer(); err != nil {
+		return err
+	}
 
-	modules := getDeployedModules()
-	runNetcat(modules)
+	modules, err := run.getDeployedModules()
+	if err != nil {
+		return err
+	}
+	run.runNetcat(modules)
+
+	return nil
 }
 
-func deployNetcatContainer() {
+func (run *Run) deployNetcatContainer() error {
 	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach", "netcat")
-	internal.RunCommandFromDir(checkPortsCommand, preparedCommand, internal.GetHomeMiscDir(checkPortsCommand))
+
+	dir, err := helpers.GetHomeMiscDir(run.Config.Action.Name)
+	if err != nil {
+		return err
+	}
+
+	return run.Config.ExecSvc.ExecFromDir(preparedCommand, dir)
 }
 
-func getDeployedModules() []container.Summary {
-	client := internal.CreateDockerClient(checkPortsCommand)
-	defer func() {
-		_ = client.Close()
-	}()
+func (run *Run) getDeployedModules() ([]container.Summary, error) {
+	client, err := run.Config.DockerClient.Create()
+	if err != nil {
+		return nil, err
+	}
+	defer run.Config.DockerClient.Close(client)
 
-	filters := filters.NewArgs(filters.KeyValuePair{Key: "name", Value: fmt.Sprintf(internal.ProfileContainerPattern, viper.GetString(internal.ProfileNameKey))})
-	containers := internal.GetDeployedModules(checkPortsCommand, client, filters)
+	filters := filters.NewArgs(filters.KeyValuePair{
+		Key:   "name",
+		Value: fmt.Sprintf(constant.ProfileContainerPattern, run.Config.Action.ConfigProfile),
+	})
+	containers, err := run.Config.ModuleSvc.GetDeployedModules(client, filters)
+	if err != nil {
+		return nil, err
+	}
 
-	return containers
+	return containers, nil
 }
 
-func runNetcat(modules []container.Summary) {
-	slog.Info(checkPortsCommand, internal.GetFuncName(), "Running netcat -zv [container] [private port]")
+func (run *Run) runNetcat(modules []container.Summary) {
+	slog.Info(run.Config.Action.Name, "text", "Running netcat -zv [container] [private port]")
 	for _, module := range modules {
-		moduleName := fmt.Sprintf("%s.eureka", strings.ReplaceAll(module.Names[0], "/", ""))
-
+		name := fmt.Sprintf("%s.eureka", strings.ReplaceAll(module.Names[0], "/", ""))
 		for _, portPair := range module.Ports {
-			modulePrivatePort := strconv.Itoa(int(portPair.PrivatePort))
-			internal.RunCommandIgnoreError(checkPortsCommand, exec.Command("docker", "exec", "-i", "netcat", "nc", "-zv", moduleName, modulePrivatePort))
+			privatePort := strconv.Itoa(int(portPair.PrivatePort))
+			run.Config.ExecSvc.ExecIgnoreError(exec.Command("docker", "exec", "-i", "netcat", "nc", "-zv", name, privatePort))
 		}
 	}
 }

@@ -19,49 +19,84 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
-
-const undeployApplicationCommand string = "Undeploy Application"
 
 // undeployApplicationCmd represents the undeployApplication command
 var undeployApplicationCmd = &cobra.Command{
-	Use:   "undeployApplication",
-	Short: "Undeploy application",
-	Long:  `Undeploy platform application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Use:     "undeployApplication",
+	Short:   "Undeploy application",
+	Long:    `Undeploy platform application.`,
+	Aliases: []string{"undeploy"},
+	RunE: func(cmd *cobra.Command, args []string) error {
 		start := time.Now()
-		if len(viper.GetStringMap(internal.ApplicationGatewayDependenciesKey)) > 0 {
-			UndeployChildApplication()
-		} else {
-			UndeployApplication()
+
+		var err error
+		run, err := New(action.UndeployApplication)
+		if err != nil {
+			return err
 		}
-		slog.Info(undeployApplicationCommand, "Elapsed, duration", time.Since(start))
+
+		if len(run.Config.Action.ConfigApplicationDependencies) > 0 {
+			err = run.UndeployChildApplication()
+		} else {
+			err = run.UndeployApplication()
+		}
+		if err != nil {
+			return err
+		}
+		slog.Info(run.Config.Action.Name, "text", "Command completed", "duration", time.Since(start))
+
+		return nil
 	},
 }
 
-func UndeployApplication() {
-	UndeployUi()
-	UndeployModules()
-	UndeployManagement()
-	UndeploySystem()
+func (run *Run) UndeployApplication() error {
+	if err := run.UndeployUI(); err != nil {
+		slog.Warn(run.Config.Action.Name, "text", "UI undeploy was unsuccessful", "error", err)
+	}
+	if err := run.UndeployModules(false); err != nil {
+		return err
+	}
+	if err := run.UndeployManagement(); err != nil {
+		return err
+	}
+
+	return run.UndeploySystem()
 }
 
-func UndeployChildApplication() {
-	RunByConsortiumAndTenantType(undeployApplicationCommand, func(consortium string, tenantType internal.TenantType) {
-		RemoveTenantEntitlements(consortium, tenantType)
-	})
-	UndeployModules()
-	UndeployAdditionalSystem()
-	RunByConsortiumAndTenantType(undeployApplicationCommand, func(consortium string, tenantType internal.TenantType) {
-		DetachCapabilitySets(consortium, tenantType)
-		AttachCapabilitySets(consortium, tenantType, 0*time.Second)
+func (run *Run) UndeployChildApplication() error {
+	if err := run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+		if err := run.RemoveTenantEntitlements(consortiumName, tenantType); err != nil {
+			slog.Warn(run.Config.Action.Name, "text", "Remove tenant entitlement was unsuccessful", "error", err)
+		}
+
+		return nil
+	}); err != nil {
+		return err
+	}
+	if err := run.UndeployModules(true); err != nil {
+		return err
+	}
+	if err := run.UndeployAdditionalSystem(); err != nil {
+		return err
+	}
+	if actionParams.SkipCapabilitySets {
+		return nil
+	}
+	return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
+		if err := run.DetachCapabilitySets(consortiumName, tenantType); err != nil {
+			return err
+		}
+
+		return run.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second)
 	})
 }
 
 func init() {
 	rootCmd.AddCommand(undeployApplicationCmd)
-	undeployApplicationCmd.PersistentFlags().BoolVarP(&withPurgeSchemas, "purgeSchemas", "S", false, "Purge schemas in PostgreSQL on uninstallation")
+	undeployApplicationCmd.PersistentFlags().BoolVarP(&actionParams.PurgeSchemas, "purgeSchemas", "", false, "Purge schemas in PostgreSQL on uninstallation")
+	undeployApplicationCmd.PersistentFlags().BoolVarP(&actionParams.SkipCapabilitySets, "skipCapabilitySets", "", false, "Skip refreshing capability sets")
 }

@@ -75,7 +75,8 @@ users:
     first-name: Doe
     roles: ["diku_user_role"]
 sidecar-module:
-  image: bkadirkhodjaev/folio-module-sidecar-native
+  # Must build locally for your OS and CPU
+  image: folio-module-sidecar-native
   version: latest
   custom-namespace: true
   native-binary-cmd: [
@@ -152,9 +153,10 @@ backend-modules:
       KONG_CONNECT_TIMEOUT: "941241418"
       KONG_READ_TIMEOUT: "941241418"
       KONG_WRITE_TIMEOUT: "941241418"
-      FLOW_ENGINE_THREADS_NUM: "1"
+      FLOW_ENGINE_THREADS_NUM: "4"
+      FLOW_ENGINE_MODULE_INSTALLER_THREADS: "2"
       RETRIES_MODULE_MAX: "10"
-      KAFKA_ENTITLEMENT_TOPIC_PARTITIONS: "4"
+      KAFKA_ENTITLEMENT_TOPIC_PARTITIONS: "1"
       KAFKA_SCHEDULED_JOB_TOPIC_PARTITIONS: "1"
       KAFKA_CAPABILITY_TOPIC_PARTITIONS: "1"
       KAFKA_SYS_USER_TOPIC_PARTITIONS: "1"
@@ -210,7 +212,7 @@ backend-modules:
   mod-tags:
   mod-inventory-storage:
   mod-inventory:
-    port-server: 9403
+    private-port: 9403
   mod-organizations-storage:
   mod-organizations:
   mod-invoice-storage:
@@ -225,7 +227,7 @@ backend-modules:
     disable-system-user: true
   mod-circulation-storage:
   mod-circulation:
-    port-server: 9801
+    private-port: 9801
   mod-template-engine:
   mod-feesfines:
 frontend-modules:

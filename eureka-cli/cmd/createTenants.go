@@ -18,25 +18,28 @@ package cmd
 import (
 	"log/slog"
 
-	"github.com/folio-org/eureka-cli/internal"
+	"github.com/folio-org/eureka-cli/action"
 	"github.com/spf13/cobra"
 )
-
-const createTenantsCommand string = "Create Tenants"
 
 // createTenantsCmd represents the createTenants command
 var createTenantsCmd = &cobra.Command{
 	Use:   "createTenants",
 	Short: "Create tenants",
 	Long:  `Create all tenants.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		CreateTenants()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		run, err := New(action.CreateTenants)
+		if err != nil {
+			return err
+		}
+
+		return run.CreateTenants()
 	},
 }
 
-func CreateTenants() {
-	slog.Info(createTenantsCommand, internal.GetFuncName(), "### CREATING TENANTS ###")
-	internal.CreateTenants(createTenantsCommand, withEnableDebug)
+func (run *Run) CreateTenants() error {
+	slog.Info(run.Config.Action.Name, "text", "CREATING TENANTS")
+	return run.Config.ManagementSvc.CreateTenants()
 }
 
 func init() {
