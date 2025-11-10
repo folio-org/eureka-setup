@@ -92,7 +92,7 @@ jobs:
         uses: ./.github/actions/setup-go
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
           working-directory: ./eureka-cli
           args: --timeout=5m
