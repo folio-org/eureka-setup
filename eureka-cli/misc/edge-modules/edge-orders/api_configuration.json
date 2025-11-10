@@ -106,8 +106,8 @@
       "type": "COMMON",
       "method": "GET",
       "pathPattern": "/orders/addresses/billing-and-shipping",
-      "proxyPath": "/configurations/entries?offset=:offset&limit=:limit&query=:query",
-      "extraQuery": "configName==tenant.addresses"
+      "proxyPath": "/settings/entries?offset=:offset&limit=:limit&query=:query",
+      "extraQuery": "scope==ui-tenant-settings.addresses.manage"
     },
     {
       "type": "COMMON",
