@@ -17,3 +17,4 @@ if [ -f "$vaultInitFile" ]; then
 else
   echo "$(date -u +%FT%T.%3NZ) [WARN] unseal.sh: Vault initialization file is not found, can't be unsealed"
 fi
+

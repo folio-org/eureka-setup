@@ -34,10 +34,10 @@ services:
     networks:
       - eureka-net
     healthcheck:
-      test: nc -zv localhost 80 || exit 1
-      interval: 10s
-      timeout: 5s
-      retries: 15
+      test: nc -h > /dev/null 2>&1 || exit 1
+      interval: 30s
+      timeout: 3s
+      retries: 3
       start_period: 5s
 
   ### Postgres (required)  ###
