@@ -21,7 +21,7 @@ on:
         required: true
         type: string
         default: diku
-      platformCompleteUrl:
+      platformCompleteURL:
         description: "Platform Complete UI url"
         required: true
         type: string
@@ -45,7 +45,7 @@ jobs:
       DEPLOYMENT_PROFILE: ${{ inputs.profile || 'combined' }}
       DOCKERHUB_NAMESPACE: ${{ inputs.namespace || 'bkadirkhodjaev' }}
       TENANT_NAME: ${{ inputs.tenant || 'diku' }}
-      PLATFORM_COMPLETE_URL: ${{ inputs.platformCompleteUrl || 'http://localhost:3000' }}
+      PLATFORM_COMPLETE_URL: ${{ inputs.platformCompleteURL || 'http://localhost:3000' }}
       SINGLE_TENANT_MODE: ${{ inputs.singleTenant || 'true' }}
       ENABLE_ECS_REQUESTS: ${{ inputs.enableEcsRequests || 'false' }}
     steps:
@@ -54,7 +54,7 @@ jobs:
           echo "profile: $DEPLOYMENT_PROFILE"
           echo "namespace: $DOCKERHUB_NAMESPACE"
           echo "tenant: $TENANT_NAME"
-          echo "platformCompleteUrl: $PLATFORM_COMPLETE_URL"
+          echo "platformCompleteURL: $PLATFORM_COMPLETE_URL"
           echo "singleTenant: $SINGLE_TENANT_MODE"
           echo "enableEcsRequests: $ENABLE_ECS_REQUESTS"
 
@@ -86,7 +86,7 @@ jobs:
             --profile $DEPLOYMENT_PROFILE \
             --namespace $DOCKERHUB_NAMESPACE \
             --tenant $TENANT_NAME \
-            --platformCompleteUrl $PLATFORM_COMPLETE_URL \
+            --platformCompleteURL $PLATFORM_COMPLETE_URL \
             --singleTenant $SINGLE_TENANT_MODE \
             --enableEcsRequests $ENABLE_ECS_REQUESTS
           echo "Build And Push UI command ran successfully"

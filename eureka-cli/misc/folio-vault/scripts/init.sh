@@ -19,9 +19,12 @@ if [ ! -f "$vaultInitFile" ]; then
   /usr/local/bin/folio/scripts/unseal.sh "$vaultInitFile"
   echo "$(date -u +%FT%T.%3NZ) [INFO] init.sh: Adding predefined secrets..."
   . /usr/local/bin/folio/scripts/add-secrets.sh
+  echo "$(date -u +%FT%T.%3NZ) [INFO] init.sh: Creating admin user..."
+  . /usr/local/bin/folio/scripts/create-admin-user.sh
 else
   printRootToken
   /usr/local/bin/folio/scripts/unseal.sh "$vaultInitFile"
 fi
+
 
 
