@@ -52,13 +52,11 @@ func (mp *ModuleParams) ReadBackendModulesFromConfig(managementOnly bool, verbos
 		if err != nil {
 			return nil, err
 		}
-
 		backendModules[name] = *backendModule
 		moduleServerPort := backendModules[name].ModuleExposedServerPort
 		moduleDebugPort := backendModules[name].ModuleExposedDebugPort
 		sidecarServerPort := backendModules[name].SidecarExposedServerPort
 		sidecarDebugPort := backendModules[name].SidecarExposedDebugPort
-
 		if verbose {
 			if properties.Version == nil {
 				slog.Info(mp.Action.Name, "text", "Read backend module", "module", name, "port1", moduleServerPort, "port2", moduleDebugPort, "port3", sidecarServerPort, "port4", sidecarDebugPort)

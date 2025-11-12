@@ -23,9 +23,11 @@ import (
 	"strings"
 
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/models"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"golang.org/x/mod/semver"
 )
 
@@ -99,6 +101,12 @@ func (run *Run) listModuleVersionsSortedDescendingOrder() error {
 func init() {
 	rootCmd.AddCommand(listModuleVersionsCmd)
 	listModuleVersionsCmd.PersistentFlags().StringVarP(&actionParams.ModuleName, "moduleName", "n", "", "Module name, e.g. mod-orders")
+	if err := listModuleVersionsCmd.RegisterFlagCompletionFunc("moduleName", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
+	}); err != nil {
+		slog.Error("failed to register flag completion function", "error", err)
+		os.Exit(1)
+	}
 	listModuleVersionsCmd.PersistentFlags().StringVarP(&actionParams.ID, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021")
 	listModuleVersionsCmd.PersistentFlags().IntVarP(&actionParams.Versions, "versions", "v", 5, "Number of versions, e.g. 5")
 	if err := listModuleVersionsCmd.MarkPersistentFlagRequired("moduleName"); err != nil {

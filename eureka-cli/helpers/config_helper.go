@@ -46,3 +46,12 @@ func HasTenant(tenantName string, configTenants map[string]any) bool {
 	tenants := ConvertMapKeyToSlice(configTenants)
 	return slices.Contains(tenants, tenantName)
 }
+
+func GetBackendModuleNames(configBackendModules map[string]any) []string {
+	var names []string
+	for name := range configBackendModules {
+		names = append(names, name)
+	}
+
+	return names
+}
