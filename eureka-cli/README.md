@@ -28,7 +28,7 @@ Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc
 ## Monitor system components
 
 - [Keycloak](http://keycloak.eureka:8080) Admin Console: admin/admin
-- [Vault](http://localhost:8200) UI (Userpass method): admin:admin
+- [Vault](http://localhost:8200) UI (Userpass method): admin/admin
 - [Kafka](http://localhost:9080) UI: No auth
 - [Kong](http://localhost:8002) Admin GUI: No auth
 - [MinIO](http://localhost:9001) Console: minioadmin/minioadmin
@@ -67,6 +67,14 @@ source ~/.bash_profile
 ```
 
 > Type `eureka-cli` and hit TAB to see the available suggestions or full autocompletion
+
+**Flags with smart autocompletion:**
+
+| Flag           | Command(s)                                                                              | Completion Source                      |
+|----------------|-----------------------------------------------------------------------------------------|----------------------------------------|
+| `--profile`    | All commands (global flag)                                                              | Available profiles from config         |
+| `--moduleName` | interceptModule, listModules, listModuleVersions, undeployModule, updateModuleDiscovery | Backend modules from config            |
+| `--moduleType` | listModules                                                                             | Container types (module, sidecar, etc) |
 
 ### Deploy the _combined_ application
 
