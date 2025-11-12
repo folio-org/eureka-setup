@@ -22,7 +22,10 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/field"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // undeployModuleCmd represents the undeployModule command
@@ -55,6 +58,12 @@ func (run *Run) UndeployModule() error {
 func init() {
 	rootCmd.AddCommand(undeployModuleCmd)
 	undeployModuleCmd.PersistentFlags().StringVarP(&actionParams.ModuleName, "moduleName", "n", "", "Module name, e.g. mod-orders")
+	if err := undeployModuleCmd.RegisterFlagCompletionFunc("moduleName", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
+	}); err != nil {
+		slog.Error("failed to register flag completion function", "error", err)
+		os.Exit(1)
+	}
 	if err := undeployModuleCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
 		slog.Error("failed to mark moduleName flag as required", "error", err)
 		os.Exit(1)

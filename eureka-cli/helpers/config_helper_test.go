@@ -239,3 +239,74 @@ func TestHasTenant_EmptyMap(t *testing.T) {
 	// Assert
 	assert.False(t, result)
 }
+
+func TestGetBackendModuleNames_MultipleModules(t *testing.T) {
+	// Arrange
+	configBackendModules := map[string]any{
+		"mod-users":       map[string]any{},
+		"mod-orders":      map[string]any{},
+		"mod-circulation": map[string]any{},
+	}
+
+	// Act
+	result := helpers.GetBackendModuleNames(configBackendModules)
+
+	// Assert
+	assert.Len(t, result, 3)
+	assert.ElementsMatch(t, []string{"mod-users", "mod-orders", "mod-circulation"}, result)
+}
+
+func TestGetBackendModuleNames_SingleModule(t *testing.T) {
+	// Arrange
+	configBackendModules := map[string]any{
+		"mod-users": map[string]any{
+			field.ModuleDeployModuleEntry: true,
+		},
+	}
+
+	// Act
+	result := helpers.GetBackendModuleNames(configBackendModules)
+
+	// Assert
+	assert.Len(t, result, 1)
+	assert.Equal(t, []string{"mod-users"}, result)
+}
+
+func TestGetBackendModuleNames_EmptyMap(t *testing.T) {
+	// Arrange
+	configBackendModules := map[string]any{}
+
+	// Act
+	result := helpers.GetBackendModuleNames(configBackendModules)
+
+	// Assert
+	assert.Nil(t, result)
+}
+
+func TestGetBackendModuleNames_NilMap(t *testing.T) {
+	// Arrange
+	var configBackendModules map[string]any
+
+	// Act
+	result := helpers.GetBackendModuleNames(configBackendModules)
+
+	// Assert
+	assert.Nil(t, result)
+}
+
+func TestGetBackendModuleNames_ModulesWithDifferentValues(t *testing.T) {
+	// Arrange
+	configBackendModules := map[string]any{
+		"mod-users":  map[string]any{field.ModuleDeployModuleEntry: true},
+		"mod-orders": map[string]any{field.ModuleDeployModuleEntry: false},
+		"mod-audit":  nil,
+		"mod-notes":  "some-string-value",
+	}
+
+	// Act
+	result := helpers.GetBackendModuleNames(configBackendModules)
+
+	// Assert
+	assert.Len(t, result, 4)
+	assert.ElementsMatch(t, []string{"mod-users", "mod-orders", "mod-audit", "mod-notes"}, result)
+}

@@ -23,7 +23,10 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/field"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // listModulesCmd represents the listModules command
@@ -72,6 +75,12 @@ func init() {
 	rootCmd.AddCommand(listModulesCmd)
 	listModulesCmd.Flags().BoolVarP(&actionParams.All, "all", "a", false, "All modules for all profiles")
 	listModulesCmd.Flags().StringVarP(&actionParams.ModuleName, "moduleName", "n", "", "Module name, e.g. mod-orders")
+	if err := listModulesCmd.RegisterFlagCompletionFunc("moduleName", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
+	}); err != nil {
+		slog.Error("failed to register flag completion function", "error", err)
+		os.Exit(1)
+	}
 	listModulesCmd.Flags().StringVarP(&actionParams.ModuleType, "moduleType", "y", "", "Module type, e.g. management")
 	if err := listModulesCmd.RegisterFlagCompletionFunc("moduleType", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return constant.GetContainerTypes(), cobra.ShellCompDirectiveNoFileComp

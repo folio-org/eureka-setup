@@ -21,9 +21,11 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/field"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/interceptmodulesvc"
 	"github.com/folio-org/eureka-cli/models"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // interceptModuleCmd represents the interceptModule command
@@ -87,6 +89,12 @@ func (run *Run) InterceptModule() error {
 func init() {
 	rootCmd.AddCommand(interceptModuleCmd)
 	interceptModuleCmd.PersistentFlags().StringVarP(&actionParams.ModuleName, "moduleName", "n", "", "Module name, e.g. mod-orders")
+	if err := interceptModuleCmd.RegisterFlagCompletionFunc("moduleName", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
+	}); err != nil {
+		slog.Error("failed to register flag completion function", "error", err)
+		os.Exit(1)
+	}
 	interceptModuleCmd.PersistentFlags().StringVarP(&actionParams.ModuleURL, "moduleUrl", "m", "", "Module URL, e.g. http://host.docker.internal:36002 or 36002 (if -g is used)")
 	interceptModuleCmd.PersistentFlags().StringVarP(&actionParams.SidecarURL, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002 or 37002 (if -g is used)")
 	interceptModuleCmd.PersistentFlags().BoolVarP(&actionParams.Restore, "restore", "r", false, "Restore module & sidecar")

@@ -21,7 +21,10 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/errors"
+	"github.com/folio-org/eureka-cli/field"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // updateModuleDiscoveryCmd represents the redirect command
@@ -64,6 +67,12 @@ func (run *Run) setModuleDiscoveryDataIntoContext() error {
 func init() {
 	rootCmd.AddCommand(updateModuleDiscoveryCmd)
 	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&actionParams.ModuleName, "moduleName", "n", "", "Module name, e.g. mod-orders")
+	if err := updateModuleDiscoveryCmd.RegisterFlagCompletionFunc("moduleName", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
+	}); err != nil {
+		slog.Error("failed to register flag completion function", "error", err)
+		os.Exit(1)
+	}
 	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&actionParams.SidecarURL, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002")
 	updateModuleDiscoveryCmd.PersistentFlags().IntVarP(&actionParams.PrivatePort, "privatePort", "", 8081, "Private port e.g. 8081")
 	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&actionParams.Restore, "restore", "r", false, "Restore sidecar URL")
