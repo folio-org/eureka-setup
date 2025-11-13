@@ -70,11 +70,11 @@ source ~/.bash_profile
 
 **Flags with smart autocompletion:**
 
-| Flag           | Command(s)                                                                              | Completion Source                      |
-|----------------|-----------------------------------------------------------------------------------------|----------------------------------------|
-| `--profile`    | All commands (global flag)                                                              | Available profiles from config         |
-| `--moduleName` | interceptModule, listModules, listModuleVersions, undeployModule, updateModuleDiscovery | Backend modules from config            |
-| `--moduleType` | listModules                                                                             | Container types (module, sidecar, etc) |
+| Long           |       | Completion Source                      | Command(s)                                                                              |
+|----------------|-------|----------------------------------------| ----------------------------------------------------------------------------------------|
+| `--profile`    | `-p`  | Available profiles from config         | All commands (global flag)                                                              |
+| `--moduleName` | `-n`  | Backend modules from config            | interceptModule, listModules, listModuleVersions, undeployModule, updateModuleDiscovery |
+| `--moduleType` | `-y`  | Container types (module, sidecar, etc) | listModules                                                                             |
 
 ### Deploy the _combined_ application
 

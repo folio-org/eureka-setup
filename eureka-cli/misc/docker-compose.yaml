@@ -47,7 +47,7 @@ services:
     restart: unless-stopped
     command: [
       "-c", "max_connections=500", 
-      "-c", "shared_buffers=1024MB",
+      "-c", "shared_buffers=768MB",
       "-c", "log_duration=on", 
       "-c", "log_min_duration_statement=0ms",
       "-c", "shared_preload_libraries=pg_stat_statements",
@@ -55,7 +55,7 @@ services:
       "-c", "jit=off" 
     ]
     cpus: 2
-    mem_limit: 1.2g
+    mem_limit: 1g
     memswap_limit: -1
     environment:
       POSTGRES_DB: postgres
