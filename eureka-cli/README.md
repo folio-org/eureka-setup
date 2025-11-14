@@ -70,11 +70,11 @@ source ~/.bash_profile
 
 **Flags with smart autocompletion:**
 
-| Long form      | Short form | Completion Source                      | Command(s)                                                                              |
-|----------------|------------|----------------------------------------|-----------------------------------------------------------------------------------------|
-| `--profile`    | `-p`       | Available profiles from config         | All commands (global flag)                                                              |
-| `--moduleName` | `-n`       | Backend modules from config            | interceptModule, listModules, listModuleVersions, undeployModule, updateModuleDiscovery |
-| `--moduleType` | `-y`       | Container types (module, sidecar, etc) | listModules                                                                             |
+| Long form                | Short form | Completion Source                      | Command(s)                                                                              |
+|--------------------------|------------|----------------------------------------|-----------------------------------------------------------------------------------------|
+| `--profile`              | `-p`       | Available profiles from config         | All commands (global flag)                                                              |
+| `--moduleName`           | `-n`       | Backend modules from config            | interceptModule, listModules, listModuleVersions, undeployModule, updateModuleDiscovery |
+| `--moduleType`           | `-y`       | Container types (module, sidecar, etc) | listModules                                                                             |
 
 ### Deploy the _combined_ application
 
@@ -84,39 +84,39 @@ Available flags:
 
 **Global flags (available for all commands):**
 
-| Long form          | Short form | Description                                                                              |
-|--------------------|------------|------------------------------------------------------------------------------------------|
-| `--buildImages`    | `-b`       | Build Docker images                                                                      |
-| `--configFile`     | `-c`       | Specify config file path                                                                 |
-| `--enableDebug`    | `-d`       | Enable debug mode                                                                        |
-| `--onlyRequired`   | `-q`       | Use only required system containers (deploySystem, deployApplication)                    |
-| `--overwriteFiles` | `-o`       | Overwrite files in .eureka home directory                                                |
-| `--profile`        | `-p`       | Select profile (combined, combined-native, export, search, edge, ecs, ecs-single import) |
+| Long form                | Short form | Description                                                                              |
+|--------------------------|------------|------------------------------------------------------------------------------------------|
+| `--buildImages`          | `-b`       | Build Docker images                                                                      |
+| `--configFile`           | `-c`       | Specify config file path                                                                 |
+| `--enableDebug`          | `-d`       | Enable debug mode                                                                        |
+| `--onlyRequired`         | `-q`       | Use only required system containers (deploySystem, deployApplication)                    |
+| `--overwriteFiles`       | `-o`       | Overwrite files in .eureka home directory                                                |
+| `--profile`              | `-p`       | Select profile (combined, combined-native, export, search, edge, ecs, ecs-single import) |
 
 **Command-specific flags:**
 
-| Long form               | Short form | Description                                         | Command(s)                                                                              |
-|-------------------------|------------|-----------------------------------------------------|-----------------------------------------------------------------------------------------|
-| `--all`                 | `-a`       | All modules for all profiles                        | listModules                                                                             |
-| `--defaultGateway`      | `-g`       | Use default gateway in URLs                         | interceptModule                                                                         |
-| `--enableEcsRequests`   |            | Enable ECS requests                                 | deployUi, buildAndPushUi                                                                |
-| `--id`                  | `-i`       | Module ID (e.g. mod-orders:13.1.0-SNAPSHOT.1021)    | listModuleVersions                                                                      |
-| `--length`              | `-l`       | Salt length for edge API key                        | getEdgeApiKey                                                                           |
-| `--moduleName`          | `-n`       | Module name (e.g. mod-orders)                       | interceptModule, listModules, listModuleVersions, undeployModule, updateModuleDiscovery |
-| `--moduleType`          | `-y`       | Filter by module type (module, sidecar, management) | listModules                                                                             |
-| `--moduleUrl`           | `-m`       | Module URL                                          | interceptModule                                                                         |
-| `--namespace`           |            | DockerHub namespace                                 | buildAndPushUi                                                                          |
-| `--platformCompleteURL` |            | Platform Complete UI URL                            | buildAndPushUi                                                                          |
-| `--privatePort`         |            | Private port                                        | updateModuleDiscovery                                                                   |
-| `--purgeSchemas`        |            | Purge PostgreSQL schemas on uninstallation          | removeTenantEntitlements, undeployApplication                                           |
-| `--restore`             | `-r`       | Restore module & sidecar                            | interceptModule, updateModuleDiscovery                                                  |
-| `--sidecarUrl`          | `-s`       | Sidecar URL                                         | interceptModule, updateModuleDiscovery                                                  |
-| `--singleTenant`        |            | Use for Single Tenant workflow                      | deployUi, buildAndPushUi                                                                |
-| `--skipCapabilitySets`  |            | Skip refreshing capability sets                     | undeployApplication                                                                     |
-| `--tenant`              | `-t`       | Tenant name                                         | getKeycloakAccessToken, getEdgeApiKey, buildAndPushUi                                   |
-| `--updateCloned`        | `-u`       | Update Git cloned projects                          | buildSystem, deployApplication, deployUi, buildAndPushUi                                |
-| `--user`                | `-x`       | User for edge API key generation                    | getEdgeApiKey                                                                           |
-| `--versions`            | `-v`       | Number of versions to display                       | listModuleVersions                                                                      |
+| Long form                | Short form | Description                                         | Command(s)                                                                              |
+|--------------------------|------------|-----------------------------------------------------|-----------------------------------------------------------------------------------------|
+| `--all`                  | `-a`       | All modules for all profiles                        | listModules                                                                             |
+| `--defaultGateway`       | `-g`       | Use default gateway in URLs                         | interceptModule                                                                         |
+| `--enableEcsRequests`    |            | Enable ECS requests                                 | deployUi, buildAndPushUi                                                                |
+| `--id`                   | `-i`       | Module ID (e.g. mod-orders:13.1.0-SNAPSHOT.1021)    | listModuleVersions                                                                      |
+| `--length`               | `-l`       | Salt length for edge API key                        | getEdgeApiKey                                                                           |
+| `--moduleName`           | `-n`       | Module name (e.g. mod-orders)                       | interceptModule, listModules, listModuleVersions, undeployModule, updateModuleDiscovery |
+| `--moduleType`           | `-y`       | Filter by module type (module, sidecar, management) | listModules                                                                             |
+| `--moduleUrl`            | `-m`       | Module URL                                          | interceptModule                                                                         |
+| `--namespace`            |            | DockerHub namespace                                 | buildAndPushUi                                                                          |
+| `--platformCompleteURL`  |            | Platform Complete UI URL                            | buildAndPushUi                                                                          |
+| `--privatePort`          |            | Private port                                        | updateModuleDiscovery                                                                   |
+| `--purgeSchemas`         |            | Purge PostgreSQL schemas on uninstallation          | removeTenantEntitlements, undeployApplication                                           |
+| `--restore`              | `-r`       | Restore module & sidecar                            | interceptModule, updateModuleDiscovery                                                  |
+| `--sidecarUrl`           | `-s`       | Sidecar URL                                         | interceptModule, updateModuleDiscovery                                                  |
+| `--singleTenant`         |            | Use for Single Tenant workflow                      | deployUi, buildAndPushUi                                                                |
+| `--skipCapabilitySets`   |            | Skip refreshing capability sets                     | undeployApplication                                                                     |
+| `--tenant`               | `-t`       | Tenant name                                         | getKeycloakAccessToken, getEdgeApiKey, buildAndPushUi                                   |
+| `--updateCloned`         | `-u`       | Update Git cloned projects                          | buildSystem, deployApplication, deployUi, buildAndPushUi                                |
+| `--user`                 | `-x`       | User for edge API key generation                    | getEdgeApiKey                                                                           |
+| `--versions`             | `-v`       | Number of versions to display                       | listModuleVersions                                                                      |
 
 ```bash
 eureka-cli -c ./config.combined.yaml deployApplication
