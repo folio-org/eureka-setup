@@ -70,7 +70,7 @@ source ~/.bash_profile
 
 **Flags with smart autocompletion:**
 
-| Long form                | Short form | Completion Source                      | Command(s)                                                                              |
+| Long form&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Short form | Completion Source                      | Command(s)                                                                              |
 |--------------------------|------------|----------------------------------------|-----------------------------------------------------------------------------------------|
 | `--profile`              | `-p`       | Available profiles from config         | All commands (global flag)                                                              |
 | `--moduleName`           | `-n`       | Backend modules from config            | interceptModule, listModules, listModuleVersions, undeployModule, updateModuleDiscovery |
@@ -84,7 +84,7 @@ Available flags:
 
 **Global flags (available for all commands):**
 
-| Long form                | Short form | Description                                                                              |
+| Long form&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Short form | Description                                                                              |
 |--------------------------|------------|------------------------------------------------------------------------------------------|
 | `--buildImages`          | `-b`       | Build Docker images                                                                      |
 | `--configFile`           | `-c`       | Specify config file path                                                                 |
@@ -95,7 +95,7 @@ Available flags:
 
 **Command-specific flags:**
 
-| Long form                | Short form | Description                                         | Command(s)                                                                              |
+| Long form&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Short form | Description                                         | Command(s)                                                                              |
 |--------------------------|------------|-----------------------------------------------------|-----------------------------------------------------------------------------------------|
 | `--all`                  | `-a`       | All modules for all profiles                        | listModules                                                                             |
 | `--defaultGateway`       | `-g`       | Use default gateway in URLs                         | interceptModule                                                                         |
