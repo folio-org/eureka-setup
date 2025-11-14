@@ -109,8 +109,7 @@ sidecar-module:
   resources:
     cpus: 1
     memory-reservation: 20
-    memory: 40
-    swap: 40
+    memory: 80
 backend-modules:
   mgr-applications:
     port: 9901
