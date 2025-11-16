@@ -42,11 +42,11 @@ func (is *InterceptModuleSvc) prepareSidecarNetwork() error {
 		return err
 	}
 
-	is.pair.NetworkConfig = helpers.GetModuleNetworkConfig()
 	is.pair.BackendModule, is.pair.Module = is.ModuleSvc.GetBackendModule(is.pair.Containers, is.pair.ModuleName)
 	is.pair.BackendModule.ModuleExposedServerPort = moduleServerPort
 	is.pair.BackendModule.SidecarExposedServerPort = sidecarServerPort
 	is.pair.BackendModule.SidecarExposedDebugPort = sidecarDebugPort
+
 	is.pair.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, is.pair.BackendModule.PrivatePort)
 	if err := is.updateModuleDiscovery(); err != nil {
 		return err

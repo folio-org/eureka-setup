@@ -43,12 +43,6 @@ var removeRolesCmd = &cobra.Command{
 func (run *Run) RemoveRoles(consortiumName string, tenantType constant.TenantType) error {
 	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
 		slog.Info(run.Config.Action.Name, "text", "REMOVING ROLES", "tenant", configTenant)
-		keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
-		if err != nil {
-			return err
-		}
-		run.Config.Action.KeycloakAccessToken = keycloakAccessToken
-
 		return run.Config.KeycloakSvc.RemoveRoles(configTenant)
 	})
 }

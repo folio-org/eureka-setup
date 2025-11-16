@@ -16,21 +16,25 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 
-	"github.com/folio-org/eureka-cli/actionparams"
+	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/errors"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var (
-	embedFS      *embed.FS
-	logger       *slog.Logger
-	actionParams actionparams.ActionParams
+	runFs  *embed.FS
+	logger *slog.Logger
+	params action.Param
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -40,45 +44,92 @@ var rootCmd = &cobra.Command{
 	Long:  `Eureka CLI orchestrates the deployment of a local Eureka-based development environment.`,
 }
 
-func Execute(mainEmbedFS *embed.FS) {
-	embedFS = mainEmbedFS
-
+func Execute(fs *embed.FS) {
+	runFs = fs
 	err := rootCmd.Execute()
-	if err != nil {
-		slog.Error("command execution failed", "error", err)
-		os.Exit(1)
-	}
+	cobra.CheckErr(err)
 }
 
 func initConfig() {
-	setConfig(&actionParams)
+	setConfig(&params)
 	logger = setDefaultLogger()
 	viper.AutomaticEnv()
 
-	if actionParams.OverwriteFiles {
-		createHomeDir(true, embedFS)
+	if params.OverwriteFiles {
+		createHomeDir(true)
 	} else {
 		if err := viper.ReadInConfig(); err != nil {
-			createHomeDir(false, embedFS)
+			createHomeDir(false)
 		}
 	}
 
-	if err := viper.ReadInConfig(); err != nil {
+	err := viper.ReadInConfig()
+	cobra.CheckErr(err)
+}
+
+func setConfig(params *action.Param) {
+	if params.ConfigFile == "" {
+		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
+
+		viper.AddConfigPath(filepath.Join(home, constant.ConfigDir))
+		viper.SetConfigType(constant.ConfigType)
+		if params.Profile == "" {
+			params.Profile = constant.GetDefaultProfile()
+		}
+		if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
+			fmt.Println("Using profile:", params.Profile)
+		}
+		viper.SetConfigName(fmt.Sprintf("%s.%s", constant.ConfigPrefix, params.Profile))
+	} else {
+		viper.SetConfigFile(params.ConfigFile)
+	}
+}
+
+func setDefaultLogger() *slog.Logger {
+	logLevel := slog.LevelInfo
+	if params.EnableDebug {
+		logLevel = slog.LevelDebug
+	}
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     logLevel,
+		AddSource: true,
+	}))
+	slog.SetDefault(logger)
+
+	return logger
+}
+
+func createHomeDir(overwriteFiles bool) {
+	homeDir, err := helpers.GetHomeDirPath()
+	cobra.CheckErr(err)
+
+	if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
+		if overwriteFiles {
+			fmt.Printf("Overwriting files in %s home directory\n\n", homeDir)
+		} else {
+			fmt.Printf("Creating missing files in %s home directory\n\n", homeDir)
+		}
+	}
+	err = helpers.CopyMultipleFiles(homeDir, runFs)
+	cobra.CheckErr(err)
+
+	if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
+		fmt.Println()
 	}
 }
 
 func init() {
 	profiles := constant.GetProfiles()
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVarP(&actionParams.Profile, "profile", "p", "combined", fmt.Sprintf("Use a specific profile, options: %s", profiles))
-	if err := rootCmd.RegisterFlagCompletionFunc("profile", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	rootCmd.PersistentFlags().StringVarP(&params.Profile, action.Profile.Long, action.Profile.Short, "combined", fmt.Sprintf(action.Profile.Description, profiles))
+	if err := rootCmd.RegisterFlagCompletionFunc(action.Profile.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return profiles, cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
-		slog.Error("failed to register profile flag completion function", "error", err)
+		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
 		os.Exit(1)
 	}
-	rootCmd.PersistentFlags().StringVarP(&actionParams.ConfigFile, "configFile", "c", "", "Use a specific config file")
-	rootCmd.PersistentFlags().BoolVarP(&actionParams.OverwriteFiles, "overwriteFiles", "o", false, fmt.Sprintf("Overwrite files in %s home directory", constant.ConfigDir))
-	rootCmd.PersistentFlags().BoolVarP(&actionParams.EnableDebug, "enableDebug", "d", false, "Enable debug")
+	rootCmd.PersistentFlags().StringVarP(&params.ConfigFile, action.ConfigFile.Long, action.ConfigFile.Short, "", action.ConfigFile.Description)
+	rootCmd.PersistentFlags().BoolVarP(&params.OverwriteFiles, action.OverwriteFiles.Long, action.OverwriteFiles.Short, false, fmt.Sprintf(action.OverwriteFiles.Description, constant.ConfigDir))
+	rootCmd.PersistentFlags().BoolVarP(&params.EnableDebug, action.EnableDebug.Long, action.EnableDebug.Short, false, action.EnableDebug.Description)
 }

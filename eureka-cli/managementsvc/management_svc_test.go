@@ -672,9 +672,9 @@ func TestCreateTenantEntitlement_Success(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	tenantParams := "param1=value1"
+	tenantParam := "param1=value1"
 	mockTenantSvc.On("GetEntitlementTenantParameters", "test-consortium").
-		Return(tenantParams, nil)
+		Return(tenantParam, nil)
 
 	responseBody := `{"tenants": [{"id": "tenant-123", "name": "test-tenant"}], "totalRecords": 1}`
 	mockHTTP.On("GetRetryReturnStruct",
@@ -689,7 +689,7 @@ func TestCreateTenantEntitlement_Success(t *testing.T) {
 
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
-			return strings.Contains(url, "/entitlements") && strings.Contains(url, tenantParams)
+			return strings.Contains(url, "/entitlements") && strings.Contains(url, tenantParam)
 		}),
 		mock.MatchedBy(func(payload []byte) bool {
 			var data map[string]any
@@ -757,7 +757,7 @@ func TestRemoveTenantEntitlements_Success(t *testing.T) {
 		}).
 		Return(nil)
 
-	mockHTTP.On("DeleteWithBodyReturnStruct",
+	mockHTTP.On("DeleteWithPayloadReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/entitlements") && strings.Contains(url, "purge=true")
 		}),
@@ -944,9 +944,9 @@ func TestCreateTenantEntitlement_TenantNotInConfig(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	tenantParams := "param1=value1"
+	tenantParam := "param1=value1"
 	mockTenantSvc.On("GetEntitlementTenantParameters", "test-consortium").
-		Return(tenantParams, nil)
+		Return(tenantParam, nil)
 
 	responseBody := `{"tenants": [{"id": "tenant-123", "name": "test-tenant"}], "totalRecords": 1}`
 	mockHTTP.On("GetRetryReturnStruct",
@@ -997,8 +997,8 @@ func TestRemoveTenantEntitlements_TenantNotInConfig(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
-	// Verify DeleteWithBodyReturnStruct was NOT called
-	mockHTTP.AssertNotCalled(t, "DeleteWithBodyReturnStruct", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	// Verify DeleteWithPayloadReturnStruct was NOT called
+	mockHTTP.AssertNotCalled(t, "DeleteWithPayloadReturnStruct", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestGetApplications_DecodeError(t *testing.T) {
@@ -1156,7 +1156,7 @@ func TestRemoveTenantEntitlements_DeleteError(t *testing.T) {
 		Return(nil)
 
 	expectedError := errors.New("delete failed")
-	mockHTTP.On("DeleteWithBodyReturnStruct",
+	mockHTTP.On("DeleteWithPayloadReturnStruct",
 		mock.Anything,
 		mock.Anything,
 		mock.Anything,
@@ -1186,19 +1186,19 @@ func TestCreateApplications_MinimalSuccess(t *testing.T) {
 	// Create minimal extract with one backend module
 	version := "1.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
 				{
 					ID: "mod-test-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:        "mod-test",
 						Version:     &version,
 						SidecarName: "mod-test-sc",
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{
 			"mod-test": {
 				DeployModule: true,
@@ -1270,18 +1270,18 @@ func TestCreateApplications_WithFrontendModule(t *testing.T) {
 
 	version := "1.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
 				{
 					ID: "folio-test-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:    "folio-test",
 						Version: &version,
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{},
 		FrontendModules: map[string]models.FrontendModule{
 			"folio-test": {
@@ -1335,18 +1335,18 @@ func TestCreateApplications_SkipsManagementModule(t *testing.T) {
 
 	version := "1.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
 				{
 					ID: "mgr-applications-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:    "mgr-applications", // Should be skipped
 						Version: &version,
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{
 			"mgr-applications": {
 				DeployModule: true,
@@ -1401,10 +1401,10 @@ func TestCreateApplications_HTTPError(t *testing.T) {
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{},
-			[]*models.ProxyModule{},
-		),
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules:  []*models.ProxyModule{},
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules:    map[string]models.BackendModule{},
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
@@ -1444,19 +1444,19 @@ func TestCreateApplications_WithModuleVersionOverride(t *testing.T) {
 	originalVersion := "1.0.0"
 	overrideVersion := "2.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
 				{
 					ID: "mod-test-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:        "mod-test",
 						Version:     &originalVersion,
 						SidecarName: "mod-test-sc",
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{
 			"mod-test": {
 				DeployModule:  true,
@@ -1531,19 +1531,19 @@ func TestCreateApplications_WithFetchDescriptorsFromRemote(t *testing.T) {
 
 	version := "1.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			EurekaModules: []*models.ProxyModule{
 				{
 					ID: "mod-test-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:        "mod-test",
 						Version:     &version,
 						SidecarName: "mod-test-sc",
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			FolioModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{
 			"mod-test": {
 				DeployModule: true,
@@ -1631,18 +1631,18 @@ func TestCreateApplications_FetchDescriptorError(t *testing.T) {
 
 	version := "1.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
 				{
 					ID: "mod-test-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:    "mod-test",
 						Version: &version,
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{
 			"mod-test": {
 				DeployModule: true,
@@ -1688,10 +1688,10 @@ func TestCreateApplications_WithDependencies(t *testing.T) {
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{},
-			[]*models.ProxyModule{},
-		),
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules:  []*models.ProxyModule{},
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules:    map[string]models.BackendModule{},
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
@@ -1741,18 +1741,18 @@ func TestCreateApplications_SkipsModuleNotInConfig(t *testing.T) {
 
 	version := "1.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
 				{
 					ID: "mod-test-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:    "mod-test",
 						Version: &version,
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{
 			// Module not in config, should be skipped
 		},
@@ -1805,18 +1805,18 @@ func TestCreateApplications_SkipsModuleWithDeployFalse(t *testing.T) {
 
 	version := "1.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
 				{
 					ID: "mod-test-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:    "mod-test",
 						Version: &version,
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{
 			"mod-test": {
 				DeployModule: false, // Should be skipped
@@ -1872,19 +1872,19 @@ func TestCreateApplications_WithEurekaModules(t *testing.T) {
 
 	version := "1.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{},
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{},
+			EurekaModules: []*models.ProxyModule{
 				{
 					ID: "eureka-mod-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:        "eureka-mod",
 						Version:     &version,
 						SidecarName: "eureka-mod-sc",
 					},
 				},
 			},
-		),
+		},
 		BackendModules: map[string]models.BackendModule{
 			"eureka-mod": {
 				DeployModule: true,
@@ -1952,19 +1952,19 @@ func TestCreateApplications_DiscoveryPostError(t *testing.T) {
 
 	version := "1.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
 				{
 					ID: "mod-test-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:        "mod-test",
 						Version:     &version,
 						SidecarName: "mod-test-sc",
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{
 			"mod-test": {
 				DeployModule: true,
@@ -2026,19 +2026,19 @@ func TestCreateApplications_WithModuleURLs(t *testing.T) {
 
 	version := "1.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
 				{
 					ID: "mod-test-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:        "mod-test",
 						Version:     &version,
 						SidecarName: "mod-test-sc",
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{
 			"mod-test": {
 				DeployModule: true,
@@ -2113,18 +2113,18 @@ func TestCreateApplications_FrontendModuleWithFetchDescriptors(t *testing.T) {
 
 	version := "1.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
 				{
 					ID: "folio-ui-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:    "folio-ui",
 						Version: &version,
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{},
 		FrontendModules: map[string]models.FrontendModule{
 			"folio-ui": {
@@ -2197,18 +2197,18 @@ func TestCreateApplications_FrontendModuleWithURL(t *testing.T) {
 
 	version := "1.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
 				{
 					ID: "folio-ui-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:    "folio-ui",
 						Version: &version,
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{},
 		FrontendModules: map[string]models.FrontendModule{
 			"folio-ui": {
@@ -2269,18 +2269,18 @@ func TestCreateApplications_FrontendVersionOverride(t *testing.T) {
 	originalVersion := "1.0.0"
 	overrideVersion := "3.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
 				{
 					ID: "folio-ui-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:    "folio-ui",
 						Version: &originalVersion,
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{},
 		FrontendModules: map[string]models.FrontendModule{
 			"folio-ui": {
@@ -2340,11 +2340,11 @@ func TestCreateApplications_MixedBackendAndFrontend(t *testing.T) {
 
 	version := "1.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
 				{
 					ID: "mod-backend-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:        "mod-backend",
 						Version:     &version,
 						SidecarName: "mod-backend-sc",
@@ -2352,14 +2352,14 @@ func TestCreateApplications_MixedBackendAndFrontend(t *testing.T) {
 				},
 				{
 					ID: "folio-ui-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:    "folio-ui",
 						Version: &version,
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{
 			"mod-backend": {
 				DeployModule: true,
@@ -2440,19 +2440,19 @@ func TestCreateApplications_BothModulesBackendVersionOverride(t *testing.T) {
 	originalVersion := "1.0.0"
 	backendOverrideVersion := "2.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
 				{
 					ID: "mod-test-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:        "mod-test",
 						Version:     &originalVersion,
 						SidecarName: "mod-test-sc",
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{
 			"mod-test": {
 				DeployModule:  true,
@@ -2535,19 +2535,19 @@ func TestCreateApplications_BothModulesFrontendVersionOverride(t *testing.T) {
 	originalVersion := "1.0.0"
 	frontendOverrideVersion := "3.0.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
 				{
 					ID: "mod-test-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:        "mod-test",
 						Version:     &originalVersion,
 						SidecarName: "mod-test-sc",
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{
 			"mod-test": {
 				DeployModule: true,
@@ -2632,19 +2632,19 @@ func TestCreateApplications_BothModulesBothVersionOverrides(t *testing.T) {
 	backendOverrideVersion := "2.5.0"
 	frontendOverrideVersion := "3.5.0"
 	extract := &models.RegistryExtract{
-		Modules: models.NewProxyModulesByRegistry(
-			[]*models.ProxyModule{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
 				{
 					ID: "mod-test-1.0.0",
-					ProxyModuleMetadata: models.ProxyModuleMetadata{
+					Metadata: models.ProxyModuleMetadata{
 						Name:        "mod-test",
 						Version:     &originalVersion,
 						SidecarName: "mod-test-sc",
 					},
 				},
 			},
-			[]*models.ProxyModule{},
-		),
+			EurekaModules: []*models.ProxyModule{},
+		},
 		BackendModules: map[string]models.BackendModule{
 			"mod-test": {
 				DeployModule:  true,

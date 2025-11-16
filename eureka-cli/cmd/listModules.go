@@ -23,6 +23,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
@@ -45,7 +46,7 @@ var listModulesCmd = &cobra.Command{
 }
 
 func (run *Run) ListModules() error {
-	filter := fmt.Sprintf("name=%s", run.createFilter(actionParams.ModuleName, actionParams.ModuleType, actionParams.All))
+	filter := fmt.Sprintf("name=%s", run.createFilter(params.ModuleName, params.ModuleType, params.All))
 	return run.Config.ExecSvc.Exec(exec.Command("docker", "container", "ls", "--all", "--filter", filter))
 }
 
@@ -60,11 +61,11 @@ func (run *Run) createFilter(moduleName string, moduleType string, all bool) str
 	}
 
 	switch moduleType {
-	case constant.ManagementType:
+	case constant.Management:
 		return fmt.Sprintf(constant.ManagementContainerPattern)
-	case constant.ModuleType:
+	case constant.Module:
 		return fmt.Sprintf(constant.ModuleContainerPattern, currentProfile)
-	case constant.SidecarType:
+	case constant.Sidecar:
 		return fmt.Sprintf(constant.SidecarContainerPattern, currentProfile)
 	default:
 		return fmt.Sprintf(constant.ProfileContainerPattern, currentProfile)
@@ -73,19 +74,19 @@ func (run *Run) createFilter(moduleName string, moduleType string, all bool) str
 
 func init() {
 	rootCmd.AddCommand(listModulesCmd)
-	listModulesCmd.Flags().BoolVarP(&actionParams.All, "all", "a", false, "All modules for all profiles")
-	listModulesCmd.Flags().StringVarP(&actionParams.ModuleName, "moduleName", "n", "", "Module name, e.g. mod-orders")
-	if err := listModulesCmd.RegisterFlagCompletionFunc("moduleName", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	listModulesCmd.Flags().BoolVarP(&params.All, action.All.Long, action.All.Short, false, action.All.Description)
+	listModulesCmd.Flags().StringVarP(&params.ModuleName, action.ModuleName.Long, action.ModuleName.Short, "", action.ModuleName.Description)
+	if err := listModulesCmd.RegisterFlagCompletionFunc(action.ModuleName.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
-		slog.Error("failed to register flag completion function", "error", err)
+		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
 		os.Exit(1)
 	}
-	listModulesCmd.Flags().StringVarP(&actionParams.ModuleType, "moduleType", "y", "", "Module type, e.g. management")
-	if err := listModulesCmd.RegisterFlagCompletionFunc("moduleType", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	listModulesCmd.Flags().StringVarP(&params.ModuleType, action.ModuleType.Long, action.ModuleType.Short, "", action.ModuleType.Description)
+	if err := listModulesCmd.RegisterFlagCompletionFunc(action.ModuleType.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return constant.GetContainerTypes(), cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
-		slog.Error("failed to register flag completion function", "error", err)
+		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
 		os.Exit(1)
 	}
 }

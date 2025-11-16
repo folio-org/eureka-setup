@@ -86,8 +86,8 @@ func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
 
 func (us *UISvc) PrepareImage(tenantName string) (string, error) {
 	imageName := fmt.Sprintf("platform-complete-ui-%s", tenantName)
-	if us.Action.Params.BuildImages {
-		outputDir, err := us.CloneAndUpdateRepository(us.Action.Params.UpdateCloned)
+	if us.Action.Param.BuildImages {
+		outputDir, err := us.CloneAndUpdateRepository(us.Action.Param.UpdateCloned)
 		if err != nil {
 			return "", err
 		}
@@ -107,7 +107,7 @@ func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error)
 	finalImageName := fmt.Sprintf("platform-complete-ui-%s", tenantName)
 	slog.Info(us.Action.Name, "text", "Copying UI configs")
 	configName := "stripes.config.js"
-	err := helpers.CopySingleFile(us.Action.Name, filepath.Join(outputDir, "eureka-tpl", configName), filepath.Join(outputDir, configName))
+	err := helpers.CopySingleFile(filepath.Join(outputDir, "eureka-tpl", configName), filepath.Join(outputDir, configName))
 	if err != nil {
 		return "", err
 	}

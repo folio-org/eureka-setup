@@ -19,6 +19,7 @@ import (
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/spf13/cobra"
 )
 
@@ -39,6 +40,10 @@ var createTenantsCmd = &cobra.Command{
 
 func (run *Run) CreateTenants() error {
 	slog.Info(run.Config.Action.Name, "text", "CREATING TENANTS")
+	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.ClientCredentials); err != nil {
+		return err
+	}
+
 	return run.Config.ManagementSvc.CreateTenants()
 }
 

@@ -54,7 +54,7 @@ func (run *Run) DeployUi(consortiumName string, tenantType constant.TenantType) 
 				return err
 			}
 
-			externalPort, err := helpers.ExtractPortFromURL(actionParams.PlatformCompleteURL)
+			externalPort, err := helpers.ExtractPortFromURL(params.PlatformCompleteURL)
 			if err != nil {
 				return err
 			}
@@ -69,8 +69,8 @@ func (run *Run) DeployUi(consortiumName string, tenantType constant.TenantType) 
 
 func init() {
 	rootCmd.AddCommand(deployUiCmd)
-	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.BuildImages, "buildImages", "b", false, "Build Docker images")
-	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
-	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.SingleTenant, "singleTenant", "", true, "Use for Single Tenant workflow")
-	deployUiCmd.PersistentFlags().BoolVarP(&actionParams.EnableECSRequests, "enableEcsRequests", "", false, "Enable ECS requests")
+	deployUiCmd.PersistentFlags().BoolVarP(&params.BuildImages, action.BuildImages.Long, action.BuildImages.Short, false, action.BuildImages.Description)
+	deployUiCmd.PersistentFlags().BoolVarP(&params.UpdateCloned, action.UpdateCloned.Long, action.UpdateCloned.Short, false, action.UpdateCloned.Description)
+	deployUiCmd.PersistentFlags().BoolVarP(&params.SingleTenant, action.SingleTenant.Long, action.SingleTenant.Short, true, action.SingleTenant.Description)
+	deployUiCmd.PersistentFlags().BoolVarP(&params.EnableECSRequests, action.EnableECSRequests.Long, action.EnableECSRequests.Short, false, action.EnableECSRequests.Description)
 }

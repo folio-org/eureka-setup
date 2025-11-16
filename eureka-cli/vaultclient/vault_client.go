@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/vault-client-go"
 )
 
+// TODO Add testcontainers tests
 // VaultClientRunner defines the interface for Vault client operations
 type VaultClientRunner interface {
 	Create() (*vault.Client, error)

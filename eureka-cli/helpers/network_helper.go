@@ -8,6 +8,8 @@ import (
 	"github.com/folio-org/eureka-cli/constant"
 )
 
+// ==================== Hostname ====================
+
 func IsHostnameReachable(actionName string, hostname string) error {
 	_, err := net.LookupHost(hostname)
 	if err != nil {
@@ -16,6 +18,8 @@ func IsHostnameReachable(actionName string, hostname string) error {
 
 	return nil
 }
+
+// ==================== Hostname ====================
 
 func ConstructURL(url string, gatewayURL string) string {
 	if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
@@ -34,7 +38,18 @@ func ExtractPortFromURL(url string) (int, error) {
 	return port, nil
 }
 
-func TenantSecureApplicationJSONHeaders(tenantName string, accessToken string) map[string]string {
+// ==================== Okapi Headers ====================
+
+// TODO Check if accessToken is not blank
+func SecureOkapiApplicationJSONHeaders(accessToken string) map[string]string {
+	return map[string]string{
+		constant.ContentTypeHeader: constant.ApplicationJSON,
+		constant.OkapiTokenHeader:  accessToken,
+	}
+}
+
+// TODO Check if tenantName or accessToken are not blank
+func SecureOkapiTenantApplicationJSONHeaders(tenantName string, accessToken string) map[string]string {
 	return map[string]string{
 		constant.ContentTypeHeader: constant.ApplicationJSON,
 		constant.OkapiTenantHeader: tenantName,
@@ -42,7 +57,10 @@ func TenantSecureApplicationJSONHeaders(tenantName string, accessToken string) m
 	}
 }
 
-func TenantSecureNonOkapiApplicationJSONHeaders(tenantName string, accessToken string) map[string]string {
+// ==================== Non-Okapi Headers ====================
+
+// TODO Check if tenantName or accessToken are not blank
+func SecureTenantApplicationJSONHeaders(tenantName string, accessToken string) map[string]string {
 	return map[string]string{
 		constant.ContentTypeHeader:   constant.ApplicationJSON,
 		constant.OkapiTenantHeader:   tenantName,
@@ -50,6 +68,7 @@ func TenantSecureNonOkapiApplicationJSONHeaders(tenantName string, accessToken s
 	}
 }
 
+// TODO Check if accessToken is not blank
 func SecureApplicationJSONHeaders(accessToken string) map[string]string {
 	return map[string]string{
 		constant.ContentTypeHeader:   constant.ApplicationJSON,

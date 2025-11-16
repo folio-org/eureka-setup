@@ -1,8 +1,6 @@
 package constant
 
-import (
-	"time"
-)
+import "time"
 
 const (
 	// Command wait durations
@@ -121,8 +119,9 @@ const (
 	NoneConsortium = "nop"
 
 	// Config
-	ConfigDir  = ".eureka"
-	ConfigType = "yaml"
+	ConfigPrefix = "config"
+	ConfigDir    = ".eureka"
+	ConfigType   = "yaml"
 
 	// Module registries
 	FolioRegistry  = "folio"
@@ -211,13 +210,13 @@ const (
 
 // Container types
 const (
-	ManagementType = "management"
-	ModuleType     = "module"
-	SidecarType    = "sidecar"
+	Management = "management"
+	Module     = "module"
+	Sidecar    = "sidecar"
 )
 
 func GetContainerTypes() []string {
-	return []string{ModuleType, SidecarType, ManagementType}
+	return []string{Module, Sidecar, Management}
 }
 
 // Tenant types
@@ -232,6 +231,24 @@ const (
 
 func GetTenantTypes() []TenantType {
 	return []TenantType{Central, Member}
+}
+
+// Keycloak Grant types
+type KeycloakGrantType string
+
+const (
+	ClientCredentials = "client_credentials"
+	Password          = "password"
+)
+
+const (
+	DefaultToken        string = "tenant"
+	MasterCustomToken   string = "master-custom"
+	MasterAdminCLIToken string = "master-admin-cli"
+)
+
+func GetTokenTypes() []string {
+	return []string{DefaultToken, MasterCustomToken, MasterAdminCLIToken}
 }
 
 func GetInitialRequiredContainers() []string {

@@ -445,7 +445,7 @@ func TestDelete_WithHeaders(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestDeleteWithBodyReturnStruct_Success(t *testing.T) {
+func TestDeleteWithPayloadReturnStruct_Success(t *testing.T) {
 	// Arrange
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)
@@ -461,7 +461,7 @@ func TestDeleteWithBodyReturnStruct_Success(t *testing.T) {
 	var response map[string]any
 
 	// Act
-	err := client.DeleteWithBodyReturnStruct(server.URL, payload, nil, &response)
+	err := client.DeleteWithPayloadReturnStruct(server.URL, payload, nil, &response)
 
 	// Assert
 	assert.NoError(t, err)
@@ -469,6 +469,33 @@ func TestDeleteWithBodyReturnStruct_Success(t *testing.T) {
 }
 
 // Ping Tests
+
+func TestPingRetry_Success(t *testing.T) {
+	// Arrange
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := httpclient.New(createTestAction(), createTestLogger())
+
+	// Act
+	err := client.PingRetry(server.URL)
+
+	// Assert
+	assert.NoError(t, err)
+}
+
+func TestPingRetry_Failure(t *testing.T) {
+	// Arrange
+	client := httpclient.New(createTestAction(), createTestLogger())
+
+	// Act
+	err := client.PingRetry("http://localhost:99999/nonexistent")
+
+	// Assert
+	assert.Error(t, err)
+}
 
 func TestPing_Success(t *testing.T) {
 	// Arrange
@@ -480,41 +507,14 @@ func TestPing_Success(t *testing.T) {
 	client := httpclient.New(createTestAction(), createTestLogger())
 
 	// Act
-	err := client.Ping(server.URL)
-
-	// Assert
-	assert.NoError(t, err)
-}
-
-func TestPing_Failure(t *testing.T) {
-	// Arrange
-	client := httpclient.New(createTestAction(), createTestLogger())
-
-	// Act
-	err := client.Ping("http://localhost:99999/nonexistent")
-
-	// Assert
-	assert.Error(t, err)
-}
-
-func TestCheckStatus_Success(t *testing.T) {
-	// Arrange
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	client := httpclient.New(createTestAction(), createTestLogger())
-
-	// Act
-	statusCode, err := client.CheckStatus(server.URL)
+	statusCode, err := client.Ping(server.URL)
 
 	// Assert
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, statusCode)
 }
 
-func TestCheckStatus_NonOKStatus(t *testing.T) {
+func TestPing_NonOKStatus(t *testing.T) {
 	// Arrange
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -524,19 +524,19 @@ func TestCheckStatus_NonOKStatus(t *testing.T) {
 	client := httpclient.New(createTestAction(), createTestLogger())
 
 	// Act
-	statusCode, err := client.CheckStatus(server.URL)
+	statusCode, err := client.Ping(server.URL)
 
 	// Assert
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusServiceUnavailable, statusCode)
 }
 
-func TestCheckStatus_NetworkError(t *testing.T) {
+func TestPing_NetworkError(t *testing.T) {
 	// Arrange
 	client := httpclient.New(createTestAction(), createTestLogger())
 
 	// Act
-	statusCode, err := client.CheckStatus("http://localhost:99999/nonexistent")
+	statusCode, err := client.Ping("http://localhost:99999/nonexistent")
 
 	// Assert
 	assert.Error(t, err)

@@ -94,18 +94,18 @@ func (mv *ModuleEnv) SidecarEnv(env []string, module *models.ProxyModule, privat
 	var newEnv []string
 	if moduleURL == "" && sidecarURL == "" {
 		newEnv = []string{
-			fmt.Sprintf("MODULE_NAME=%s", module.Name),
-			fmt.Sprintf("MODULE_VERSION=%s", *module.Version),
-			fmt.Sprintf("MODULE_URL=http://%s.eureka:%d", module.Name, privatePort),
-			fmt.Sprintf("SIDECAR_NAME=%s", module.SidecarName),
-			fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%d", module.SidecarName, privatePort),
+			fmt.Sprintf("MODULE_NAME=%s", module.Metadata.Name),
+			fmt.Sprintf("MODULE_VERSION=%s", *module.Metadata.Version),
+			fmt.Sprintf("MODULE_URL=http://%s.eureka:%d", module.Metadata.Name, privatePort),
+			fmt.Sprintf("SIDECAR_NAME=%s", module.Metadata.SidecarName),
+			fmt.Sprintf("SIDECAR_URL=http://%s.eureka:%d", module.Metadata.SidecarName, privatePort),
 		}
 	} else {
 		newEnv = []string{
-			fmt.Sprintf("MODULE_NAME=%s", module.Name),
-			fmt.Sprintf("MODULE_VERSION=%s", *module.Version),
+			fmt.Sprintf("MODULE_NAME=%s", module.Metadata.Name),
+			fmt.Sprintf("MODULE_VERSION=%s", *module.Metadata.Version),
 			fmt.Sprintf("MODULE_URL=%s", moduleURL),
-			fmt.Sprintf("SIDECAR_NAME=%s", module.SidecarName),
+			fmt.Sprintf("SIDECAR_NAME=%s", module.Metadata.SidecarName),
 			fmt.Sprintf("SIDECAR_URL=%s", sidecarURL),
 		}
 	}

@@ -43,7 +43,7 @@ func (cs *ConsortiumSvc) GetSortedConsortiumTenants(consortiumName string) model
 }
 
 func (cs *ConsortiumSvc) CreateConsortiumTenants(centralTenant string, consortiumID string, consortiumTenants models.SortedConsortiumTenants, adminUsername string) error {
-	headers := helpers.TenantSecureApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
+	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
 	for _, consortiumTenant := range consortiumTenants {
 		payload, err := json.Marshal(map[string]any{
 			"id":        consortiumTenant.Name,
@@ -76,11 +76,10 @@ func (cs *ConsortiumSvc) CreateConsortiumTenants(centralTenant string, consortiu
 
 		slog.Info(cs.Action.Name, "text", "Trying to create consortium tenant", "tenant", consortiumTenant.Name, "consortium", consortiumID)
 		finalRequestURL := cs.Action.GetRequestURL(constant.KongPort, requestURL)
-		err = cs.HTTPClient.PostReturnNoContent(finalRequestURL, payload, headers)
-		if err != nil {
+		if err := cs.HTTPClient.PostReturnNoContent(finalRequestURL, payload, headers); err != nil {
 			return err
 		}
-		if err = cs.checkConsortiumTenantStatus(centralTenant, consortiumID, consortiumTenant.Name, headers); err != nil {
+		if err := cs.checkConsortiumTenantStatus(centralTenant, consortiumID, consortiumTenant.Name, headers); err != nil {
 			return err
 		}
 	}
@@ -90,7 +89,7 @@ func (cs *ConsortiumSvc) CreateConsortiumTenants(centralTenant string, consortiu
 
 func (cs *ConsortiumSvc) getConsortiumTenantByIDAndName(centralTenant string, consortiumID string, tenant string) (any, error) {
 	requestURL := cs.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/consortia/%s/tenants", consortiumID))
-	headers := helpers.TenantSecureApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
+	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
 
 	var decodedResponse models.ConsortiumTenantsResponse
 	if err := cs.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {

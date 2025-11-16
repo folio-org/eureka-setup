@@ -49,13 +49,13 @@ func (run *Run) DeployAdditionalSystem() error {
 		return nil
 	}
 
-	dir, err := helpers.GetHomeMiscDir(run.Config.Action.Name)
+	homeDir, err := helpers.GetHomeMiscDir()
 	if err != nil {
 		return err
 	}
 
 	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}, finalRequiredContainers...)
-	if err := run.Config.ExecSvc.ExecFromDir(exec.Command("docker", subCommand...), dir); err != nil {
+	if err := run.Config.ExecSvc.ExecFromDir(exec.Command("docker", subCommand...), homeDir); err != nil {
 		return err
 	}
 	slog.Info(run.Config.Action.Name, "text", "WAITING FOR ADDITIONAL SYSTEM CONTAINERS TO BECOME READY")

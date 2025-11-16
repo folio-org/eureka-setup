@@ -229,7 +229,7 @@ services:
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
-      KC_FOLIO_BE_ADMIN_CLIENT_ID: supersecret
+      KC_FOLIO_BE_ADMIN_CLIENT_ID: folio-backend-admin-client
       KC_FOLIO_BE_ADMIN_CLIENT_SECRET: supersecret
       KC_DB_URL_HOST: postgres.eureka
       KC_DB_URL_PORT: 5432

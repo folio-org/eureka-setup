@@ -42,11 +42,9 @@ var updateKeycloakPublicClientsCmd = &cobra.Command{
 }
 
 func (run *Run) UpdateKeycloakPublicClients(consortiumName string, tenantType constant.TenantType) error {
-	keycloakMasterAccessToken, err := run.Config.KeycloakSvc.GetKeycloakMasterAccessToken()
-	if err != nil {
+	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.Password); err != nil {
 		return err
 	}
-	run.Config.Action.KeycloakMasterAccessToken = keycloakMasterAccessToken
 
 	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
 		slog.Info(run.Config.Action.Name, "text", "UPDATING KEYCLOAK PUBLIC CLIENTS")
@@ -57,7 +55,7 @@ func (run *Run) UpdateKeycloakPublicClients(consortiumName string, tenantType co
 			}
 
 			slog.Info(run.Config.Action.Name, "text", "Updating keycloak public client")
-			if err := run.Config.KeycloakSvc.UpdateKeycloakPublicClientParams(configTenant, actionParams.PlatformCompleteURL); err != nil {
+			if err := run.Config.KeycloakSvc.UpdatePublicClientSettings(configTenant, params.PlatformCompleteURL); err != nil {
 				return err
 			}
 		}

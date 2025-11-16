@@ -50,11 +50,9 @@ func (ks *KeycloakSvc) GetRoleByName(roleName string, headers map[string]string)
 	if err := ks.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return nil, err
 	}
-
 	if len(decodedResponse.Roles) == 0 {
 		return nil, nil
 	}
-
 	if len(decodedResponse.Roles) != 1 {
 		return nil, errors.RoleNotFound(roleName)
 	}
@@ -75,7 +73,7 @@ func (ks *KeycloakSvc) CreateRoles(configTenant string) error {
 			continue
 		}
 
-		headers := helpers.TenantSecureApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+		headers := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
 		payload, err := json.Marshal(map[string]string{
 			"name":        ks.Action.Caser.String(role),
 			"description": "Default",
@@ -83,9 +81,7 @@ func (ks *KeycloakSvc) CreateRoles(configTenant string) error {
 		if err != nil {
 			return err
 		}
-
-		err = ks.HTTPClient.PostReturnNoContent(requestURL, payload, headers)
-		if err != nil {
+		if err := ks.HTTPClient.PostReturnNoContent(requestURL, payload, headers); err != nil {
 			return err
 		}
 		slog.Info(ks.Action.Name, "text", "Created role", "role", role, "tenant", tenantName)
@@ -95,7 +91,7 @@ func (ks *KeycloakSvc) CreateRoles(configTenant string) error {
 }
 
 func (ks *KeycloakSvc) RemoveRoles(tenantName string) error {
-	headers := helpers.TenantSecureApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
 	roles, err := ks.GetRoles(headers)
 	if err != nil {
 		return err
@@ -109,8 +105,7 @@ func (ks *KeycloakSvc) RemoveRoles(tenantName string) error {
 		}
 
 		requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/roles/%s", entry["id"].(string)))
-		err = ks.HTTPClient.Delete(requestURL, headers)
-		if err != nil {
+		if err := ks.HTTPClient.Delete(requestURL, headers); err != nil {
 			return err
 		}
 		slog.Info(ks.Action.Name, "text", "Removed role", "role", roleName, "tenant", tenantName)

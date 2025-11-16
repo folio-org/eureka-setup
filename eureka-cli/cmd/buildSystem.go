@@ -70,7 +70,7 @@ func (run *Run) CloneUpdateRepositories() error {
 		}
 	}
 
-	if actionParams.UpdateCloned {
+	if params.UpdateCloned {
 		slog.Info(run.Config.Action.Name, "text", "Updating repositories", "repositories", repositories)
 		for _, repository := range repositories {
 			if err := run.Config.GitClient.ResetHardPullFromOrigin(repository); err != nil {
@@ -85,15 +85,15 @@ func (run *Run) CloneUpdateRepositories() error {
 func (run *Run) BuildSystem() error {
 	slog.Info(run.Config.Action.Name, "text", "BUILDING SYSTEM IMAGES")
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache"}
-	dir, err := helpers.GetHomeMiscDir(run.Config.Action.Name)
+	homeDir, err := helpers.GetHomeMiscDir()
 	if err != nil {
 		return err
 	}
 
-	return run.Config.ExecSvc.ExecFromDir(exec.Command("docker", subCommand...), dir)
+	return run.Config.ExecSvc.ExecFromDir(exec.Command("docker", subCommand...), homeDir)
 }
 
 func init() {
 	rootCmd.AddCommand(buildSystemCmd)
-	buildSystemCmd.PersistentFlags().BoolVarP(&actionParams.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
+	buildSystemCmd.PersistentFlags().BoolVarP(&params.UpdateCloned, action.UpdateCloned.Long, action.UpdateCloned.Short, false, action.UpdateCloned.Description)
 }

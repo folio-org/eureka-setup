@@ -35,13 +35,16 @@ var undeployModulesCmd = &cobra.Command{
 			return err
 		}
 
-		return run.UndeployModules(true)
+		return run.UndeployModules(params.RemoveApplication)
 	},
 }
 
-func (run *Run) UndeployModules(deleteApplication bool) error {
-	if deleteApplication {
+func (run *Run) UndeployModules(removeApplication bool) error {
+	if removeApplication {
 		slog.Info(run.Config.Action.Name, "text", "REMOVING APPLICATION")
+		if err := run.setKeycloakMasterAccessTokenIntoContext(constant.ClientCredentials); err != nil {
+			return err
+		}
 		if err := run.Config.ManagementSvc.RemoveApplication(run.Config.Action.ConfigApplicationID); err != nil {
 			slog.Warn(run.Config.Action.Name, "text", "Application removal was unsuccessful", "error", err)
 		}
@@ -60,4 +63,5 @@ func (run *Run) UndeployModules(deleteApplication bool) error {
 
 func init() {
 	rootCmd.AddCommand(undeployModulesCmd)
+	undeployModulesCmd.PersistentFlags().BoolVarP(&params.RemoveApplication, action.RemoveApplication.Long, action.RemoveApplication.Short, true, action.RemoveApplication.Description)
 }

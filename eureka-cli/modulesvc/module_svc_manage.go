@@ -14,7 +14,6 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-cli/constant"
 	appErrors "github.com/folio-org/eureka-cli/errors"
@@ -29,17 +28,6 @@ type ModuleManager interface {
 	DeployModules(client *client.Client, containers *models.Containers, sidecarImage string, sidecarResources *container.Resources) (map[string]int, error)
 	DeployModule(client *client.Client, container *models.Container) error
 	UndeployModuleByNamePattern(client *client.Client, pattern string) error
-}
-
-// SidecarRequest contains all the information needed to deploy a sidecar container
-type SidecarRequest struct {
-	Client           *client.Client
-	Containers       *models.Containers
-	Module           *models.ProxyModule
-	BackendModule    models.BackendModule
-	SidecarImage     string
-	NetworkConfig    *network.NetworkingConfig
-	SidecarResources *container.Resources
 }
 
 func (ms *ModuleSvc) GetDeployedModules(client *client.Client, filters filters.Args) ([]container.Summary, error) {
@@ -90,7 +78,6 @@ func (ms *ModuleSvc) PullModule(client *client.Client, imageName string) error {
 		} else if err != nil {
 			return err
 		}
-
 		if event.Error == "" {
 			current := helpers.ConvertMemory(helpers.BytesToMib, int64(event.ProgressDetail.Current))
 			total := helpers.ConvertMemory(helpers.BytesToMib, int64(event.ProgressDetail.Total))
@@ -105,39 +92,51 @@ func (ms *ModuleSvc) PullModule(client *client.Client, imageName string) error {
 
 func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Containers, sidecarImage string, sidecarResources *container.Resources) (map[string]int, error) {
 	deployedModules := make(map[string]int)
-	networkConfig := helpers.GetModuleNetworkConfig()
 
 	var sidecarWG sync.WaitGroup
 	sidecarErrCh := make(chan error, 10)
 	allModules := [][]*models.ProxyModule{containers.Modules.FolioModules, containers.Modules.EurekaModules}
 	for _, modules := range allModules {
 		for _, module := range modules {
-			if ms.shouldSkipModule(module, containers.ManagementOnly) {
+			if ms.shouldSkipModule(module, containers.IsManagement) {
 				continue
 			}
 			if !ms.shouldDeployModule(module, containers.BackendModules) {
 				continue
 			}
 
-			backendModule := containers.BackendModules[module.Name]
+			backendModule := containers.BackendModules[module.Metadata.Name]
 			version := ms.GetModuleImageVersion(backendModule, module)
-			image := ms.GetModuleImage(version, module)
-			env := ms.GetModuleEnv(containers, module, backendModule)
-			container := models.NewModuleContainer(module.Name, image, env, backendModule, networkConfig)
-			if err := ms.DeployModule(client, container); err != nil {
+			if err := ms.DeployModule(client, &models.Container{
+				Name: module.Metadata.Name,
+				Config: &container.Config{
+					Image:        ms.GetModuleImage(version, module),
+					Hostname:     module.Metadata.Name,
+					Env:          ms.GetModuleEnv(containers, module, backendModule),
+					ExposedPorts: *backendModule.ModuleExposedPorts,
+				},
+				HostConfig: &container.HostConfig{
+					PortBindings:  *backendModule.ModulePortBindings,
+					RestartPolicy: *helpers.GetRestartPolicy(),
+					Resources:     backendModule.ModuleResources,
+					Binds:         backendModule.ModuleVolumes,
+				},
+				NetworkConfig: helpers.GetModuleNetworkConfig(),
+				Platform:      helpers.GetPlatform(),
+				PullImage:     backendModule.LocalDescriptorPath == "",
+			}); err != nil {
 				return nil, err
 			}
-			deployedModules[module.Name] = backendModule.ModuleExposedServerPort
+			deployedModules[module.Metadata.Name] = backendModule.ModuleExposedServerPort
 
 			if backendModule.DeploySidecar && sidecarImage != "" {
 				sidecarWG.Add(1)
-				go ms.deploySidecarAsync(&sidecarWG, sidecarErrCh, &SidecarRequest{
+				go ms.deploySidecarAsync(&sidecarWG, sidecarErrCh, &models.SidecarRequest{
 					Client:           client,
 					Containers:       containers,
 					Module:           module,
 					BackendModule:    backendModule,
 					SidecarImage:     sidecarImage,
-					NetworkConfig:    networkConfig,
 					SidecarResources: sidecarResources,
 				})
 			}
@@ -156,25 +155,38 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 }
 
 func (ms *ModuleSvc) shouldSkipModule(module *models.ProxyModule, managementOnly bool) bool {
-	isManagementModule := strings.Contains(module.Name, constant.ManagementModulePattern)
+	isManagementModule := strings.Contains(module.Metadata.Name, constant.ManagementModulePattern)
 	return (managementOnly && !isManagementModule) || (!managementOnly && isManagementModule)
 }
 
 func (ms *ModuleSvc) shouldDeployModule(module *models.ProxyModule, backendModules map[string]models.BackendModule) bool {
-	backendModule, exists := backendModules[module.Name]
+	backendModule, exists := backendModules[module.Metadata.Name]
 	return exists && backendModule.DeployModule
 }
 
-func (ms *ModuleSvc) deploySidecarAsync(wg *sync.WaitGroup, errCh chan<- error, r *SidecarRequest) {
+func (ms *ModuleSvc) deploySidecarAsync(wg *sync.WaitGroup, errCh chan<- error, r *models.SidecarRequest) {
 	defer wg.Done()
 
-	env := ms.GetSidecarEnv(r.Containers, r.Module, r.BackendModule, "", "")
-	container := models.NewSidecarContainer(r.Module.SidecarName, r.SidecarImage, env, r.BackendModule, r.NetworkConfig, r.SidecarResources)
-	if len(ms.Action.ConfigSidecarNativeBinaryCmd) > 0 {
-		container.Config.Cmd = ms.Action.ConfigSidecarNativeBinaryCmd
+	container := &models.Container{
+		Name: r.Module.Metadata.SidecarName,
+		Config: &container.Config{
+			Image:        r.SidecarImage,
+			Hostname:     r.Module.Metadata.SidecarName,
+			Env:          ms.GetSidecarEnv(r.Containers, r.Module, r.BackendModule, "", ""),
+			ExposedPorts: *r.BackendModule.SidecarExposedPorts,
+			Cmd:          helpers.GetConfigSidecarCmd(ms.Action.ConfigSidecarNativeBinaryCmd),
+		},
+		HostConfig: &container.HostConfig{
+			PortBindings:  *r.BackendModule.SidecarPortBindings,
+			RestartPolicy: *helpers.GetRestartPolicy(),
+			Resources:     *r.SidecarResources,
+		},
+		NetworkConfig: helpers.GetModuleNetworkConfig(),
+		Platform:      helpers.GetPlatform(),
+		PullImage:     false,
 	}
 	if err := ms.DeployModule(r.Client, container); err != nil {
-		err := appErrors.SidecarDeployFailed(r.Module.SidecarName, err)
+		err := appErrors.SidecarDeployFailed(r.Module.Metadata.SidecarName, err)
 		select {
 		case errCh <- err:
 		default:
@@ -187,7 +199,7 @@ func (ms *ModuleSvc) DeployModule(client *client.Client, c *models.Container) er
 	defer cancel()
 
 	if c.PullImage {
-		err := ms.PullModule(client, c.Image)
+		err := ms.PullModule(client, c.Config.Image)
 		if err != nil {
 			return err
 		}

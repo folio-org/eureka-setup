@@ -42,7 +42,6 @@ func createRetryClient(logger *slog.Logger, customClient *http.Client) *retryabl
 		if shouldRetry {
 			return true, checkErr
 		}
-
 		// Also retry on 429 Too Many Requests and 503 Service Unavailable
 		if httpResponse != nil && (httpResponse.StatusCode == http.StatusTooManyRequests ||
 			httpResponse.StatusCode == http.StatusServiceUnavailable) {

@@ -35,11 +35,9 @@ func (ks *KeycloakSvc) GetCapabilitySets(headers map[string]string) ([]any, erro
 		if err := ks.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 			return nil, err
 		}
-
 		if len(decodedResponse.CapabilitySets) == 0 {
 			continue
 		}
-
 		for _, cs := range decodedResponse.CapabilitySets {
 			capabilitySets = append(capabilitySets, map[string]any{
 				"id":            cs.ID,
@@ -62,7 +60,6 @@ func (ks *KeycloakSvc) GetCapabilitySetsByName(headers map[string]string, capabi
 	if err := ks.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return nil, err
 	}
-
 	if len(decodedResponse.CapabilitySets) == 0 {
 		return nil, nil
 	}
@@ -83,7 +80,7 @@ func (ks *KeycloakSvc) GetCapabilitySetsByName(headers map[string]string, capabi
 }
 
 func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenantName string) error {
-	headers := helpers.TenantSecureApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
 	roles, err := ks.GetRoles(headers)
 	if err != nil {
 		return err
@@ -129,9 +126,7 @@ func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenantName string) error {
 			if err != nil {
 				return err
 			}
-
-			err = ks.HTTPClient.PostRetryReturnNoContent(requestURL, payload, headers)
-			if err != nil {
+			if err := ks.HTTPClient.PostRetryReturnNoContent(requestURL, payload, headers); err != nil {
 				return err
 			}
 		}
@@ -173,7 +168,7 @@ func (ks *KeycloakSvc) populateCapabilitySets(headers map[string]string, rolesCa
 }
 
 func (ks *KeycloakSvc) DetachCapabilitySetsFromRoles(tenantName string) error {
-	headers := helpers.TenantSecureApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
 	roles, err := ks.GetRoles(headers)
 	if err != nil {
 		return err
@@ -191,8 +186,7 @@ func (ks *KeycloakSvc) DetachCapabilitySetsFromRoles(tenantName string) error {
 		}
 
 		requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/roles/%s/capability-sets", entry["id"].(string)))
-		err = ks.HTTPClient.Delete(requestURL, headers)
-		if err != nil {
+		if err := ks.HTTPClient.Delete(requestURL, headers); err != nil {
 			return err
 		}
 		slog.Info(ks.Action.Name, "text", "Detached capability sets", "role", roleName, "tenant", tenantName)

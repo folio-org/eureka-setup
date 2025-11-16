@@ -96,7 +96,7 @@ func TestTenantSecureApplicationJSONHeaders_ValidInputs(t *testing.T) {
 	accessToken := "token123"
 
 	// Act
-	result := helpers.TenantSecureApplicationJSONHeaders(tenantName, accessToken)
+	result := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, accessToken)
 
 	// Assert
 	assert.Len(t, result, 3)
@@ -111,7 +111,7 @@ func TestTenantSecureNonOkapiApplicationJSONHeaders_ValidInputs(t *testing.T) {
 	accessToken := "token123"
 
 	// Act
-	result := helpers.TenantSecureNonOkapiApplicationJSONHeaders(tenantName, accessToken)
+	result := helpers.SecureTenantApplicationJSONHeaders(tenantName, accessToken)
 
 	// Assert
 	assert.Len(t, result, 3)

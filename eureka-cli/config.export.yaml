@@ -36,7 +36,8 @@ environment:
   # Keycloak
   KC_URL: http://keycloak.eureka:8080
   KC_CONFIG_TTL: 3600s
-  KC_ADMIN_CLIENT_ID: supersecret
+  KC_ADMIN_CLIENT_ID: folio-backend-admin-client
+  KC_ADMIN_CLIENT_SECRET: supersecret
   KC_ADMIN_USERNAME: admin
   KC_ADMIN_PASSWORD: admin
   KC_IMPORT_ENABLED: "true"
@@ -44,7 +45,7 @@ environment:
   KC_LOGIN_CLIENT_SUFFIX: -application
   KC_SERVICE_CLIENT_ID: sidecar-module-access-client
   KC_URI_VALIDATION_ENABLED: "false"
-  SECURITY_ENABLED: "false"
+  SECURITY_ENABLED: "true"
   OKAPI_INTEGRATION_ENABLED: "false"
   WEB_CLIENT_TLS_VERIFY_HOSTNAME: "false"
   # Java

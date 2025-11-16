@@ -4,16 +4,13 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
-	"runtime"
 	"slices"
 	"strconv"
 	"strings"
 
-	"github.com/folio-org/eureka-cli/actionparams"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/field"
-	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/viper"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -24,7 +21,7 @@ type Action struct {
 	Name                              string
 	GatewayURLTemplate                string
 	ReservedPorts                     []int
-	Params                            *actionparams.ActionParams
+	Param                             *Param
 	Caser                             cases.Caser
 	VaultRootToken                    string
 	KeycloakAccessToken               string
@@ -62,26 +59,14 @@ type Action struct {
 	ConfigConsortiums                 map[string]any
 }
 
-func New(name, gatewayURL string, actionParams *actionparams.ActionParams) *Action {
-	return newGeneric(name, gatewayURL, actionParams, "", "", "")
-}
-
-func NewWithCredentials(name, gatewayURL string, actionParams *actionparams.ActionParams, vaultRootToken, keycloakAccessToken, keycloakMasterAccessToken string) *Action {
-	return newGeneric(name, gatewayURL, actionParams, vaultRootToken, keycloakAccessToken, keycloakMasterAccessToken)
-}
-
-func newGeneric(name, gatewayURL string, actionParams *actionparams.ActionParams, vaultRootToken, keycloakAccessToken, keycloakMasterAccessToken string) *Action {
+func New(name string, gatewayURL string, actionParam *Param) *Action {
 	applicationName := viper.GetString(field.ApplicationName)
 	applicationVersion := viper.GetString(field.ApplicationVersion)
-
 	return &Action{
 		Name:                              name,
 		GatewayURLTemplate:                gatewayURL,
 		ReservedPorts:                     []int{},
-		Params:                            actionParams,
-		VaultRootToken:                    vaultRootToken,
-		KeycloakAccessToken:               keycloakAccessToken,
-		KeycloakMasterAccessToken:         keycloakMasterAccessToken,
+		Param:                             actionParam,
 		Caser:                             cases.Lower(language.English),
 		ConfigProfile:                     viper.GetString(field.ProfileName),
 		ConfigRegistryURL:                 viper.GetString(field.RegistryURL),
@@ -115,78 +100,31 @@ func newGeneric(name, gatewayURL string, actionParams *actionparams.ActionParams
 	}
 }
 
-func GetGatewayURLTemplate(actionName string) (string, error) {
-	gatewayURL, err := GetGatewayURL(actionName)
-	if err != nil {
-		return "", err
-	}
+// ==================== Request URL ====================
 
-	return gatewayURL + ":%s", nil
+func (a *Action) GetRequestURL(port string, route string) string {
+	return fmt.Sprintf(a.GatewayURLTemplate, port) + route
 }
 
-func GetGatewayURL(actionName string) (string, error) {
-	slog.Debug(actionName, "text", "RETRIEVING GATEWAY URL")
-	gatewayURL, err := getConfigGatewayURL(actionName)
-	if gatewayURL == "" {
-		gatewayURL, err = getDefaultGatewayURL(actionName)
-	}
-	if gatewayURL == "" {
-		gatewayURL, err = getOtherGatewayURL(actionName)
-	}
-	if gatewayURL == "" || err != nil {
-		return "", errors.GatewayURLConstructFailed(runtime.GOOS, err)
-	}
-	slog.Debug(actionName, "text", "Retrieved gateway URL", "url", gatewayURL)
+// ==================== Environment ====================
 
-	return gatewayURL, nil
+func (a *Action) GetConfigEnvVars(key string) []string {
+	var envVars []string
+	for key, value := range viper.GetStringMapString(key) {
+		envVars = append(envVars, fmt.Sprintf("%s=%s", strings.ToUpper(key), value))
+	}
+
+	return envVars
 }
 
-func getConfigGatewayURL(actionName string) (gatewayURL string, err error) {
-	if !viper.IsSet(field.ApplicationGatewayHostname) {
-		return "", nil
-	}
+// ==================== Reserve Ports ====================
 
-	hostname := viper.GetString(field.ApplicationGatewayHostname)
-	if err = helpers.IsHostnameReachable(actionName, hostname); err != nil {
-		slog.Warn(actionName, "text", "Retrieving config gateway hostname was unsuccessful", "error", err)
-		return "", err
-	}
-
-	if !strings.HasPrefix(hostname, "http://") {
-		gatewayURL = fmt.Sprintf("http://%s", hostname)
-	} else {
-		gatewayURL = hostname
-	}
-
-	return gatewayURL, nil
-}
-
-func getDefaultGatewayURL(actionName string) (gatewayURL string, err error) {
-	if err = helpers.IsHostnameReachable(actionName, constant.DockerHostname); err != nil {
-		slog.Warn(actionName, "text", "Retrieving default gateway URL was unsuccessful", "error", err)
-		return "", nil
-	}
-
-	return fmt.Sprintf("http://%s", constant.DockerHostname), nil
-}
-
-func getOtherGatewayURL(actionName string) (gatewayURL string, err error) {
-	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
-		err = errors.UnsupportedPlatform(runtime.GOOS, constant.DockerGatewayIP)
-		slog.Warn(actionName, "text", "Retrieving other gateway URL was unsuccessful", "error", err)
-		return "", err
-	}
-
-	return fmt.Sprintf("http://%s", constant.DockerGatewayIP), nil
-}
-
-func (a *Action) GetPreReservedPortSet(fns []func() (int, error)) (ports []int, err error) {
-	for _, fn := range fns {
-		port, err := fn()
+func (a *Action) GetPreReservedPortSet(n int) (ports []int, err error) {
+	for range n {
+		port, err := a.GetPreReservedPort()
 		if err != nil {
 			return nil, err
 		}
-
 		ports = append(ports, port)
 	}
 
@@ -212,38 +150,15 @@ func (a *Action) GetPreReservedPort() (int, error) {
 func (a *Action) isPortFree(portStart, portEnd int, port int) bool {
 	tcpListen, err := net.Listen("tcp", fmt.Sprintf(":%s", strconv.Itoa(port)))
 	if err != nil {
-		slog.Debug(a.Name, "text", "TCP port is reserved or already bound in range", "port", port, "portStart", portStart, "portEnd", portEnd)
+		slog.Debug(a.Name, "text", "TCP port is reserved or already bound in range", "target", port, "start", portStart, "end", portEnd)
 		return false
 	}
-	defer a.closeListener(tcpListen)
+	defer func() { _ = tcpListen.Close() }()
 
 	return true
 }
 
-func (a *Action) closeListener(listener net.Listener) {
-	_ = listener.Close()
-}
-
-func (a *Action) GetRequestURL(port string, route string) string {
-	return fmt.Sprintf(a.GatewayURLTemplate, port) + route
-}
-
-func (a *Action) GetConfigEnvVars(key string) []string {
-	var envVars []string
-	for key, value := range viper.GetStringMapString(key) {
-		envVars = append(envVars, fmt.Sprintf("%s=%s", strings.ToUpper(key), value))
-	}
-
-	return envVars
-}
-
-func GetConfigEnv(key string, configGlobalEnv map[string]string) string {
-	return configGlobalEnv[strings.ToLower(key)]
-}
-
-func IsSet(key string) bool {
-	return viper.IsSet(key)
-}
+// ==================== Install JSON URLs ====================
 
 func (a *Action) GetCombinedInstallJsonURLs() map[string]string {
 	return map[string]string{
@@ -258,9 +173,21 @@ func (a *Action) GetEurekaInstallJsonURLs() map[string]string {
 	}
 }
 
+// ==================== Registry URLs  ====================
+
 func (a *Action) GetCombinedRegistryURLs() map[string]string {
 	return map[string]string{
 		constant.FolioRegistry:  a.ConfigRegistryURL,
 		constant.EurekaRegistry: a.ConfigRegistryURL,
 	}
+}
+
+// ==================== Viper ====================
+
+func GetConfigEnv(key string, env map[string]string) string {
+	return env[strings.ToLower(key)]
+}
+
+func IsSet(key string) bool {
+	return viper.IsSet(key)
 }

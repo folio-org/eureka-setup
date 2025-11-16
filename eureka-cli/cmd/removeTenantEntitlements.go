@@ -42,10 +42,14 @@ var removeTenantEntitlementsCmd = &cobra.Command{
 
 func (run *Run) RemoveTenantEntitlements(consortiumName string, tenantType constant.TenantType) error {
 	slog.Info(run.Config.Action.Name, "text", "REMOVING TENANT ENTITLEMENTS")
-	return run.Config.ManagementSvc.RemoveTenantEntitlements(consortiumName, tenantType, actionParams.PurgeSchemas)
+	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.ClientCredentials); err != nil {
+		return err
+	}
+
+	return run.Config.ManagementSvc.RemoveTenantEntitlements(consortiumName, tenantType, params.PurgeSchemas)
 }
 
 func init() {
 	rootCmd.AddCommand(removeTenantEntitlementsCmd)
-	removeTenantEntitlementsCmd.PersistentFlags().BoolVarP(&actionParams.PurgeSchemas, "purgeSchemas", "", false, "Purge schemas in PostgreSQL on uninstallation")
+	removeTenantEntitlementsCmd.PersistentFlags().BoolVarP(&params.PurgeSchemas, action.PurgeSchemas.Long, action.PurgeSchemas.Short, false, action.PurgeSchemas.Description)
 }

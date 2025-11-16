@@ -6,6 +6,11 @@ import (
 	"net/http"
 )
 
+// FlagReader interface allows us to accept flag structs without importing the flags package
+type FlagReader interface {
+	GetName() string
+}
+
 // ==================== Base Errors ====================
 
 var (
@@ -27,7 +32,7 @@ func Wrap(err error, message string) error {
 	return fmt.Errorf("%s: %w", message, err)
 }
 
-func Wrapf(err error, format string, args ...interface{}) error {
+func Wrapf(err error, format string, args ...any) error {
 	if err == nil {
 		return nil
 	}
@@ -39,7 +44,7 @@ func New(message string) error {
 	return errors.New(message)
 }
 
-func Newf(format string, args ...interface{}) error {
+func Newf(format string, args ...any) error {
 	return fmt.Errorf(format, args...)
 }
 
@@ -51,6 +56,10 @@ func ActionNil() error {
 
 func LoggerNil() error {
 	return errors.New("logger cannot be nil")
+}
+
+func RequiredParameterMissing(param string) error {
+	return fmt.Errorf("%w: %s parameter required", ErrInvalidInput, param)
 }
 
 // ==================== HTTP Errors ====================
@@ -231,4 +240,20 @@ func ReindexJobHasErrors(jobErrors []any) error {
 
 func ReindexJobIDBlank() error {
 	return errors.New("reindex job id is blank")
+}
+
+// ==================== Registry Errors ====================
+
+func LocalInstallFileNotFound(err error) error {
+	return fmt.Errorf("%w: failed to find local install file: %w", ErrNotFound, err)
+}
+
+// ==================== Flag Errors ====================
+
+func RegisterFlagCompletionFailed(err error) error {
+	return fmt.Errorf("failed to register flag completion function: %w", err)
+}
+
+func MarkFlagRequiredFailed(flag FlagReader, err error) error {
+	return fmt.Errorf("failed to mark %s flag as required: %w", flag.GetName(), err)
 }

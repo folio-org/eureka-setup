@@ -60,12 +60,12 @@ var purgeTenantsCmd = &cobra.Command{
 					return err
 				}
 
-				var response models.TenantEntitlementResponse
-				err = run.Config.HTTPClient.DeleteWithBodyReturnStruct(fmt.Sprintf("%s%s", requestURL, "?purge=true"), payload, map[string]string{}, &response)
+				var decodedResponse models.TenantEntitlementResponse
+				err = run.Config.HTTPClient.DeleteWithPayloadReturnStruct(fmt.Sprintf("%s%s", requestURL, "?purge=true"), payload, map[string]string{}, &decodedResponse)
 				if err != nil {
 					slog.Warn(run.Config.Action.Name, "text", "Purge of tenant entitlements was unsuccessful", "tenant", key, "error", err)
 				} else {
-					slog.Info(run.Config.Action.Name, "text", "Purged tenant entitlements", "tenant", key, "applications", value, "flowId", response.FlowID)
+					slog.Info(run.Config.Action.Name, "text", "Purged tenant entitlements", "tenant", key, "applications", value, "flowId", decodedResponse.FlowID)
 				}
 			}
 		}
@@ -91,7 +91,7 @@ var purgeTenantsCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(purgeTenantsCmd)
-	purgeTenantsCmd.PersistentFlags().StringVarP(&withKongGateway, "gateway", "", "http://localhost:8000", "Kong Gateway")
-	purgeTenantsCmd.PersistentFlags().StringSliceVarP(&withTenantIDs, "ids", "", []string{}, "Tenant ids")
-	purgeTenantsCmd.PersistentFlags().StringSliceVarP(&withApplicationNames, "apps", "", []string{"app-combined-1.0.0"}, "Application names")
+	purgeTenantsCmd.PersistentFlags().StringVarP(&withKongGateway, action.Gateway.Long, action.Gateway.Short, "http://localhost:8000", action.Gateway.Description)
+	purgeTenantsCmd.PersistentFlags().StringSliceVarP(&withTenantIDs, action.TenantIDs.Long, action.TenantIDs.Short, []string{}, action.TenantIDs.Description)
+	purgeTenantsCmd.PersistentFlags().StringSliceVarP(&withApplicationNames, action.ApplicationNames.Long, action.ApplicationNames.Short, []string{"app-combined-1.0.0"}, action.ApplicationNames.Description)
 }

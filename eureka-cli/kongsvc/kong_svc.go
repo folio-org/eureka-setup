@@ -21,9 +21,9 @@ type KongProcessor interface {
 
 // KongRouteReader defines the interface for Kong route read operations
 type KongRouteReader interface {
-	CheckRouteExists(routeID string) (bool, *models.KongRoute, error)
 	ListAllRoutes() ([]models.KongRoute, error)
 	FindRouteByExpressions(expressions []string) ([]*models.KongRoute, error)
+	CheckRouteExists(routeID string) (bool, *models.KongRoute, error)
 }
 
 // KongSvc provides functionality for Kong API gateway operations
@@ -43,28 +43,6 @@ func New(action *action.Action, httpClient interface {
 	httpclient.HTTPClientPinger
 }) KongProcessor {
 	return &KongSvc{Action: action, HTTPClient: httpClient}
-}
-
-func (ks *KongSvc) CheckRouteExists(routeID string) (bool, *models.KongRoute, error) {
-	requestURL := ks.Action.GetRequestURL(constant.KongAdminPort, fmt.Sprintf("/routes/%s", routeID))
-	statusCode, err := ks.HTTPClient.CheckStatus(requestURL)
-	if err != nil {
-		return false, nil, err
-	}
-
-	if statusCode == http.StatusNotFound {
-		return false, nil, nil
-	}
-	if statusCode != http.StatusOK {
-		return false, nil, errors.KongAdminAPIFailed(statusCode, http.StatusText(statusCode))
-	}
-
-	var decodedResponse models.KongRoute
-	if err = ks.HTTPClient.GetRetryReturnStruct(requestURL, nil, &decodedResponse); err != nil {
-		return false, nil, err
-	}
-
-	return true, &decodedResponse, nil
 }
 
 func (ks *KongSvc) ListAllRoutes() ([]models.KongRoute, error) {
@@ -92,4 +70,26 @@ func (ks *KongSvc) FindRouteByExpressions(expressions []string) ([]*models.KongR
 	}
 
 	return routes, nil
+}
+
+func (ks *KongSvc) CheckRouteExists(routeID string) (bool, *models.KongRoute, error) {
+	requestURL := ks.Action.GetRequestURL(constant.KongAdminPort, fmt.Sprintf("/routes/%s", routeID))
+	statusCode, err := ks.HTTPClient.Ping(requestURL)
+	if err != nil {
+		return false, nil, err
+	}
+
+	if statusCode == http.StatusNotFound {
+		return false, nil, nil
+	}
+	if statusCode != http.StatusOK {
+		return false, nil, errors.KongAdminAPIFailed(statusCode, http.StatusText(statusCode))
+	}
+
+	var decodedResponse models.KongRoute
+	if err := ks.HTTPClient.GetRetryReturnStruct(requestURL, nil, &decodedResponse); err != nil {
+		return false, nil, err
+	}
+
+	return true, &decodedResponse, nil
 }

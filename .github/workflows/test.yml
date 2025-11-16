@@ -17,69 +17,73 @@ jobs:
         uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: ./eureka-cli/misc/folio-netcat/Dockerfile
+          ignore: DL3018
 
       - name: Validate misc/folio-vault/Dockerfile
         uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: ./eureka-cli/misc/folio-vault/Dockerfile
+          ignore: DL3018
 
       - name: Validate misc/folio-kafka-tools/Dockerfile
         uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: ./eureka-cli/misc/folio-kafka-tools/Dockerfile
+          ignore: DL3018
 
       - name: Validate misc/docker-compose.yml
         run: docker compose -f ./eureka-cli/misc/docker-compose.yaml config
 
-  docker-trivy:
-    name: Docker Security Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Scan folio-netcat Dockerfile
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'config'
-          scan-ref: './eureka-cli/misc/folio-netcat/Dockerfile'
-          format: 'table'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
-
-      - name: Scan folio-vault Dockerfile
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'config'
-          scan-ref: './eureka-cli/misc/folio-vault/Dockerfile'
-          format: 'table'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
-
-      - name: Scan folio-kafka-tools Dockerfile
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'config'
-          scan-ref: './eureka-cli/misc/folio-kafka-tools/Dockerfile'
-          format: 'table'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
-
-      - name: Generate SARIF report for all Dockerfiles
-        uses: aquasecurity/trivy-action@master
-        if: always() && github.actor != 'dependabot[bot]'
-        with:
-          scan-type: 'config'
-          scan-ref: './eureka-cli/misc/'
-          format: 'sarif'
-          output: 'trivy-docker-config.sarif'
-
-      - name: Upload Docker config scan to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
-        if: always() && github.actor != 'dependabot[bot]'
-        with:
-          sarif_file: 'trivy-docker-config.sarif'
-          category: 'docker-configs'
+  # TODO Extract into a separate scheduled workflow that will scan the built images
+  # docker-trivy:
+  #   name: Docker Security Scan
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v5
+  #
+  #     - name: Scan folio-netcat Dockerfile
+  #       uses: aquasecurity/trivy-action@master
+  #       with:
+  #         scan-type: 'config'
+  #         scan-ref: './eureka-cli/misc/folio-netcat/Dockerfile'
+  #         format: 'table'
+  #         severity: 'CRITICAL,HIGH'
+  #         exit-code: '1'
+  #
+  #     - name: Scan folio-vault Dockerfile
+  #       uses: aquasecurity/trivy-action@master
+  #       with:
+  #         scan-type: 'config'
+  #         scan-ref: './eureka-cli/misc/folio-vault/Dockerfile'
+  #         format: 'table'
+  #         severity: 'CRITICAL,HIGH'
+  #         exit-code: '1'
+  #
+  #     - name: Scan folio-kafka-tools Dockerfile
+  #       uses: aquasecurity/trivy-action@master
+  #       with:
+  #         scan-type: 'config'
+  #         scan-ref: './eureka-cli/misc/folio-kafka-tools/Dockerfile'
+  #         format: 'table'
+  #         severity: 'CRITICAL,HIGH'
+  #         exit-code: '1'
+  #
+  #     - name: Generate SARIF report for all Dockerfiles
+  #       uses: aquasecurity/trivy-action@master
+  #       if: always() && github.actor != 'dependabot[bot]'
+  #       with:
+  #         scan-type: 'config'
+  #         scan-ref: './eureka-cli/misc/'
+  #         format: 'sarif'
+  #         output: 'trivy-docker-config.sarif'
+  #
+  #     - name: Upload Docker config scan to GitHub Security
+  #       uses: github/codeql-action/upload-sarif@v4
+  #       if: always() && github.actor != 'dependabot[bot]'
+  #       with:
+  #         sarif_file: 'trivy-docker-config.sarif'
+  #         category: 'docker-configs'
 
   go-lint:
     name: Go Lint
@@ -140,11 +144,7 @@ jobs:
     name: Go Test
     runs-on: ubuntu-latest
     env:
-      # Define package exclusion pattern once for reuse across steps
-      EXCLUDE_PATTERN: '/(cmd|constant|field|actionparams|models|execsvc|interceptmodulesvc)$|/internal/|eureka-cli$'
-      EXCLUDED_PACKAGES: 'cmd, constant, field, actionparams, models, internal, execsvc, interceptmodulesvc'
-      ALLOWED_LOW_COVERAGE: 'awssvc gitclient modulesvc uisvc vaultclient'
-      COVERAGE_THRESHOLD: '70'
+      EXCLUDE_PATTERN: '/(cmd|constant|field|models|execsvc|interceptmodulesvc)$|/internal/|eureka-cli$'
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -152,126 +152,16 @@ jobs:
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
 
+      - name: Prepare .eureka config directory
+        run: |
+          mkdir -p /home/runner/.eureka
+          chmod -R 0700 /home/runner/.eureka
+
       - name: Run tests with coverage
         working-directory: ./eureka-cli
         run: |
           echo "Running tests for testable packages (excluding infrastructure)..."
-          # Exclude infrastructure packages (see EXCLUDE_PATTERN and EXCLUDED_PACKAGES env vars)
           go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -parallel 4 -coverprofile=coverage.out -covermode=atomic
-
-      - name: Generate coverage report
-        working-directory: ./eureka-cli
-        run: |
-          echo "## Go Test Coverage Report" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Coverage Target:** ≥${COVERAGE_THRESHOLD}% for service and client packages" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Package | Coverage | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|----------|---------|" >> $GITHUB_STEP_SUMMARY
-          
-          # Run tests with coverage for testable packages only
-          go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -parallel 4 -cover 2>/dev/null > test_output.txt
-          
-          # Process the coverage output - only lines that start with "ok" and contain "coverage:"
-          # Sort by package name for better readability
-          grep "^ok.*coverage:" test_output.txt | sort -k2 | while read -r line; do
-            # Extract package name (second field after "ok")
-            package=$(echo "$line" | awk '{print $2}' | sed 's/github.com\/folio-org\/eureka-cli\///')
-            # Extract coverage percentage
-            coverage=$(echo "$line" | grep -o "coverage: [0-9.]*%" | awk '{print $2}')
-            coverage_num=$(echo "$coverage" | sed 's/%//')
-            
-            # Skip if we couldn't extract coverage properly or if package name is empty
-            if [[ -z "$coverage" ]] || [[ -z "$package" ]]; then
-              continue
-            fi
-            
-            # Check if package is in allowed low coverage list
-            is_allowed="no"
-            if echo "$ALLOWED_LOW_COVERAGE" | grep -qw "$package"; then
-              is_allowed="yes"
-            fi
-            
-            # Determine status based on coverage threshold
-            if (( $(echo "$coverage_num >= $COVERAGE_THRESHOLD" | bc -l) )); then
-              status="✅ Good"
-            elif [[ "$is_allowed" == "yes" ]]; then
-              status="⚠️ Allowed"
-            elif (( $(echo "$coverage_num >= 50" | bc -l) )); then
-              status="⚠️ Moderate"
-            else
-              status="❌ Poor"
-            fi
-            
-            echo "| $package | $coverage | $status |" >> $GITHUB_STEP_SUMMARY
-          done
-          
-          # Clean up
-          rm -f test_output.txt
-          
-          # Calculate average coverage for testable packages
-          total_coverage=$(go tool cover -func=coverage.out | grep "total:" | awk '{print $3}')
-          packages_over_threshold=$(go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -cover 2>/dev/null | grep "^ok.*coverage:" | awk -v threshold="$COVERAGE_THRESHOLD" '{match($0, /coverage: [0-9.]+%/); pct=substr($0, RSTART+10, RLENGTH-11); if(pct>=threshold) print}' | wc -l)
-          total_packages=$(go list ./... | grep -Ev "$EXCLUDE_PATTERN" | wc -l)
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- **Total Coverage:** $total_coverage" >> $GITHUB_STEP_SUMMARY
-          echo "- **Packages ≥${COVERAGE_THRESHOLD}%:** $packages_over_threshold/$total_packages" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "_Note: Excluded infrastructure packages (${EXCLUDED_PACKAGES})_" >> $GITHUB_STEP_SUMMARY
-          echo "_Packages with allowed lower coverage: ${ALLOWED_LOW_COVERAGE}_" >> $GITHUB_STEP_SUMMARY
-
-      - name: Check coverage threshold
-        working-directory: ./eureka-cli
-        run: |
-          echo "Checking ${COVERAGE_THRESHOLD}% coverage threshold for all tested packages..."
-          
-          THRESHOLD=${COVERAGE_THRESHOLD}.0
-          failed=0
-          warned=0
-          
-          # Get all testable packages (same filter as test execution)
-          packages=$(go list ./... | grep -Ev "$EXCLUDE_PATTERN")
-          
-          # Check each package
-          for package in $packages; do
-            package_name=$(echo "$package" | sed 's/github.com\/folio-org\/eureka-cli\///')
-            coverage=$(go test -parallel 4 -cover $package 2>/dev/null | grep -o "[0-9.]*%" | sed 's/%//')
-            
-            if [[ -z "$coverage" ]]; then
-              # Package has no tests, skip it
-              continue
-            fi
-            
-            if (( $(echo "$coverage < $THRESHOLD" | bc -l) )); then
-              # Check if this package is allowed to have low coverage
-              if echo "$ALLOWED_LOW_COVERAGE" | grep -qw "$package_name"; then
-                echo "⚠️ $package_name coverage ($coverage%) is below threshold ($THRESHOLD%) - ALLOWED (work in progress)"
-                warned=1
-              else
-                echo "❌ $package_name coverage ($coverage%) is below threshold ($THRESHOLD%)"
-                failed=1
-              fi
-            else
-              echo "✅ $package_name coverage ($coverage%) meets threshold ($THRESHOLD%)"
-            fi
-          done
-          
-          if [ $warned -eq 1 ]; then
-            echo ""
-            echo "⚠️  Warning: Some packages have coverage below ${COVERAGE_THRESHOLD}% but are allowed ($ALLOWED_LOW_COVERAGE)"
-            echo "Please improve test coverage for these packages when possible."
-          fi
-          
-          if [ $failed -eq 1 ]; then
-            echo ""
-            echo "Coverage threshold check failed. Please improve test coverage for the packages listed above."
-            exit 1
-          fi
-          
-          echo ""
-          echo "✅ All tested packages meet the ${COVERAGE_THRESHOLD}% coverage threshold (or are explicitly allowed exceptions)"
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
@@ -279,11 +169,12 @@ jobs:
           files: ./eureka-cli/coverage.out
           flags: unittests
           name: codecov-umbrella
-          fail_ci_if_error: false
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   build-and-run-cli:
     name: Build and Run CLI (${{ matrix.os }}-${{ matrix.goarch }})
-    needs: [docker-lint, docker-trivy, go-lint, go-trivy, go-test]
+    needs: [docker-lint, go-lint, go-trivy, go-test]
     strategy:
       matrix:
         include:

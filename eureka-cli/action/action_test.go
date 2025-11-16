@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/actionparams"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/internal/testhelpers"
@@ -24,7 +23,7 @@ func TestNew(t *testing.T) {
 		})
 		defer vc.Reset()
 
-		params := &actionparams.ActionParams{}
+		params := &action.Param{}
 
 		// Act
 		result := action.New("test-action", "http://localhost:%s", params)
@@ -33,7 +32,7 @@ func TestNew(t *testing.T) {
 		assert.NotNil(t, result)
 		assert.Equal(t, "test-action", result.Name)
 		assert.Equal(t, "http://localhost:%s", result.GatewayURLTemplate)
-		assert.Equal(t, params, result.Params)
+		assert.Equal(t, params, result.Param)
 		assert.Equal(t, "", result.VaultRootToken)
 		assert.Equal(t, "", result.KeycloakAccessToken)
 		assert.Equal(t, "", result.KeycloakMasterAccessToken)
@@ -43,42 +42,6 @@ func TestNew(t *testing.T) {
 		assert.NotNil(t, result.Caser)
 		assert.NotNil(t, result.ReservedPorts)
 		assert.Empty(t, result.ReservedPorts)
-	})
-}
-
-func TestNewWithCredentials(t *testing.T) {
-	t.Run("TestNewWithCredentials_Success", func(t *testing.T) {
-		// Arrange
-		vc := testhelpers.SetupViperForTest(map[string]any{
-			field.ApplicationName:    "test-app",
-			field.ApplicationVersion: "2.0.0",
-			field.ProfileName:        "test-profile",
-		})
-		defer vc.Reset()
-
-		params := &actionparams.ActionParams{}
-
-		// Act
-		result := action.NewWithCredentials(
-			"test-action",
-			"http://localhost:%s",
-			params,
-			"vault-token-123",
-			"keycloak-token-456",
-			"master-token-789",
-		)
-
-		// Assert
-		assert.NotNil(t, result)
-		assert.Equal(t, "test-action", result.Name)
-		assert.Equal(t, "http://localhost:%s", result.GatewayURLTemplate)
-		assert.Equal(t, params, result.Params)
-		assert.Equal(t, "vault-token-123", result.VaultRootToken)
-		assert.Equal(t, "keycloak-token-456", result.KeycloakAccessToken)
-		assert.Equal(t, "master-token-789", result.KeycloakMasterAccessToken)
-		assert.Equal(t, "test-app", result.ConfigApplicationName)
-		assert.Equal(t, "2.0.0", result.ConfigApplicationVersion)
-		assert.Equal(t, "test-profile", result.ConfigProfile)
 	})
 }
 
@@ -142,7 +105,7 @@ func TestNewGeneric_AllViperFields(t *testing.T) {
 			viper.Reset()
 		}()
 
-		params := &actionparams.ActionParams{}
+		params := &action.Param{}
 
 		// Act
 		result := action.New("full-test", "http://test:%s", params)
@@ -336,14 +299,8 @@ func TestGetPreReservedPortSet(t *testing.T) {
 			ReservedPorts:              []int{},
 		}
 
-		fns := []func() (int, error){
-			act.GetPreReservedPort,
-			act.GetPreReservedPort,
-			act.GetPreReservedPort,
-		}
-
 		// Act
-		ports, err := act.GetPreReservedPortSet(fns)
+		ports, err := act.GetPreReservedPortSet(3)
 
 		// Assert
 		assert.NoError(t, err)
@@ -362,12 +319,8 @@ func TestGetPreReservedPortSet(t *testing.T) {
 			ReservedPorts:              []int{},
 		}
 
-		fns := []func() (int, error){
-			act.GetPreReservedPort,
-		}
-
 		// Act
-		ports, err := act.GetPreReservedPortSet(fns)
+		ports, err := act.GetPreReservedPortSet(1)
 
 		// Assert
 		assert.Error(t, err)

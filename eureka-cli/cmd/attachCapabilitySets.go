@@ -48,18 +48,11 @@ func (run *Run) AttachCapabilitySets(consortiumName string, tenantType constant.
 		}
 
 		slog.Info(run.Config.Action.Name, "text", "POLLING FOR CAPABILITY SETS CREATION")
-		err := run.Config.KafkaSvc.PollConsumerGroup(configTenant)
-		if err != nil {
+		if err := run.Config.KafkaSvc.PollConsumerGroup(configTenant); err != nil {
 			return err
 		}
 
 		slog.Info(run.Config.Action.Name, "text", "ATTACHING CAPABILITY SETS", "tenant", configTenant)
-		keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
-		if err != nil {
-			return err
-		}
-		run.Config.Action.KeycloakAccessToken = keycloakAccessToken
-
 		return run.Config.KeycloakSvc.AttachCapabilitySetsToRoles(configTenant)
 	})
 }

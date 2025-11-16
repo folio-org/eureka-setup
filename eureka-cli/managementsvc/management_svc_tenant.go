@@ -23,19 +23,20 @@ func (ms *ManagementSvc) GetTenants(consortiumName string, tenantType constant.T
 	if tenantType != constant.All {
 		requestURL += fmt.Sprintf("?query=description==%s-%s", consortiumName, tenantType)
 	}
+	headers := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
 
-	var response models.TenantsResponse
-	if err := ms.HTTPClient.GetRetryReturnStruct(requestURL, map[string]string{}, &response); err != nil {
+	var decodedResponse models.TenantsResponse
+	if err := ms.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return nil, err
 	}
 
-	if len(response.Tenants) == 0 {
+	if len(decodedResponse.Tenants) == 0 {
 		slog.Warn(ms.Action.Name, "text", "Tenants are not found", "consortium", consortiumName, "tenantType", tenantType)
 		return nil, nil
 	}
 
-	result := make([]any, len(response.Tenants))
-	for i, tenant := range response.Tenants {
+	result := make([]any, len(decodedResponse.Tenants))
+	for i, tenant := range decodedResponse.Tenants {
 		result[i] = map[string]any{
 			"id":          tenant.ID,
 			"name":        tenant.Name,
@@ -48,6 +49,7 @@ func (ms *ManagementSvc) GetTenants(consortiumName string, tenantType constant.T
 
 func (ms *ManagementSvc) CreateTenants() error {
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, "/tenants")
+	headers := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
 	for tenantName, properties := range ms.Action.ConfigTenants {
 		entry := properties.(map[string]any)
 		consortiumName := helpers.GetAnyOrDefault(entry, field.TenantsConsortiumEntry, nil)
@@ -72,8 +74,7 @@ func (ms *ManagementSvc) CreateTenants() error {
 		}
 
 		var tenant models.Tenant
-		err = ms.HTTPClient.PostReturnStruct(requestURL, payload, map[string]string{}, &tenant)
-		if err != nil {
+		if err := ms.HTTPClient.PostReturnStruct(requestURL, payload, headers, &tenant); err != nil {
 			return err
 		}
 		slog.Info(ms.Action.Name, "text", "Created tenant", "tenant", tenant.Name, "id", tenant.ID, "description", tenant.Description)
@@ -88,6 +89,7 @@ func (ms *ManagementSvc) RemoveTenants(consortiumName string, tenantType constan
 		return err
 	}
 
+	headers := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
 	for _, value := range tenants {
 		entry := value.(map[string]any)
 		tenantName := entry["name"].(string)
@@ -96,8 +98,7 @@ func (ms *ManagementSvc) RemoveTenants(consortiumName string, tenantType constan
 		}
 
 		requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/tenants/%s?purgeKafkaTopics=true", entry["id"].(string)))
-		err = ms.HTTPClient.Delete(requestURL, map[string]string{})
-		if err != nil {
+		if err := ms.HTTPClient.Delete(requestURL, headers); err != nil {
 			return err
 		}
 		slog.Info(ms.Action.Name, "text", "Removed tenant", "tenant", tenantName, "tenantType", tenantType)

@@ -62,10 +62,10 @@ func (as *AWSSvc) GetAuthorizationToken() (string, error) {
 		return "", errors.ECRTokenNil()
 	}
 	if authData.ProxyEndpoint != nil {
-		slog.Debug(as.Action.Name, "ecr_endpoint", *authData.ProxyEndpoint)
+		slog.Debug(as.Action.Name, "text", "Using proxy endpoint", "endpoint", *authData.ProxyEndpoint)
 	}
 	if authData.ExpiresAt != nil {
-		slog.Debug(as.Action.Name, "token_expires_at", authData.ExpiresAt.String())
+		slog.Debug(as.Action.Name, "text", "Using expires at", "expiresAt", authData.ExpiresAt.String())
 	}
 
 	decodedBytes, err := base64.StdEncoding.DecodeString(*authData.AuthorizationToken)
@@ -77,7 +77,6 @@ func (as *AWSSvc) GetAuthorizationToken() (string, error) {
 	if len(authCreds) != 2 {
 		return "", errors.ECRTokenDecodeFailed(fmt.Errorf("invalid authorization token format"))
 	}
-
 	authConfig := map[string]string{
 		"username": authCreds[0],
 		"password": authCreds[1],
@@ -88,7 +87,7 @@ func (as *AWSSvc) GetAuthorizationToken() (string, error) {
 		return "", errors.Wrap(err, "failed to marshal auth config")
 	}
 	encodedAuth := base64.StdEncoding.EncodeToString(payload)
-	slog.Info(as.Action.Name, "message", "Successfully retrieved ECR authorization token")
+	slog.Info(as.Action.Name, "text", "Successfully retrieved ECR authorization token")
 
 	return encodedAuth, nil
 }

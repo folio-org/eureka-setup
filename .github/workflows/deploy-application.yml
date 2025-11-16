@@ -18,6 +18,7 @@ on:
 jobs:
   deploy:
     name: Deploy Application
+    # TODO Register a self-hosted runner
     runs-on: self-hosted
     steps:
       - name: Checkout code

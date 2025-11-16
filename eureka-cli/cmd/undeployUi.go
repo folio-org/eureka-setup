@@ -46,6 +46,9 @@ func (run *Run) UndeployUI() error {
 		return err
 	}
 	defer run.Config.DockerClient.Close(client)
+	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.ClientCredentials); err != nil {
+		return err
+	}
 
 	tenants, err := run.Config.ManagementSvc.GetTenants(constant.NoneConsortium, constant.All)
 	if err != nil {

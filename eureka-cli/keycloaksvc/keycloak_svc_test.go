@@ -118,7 +118,7 @@ func TestNew(t *testing.T) {
 	assert.Equal(t, mockMgmt, svc.ManagementSvc)
 }
 
-func TestGetKeycloakMasterAccessToken_Success(t *testing.T) {
+func TestGetMasterAccessToken_Success(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -150,7 +150,7 @@ func TestGetKeycloakMasterAccessToken_Success(t *testing.T) {
 		Return(nil)
 
 	// Act
-	token, err := svc.GetKeycloakMasterAccessToken()
+	token, err := svc.GetMasterAccessToken(constant.Password)
 
 	// Assert
 	assert.NoError(t, err)
@@ -158,7 +158,7 @@ func TestGetKeycloakMasterAccessToken_Success(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestGetKeycloakMasterAccessToken_HTTPError(t *testing.T) {
+func TestGetMasterAccessToken_HTTPError(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -175,7 +175,7 @@ func TestGetKeycloakMasterAccessToken_HTTPError(t *testing.T) {
 		Return(expectedError)
 
 	// Act
-	token, err := svc.GetKeycloakMasterAccessToken()
+	token, err := svc.GetMasterAccessToken(constant.Password)
 
 	// Assert
 	assert.Error(t, err)
@@ -184,7 +184,7 @@ func TestGetKeycloakMasterAccessToken_HTTPError(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestGetKeycloakMasterAccessToken_NoToken(t *testing.T) {
+func TestGetMasterAccessToken_NoToken(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -206,7 +206,7 @@ func TestGetKeycloakMasterAccessToken_NoToken(t *testing.T) {
 		Return(nil)
 
 	// Act
-	token, err := svc.GetKeycloakMasterAccessToken()
+	token, err := svc.GetMasterAccessToken(constant.Password)
 
 	// Assert
 	assert.Error(t, err)
@@ -215,7 +215,7 @@ func TestGetKeycloakMasterAccessToken_NoToken(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestUpdateKeycloakPublicClientParams_Success(t *testing.T) {
+func TestUpdatePublicClientSettings_Success(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -268,14 +268,14 @@ func TestUpdateKeycloakPublicClientParams_Success(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.UpdateKeycloakPublicClientParams(tenantName, baseURL)
+	err := svc.UpdatePublicClientSettings(tenantName, baseURL)
 
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestUpdateKeycloakPublicClientParams_HTTPError(t *testing.T) {
+func TestUpdatePublicClientSettings_HTTPError(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -295,7 +295,7 @@ func TestUpdateKeycloakPublicClientParams_HTTPError(t *testing.T) {
 		Return(expectedError)
 
 	// Act
-	err := svc.UpdateKeycloakPublicClientParams("test-tenant", "http://test.com")
+	err := svc.UpdatePublicClientSettings("test-tenant", "http://test.com")
 
 	// Assert
 	assert.Error(t, err)
@@ -303,9 +303,9 @@ func TestUpdateKeycloakPublicClientParams_HTTPError(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
-// ==================== GetKeycloakAccessToken Tests ====================
+// ==================== GetAccessToken Tests ====================
 
-func TestGetKeycloakAccessToken_Success(t *testing.T) {
+func TestGetAccessToken_Success(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -349,7 +349,7 @@ func TestGetKeycloakAccessToken_Success(t *testing.T) {
 		Return(nil)
 
 	// Act
-	token, err := svc.GetKeycloakAccessToken("test-tenant")
+	token, err := svc.GetAccessToken("test-tenant")
 
 	// Assert
 	assert.NoError(t, err)
@@ -358,7 +358,7 @@ func TestGetKeycloakAccessToken_Success(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestGetKeycloakAccessToken_VaultCreateError(t *testing.T) {
+func TestGetAccessToken_VaultCreateError(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -370,7 +370,7 @@ func TestGetKeycloakAccessToken_VaultCreateError(t *testing.T) {
 	mockVault.On("Create").Return(nil, expectedError)
 
 	// Act
-	token, err := svc.GetKeycloakAccessToken("test-tenant")
+	token, err := svc.GetAccessToken("test-tenant")
 
 	// Assert
 	assert.Error(t, err)
@@ -379,7 +379,7 @@ func TestGetKeycloakAccessToken_VaultCreateError(t *testing.T) {
 	mockVault.AssertExpectations(t)
 }
 
-func TestGetKeycloakAccessToken_VaultGetSecretError(t *testing.T) {
+func TestGetAccessToken_VaultGetSecretError(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -400,7 +400,7 @@ func TestGetKeycloakAccessToken_VaultGetSecretError(t *testing.T) {
 		Return(nil, expectedError)
 
 	// Act
-	token, err := svc.GetKeycloakAccessToken("test-tenant")
+	token, err := svc.GetAccessToken("test-tenant")
 
 	// Assert
 	assert.Error(t, err)
@@ -409,7 +409,7 @@ func TestGetKeycloakAccessToken_VaultGetSecretError(t *testing.T) {
 	mockVault.AssertExpectations(t)
 }
 
-func TestGetKeycloakAccessToken_HTTPError(t *testing.T) {
+func TestGetAccessToken_HTTPError(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -444,7 +444,7 @@ func TestGetKeycloakAccessToken_HTTPError(t *testing.T) {
 		Return(expectedError)
 
 	// Act
-	token, err := svc.GetKeycloakAccessToken("test-tenant")
+	token, err := svc.GetAccessToken("test-tenant")
 
 	// Assert
 	assert.Error(t, err)
@@ -454,7 +454,7 @@ func TestGetKeycloakAccessToken_HTTPError(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestGetKeycloakAccessToken_NoToken(t *testing.T) {
+func TestGetAccessToken_NoToken(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -494,7 +494,7 @@ func TestGetKeycloakAccessToken_NoToken(t *testing.T) {
 		Return(nil)
 
 	// Act
-	token, err := svc.GetKeycloakAccessToken("test-tenant")
+	token, err := svc.GetAccessToken("test-tenant")
 
 	// Assert
 	assert.Error(t, err)

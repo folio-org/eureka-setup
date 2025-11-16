@@ -8,10 +8,10 @@ import (
 	"github.com/folio-org/eureka-cli/action"
 )
 
+// TODO Add testcontainers tests
 // CommandRunner defines the interface for executing system commands
 type CommandRunner interface {
 	Exec(cmd *exec.Cmd) error
-	ExecIgnoreError(cmd *exec.Cmd)
 	ExecReturnOutput(cmd *exec.Cmd) (stdout, stderr bytes.Buffer, err error)
 	ExecFromDir(cmd *exec.Cmd, workDir string) error
 }
@@ -32,10 +32,9 @@ func (es *ExecSvc) Exec(cmd *exec.Cmd) error {
 	return cmd.Run()
 }
 
-func (es *ExecSvc) ExecIgnoreError(cmd *exec.Cmd) {
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	_ = cmd.Run()
+func (es *ExecSvc) ExecFromDir(cmd *exec.Cmd, workDir string) error {
+	cmd.Dir = workDir
+	return es.Exec(cmd)
 }
 
 func (es *ExecSvc) ExecReturnOutput(cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, error) {
@@ -44,9 +43,4 @@ func (es *ExecSvc) ExecReturnOutput(cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, 
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	return stdout, stderr, err
-}
-
-func (es *ExecSvc) ExecFromDir(cmd *exec.Cmd, workDir string) error {
-	cmd.Dir = workDir
-	return es.Exec(cmd)
 }

@@ -2,7 +2,6 @@ package httpclient
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/folio-org/eureka-cli/errors"
@@ -11,11 +10,11 @@ import (
 
 // HTTPClientPinger defines the interface for HTTP ping operations
 type HTTPClientPinger interface {
-	Ping(url string) error
-	CheckStatus(url string) (int, error)
+	PingRetry(url string) error
+	Ping(url string) (int, error)
 }
 
-func (hc *HTTPClient) Ping(url string) error {
+func (hc *HTTPClient) PingRetry(url string) error {
 	statusCode, err := hc.doStatusCheck(url, true)
 	if err != nil {
 		return errors.PingFailed(url, err)
@@ -23,12 +22,11 @@ func (hc *HTTPClient) Ping(url string) error {
 	if statusCode != http.StatusOK {
 		return errors.PingFailedWithStatus(url, statusCode)
 	}
-	slog.Info(hc.Action.Name, "text", "URL is accessible", "url", url)
 
 	return nil
 }
 
-func (hc *HTTPClient) CheckStatus(url string) (int, error) {
+func (hc *HTTPClient) Ping(url string) (int, error) {
 	return hc.doStatusCheck(url, false)
 }
 

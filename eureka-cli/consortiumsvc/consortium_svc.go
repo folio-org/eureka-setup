@@ -45,7 +45,7 @@ func New(action *action.Action, httpClient httpclient.HTTPClientRunner, userSvc 
 
 func (cs *ConsortiumSvc) GetConsortiumByName(centralTenant string, consortiumName string) (any, error) {
 	requestURL := cs.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/consortia?query=name==%s&limit=1", consortiumName))
-	headers := helpers.TenantSecureApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
+	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
 
 	var decodedResponse models.ConsortiumResponse
 	if err := cs.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
@@ -130,9 +130,8 @@ func (cs *ConsortiumSvc) CreateConsortium(centralTenant string, consortiumName s
 	}
 
 	requestURL := cs.Action.GetRequestURL(constant.KongPort, "/consortia")
-	headers := helpers.TenantSecureApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
-	err = cs.HTTPClient.PostReturnNoContent(requestURL, payload, headers)
-	if err != nil {
+	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
+	if err := cs.HTTPClient.PostReturnNoContent(requestURL, payload, headers); err != nil {
 		return "", err
 	}
 	slog.Info(cs.Action.Name, "text", "Created consortium", "consortium", consortiumName)

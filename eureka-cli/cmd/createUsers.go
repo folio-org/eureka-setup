@@ -43,12 +43,6 @@ var createUsersCmd = &cobra.Command{
 func (run *Run) CreateUsers(consortiumName string, tenantType constant.TenantType) error {
 	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
 		slog.Info(run.Config.Action.Name, "text", "CREATING USERS", "tenant", configTenant)
-		keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
-		if err != nil {
-			return err
-		}
-		run.Config.Action.KeycloakAccessToken = keycloakAccessToken
-
 		return run.Config.KeycloakSvc.CreateUsers(configTenant)
 	})
 }

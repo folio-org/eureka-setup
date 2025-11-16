@@ -43,7 +43,7 @@ func TestGetBackendModule_Found(t *testing.T) {
 	version := "1.0.0"
 	module := &models.ProxyModule{
 		ID: "mod-test-1.0.0",
-		ProxyModuleMetadata: models.ProxyModuleMetadata{
+		Metadata: models.ProxyModuleMetadata{
 			Name:    "mod-test",
 			Version: &version,
 		},
@@ -65,7 +65,7 @@ func TestGetBackendModule_Found(t *testing.T) {
 	assert.NotNil(t, foundBackend)
 	assert.NotNil(t, foundModule)
 	assert.Equal(t, backendModule.DeployModule, foundBackend.DeployModule)
-	assert.Equal(t, module.Name, foundModule.Name)
+	assert.Equal(t, module.Metadata.Name, foundModule.Metadata.Name)
 }
 
 func TestGetBackendModule_NotFound(t *testing.T) {
@@ -97,7 +97,7 @@ func TestGetBackendModule_DeployModuleFalse(t *testing.T) {
 	version := "1.0.0"
 	module := &models.ProxyModule{
 		ID: "mod-test-1.0.0",
-		ProxyModuleMetadata: models.ProxyModuleMetadata{
+		Metadata: models.ProxyModuleMetadata{
 			Name:    "mod-test",
 			Version: &version,
 		},
@@ -129,7 +129,7 @@ func TestGetBackendModule_ChecksEurekaModules(t *testing.T) {
 	version := "2.0.0"
 	eurekaModule := &models.ProxyModule{
 		ID: "mod-eureka-2.0.0",
-		ProxyModuleMetadata: models.ProxyModuleMetadata{
+		Metadata: models.ProxyModuleMetadata{
 			Name:    "mod-eureka",
 			Version: &version,
 		},
@@ -151,7 +151,7 @@ func TestGetBackendModule_ChecksEurekaModules(t *testing.T) {
 	// Assert
 	assert.NotNil(t, foundBackend)
 	assert.NotNil(t, foundModule)
-	assert.Equal(t, "mod-eureka", foundModule.Name)
+	assert.Equal(t, "mod-eureka", foundModule.Metadata.Name)
 }
 
 func TestGetModuleImageVersion_UseBackendModuleVersion(t *testing.T) {
@@ -163,7 +163,7 @@ func TestGetModuleImageVersion_UseBackendModuleVersion(t *testing.T) {
 	backendModuleVersion := "2.0.0-custom"
 	backendModule := models.BackendModule{ModuleVersion: &backendModuleVersion}
 	module := &models.ProxyModule{
-		ProxyModuleMetadata: models.ProxyModuleMetadata{
+		Metadata: models.ProxyModuleMetadata{
 			Version: &moduleVersion,
 		},
 	}
@@ -183,7 +183,7 @@ func TestGetModuleImageVersion_UseProxyModuleVersion(t *testing.T) {
 	moduleVersion := "1.0.0"
 	backendModule := models.BackendModule{ModuleVersion: nil}
 	module := &models.ProxyModule{
-		ProxyModuleMetadata: models.ProxyModuleMetadata{
+		Metadata: models.ProxyModuleMetadata{
 			Version: &moduleVersion,
 		},
 	}
@@ -208,7 +208,7 @@ func TestGetSidecarImage_CustomNamespace(t *testing.T) {
 	sidecarVersion := "3.0.0"
 	modules := []*models.ProxyModule{
 		{
-			ProxyModuleMetadata: models.ProxyModuleMetadata{
+			Metadata: models.ProxyModuleMetadata{
 				Name:    constant.SidecarProjectName,
 				Version: &sidecarVersion,
 			},
@@ -241,7 +241,7 @@ func TestGetSidecarImage_RegistryImage(t *testing.T) {
 	sidecarVersion := "3.0.0"
 	modules := []*models.ProxyModule{
 		{
-			ProxyModuleMetadata: models.ProxyModuleMetadata{
+			Metadata: models.ProxyModuleMetadata{
 				Name:    constant.SidecarProjectName,
 				Version: &sidecarVersion,
 			},
@@ -271,7 +271,7 @@ func TestGetSidecarImage_NoSidecarVersionFound(t *testing.T) {
 	otherVersion := "1.0.0"
 	modules := []*models.ProxyModule{
 		{
-			ProxyModuleMetadata: models.ProxyModuleMetadata{
+			Metadata: models.ProxyModuleMetadata{
 				Name:    "some-other-module",
 				Version: &otherVersion,
 			},
@@ -301,7 +301,7 @@ func TestGetSidecarImage_BlankImageName(t *testing.T) {
 	sidecarVersion := "3.0.0"
 	modules := []*models.ProxyModule{
 		{
-			ProxyModuleMetadata: models.ProxyModuleMetadata{
+			Metadata: models.ProxyModuleMetadata{
 				Name:    constant.SidecarProjectName,
 				Version: &sidecarVersion,
 			},
@@ -331,7 +331,7 @@ func TestGetSidecarImage_EmptyVersionString(t *testing.T) {
 	emptyVersion := ""
 	modules := []*models.ProxyModule{
 		{
-			ProxyModuleMetadata: models.ProxyModuleMetadata{
+			Metadata: models.ProxyModuleMetadata{
 				Name:    constant.SidecarProjectName,
 				Version: &emptyVersion, // Empty string version
 			},
@@ -364,7 +364,7 @@ func TestGetSidecarImage_InvalidVersionType(t *testing.T) {
 	sidecarVersion := "3.0.0"
 	modules := []*models.ProxyModule{
 		{
-			ProxyModuleMetadata: models.ProxyModuleMetadata{
+			Metadata: models.ProxyModuleMetadata{
 				Name:    constant.SidecarProjectName,
 				Version: &sidecarVersion,
 			},
@@ -390,7 +390,7 @@ func TestGetModuleImage(t *testing.T) {
 	svc := New(action, nil, nil, mockRegistry, nil)
 
 	module := &models.ProxyModule{
-		ProxyModuleMetadata: models.ProxyModuleMetadata{
+		Metadata: models.ProxyModuleMetadata{
 			Name: "mod-users",
 		},
 	}
@@ -408,20 +408,17 @@ func TestGetModuleEnv_AllFeatures(t *testing.T) {
 	action := testhelpers.NewMockAction()
 	mockModuleEnv := new(testhelpers.MockModuleEnv)
 
-	mockModuleEnv.On("VaultEnv", mock.Anything, "vault-token").Return([]string{"VAULT_ENABLED=true"})
+	mockModuleEnv.On("VaultEnv", []string(nil), mock.Anything).Return([]string{"VAULT_ENABLED=true"})
 	mockModuleEnv.On("OkapiEnv", mock.Anything, "mod-test-sidecar", 8081).Return([]string{"OKAPI_URL=http://mod-test-sidecar:8081"})
 	mockModuleEnv.On("DisabledSystemUserEnv", mock.Anything, "mod-test").Return([]string{"SYSTEM_USER_ENABLED=false"})
 	mockModuleEnv.On("ModuleEnv", mock.Anything, map[string]any{"CUSTOM_VAR": "value"}).Return([]string{"CUSTOM_VAR=value"})
 
 	svc := New(action, nil, nil, nil, mockModuleEnv)
 
-	container := &models.Containers{
-		GlobalEnv:      []string{"GLOBAL_VAR=global"},
-		VaultRootToken: "vault-token",
-	}
+	container := &models.Containers{}
 
 	module := &models.ProxyModule{
-		ProxyModuleMetadata: models.ProxyModuleMetadata{
+		Metadata: models.ProxyModuleMetadata{
 			Name:        "mod-test",
 			SidecarName: "mod-test-sidecar",
 		},
@@ -448,17 +445,14 @@ func TestGetModuleEnv_OnlyGlobalEnv(t *testing.T) {
 	action := testhelpers.NewMockAction()
 	mockModuleEnv := new(testhelpers.MockModuleEnv)
 
-	mockModuleEnv.On("ModuleEnv", []string{"GLOBAL_VAR=global"}, map[string]any(nil)).Return([]string{"GLOBAL_VAR=global"})
+	mockModuleEnv.On("ModuleEnv", []string(nil), map[string]any(nil)).Return([]string{"GLOBAL_VAR=global"})
 
 	svc := New(action, nil, nil, nil, mockModuleEnv)
 
-	container := &models.Containers{
-		GlobalEnv:      []string{"GLOBAL_VAR=global"},
-		VaultRootToken: "vault-token",
-	}
+	container := &models.Containers{}
 
 	module := &models.ProxyModule{
-		ProxyModuleMetadata: models.ProxyModuleMetadata{
+		Metadata: models.ProxyModuleMetadata{
 			Name: "mod-simple",
 		},
 	}
@@ -483,20 +477,17 @@ func TestGetSidecarEnv(t *testing.T) {
 	action := testhelpers.NewMockAction()
 	mockModuleEnv := new(testhelpers.MockModuleEnv)
 
-	mockModuleEnv.On("VaultEnv", mock.Anything, "vault-root").Return([]string{"VAULT_ENV=set"})
+	mockModuleEnv.On("VaultEnv", []string(nil), mock.Anything).Return([]string{"VAULT_ENV=set"})
 	mockModuleEnv.On("KeycloakEnv", mock.Anything).Return([]string{"KEYCLOAK_ENV=set"})
 	mockModuleEnv.On("SidecarEnv", mock.Anything, mock.Anything, 8081, "http://mod-test:8081", "http://sidecar:8081").
 		Return([]string{"SIDECAR_ENV=set"})
 
 	svc := New(action, nil, nil, nil, mockModuleEnv)
 
-	containers := &models.Containers{
-		SidecarEnv:     []string{"SIDECAR_GLOBAL=value"},
-		VaultRootToken: "vault-root",
-	}
+	containers := &models.Containers{}
 
 	module := &models.ProxyModule{
-		ProxyModuleMetadata: models.ProxyModuleMetadata{
+		Metadata: models.ProxyModuleMetadata{
 			Name: "mod-test",
 		},
 	}
@@ -523,7 +514,7 @@ func TestCheckModuleReadiness_Success(t *testing.T) {
 	svc.ReadinessMaxRetries = 3
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	mockHTTP.On("CheckStatus",
+	mockHTTP.On("Ping",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
@@ -557,7 +548,7 @@ func TestCheckModuleReadiness_HTTPError(t *testing.T) {
 	svc.ReadinessMaxRetries = 3
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	mockHTTP.On("CheckStatus",
+	mockHTTP.On("Ping",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
@@ -588,7 +579,7 @@ func TestCheckModuleReadiness_NilResponse(t *testing.T) {
 	svc.ReadinessMaxRetries = 3
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	mockHTTP.On("CheckStatus",
+	mockHTTP.On("Ping",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
@@ -619,7 +610,7 @@ func TestCheckModuleReadiness_NonOKStatusCode(t *testing.T) {
 	svc.ReadinessMaxRetries = 3
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	mockHTTP.On("CheckStatus",
+	mockHTTP.On("Ping",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
@@ -651,14 +642,14 @@ func TestCheckModuleReadiness_EventualSuccess(t *testing.T) {
 	svc.ReadinessWait = 1 * time.Millisecond
 
 	// First 2 calls fail, third succeeds
-	mockHTTP.On("CheckStatus",
+	mockHTTP.On("Ping",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
 		mock.Anything).
 		Return(http.StatusServiceUnavailable, nil).Times(2)
 
-	mockHTTP.On("CheckStatus",
+	mockHTTP.On("Ping",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
@@ -692,7 +683,7 @@ func TestCheckModuleReadiness_MultipleModulesConcurrent(t *testing.T) {
 	svc.ReadinessMaxRetries = 3
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	mockHTTP.On("CheckStatus",
+	mockHTTP.On("Ping",
 		mock.Anything,
 		mock.Anything).
 		Return(http.StatusOK, nil)
@@ -736,7 +727,7 @@ func TestCheckModuleReadiness_ErrorChannelFull(t *testing.T) {
 	svc.ReadinessMaxRetries = 3
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	mockHTTP.On("CheckStatus",
+	mockHTTP.On("Ping",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
@@ -766,7 +757,7 @@ func TestCheckModuleReadiness_VerifyRetryLogic(t *testing.T) {
 	svc.ReadinessWait = 1 * time.Millisecond
 
 	// Will retry until max retries
-	mockHTTP.On("CheckStatus",
+	mockHTTP.On("Ping",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),
@@ -787,7 +778,7 @@ func TestCheckModuleReadiness_VerifyRetryLogic(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "module test-module")
 	// Should have been called exactly maxRetries times
-	mockHTTP.AssertNumberOfCalls(t, "CheckStatus", 5)
+	mockHTTP.AssertNumberOfCalls(t, "Ping", 5)
 }
 
 func TestCheckModuleReadiness_PortInURL(t *testing.T) {
@@ -799,7 +790,7 @@ func TestCheckModuleReadiness_PortInURL(t *testing.T) {
 	svc.ReadinessWait = 1 * time.Millisecond
 
 	var capturedURL string
-	mockHTTP.On("CheckStatus",
+	mockHTTP.On("Ping",
 		mock.MatchedBy(func(urlStr string) bool {
 			capturedURL = urlStr
 			return true
@@ -830,7 +821,7 @@ func TestCheckModuleReadiness_DefaultMaxRetries(t *testing.T) {
 	// Don't set ReadinessMaxRetries - should default to constant value
 	svc.ReadinessWait = 1 * time.Millisecond
 
-	mockHTTP.On("CheckStatus",
+	mockHTTP.On("Ping",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/admin/health")
 		}),

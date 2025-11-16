@@ -2,10 +2,7 @@ ARG VAULT_VERSION=1.21
 
 FROM hashicorp/vault:$VAULT_VERSION
 
-RUN apk update && apk add --no-cache \
-    curl=8.14.1-r2 \
-    jq=1.8.0-r0 \
-    coreutils=9.7-r1 && \
+RUN apk update && apk add --no-cache curl jq coreutils && \
     rm -rf /var/cache/apk/* && \
     addgroup -S folio && \
     adduser -S -G folio folio

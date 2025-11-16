@@ -3,12 +3,14 @@ package registrysvc
 import (
 	"fmt"
 	"log/slog"
+	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/awssvc"
 	"github.com/folio-org/eureka-cli/constant"
+	appErrors "github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/httpclient"
@@ -18,7 +20,8 @@ import (
 // RegistryProcessor defines the interface for registry-related operations
 type RegistryProcessor interface {
 	GetNamespace(version string) string
-	GetModules(installJsonURLs map[string]string, verbose bool) (*models.ProxyModulesByRegistry, error)
+	// TODO Add tests with useRemote false
+	GetModules(installJsonURLs map[string]string, useRemote, verbose bool) (*models.ProxyModulesByRegistry, error)
 	ExtractModuleMetadata(modules *models.ProxyModulesByRegistry)
 	GetAuthorizationToken() (string, error)
 }
@@ -44,7 +47,6 @@ func (rs *RegistrySvc) GetNamespace(version string) string {
 	if ecrNamespace != "" {
 		return ecrNamespace
 	}
-
 	if strings.Contains(version, "SNAPSHOT") {
 		return constant.SnapshotRegistry
 	} else {
@@ -52,11 +54,21 @@ func (rs *RegistrySvc) GetNamespace(version string) string {
 	}
 }
 
-func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, verbose bool) (*models.ProxyModulesByRegistry, error) {
+func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, useRemote, verbose bool) (*models.ProxyModulesByRegistry, error) {
+	homeDir, err := helpers.GetHomeDirPath()
+	if err != nil {
+		return nil, err
+	}
+
 	var folioModules, eurekaModules []*models.ProxyModule
 	for registryName, installJsonURL := range installJsonURLs {
-		var decodedResponse []*models.ProxyModule
-		if err := rs.HTTPClient.GetRetryReturnStruct(installJsonURL, map[string]string{}, &decodedResponse); err != nil {
+		decodedResponse, err := rs.processInstallJsonURL(&models.RegistryRequest{
+			RegistryName:   registryName,
+			InstallJsonURL: installJsonURL,
+			HomeDir:        homeDir,
+			UseRemote:      useRemote,
+		})
+		if err != nil {
 			return nil, err
 		}
 
@@ -70,28 +82,19 @@ func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, verbose boo
 				if entry[field.ModuleVersionEntry] == nil {
 					continue
 				}
-
-				module := &models.ProxyModule{
+				decodedResponse = append(decodedResponse, &models.ProxyModule{
 					ID:     fmt.Sprintf("%s-%s", name, entry[field.ModuleVersionEntry].(string)),
 					Action: "enable",
-				}
-				decodedResponse = append(decodedResponse, module)
+				})
 			}
 		}
 
 		if len(decodedResponse) > 0 {
 			if verbose {
-				slog.Info(rs.Action.Name, "text", "Read registry", "registry", registryName, "count", len(decodedResponse))
+				slog.Info(rs.Action.Name, "text", "Read registry", "name", registryName, "count", len(decodedResponse))
 			}
 			sort.Slice(decodedResponse, func(i, j int) bool {
-				switch strings.Compare(decodedResponse[i].ID, decodedResponse[j].ID) {
-				case -1:
-					return true
-				case 1:
-					return false
-				}
-
-				return decodedResponse[i].ID > decodedResponse[j].ID
+				return decodedResponse[i].ID < decodedResponse[j].ID
 			})
 		}
 
@@ -103,25 +106,81 @@ func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, verbose boo
 		}
 	}
 
-	return models.NewProxyModulesByRegistry(folioModules, eurekaModules), nil
+	return &models.ProxyModulesByRegistry{
+		FolioModules:  folioModules,
+		EurekaModules: eurekaModules,
+	}, nil
+}
+
+func (rs *RegistrySvc) processInstallJsonURL(r *models.RegistryRequest) ([]*models.ProxyModule, error) {
+	r.Metadata.FileName = fmt.Sprintf("install_%s.json", r.RegistryName)
+	r.Metadata.Path = filepath.Join(r.HomeDir, r.Metadata.FileName)
+	if !r.UseRemote || rs.Action.Param.SkipRegistry {
+		decodedResponse, err := rs.readLocalFile(r)
+		if err != nil {
+			return nil, err
+		}
+		if len(decodedResponse) == 0 {
+			return nil, appErrors.LocalInstallFileNotFound(err)
+		}
+		return decodedResponse, nil
+	}
+
+	decodedResponse, err := rs.readRemoteAndCreateLocalFile(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return decodedResponse, nil
+}
+
+func (rs *RegistrySvc) readLocalFile(r *models.RegistryRequest) ([]*models.ProxyModule, error) {
+	if err := helpers.IsRegularFile(r.Metadata.Path); err != nil {
+		return nil, err
+	}
+
+	var decodedResponse []*models.ProxyModule
+	if err := helpers.ReadJSONFromFile(r.Metadata.Path, &decodedResponse); err != nil {
+		return nil, err
+	}
+	slog.Info(rs.Action.Name, "text", "Read registry", "name", r.RegistryName, "local", true, "file", r.Metadata.FileName)
+
+	return decodedResponse, nil
+}
+
+func (rs *RegistrySvc) readRemoteAndCreateLocalFile(r *models.RegistryRequest) ([]*models.ProxyModule, error) {
+	var decodedResponse []*models.ProxyModule
+	if err := rs.HTTPClient.GetRetryReturnStruct(r.InstallJsonURL, map[string]string{}, &decodedResponse); err != nil {
+		return nil, err
+	}
+	if err := helpers.WriteJSONToFile(r.Metadata.Path, decodedResponse); err != nil {
+		return nil, err
+	}
+	slog.Info(rs.Action.Name, "text", "Read registry", "name", r.RegistryName, "local", false, "file", r.Metadata.FileName)
+
+	return decodedResponse, nil
 }
 
 func (rs *RegistrySvc) ExtractModuleMetadata(modules *models.ProxyModulesByRegistry) {
 	allModules := [][]*models.ProxyModule{modules.FolioModules, modules.EurekaModules}
-	for _, moduleByRegistry := range allModules {
-		for moduleIndex, module := range moduleByRegistry {
+	for _, moduleSet := range allModules {
+		for i, module := range moduleSet {
 			if module.ID == "okapi" {
 				continue
 			}
-
-			module.Name = helpers.GetModuleNameFromID(module.ID)
-			module.Version = helpers.GetOptionalModuleVersion(module.ID)
-			if strings.HasPrefix(module.Name, "edge") {
-				module.SidecarName = module.Name
-			} else {
-				module.SidecarName = helpers.GetSidecarName(module.Name)
-			}
-			moduleByRegistry[moduleIndex] = module
+			module.Metadata.Name = helpers.GetModuleNameFromID(module.ID)
+			module.Metadata.Version = helpers.GetOptionalModuleVersion(module.ID)
+			module.Metadata.SidecarName = rs.getSidecarName(module)
+			moduleSet[i] = module
 		}
+	}
+}
+
+// TODO Add tests
+func (rs *RegistrySvc) getSidecarName(module *models.ProxyModule) string {
+	if strings.HasPrefix(module.Metadata.Name, "edge") {
+		return module.Metadata.Name
+	} else {
+		return helpers.GetSidecarName(module.Metadata.Name)
 	}
 }

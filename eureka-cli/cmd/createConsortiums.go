@@ -19,6 +19,7 @@ import (
 	"log/slog"
 
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
@@ -59,12 +60,10 @@ func (run *Run) CreateConsortium() error {
 		if centralTenant == "" {
 			return errors.ConsortiumMissingCentralTenant(consortium)
 		}
-
-		keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(centralTenant)
+		_, err := run.GetKeycloakAccessToken(constant.DefaultToken, centralTenant)
 		if err != nil {
 			return err
 		}
-		run.Config.Action.KeycloakAccessToken = keycloakAccessToken
 
 		slog.Info(run.Config.Action.Name, "text", "CREATING CONSORTIUM", "consortium", consortium)
 		consortiumID, err := run.Config.ConsortiumSvc.CreateConsortium(centralTenant, consortium)

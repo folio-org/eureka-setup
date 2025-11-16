@@ -21,7 +21,7 @@ func (gr *GitRepository) String() string {
 }
 
 func New(action *action.Action, label, url, dir string, branch plumbing.ReferenceName) (*GitRepository, error) {
-	homeDir, err := helpers.GetHomeMiscDir(action.Name)
+	homeDir, err := helpers.GetHomeMiscDir()
 	if err != nil {
 		return nil, err
 	}

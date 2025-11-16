@@ -2,9 +2,14 @@ package helpers
 
 import (
 	"bufio"
+	"context"
+	"embed"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -12,7 +17,7 @@ import (
 	appErrors "github.com/folio-org/eureka-cli/errors"
 )
 
-func ReadJsonFromFile(actionName string, filePath string, data any) error {
+func ReadJSONFromFile(filePath string, data any) error {
 	jsonFile, err := os.OpenFile(filePath, os.O_RDONLY, 0644)
 	if err != nil {
 		return err
@@ -27,8 +32,8 @@ func ReadJsonFromFile(actionName string, filePath string, data any) error {
 	return nil
 }
 
-func WriteJsonToFile(filePath string, packageJson any) error {
-	jsonFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC, 0644)
+func WriteJSONToFile(filePath string, packageJSON any) error {
+	jsonFile, err := os.OpenFile(filePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
@@ -39,7 +44,7 @@ func WriteJsonToFile(filePath string, packageJson any) error {
 	encoder.SetEscapeHTML(false)
 	encoder.SetIndent("", "  ")
 
-	err = encoder.Encode(packageJson)
+	err = encoder.Encode(packageJSON)
 	if err != nil {
 		return err
 	}
@@ -52,8 +57,8 @@ func WriteJsonToFile(filePath string, packageJson any) error {
 	return nil
 }
 
-func CopySingleFile(actionName, srcPath, dstPath string) error {
-	err := CheckIsRegularFile(actionName, srcPath)
+func CopySingleFile(srcPath, dstPath string) error {
+	err := IsRegularFile(srcPath)
 	if err != nil {
 		return err
 	}
@@ -82,20 +87,47 @@ func CloseFile(file *os.File) {
 	_ = file.Close()
 }
 
-func CheckIsRegularFile(actionName, fileName string) error {
-	fileStat, err := os.Stat(fileName)
+func CopyMultipleFiles(homeDir string, srcFs *embed.FS) error {
+	return fs.WalkDir(*srcFs, ".", func(path string, dir fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		dstPath := filepath.Join(homeDir, path)
+		if dir.IsDir() {
+			if err := os.MkdirAll(dstPath, 0755); err != nil {
+				return err
+			}
+		} else {
+			content, err := fs.ReadFile(*srcFs, path)
+			if err != nil {
+				return err
+			}
+			if err := os.WriteFile(dstPath, content, 0644); err != nil {
+				return err
+			}
+			if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
+				fmt.Println("Created file:", dstPath)
+			}
+		}
+
+		return nil
+	})
+}
+
+func IsRegularFile(fileName string) error {
+	s, err := os.Stat(fileName)
 	if err != nil {
 		return err
 	}
-
-	if !fileStat.Mode().IsRegular() {
+	if !s.Mode().IsRegular() {
 		return appErrors.NotRegularFile(fileName)
 	}
 
 	return nil
 }
 
-func GetCurrentWorkDirPath(actionName string) (string, error) {
+func GetCurrentWorkDirPath() (string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return "", err
@@ -104,7 +136,7 @@ func GetCurrentWorkDirPath(actionName string) (string, error) {
 	return cwd, nil
 }
 
-func GetHomeMiscDir(actionName string) (string, error) {
+func GetHomeMiscDir() (string, error) {
 	homeDir, err := GetHomeDirPath()
 	if err != nil {
 		return "", err
@@ -114,12 +146,12 @@ func GetHomeMiscDir(actionName string) (string, error) {
 }
 
 func GetHomeDirPath() (string, error) {
-	home, err := os.UserHomeDir()
+	userHome, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
 
-	homeDir := filepath.Join(home, constant.ConfigDir)
+	homeDir := filepath.Join(userHome, constant.ConfigDir)
 	if err = os.MkdirAll(homeDir, 0644); err != nil {
 		return "", err
 	}

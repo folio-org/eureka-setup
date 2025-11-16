@@ -32,28 +32,19 @@ func (is *InterceptModuleSvc) DeployDefaultModuleAndSidecarPair(pair *ModulePair
 
 func (is *InterceptModuleSvc) prepareModuleAndSidecarPairNetwork() error {
 	slog.Info(is.Action.Name, "text", "PREPARING MODULE AND SIDECAR PAIR NETWORK")
-	ports, err := is.Action.GetPreReservedPortSet([]func() (int, error){
-		func() (int, error) { return is.Action.GetPreReservedPort() },
-		func() (int, error) { return is.Action.GetPreReservedPort() },
-		func() (int, error) { return is.Action.GetPreReservedPort() },
-		func() (int, error) { return is.Action.GetPreReservedPort() },
-	})
+	ports, err := is.Action.GetPreReservedPortSet(4)
 	if err != nil {
 		return err
 	}
-	moduleServerPort := ports[0]
-	moduleDebugPort := ports[1]
-	sidecarServerPort := ports[2]
-	sidecarDebugPort := ports[3]
 
-	is.pair.NetworkConfig = helpers.GetModuleNetworkConfig()
 	is.pair.BackendModule, is.pair.Module = is.ModuleSvc.GetBackendModule(is.pair.Containers, is.pair.ModuleName)
-	is.pair.BackendModule.ModuleExposedServerPort = moduleServerPort
-	is.pair.BackendModule.ModuleExposedDebugPort = moduleDebugPort
-	is.pair.BackendModule.SidecarExposedServerPort = sidecarServerPort
-	is.pair.BackendModule.SidecarExposedDebugPort = sidecarDebugPort
-	is.pair.BackendModule.ModulePortBindings = helpers.CreatePortBindings(moduleServerPort, moduleDebugPort, is.pair.BackendModule.PrivatePort)
-	is.pair.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, is.pair.BackendModule.PrivatePort)
+	is.pair.BackendModule.ModuleExposedServerPort = ports[0]
+	is.pair.BackendModule.ModuleExposedDebugPort = ports[1]
+	is.pair.BackendModule.SidecarExposedServerPort = ports[2]
+	is.pair.BackendModule.SidecarExposedDebugPort = ports[3]
+
+	is.pair.BackendModule.ModulePortBindings = helpers.CreatePortBindings(ports[0], ports[1], is.pair.BackendModule.PrivatePort)
+	is.pair.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(ports[2], ports[3], is.pair.BackendModule.PrivatePort)
 	if err := is.updateModuleDiscovery(); err != nil {
 		return err
 	}

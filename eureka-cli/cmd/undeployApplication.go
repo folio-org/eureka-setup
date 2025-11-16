@@ -83,7 +83,7 @@ func (run *Run) UndeployChildApplication() error {
 	if err := run.UndeployAdditionalSystem(); err != nil {
 		return err
 	}
-	if actionParams.SkipCapabilitySets {
+	if params.SkipCapabilitySets {
 		return nil
 	}
 	return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
@@ -97,6 +97,6 @@ func (run *Run) UndeployChildApplication() error {
 
 func init() {
 	rootCmd.AddCommand(undeployApplicationCmd)
-	undeployApplicationCmd.PersistentFlags().BoolVarP(&actionParams.PurgeSchemas, "purgeSchemas", "", false, "Purge schemas in PostgreSQL on uninstallation")
-	undeployApplicationCmd.PersistentFlags().BoolVarP(&actionParams.SkipCapabilitySets, "skipCapabilitySets", "", false, "Skip refreshing capability sets")
+	undeployApplicationCmd.PersistentFlags().BoolVarP(&params.PurgeSchemas, action.PurgeSchemas.Long, action.PurgeSchemas.Short, false, action.PurgeSchemas.Description)
+	undeployApplicationCmd.PersistentFlags().BoolVarP(&params.SkipCapabilitySets, action.SkipCapabilitySets.Long, action.SkipCapabilitySets.Short, false, action.SkipCapabilitySets.Description)
 }

@@ -22,6 +22,54 @@ func TestGetModuleNetworkConfig_ReturnsValidConfig(t *testing.T) {
 	assert.Contains(t, result.EndpointsConfig[constant.NetworkID].Aliases, constant.NetworkAlias)
 }
 
+func TestGetPlatform_ReturnsEmptyPlatform(t *testing.T) {
+	// Act
+	result := helpers.GetPlatform()
+
+	// Assert
+	assert.NotNil(t, result)
+}
+
+func TestGetRestartPolicy_ReturnsAlwaysPolicy(t *testing.T) {
+	// Act
+	result := helpers.GetRestartPolicy()
+
+	// Assert
+	assert.NotNil(t, result)
+	assert.Equal(t, "always", string(result.Name))
+}
+
+func TestGetConfigSidecarCmd_WithCmd(t *testing.T) {
+	// Arrange
+	cmd := []string{"./application", "-Dquarkus.http.host=0.0.0.0"}
+
+	// Act
+	result := helpers.GetConfigSidecarCmd(cmd)
+
+	// Assert
+	assert.NotNil(t, result)
+	assert.Equal(t, cmd, []string(result))
+}
+
+func TestGetConfigSidecarCmd_WithEmptyCmd(t *testing.T) {
+	// Arrange
+	cmd := []string{}
+
+	// Act
+	result := helpers.GetConfigSidecarCmd(cmd)
+
+	// Assert
+	assert.Nil(t, result)
+}
+
+func TestGetConfigSidecarCmd_WithNilCmd(t *testing.T) {
+	// Act
+	result := helpers.GetConfigSidecarCmd(nil)
+
+	// Assert
+	assert.Nil(t, result)
+}
+
 func TestGetSidecarName_StandardModule(t *testing.T) {
 	// Arrange
 	moduleName := "mod-users"

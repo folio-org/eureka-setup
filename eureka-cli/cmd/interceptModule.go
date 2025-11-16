@@ -20,6 +20,8 @@ import (
 	"os"
 
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/interceptmodulesvc"
@@ -44,19 +46,21 @@ var interceptModuleCmd = &cobra.Command{
 }
 
 func (run *Run) InterceptModule() error {
+	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.ClientCredentials); err != nil {
+		return err
+	}
 	if err := run.setModuleDiscoveryDataIntoContext(); err != nil {
 		return err
 	}
 
-	slog.Info(run.Config.Action.Name, "text", "INTERCEPTING MODULE", "module", actionParams.ModuleName, "id", actionParams.ID)
-	backendModules, err := run.Config.ModuleParams.ReadBackendModulesFromConfig(false, false)
+	slog.Info(run.Config.Action.Name, "text", "INTERCEPTING MODULE", "module", params.ModuleName, "id", params.ID)
+	backendModules, err := run.Config.ModuleProps.ReadBackendModules(false, false)
 	if err != nil {
 		return err
 	}
 
-	// TODO Cache or save already read install json
 	instalJsonURLs := run.Config.Action.GetCombinedInstallJsonURLs()
-	modules, err := run.Config.RegistrySvc.GetModules(instalJsonURLs, false)
+	modules, err := run.Config.RegistrySvc.GetModules(instalJsonURLs, true, false)
 	if err != nil {
 		return err
 	}
@@ -71,36 +75,39 @@ func (run *Run) InterceptModule() error {
 		return err
 	}
 
-	pair, err := interceptmodulesvc.NewModulePair(run.Config.Action, run.Config.Action.Params)
+	pair, err := interceptmodulesvc.NewModulePair(run.Config.Action, run.Config.Action.Param)
 	if err != nil {
 		return err
 	}
 
-	globalEnv := run.Config.Action.GetConfigEnvVars(field.Env)
-	sidecarEnv := run.Config.Action.GetConfigEnvVars(field.SidecarModuleEnv)
-	pair.Containers = models.NewCoreAndBusinessContainers(run.Config.Action.VaultRootToken, modules, backendModules, globalEnv, sidecarEnv)
-	if actionParams.Restore {
-		return run.Config.InterceptModuleSvc.DeployDefaultModuleAndSidecarPair(pair, client)
+	pair.Containers = &models.Containers{
+		Modules:        modules,
+		BackendModules: backendModules,
+		IsManagement:   false,
 	}
-
-	return run.Config.InterceptModuleSvc.DeployCustomSidecarForInterception(pair, client)
+	if params.Restore {
+		return run.Config.InterceptModuleSvc.DeployDefaultModuleAndSidecarPair(pair, client)
+	} else {
+		return run.Config.InterceptModuleSvc.DeployCustomSidecarForInterception(pair, client)
+	}
 }
 
 func init() {
 	rootCmd.AddCommand(interceptModuleCmd)
-	interceptModuleCmd.PersistentFlags().StringVarP(&actionParams.ModuleName, "moduleName", "n", "", "Module name, e.g. mod-orders")
-	if err := interceptModuleCmd.RegisterFlagCompletionFunc("moduleName", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	interceptModuleCmd.PersistentFlags().StringVarP(&params.ModuleName, action.ModuleName.Long, action.ModuleName.Short, "", action.ModuleName.Description)
+	if err := interceptModuleCmd.RegisterFlagCompletionFunc(action.ModuleName.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
-		slog.Error("failed to register flag completion function", "error", err)
+		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
 		os.Exit(1)
 	}
-	interceptModuleCmd.PersistentFlags().StringVarP(&actionParams.ModuleURL, "moduleUrl", "m", "", "Module URL, e.g. http://host.docker.internal:36002 or 36002 (if -g is used)")
-	interceptModuleCmd.PersistentFlags().StringVarP(&actionParams.SidecarURL, "sidecarUrl", "s", "", "Sidecar URL e.g. http://host.docker.internal:37002 or 37002 (if -g is used)")
-	interceptModuleCmd.PersistentFlags().BoolVarP(&actionParams.Restore, "restore", "r", false, "Restore module & sidecar")
-	interceptModuleCmd.PersistentFlags().BoolVarP(&actionParams.DefaultGateway, "defaultGateway", "g", false, "Use default gateway in URLs, .e.g. http://host.docker.internal:{{port}} will be set automatically")
-	if err := interceptModuleCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
-		slog.Error("failed to mark moduleName flag as required", "error", err)
+	interceptModuleCmd.PersistentFlags().StringVarP(&params.ModuleURL, action.ModuleURL.Long, action.ModuleURL.Short, "", action.ModuleURL.Description)
+	interceptModuleCmd.PersistentFlags().StringVarP(&params.SidecarURL, action.SidecarURL.Long, action.SidecarURL.Short, "", action.SidecarURL.Description)
+	interceptModuleCmd.PersistentFlags().BoolVarP(&params.Restore, action.Restore.Long, action.Restore.Short, false, action.Restore.Description)
+	interceptModuleCmd.PersistentFlags().BoolVarP(&params.DefaultGateway, action.DefaultGateway.Long, action.DefaultGateway.Short, false, action.DefaultGateway.Description)
+	interceptModuleCmd.PersistentFlags().BoolVarP(&params.SkipRegistry, action.SkipRegistry.Long, action.SkipRegistry.Short, false, action.SkipRegistry.Description)
+	if err := interceptModuleCmd.MarkPersistentFlagRequired(action.ModuleName.Long); err != nil {
+		slog.Error(errors.MarkFlagRequiredFailed(action.ModuleName, err).Error())
 		os.Exit(1)
 	}
 }
