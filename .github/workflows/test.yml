@@ -34,57 +34,6 @@ jobs:
       - name: Validate misc/docker-compose.yml
         run: docker compose -f ./eureka-cli/misc/docker-compose.yaml config
 
-  # TODO Extract into a separate scheduled workflow that will scan the built images
-  # docker-trivy:
-  #   name: Docker Security Scan
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v5
-  #
-  #     - name: Scan folio-netcat Dockerfile
-  #       uses: aquasecurity/trivy-action@master
-  #       with:
-  #         scan-type: 'config'
-  #         scan-ref: './eureka-cli/misc/folio-netcat/Dockerfile'
-  #         format: 'table'
-  #         severity: 'CRITICAL,HIGH'
-  #         exit-code: '1'
-  #
-  #     - name: Scan folio-vault Dockerfile
-  #       uses: aquasecurity/trivy-action@master
-  #       with:
-  #         scan-type: 'config'
-  #         scan-ref: './eureka-cli/misc/folio-vault/Dockerfile'
-  #         format: 'table'
-  #         severity: 'CRITICAL,HIGH'
-  #         exit-code: '1'
-  #
-  #     - name: Scan folio-kafka-tools Dockerfile
-  #       uses: aquasecurity/trivy-action@master
-  #       with:
-  #         scan-type: 'config'
-  #         scan-ref: './eureka-cli/misc/folio-kafka-tools/Dockerfile'
-  #         format: 'table'
-  #         severity: 'CRITICAL,HIGH'
-  #         exit-code: '1'
-  #
-  #     - name: Generate SARIF report for all Dockerfiles
-  #       uses: aquasecurity/trivy-action@master
-  #       if: always() && github.actor != 'dependabot[bot]'
-  #       with:
-  #         scan-type: 'config'
-  #         scan-ref: './eureka-cli/misc/'
-  #         format: 'sarif'
-  #         output: 'trivy-docker-config.sarif'
-  #
-  #     - name: Upload Docker config scan to GitHub Security
-  #       uses: github/codeql-action/upload-sarif@v4
-  #       if: always() && github.actor != 'dependabot[bot]'
-  #       with:
-  #         sarif_file: 'trivy-docker-config.sarif'
-  #         category: 'docker-configs'
-
   go-lint:
     name: Go Lint
     runs-on: ubuntu-latest
@@ -161,16 +110,17 @@ jobs:
         working-directory: ./eureka-cli
         run: |
           echo "Running tests for testable packages (excluding infrastructure)..."
-          go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -parallel 4 -coverprofile=coverage.out -covermode=atomic
+          go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -parallel 10 -coverprofile=coverage.out -covermode=atomic
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
           files: ./eureka-cli/coverage.out
-          flags: unittests
+          flags: unit-tests
           name: codecov-umbrella
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
 
   build-and-run-cli:
     name: Build and Run CLI (${{ matrix.os }}-${{ matrix.goarch }})

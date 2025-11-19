@@ -4,8 +4,19 @@ coverage:
       default:
         target: 75%
         threshold: 1%
+    patch:
+      default:
+        target: 75%
+        threshold: 1%
+  flags:
+    unit-tests:
+      paths:
+        - "eureka-cli/"
 
-comment: 
-  layout: "diff, flags, files"
-  require_changes: false 
+comment:
+  layout: "header, diff, flags, components, files, footer"
+  behavior: default
+  require_changes: false
   require_base: false
+  require_head: true
+  after_n_builds: 1
