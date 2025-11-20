@@ -29,7 +29,10 @@ func New(action *action.Action, httpClient httpclient.HTTPClientRunner) *UserSvc
 
 func (us *UserSvc) Get(tenantName string, username string) (*models.User, error) {
 	requestURL := us.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/users?query=username==%s&limit=1", username))
-	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, us.Action.KeycloakAccessToken)
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, us.Action.KeycloakAccessToken)
+	if err != nil {
+		return nil, err
+	}
 
 	var decodedResponse models.UserResponse
 	if err := us.HTTPClient.GetReturnStruct(requestURL, headers, &decodedResponse); err != nil {

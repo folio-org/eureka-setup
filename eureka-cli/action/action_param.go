@@ -4,11 +4,14 @@ package action
 // passed to the program by the user from the shell instance
 type Param struct {
 	All                 bool
+	ApplicationNames    []string
 	BuildImages         bool
 	ConfigFile          string
 	DefaultGateway      bool
 	EnableDebug         bool
 	EnableECSRequests   bool
+	GatewayHostname     string
+	GatewayURL          string
 	ID                  string
 	Length              int
 	ModuleName          string
@@ -29,6 +32,7 @@ type Param struct {
 	SkipCapabilitySets  bool
 	SkipRegistry        bool
 	Tenant              string
+	TenantIDs           []string
 	TokenType           string
 	UpdateCloned        bool
 	User                string
@@ -56,7 +60,8 @@ var (
 	DefaultGateway      = Flag{"defaultGateway", "g", "Use default gateway in URLs, .e.g. http://host.docker.internal:{{port}} will be set automatically"}
 	EnableDebug         = Flag{"enableDebug", "d", "Enable debug"}
 	EnableECSRequests   = Flag{"enableEcsRequests", "", "Enable ECS requests"}
-	Gateway             = Flag{"gateway", "", "Kong Gateway"}
+	GatewayHostname     = Flag{"gatewayHostname", "", "Gateway hostname"}
+	GatewayURL          = Flag{"gatewayURL", "", "Gateway URL"}
 	ID                  = Flag{"id", "i", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021"}
 	Length              = Flag{"length", "l", "Salt length"}
 	ModuleName          = Flag{"moduleName", "n", "Module name, e.g. mod-orders"}

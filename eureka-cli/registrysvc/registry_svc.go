@@ -20,7 +20,6 @@ import (
 // RegistryProcessor defines the interface for registry-related operations
 type RegistryProcessor interface {
 	GetNamespace(version string) string
-	// TODO Add tests with useRemote false
 	GetModules(installJsonURLs map[string]string, useRemote, verbose bool) (*models.ProxyModulesByRegistry, error)
 	ExtractModuleMetadata(modules *models.ProxyModulesByRegistry)
 	GetAuthorizationToken() (string, error)
@@ -176,7 +175,6 @@ func (rs *RegistrySvc) ExtractModuleMetadata(modules *models.ProxyModulesByRegis
 	}
 }
 
-// TODO Add tests
 func (rs *RegistrySvc) getSidecarName(module *models.ProxyModule) string {
 	if strings.HasPrefix(module.Metadata.Name, "edge") {
 		return module.Metadata.Name

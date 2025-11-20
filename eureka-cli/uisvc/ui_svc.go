@@ -112,7 +112,7 @@ func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error)
 		return "", err
 	}
 
-	slog.Info(us.Action.Name, "text", "PreparingUI configs")
+	slog.Info(us.Action.Name, "text", "Preparing UI configs")
 	err = us.PrepareStripesConfigJS(tenantName, outputDir)
 	if err != nil {
 		return "", err

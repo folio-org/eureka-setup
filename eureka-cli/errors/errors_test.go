@@ -24,6 +24,8 @@ func TestBaseErrors(t *testing.T) {
 		{"ErrUnauthorized", apperrors.ErrUnauthorized, "unauthorized"},
 		{"ErrConfigMissing", apperrors.ErrConfigMissing, "configuration missing"},
 		{"ErrDeploymentFailed", apperrors.ErrDeploymentFailed, "deployment failed"},
+		{"ErrAccessTokenBlank", apperrors.ErrAccessTokenBlank, "access token cannot be blank"},
+		{"ErrTenantNameBlank", apperrors.ErrTenantNameBlank, "tenant name cannot be blank"},
 	}
 
 	for _, tt := range tests {
@@ -146,6 +148,32 @@ func TestRequiredParameterMissing(t *testing.T) {
 		assert.Error(t, result)
 		assert.Equal(t, "invalid input: tenant parameter required", result.Error())
 		assert.True(t, errors.Is(result, apperrors.ErrInvalidInput))
+	})
+}
+
+func TestAccessTokenBlank(t *testing.T) {
+	t.Run("TestAccessTokenBlank_Success", func(t *testing.T) {
+		// Act
+		result := apperrors.AccessTokenBlank()
+
+		// Assert
+		assert.Error(t, result)
+		assert.Equal(t, "access token cannot be blank", result.Error())
+		assert.True(t, errors.Is(result, apperrors.ErrAccessTokenBlank))
+		assert.Equal(t, apperrors.ErrAccessTokenBlank, result)
+	})
+}
+
+func TestTenantNameBlank(t *testing.T) {
+	t.Run("TestTenantNameBlank_Success", func(t *testing.T) {
+		// Act
+		result := apperrors.TenantNameBlank()
+
+		// Assert
+		assert.Error(t, result)
+		assert.Equal(t, "tenant name cannot be blank", result.Error())
+		assert.True(t, errors.Is(result, apperrors.ErrTenantNameBlank))
+		assert.Equal(t, apperrors.ErrTenantNameBlank, result)
 	})
 }
 

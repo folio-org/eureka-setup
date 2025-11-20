@@ -1,4 +1,4 @@
-name: Test CLI
+name: Build And Run CLI
 
 on:
   push:

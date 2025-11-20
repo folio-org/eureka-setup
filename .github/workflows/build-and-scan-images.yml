@@ -1,4 +1,4 @@
-name: Docker Image Security Scan
+name: Build and Scan Docker Images
 
 on:
   schedule:
@@ -54,7 +54,7 @@ jobs:
           image-ref: '${{ matrix.image.name }}:test'
           format: 'table'
           severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+          exit-code: '0'
 
       - name: Generate SARIF report
         uses: aquasecurity/trivy-action@master

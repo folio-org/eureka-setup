@@ -26,12 +26,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	withKongGateway      string
-	withTenantIDs        []string
-	withApplicationNames []string
-)
-
 // purgeTenantsCmd represents the purgeTenants command
 var purgeTenantsCmd = &cobra.Command{
 	Use:   "purgeTenants",
@@ -42,12 +36,12 @@ var purgeTenantsCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		slog.Info(run.Config.Action.Name, slog.String("text", "PURGING TENANTS"), slog.String("Using Kong Gateway", withKongGateway))
+		slog.Info(run.Config.Action.Name, slog.String("text", "PURGING TENANTS"), slog.String("Using Kong Gateway", run.Config.Action.Param.GatewayURL))
 
 		slog.Info(run.Config.Action.Name, "text", "Purging tenant entitlements")
-		for _, tenantID := range withTenantIDs {
-			for key, value := range map[string][]string{tenantID: withApplicationNames} {
-				requestURL, err := url.JoinPath(withKongGateway, "/entitlements")
+		for _, tenantID := range run.Config.Action.Param.TenantIDs {
+			for key, value := range map[string][]string{tenantID: run.Config.Action.Param.ApplicationNames} {
+				requestURL, err := url.JoinPath(run.Config.Action.Param.GatewayURL, "/entitlements")
 				if err != nil {
 					return err
 				}
@@ -71,8 +65,8 @@ var purgeTenantsCmd = &cobra.Command{
 		}
 
 		slog.Info(run.Config.Action.Name, "text", "Purging tenants")
-		for _, tenantID := range withTenantIDs {
-			requestURL, err := url.JoinPath(withKongGateway, "/tenants", tenantID)
+		for _, tenantID := range run.Config.Action.Param.TenantIDs {
+			requestURL, err := url.JoinPath(run.Config.Action.Param.GatewayURL, "/tenants", tenantID)
 			if err != nil {
 				return err
 			}
@@ -91,7 +85,7 @@ var purgeTenantsCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(purgeTenantsCmd)
-	purgeTenantsCmd.PersistentFlags().StringVarP(&withKongGateway, action.Gateway.Long, action.Gateway.Short, "http://localhost:8000", action.Gateway.Description)
-	purgeTenantsCmd.PersistentFlags().StringSliceVarP(&withTenantIDs, action.TenantIDs.Long, action.TenantIDs.Short, []string{}, action.TenantIDs.Description)
-	purgeTenantsCmd.PersistentFlags().StringSliceVarP(&withApplicationNames, action.ApplicationNames.Long, action.ApplicationNames.Short, []string{"app-combined-1.0.0"}, action.ApplicationNames.Description)
+	purgeTenantsCmd.PersistentFlags().StringVarP(&params.GatewayURL, action.GatewayURL.Long, action.GatewayURL.Short, "http://localhost:8000", action.GatewayURL.Description)
+	purgeTenantsCmd.PersistentFlags().StringSliceVarP(&params.TenantIDs, action.TenantIDs.Long, action.TenantIDs.Short, []string{}, action.TenantIDs.Description)
+	purgeTenantsCmd.PersistentFlags().StringSliceVarP(&params.ApplicationNames, action.ApplicationNames.Long, action.ApplicationNames.Short, []string{"app-combined-1.0.0"}, action.ApplicationNames.Description)
 }

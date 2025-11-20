@@ -93,10 +93,10 @@ func (run *Run) DeployManagement() error {
 	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.Password); err != nil {
 		return err
 	}
-	if err := run.Config.KeycloakSvc.UpdateRealmAccessTokenSettings(3600); err != nil {
+	if err := run.Config.KeycloakSvc.UpdateRealmAccessTokenSettings(constant.KeycloakMasterRealm, constant.KeycloakMasterRealmAccessTokenLifespan); err != nil {
 		return err
 	}
-	slog.Info(run.Config.Action.Name, "text", "Realm settings have been updated")
+	slog.Info(run.Config.Action.Name, "text", "Realm settings have been updated", "realm", constant.KeycloakMasterRealm)
 
 	return nil
 }

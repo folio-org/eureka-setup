@@ -1,8 +1,10 @@
 package helpers_test
 
 import (
+	"errors"
 	"testing"
 
+	apperrors "github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/stretchr/testify/assert"
 )
@@ -67,27 +69,32 @@ func TestConstructURL_WithoutPrefix(t *testing.T) {
 	assert.Equal(t, "http://gateway.com:8080", result)
 }
 
-func TestExtractPortFromURL_ValidURL(t *testing.T) {
-	// Arrange - Pattern removes everything up to and including last colon
-	url := "http://localhost:9000"
+func TestSecureOkapiApplicationJSONHeaders_ValidToken(t *testing.T) {
+	// Arrange
+	accessToken := "token123"
 
 	// Act
-	result, err := helpers.ExtractPortFromURL(url)
+	result, err := helpers.SecureOkapiApplicationJSONHeaders(accessToken)
 
 	// Assert
 	assert.NoError(t, err)
-	assert.Equal(t, 9000, result)
+	assert.Len(t, result, 2)
+	assert.Equal(t, "application/json", result["Content-Type"])
+	assert.Equal(t, "token123", result["X-Okapi-Token"])
 }
 
-func TestExtractPortFromURL_InvalidPort(t *testing.T) {
+func TestSecureOkapiApplicationJSONHeaders_BlankToken(t *testing.T) {
 	// Arrange
-	url := "http://localhost:invalid/api"
+	accessToken := ""
 
 	// Act
-	_, err := helpers.ExtractPortFromURL(url)
+	result, err := helpers.SecureOkapiApplicationJSONHeaders(accessToken)
 
 	// Assert
 	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.EqualError(t, err, "access token cannot be blank")
+	assert.True(t, errors.Is(err, apperrors.AccessTokenBlank()))
 }
 
 func TestTenantSecureApplicationJSONHeaders_ValidInputs(t *testing.T) {
@@ -96,13 +103,44 @@ func TestTenantSecureApplicationJSONHeaders_ValidInputs(t *testing.T) {
 	accessToken := "token123"
 
 	// Act
-	result := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, accessToken)
+	result, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, accessToken)
 
 	// Assert
+	assert.NoError(t, err)
 	assert.Len(t, result, 3)
 	assert.Equal(t, "application/json", result["Content-Type"])
 	assert.Equal(t, "diku", result["X-Okapi-Tenant"])
 	assert.Equal(t, "token123", result["X-Okapi-Token"])
+}
+
+func TestSecureOkapiTenantApplicationJSONHeaders_BlankTenant(t *testing.T) {
+	// Arrange
+	tenantName := ""
+	accessToken := "token123"
+
+	// Act
+	result, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, accessToken)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.EqualError(t, err, "tenant name cannot be blank")
+	assert.True(t, errors.Is(err, apperrors.TenantNameBlank()))
+}
+
+func TestSecureOkapiTenantApplicationJSONHeaders_BlankToken(t *testing.T) {
+	// Arrange
+	tenantName := "diku"
+	accessToken := ""
+
+	// Act
+	result, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, accessToken)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.EqualError(t, err, "access token cannot be blank")
+	assert.True(t, errors.Is(err, apperrors.AccessTokenBlank()))
 }
 
 func TestTenantSecureNonOkapiApplicationJSONHeaders_ValidInputs(t *testing.T) {
@@ -111,13 +149,44 @@ func TestTenantSecureNonOkapiApplicationJSONHeaders_ValidInputs(t *testing.T) {
 	accessToken := "token123"
 
 	// Act
-	result := helpers.SecureTenantApplicationJSONHeaders(tenantName, accessToken)
+	result, err := helpers.SecureTenantApplicationJSONHeaders(tenantName, accessToken)
 
 	// Assert
+	assert.NoError(t, err)
 	assert.Len(t, result, 3)
 	assert.Equal(t, "application/json", result["Content-Type"])
 	assert.Equal(t, "diku", result["X-Okapi-Tenant"])
 	assert.Equal(t, "Bearer token123", result["Authorization"])
+}
+
+func TestSecureTenantApplicationJSONHeaders_BlankTenant(t *testing.T) {
+	// Arrange
+	tenantName := ""
+	accessToken := "token123"
+
+	// Act
+	result, err := helpers.SecureTenantApplicationJSONHeaders(tenantName, accessToken)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.EqualError(t, err, "tenant name cannot be blank")
+	assert.True(t, errors.Is(err, apperrors.TenantNameBlank()))
+}
+
+func TestSecureTenantApplicationJSONHeaders_BlankToken(t *testing.T) {
+	// Arrange
+	tenantName := "diku"
+	accessToken := ""
+
+	// Act
+	result, err := helpers.SecureTenantApplicationJSONHeaders(tenantName, accessToken)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.EqualError(t, err, "access token cannot be blank")
+	assert.True(t, errors.Is(err, apperrors.AccessTokenBlank()))
 }
 
 func TestSecureApplicationJSONHeaders_ValidToken(t *testing.T) {
@@ -125,12 +194,27 @@ func TestSecureApplicationJSONHeaders_ValidToken(t *testing.T) {
 	accessToken := "token123"
 
 	// Act
-	result := helpers.SecureApplicationJSONHeaders(accessToken)
+	result, err := helpers.SecureApplicationJSONHeaders(accessToken)
 
 	// Assert
+	assert.NoError(t, err)
 	assert.Len(t, result, 2)
 	assert.Equal(t, "application/json", result["Content-Type"])
 	assert.Equal(t, "Bearer token123", result["Authorization"])
+}
+
+func TestSecureApplicationJSONHeaders_BlankToken(t *testing.T) {
+	// Arrange
+	accessToken := ""
+
+	// Act
+	result, err := helpers.SecureApplicationJSONHeaders(accessToken)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.EqualError(t, err, "access token cannot be blank")
+	assert.True(t, errors.Is(err, apperrors.AccessTokenBlank()))
 }
 
 func TestApplicationFormURLEncodedHeaders_NoInputs(t *testing.T) {

@@ -21,6 +21,8 @@ var (
 	ErrUnauthorized     = errors.New("unauthorized")
 	ErrConfigMissing    = errors.New("configuration missing")
 	ErrDeploymentFailed = errors.New("deployment failed")
+	ErrAccessTokenBlank = errors.New("access token cannot be blank")
+	ErrTenantNameBlank  = errors.New("tenant name cannot be blank")
 )
 
 // ==================== Generic Error Helpers ====================
@@ -60,6 +62,14 @@ func LoggerNil() error {
 
 func RequiredParameterMissing(param string) error {
 	return fmt.Errorf("%w: %s parameter required", ErrInvalidInput, param)
+}
+
+func AccessTokenBlank() error {
+	return ErrAccessTokenBlank
+}
+
+func TenantNameBlank() error {
+	return ErrTenantNameBlank
 }
 
 // ==================== HTTP Errors ====================

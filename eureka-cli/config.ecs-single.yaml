@@ -91,7 +91,13 @@ users:
     first-name: Doe
     roles: ["university_admin_role"]
 sidecar-module:
-  image: folio-module-sidecar
+  # Must build locally for your OS and CPU
+  image: folio-module-sidecar-native
+  version: latest
+  custom-namespace: true
+  native-binary-cmd: [
+    "./application", "-Dquarkus.http.host=0.0.0.0", "-Dquarkus.log.category.'org.apache.kafka'.level=INFO"
+  ]
   environment:
     # Kafka
     ENV: folio
@@ -116,12 +122,10 @@ sidecar-module:
     ROOT_LOG_LEVEL: INFO
     REQUEST_TIMEOUT: 604800000
     ALLOW_CROSS_TENANT_REQUESTS: "true"
-    # Java
-    JAVA_OPTIONS: >-
-      -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
-      -XX:+UseZGC -XX:MaxRAMPercentage=80.0 -Xms64m -Xmx64m
-      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=INFO -Dquarkus.log.category.'org.apache.kafka'.level=INFO 
-      -Djava.util.logging.manager=org.jboss.logmanager.LogManager
+  resources:
+    cpus: 1
+    memory-reservation: 20
+    memory: 80
 backend-modules:
   mgr-applications:
     port: 9901
@@ -166,13 +170,13 @@ backend-modules:
       KONG_READ_TIMEOUT: "941241418"
       KONG_WRITE_TIMEOUT: "941241418"
       FLOW_ENGINE_THREADS_NUM: "4"
-      FLOW_ENGINE_MODULE_INSTALLER_THREADS: "2"
+      FLOW_ENGINE_MODULE_INSTALLER_THREADS: "4"
       RETRIES_MODULE_MAX: "10"
       KAFKA_ENTITLEMENT_TOPIC_PARTITIONS: "1"
       KAFKA_SCHEDULED_JOB_TOPIC_PARTITIONS: "1"
       KAFKA_CAPABILITY_TOPIC_PARTITIONS: "1"
       KAFKA_SYS_USER_TOPIC_PARTITIONS: "1"
-      KAFKA_PRODUCER_TENANT_COLLECTION: "false"
+      KAFKA_PRODUCER_TENANT_COLLECTION: "true"
       FLOW_ENGINE_PRINT_FLOW_RESULTS: "true"
     resources:
       cpus: 4

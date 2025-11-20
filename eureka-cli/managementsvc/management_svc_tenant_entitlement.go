@@ -28,7 +28,11 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 	}
 
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/entitlements?purgeOnRollback=true&ignoreErrors=false&async=false&tenantParameters=%s", tenantParameters))
-	headers := helpers.SecureOkapiApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	headers, err := helpers.SecureOkapiApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return err
+	}
+
 	for _, value := range tenants {
 		entry := value.(map[string]any)
 		tenantName := entry["name"].(string)
@@ -61,7 +65,11 @@ func (ms *ManagementSvc) RemoveTenantEntitlements(consortiumName string, tenantT
 	}
 
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/entitlements?purge=%t&ignoreErrors=false", purgeSchemas))
-	headers := helpers.SecureOkapiApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	headers, err := helpers.SecureOkapiApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return err
+	}
+
 	for _, value := range tenants {
 		entry := value.(map[string]any)
 		tenantName := entry["name"].(string)

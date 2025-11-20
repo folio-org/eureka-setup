@@ -17,7 +17,7 @@ import (
 
 // KafkaProcessor defines the interface for Kafka service operations
 type KafkaProcessor interface {
-	CheckBrokenReadiness() error
+	CheckBrokerReadiness() error
 	PollConsumerGroup(tenantName string) error
 }
 
@@ -40,7 +40,7 @@ func New(action *action.Action, execSvc execsvc.CommandRunner) *KafkaSvc {
 	}
 }
 
-func (ks *KafkaSvc) CheckBrokenReadiness() error {
+func (ks *KafkaSvc) CheckBrokerReadiness() error {
 	kafkaCmd := fmt.Sprintf("timeout 30s kafka-broker-api-versions.sh --bootstrap-server %s", constant.KafkaTCP)
 	stdout, stderr, err := ks.ExecSvc.ExecReturnOutput(exec.Command("docker", "exec", "-i", "kafka-tools", "bash", "-c", kafkaCmd))
 	if err != nil || stderr.Len() > 0 {
@@ -56,7 +56,7 @@ func (ks *KafkaSvc) CheckBrokenReadiness() error {
 
 func (ks *KafkaSvc) PollConsumerGroup(tenantName string) error {
 	slog.Info(ks.Action.Name, "text", "Preparing broker readiness check")
-	if err := ks.CheckBrokenReadiness(); err != nil {
+	if err := ks.CheckBrokerReadiness(); err != nil {
 		slog.Warn(ks.Action.Name, "text", "Broker is not fully ready", "error", err)
 	}
 
@@ -117,7 +117,7 @@ func (ks *KafkaSvc) getConsumerGroupLag(tenant string, consumerGroup string, ini
 			return initialLag, nil
 		}
 
-		return 0, errors.ContainerCommandFailed(stderrText)
+		return initialLag, errors.ContainerCommandFailed(stderrText)
 	}
 
 	lag, err = strconv.Atoi(helpers.GetKafkaConsumerLagFromLogLine(stdout))

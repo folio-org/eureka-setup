@@ -99,9 +99,13 @@ Available flags:
 | Long                    | Short | Description                                      | Command(s)                             |
 |-------------------------|-------|------------------------------------------------- |----------------------------------------|
 | `--all`                 | `-a`  | All modules for all profiles                     | listModules                            |
+| `--apps`                |       | Application names                                | purgeTenants                           |
 | `--defaultGateway`      | `-g`  | Use default gateway in URLs                      | interceptModule                        |
 | `--enableEcsRequests`   |       | Enable ECS requests                              | deployUi, buildAndPushUi               |
+| `--gatewayHostname`     |       | Gateway Hostname                                 | createPortProxy                        |
+| `--gatewayURL`          |       | Gateway URL                                      | purgeTenants                           |
 | `--id`                  | `-i`  | Module ID (e.g. mod-orders:13.1.0-SNAPSHOT.1021) | listModuleVersions                     |
+| `--ids`                 |       | Tenant ids                                       | purgeTenants                           |
 | `--length`              | `-l`  | Salt length for edge API key                     | getEdgeApiKey                          |
 | `--moduleName`          | `-n`  | Module name (e.g. mod-orders)                    | interceptModule, listModules,          |
 |                         |       |                                                  | listModuleVersions                     |
@@ -118,10 +122,10 @@ Available flags:
 | `--sidecarUrl`          | `-s`  | Sidecar URL                                      | interceptModule, updateModuleDiscovery |
 | `--singleTenant`        |       | Use for Single Tenant workflow                   | deployUi, buildAndPushUi               |
 | `--skipCapabilitySets`  |       | Skip refreshing capability sets                  | undeployApplication                    |
-| `--tenant`              | `-t`  | Tenant name                                      | getKeycloakAccessToken, getEdgeApiKey, |
-|                         |       |                                                  | buildAndPushUi                         |
 | `--skipRegistry`        |       | Skip retrieving latest registry module versions  | interceptModules, deployApplication,   |
 |                         |       |                                                  | deployManagement, deployModules        |
+| `--tenant`              | `-t`  | Tenant name                                      | getKeycloakAccessToken, getEdgeApiKey, |
+|                         |       |                                                  | buildAndPushUi                         |
 | `--updateCloned`        | `-u`  | Update Git cloned projects                       | buildSystem, deployApplication,        |
 |                         |       |                                                  | deployUi, buildAndPushUi               |
 | `--user`                | `-x`  | User for edge API key generation                 | getEdgeApiKey                          |

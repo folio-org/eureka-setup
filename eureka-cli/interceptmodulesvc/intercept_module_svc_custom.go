@@ -27,12 +27,12 @@ func (is *InterceptModuleSvc) DeployCustomSidecarForInterception(pair *ModulePai
 
 func (is *InterceptModuleSvc) prepareSidecarNetwork() error {
 	slog.Info(is.Action.Name, "text", "PREPARING SIDECAR NETWORK")
-	moduleServerPort, err := helpers.ExtractPortFromURL(is.pair.ModuleURL)
+	moduleServerPort, err := helpers.GetPortFromURL(is.pair.ModuleURL)
 	if err != nil {
 		return err
 	}
 
-	sidecarServerPort, err := helpers.ExtractPortFromURL(is.pair.SidecarURL)
+	sidecarServerPort, err := helpers.GetPortFromURL(is.pair.SidecarURL)
 	if err != nil {
 		return err
 	}

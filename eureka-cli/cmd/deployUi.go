@@ -54,7 +54,7 @@ func (run *Run) DeployUi(consortiumName string, tenantType constant.TenantType) 
 				return err
 			}
 
-			externalPort, err := helpers.ExtractPortFromURL(params.PlatformCompleteURL)
+			externalPort, err := helpers.GetPortFromURL(params.PlatformCompleteURL)
 			if err != nil {
 				return err
 			}

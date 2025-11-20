@@ -882,3 +882,233 @@ func TestGetModules_UseRemoteTrue_CreatesLocalFile(t *testing.T) {
 		}
 	})
 }
+
+// Tests for getSidecarName
+
+func TestGetSidecarName_StandardModule(t *testing.T) {
+	t.Run("TestGetSidecarName_StandardModule", func(t *testing.T) {
+		// Arrange
+		mockHTTP := &testhelpers.MockHTTPClient{}
+		mockAWS := &MockAWSSvc{}
+		action := testhelpers.NewMockAction()
+		svc := registrysvc.New(action, mockHTTP, mockAWS)
+
+		module := &models.ProxyModule{
+			ID: "mod-inventory-1.0.0",
+		}
+
+		// Act
+		svc.ExtractModuleMetadata(&models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{module},
+		})
+
+		// Assert - verify sidecar name follows standard pattern
+		assert.Equal(t, "mod-inventory-sc", module.Metadata.SidecarName)
+		assert.Equal(t, "mod-inventory", module.Metadata.Name)
+	})
+}
+
+func TestGetSidecarName_EdgeModule(t *testing.T) {
+	t.Run("TestGetSidecarName_EdgeModule", func(t *testing.T) {
+		// Arrange
+		mockHTTP := &testhelpers.MockHTTPClient{}
+		mockAWS := &MockAWSSvc{}
+		action := testhelpers.NewMockAction()
+		svc := registrysvc.New(action, mockHTTP, mockAWS)
+
+		module := &models.ProxyModule{
+			ID: "edge-patron-1.0.0",
+		}
+
+		// Act
+		svc.ExtractModuleMetadata(&models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{module},
+		})
+
+		// Assert - edge modules should use name as sidecar name (no -sc suffix)
+		assert.Equal(t, "edge-patron", module.Metadata.SidecarName)
+		assert.Equal(t, "edge-patron", module.Metadata.Name)
+	})
+}
+
+func TestGetSidecarName_EdgeOaiPmhModule(t *testing.T) {
+	t.Run("TestGetSidecarName_EdgeOaiPmhModule", func(t *testing.T) {
+		// Arrange
+		mockHTTP := &testhelpers.MockHTTPClient{}
+		mockAWS := &MockAWSSvc{}
+		action := testhelpers.NewMockAction()
+		svc := registrysvc.New(action, mockHTTP, mockAWS)
+
+		module := &models.ProxyModule{
+			ID: "edge-oai-pmh-2.0.0",
+		}
+
+		// Act
+		svc.ExtractModuleMetadata(&models.ProxyModulesByRegistry{
+			EurekaModules: []*models.ProxyModule{module},
+		})
+
+		// Assert - edge module should use name without -sc suffix
+		assert.Equal(t, "edge-oai-pmh", module.Metadata.SidecarName)
+		assert.Equal(t, "edge-oai-pmh", module.Metadata.Name)
+	})
+}
+
+func TestGetSidecarName_EdgeRtacModule(t *testing.T) {
+	t.Run("TestGetSidecarName_EdgeRtacModule", func(t *testing.T) {
+		// Arrange
+		mockHTTP := &testhelpers.MockHTTPClient{}
+		mockAWS := &MockAWSSvc{}
+		action := testhelpers.NewMockAction()
+		svc := registrysvc.New(action, mockHTTP, mockAWS)
+
+		module := &models.ProxyModule{
+			ID: "edge-rtac-1.5.0",
+		}
+
+		// Act
+		svc.ExtractModuleMetadata(&models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{module},
+		})
+
+		// Assert - edge module should use name without -sc suffix
+		assert.Equal(t, "edge-rtac", module.Metadata.SidecarName)
+		assert.Equal(t, "edge-rtac", module.Metadata.Name)
+	})
+}
+
+func TestGetSidecarName_NonEdgeModuleContainingEdge(t *testing.T) {
+	t.Run("TestGetSidecarName_NonEdgeModuleContainingEdge", func(t *testing.T) {
+		// Arrange
+		mockHTTP := &testhelpers.MockHTTPClient{}
+		mockAWS := &MockAWSSvc{}
+		action := testhelpers.NewMockAction()
+		svc := registrysvc.New(action, mockHTTP, mockAWS)
+
+		module := &models.ProxyModule{
+			ID: "mod-knowledge-1.0.0",
+		}
+
+		// Act
+		svc.ExtractModuleMetadata(&models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{module},
+		})
+
+		// Assert - should use standard sidecar naming (contains 'edge' but doesn't start with 'edge')
+		assert.Equal(t, "mod-knowledge-sc", module.Metadata.SidecarName)
+		assert.Equal(t, "mod-knowledge", module.Metadata.Name)
+	})
+}
+
+func TestGetSidecarName_MultipleEdgeModules(t *testing.T) {
+	t.Run("TestGetSidecarName_MultipleEdgeModules", func(t *testing.T) {
+		// Arrange
+		mockHTTP := &testhelpers.MockHTTPClient{}
+		mockAWS := &MockAWSSvc{}
+		action := testhelpers.NewMockAction()
+		svc := registrysvc.New(action, mockHTTP, mockAWS)
+
+		modules := &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
+				{ID: "edge-patron-1.0.0"},
+				{ID: "edge-orders-2.0.0"},
+				{ID: "mod-users-3.0.0"},
+			},
+		}
+
+		// Act
+		svc.ExtractModuleMetadata(modules)
+
+		// Assert - verify all edge modules use name without -sc, non-edge use -sc
+		assert.Equal(t, "edge-patron", modules.FolioModules[0].Metadata.SidecarName)
+		assert.Equal(t, "edge-orders", modules.FolioModules[1].Metadata.SidecarName)
+		assert.Equal(t, "mod-users-sc", modules.FolioModules[2].Metadata.SidecarName)
+	})
+}
+
+func TestGetModules_UseRemoteFalse_InvalidJSON(t *testing.T) {
+	t.Run("TestGetModules_UseRemoteFalse_InvalidJSON", func(t *testing.T) {
+		// Arrange
+		mockHTTP := &testhelpers.MockHTTPClient{}
+		mockAWS := &MockAWSSvc{}
+		action := testhelpers.NewMockAction()
+		svc := registrysvc.New(action, mockHTTP, mockAWS)
+
+		// Create temp directory with invalid JSON file
+		tmpDir := t.TempDir()
+		eurekaDir := filepath.Join(tmpDir, ".eureka")
+		err := os.MkdirAll(eurekaDir, 0755)
+		assert.NoError(t, err)
+
+		// Write invalid JSON to file
+		invalidJSON := []byte(`{"invalid": json}`)
+		err = os.WriteFile(filepath.Join(eurekaDir, "install_folio.json"), invalidJSON, 0600)
+		assert.NoError(t, err)
+
+		t.Setenv("HOME", tmpDir)
+		t.Setenv("USERPROFILE", tmpDir)
+
+		installJsonURLs := map[string]string{
+			constant.FolioRegistry: "http://folio.example.com/install.json",
+		}
+
+		// Act - useRemote=false with invalid JSON file
+		result, err := svc.GetModules(installJsonURLs, false, false)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		mockHTTP.AssertNotCalled(t, "GetRetryReturnStruct")
+	})
+}
+
+func TestGetModules_UseRemoteTrue_WriteFileError(t *testing.T) {
+	t.Run("TestGetModules_UseRemoteTrue_WriteFileError", func(t *testing.T) {
+		// Arrange
+		mockHTTP := &testhelpers.MockHTTPClient{}
+		mockAWS := &MockAWSSvc{}
+		action := testhelpers.NewMockAction()
+		svc := registrysvc.New(action, mockHTTP, mockAWS)
+
+		// Set to a directory path where the install file path is actually a directory
+		tmpDir := t.TempDir()
+		eurekaDir := filepath.Join(tmpDir, ".eureka")
+		err := os.MkdirAll(eurekaDir, 0755)
+		assert.NoError(t, err)
+
+		// Create a directory with the name of the file we want to write
+		// This will cause WriteJSONToFile to fail
+		installFileDir := filepath.Join(eurekaDir, "install_folio.json")
+		err = os.MkdirAll(installFileDir, 0755)
+		assert.NoError(t, err)
+
+		t.Setenv("HOME", tmpDir)
+		t.Setenv("USERPROFILE", tmpDir)
+
+		installJsonURLs := map[string]string{
+			constant.FolioRegistry: "http://folio.example.com/install.json",
+		}
+
+		folioModules := []*models.ProxyModule{
+			{ID: "mod-test-1.0.0", Action: "enable"},
+		}
+
+		mockHTTP.On("GetRetryReturnStruct",
+			"http://folio.example.com/install.json",
+			mock.Anything,
+			mock.AnythingOfType("*[]*models.ProxyModule")).
+			Run(func(args mock.Arguments) {
+				arg := args.Get(2).(*[]*models.ProxyModule)
+				*arg = folioModules
+			}).
+			Return(nil)
+
+		// Act - useRemote=true but can't write file (path is a directory)
+		result, err := svc.GetModules(installJsonURLs, true, false)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		mockHTTP.AssertExpectations(t)
+	})
+}

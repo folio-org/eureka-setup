@@ -522,3 +522,85 @@ func TestGetCombinedRegistryURLs(t *testing.T) {
 		assert.Equal(t, "https://registry.test.com", result[constant.EurekaRegistry])
 	})
 }
+
+// ==================== Kafka Topic Config Tests ====================
+
+func TestGetKafkaTopicConfigTenant(t *testing.T) {
+	t.Run("TestGetKafkaTopicConfigTenant_ReturnsConfigTenant_WhenTopicSharingDisabled", func(t *testing.T) {
+		// Arrange
+		act := &action.Action{
+			ConfigManagementTopicSharing: false,
+			ConfigTopicSharingTenant:     "shared-tenant",
+		}
+		configTenant := "diku"
+
+		// Act
+		result := act.GetKafkaTopicConfigTenant(configTenant)
+
+		// Assert
+		assert.Equal(t, "diku", result)
+	})
+
+	t.Run("TestGetKafkaTopicConfigTenant_ReturnsSharedTenant_WhenTopicSharingEnabled", func(t *testing.T) {
+		// Arrange
+		act := &action.Action{
+			ConfigManagementTopicSharing: true,
+			ConfigTopicSharingTenant:     "shared-tenant",
+		}
+		configTenant := "diku"
+
+		// Act
+		result := act.GetKafkaTopicConfigTenant(configTenant)
+
+		// Assert
+		assert.Equal(t, "shared-tenant", result)
+	})
+
+	t.Run("TestGetKafkaTopicConfigTenant_ReturnsSharedTenant_EvenWithEmptyConfigTenant", func(t *testing.T) {
+		// Arrange
+		act := &action.Action{
+			ConfigManagementTopicSharing: true,
+			ConfigTopicSharingTenant:     "global-shared",
+		}
+		configTenant := ""
+
+		// Act
+		result := act.GetKafkaTopicConfigTenant(configTenant)
+
+		// Assert
+		assert.Equal(t, "global-shared", result)
+	})
+
+	t.Run("TestGetKafkaTopicConfigTenant_ReturnsConfigTenant_WhenBothAreEmpty", func(t *testing.T) {
+		// Arrange
+		act := &action.Action{
+			ConfigManagementTopicSharing: false,
+			ConfigTopicSharingTenant:     "",
+		}
+		configTenant := ""
+
+		// Act
+		result := act.GetKafkaTopicConfigTenant(configTenant)
+
+		// Assert
+		assert.Equal(t, "", result)
+	})
+
+	t.Run("TestGetKafkaTopicConfigTenant_HandlesMultipleTenants", func(t *testing.T) {
+		// Arrange
+		act := &action.Action{
+			ConfigManagementTopicSharing: true,
+			ConfigTopicSharingTenant:     "central",
+		}
+
+		// Act
+		result1 := act.GetKafkaTopicConfigTenant("tenant1")
+		result2 := act.GetKafkaTopicConfigTenant("tenant2")
+		result3 := act.GetKafkaTopicConfigTenant("tenant3")
+
+		// Assert - All should return the shared tenant
+		assert.Equal(t, "central", result1)
+		assert.Equal(t, "central", result2)
+		assert.Equal(t, "central", result3)
+	})
+}

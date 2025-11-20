@@ -151,10 +151,11 @@ const (
 	SingleUiContainerPattern              = "eureka-platform-complete-ui-%s"
 
 	// Other regexp patterns
+	VaultRootTokenPattern = "init.sh: Root VAULT TOKEN is:"
 	ColonDelimitedPattern = ".*:"
 	ModuleIDPattern       = `^([a-z_-]+)([\d_.-]+)([-\w.]+)$`
-	VaultRootTokenPattern = "init.sh: Root VAULT TOKEN is:"
 	NewLinePattern        = `[\r\n\s-]+`
+	ProtocolPattern       = `^[a-zA-Z]+://`
 
 	// System containers name
 	PostgreSQLContainer    = "postgres"
@@ -169,9 +170,13 @@ const (
 	CreateBucketsContainer = "createbuckets"
 	FTPServerContainer     = "ftp-server"
 
-	// Keycloak credentials
-	KeycloakAdminUsername = "admin"
-	KeycloakAdminPassword = "admin"
+	// Keycloak properties
+	KeycloakAdminClient                    = "admin-cli"
+	KeycloakAdminUsername                  = "admin"
+	KeycloakAdminPassword                  = "admin"
+	KeycloakMasterRealm                    = "master"
+	KeycloakMasterRealmAccessTokenLifespan = 1800
+	KeycloakTenantRealmAccessTokenLifespan = 900
 
 	// System container ports
 	KongPort        = "8000"

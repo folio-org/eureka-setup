@@ -44,7 +44,10 @@ func New(action *action.Action, httpClient httpclient.HTTPClientRunner, tenantSv
 
 func (ms *ManagementSvc) GetApplications() (models.ApplicationsResponse, error) {
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, "/applications")
-	headers := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return models.ApplicationsResponse{}, err
+	}
 
 	var decodedResponse models.ApplicationsResponse
 	if err := ms.HTTPClient.GetReturnStruct(requestURL, headers, &decodedResponse); err != nil {
@@ -67,7 +70,11 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryExtract) err
 		dependencies = ms.Action.ConfigApplicationDependencies
 	}
 
-	headers := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return err
+	}
+
 	allModules := [][]*models.ProxyModule{extract.Modules.FolioModules, extract.Modules.EurekaModules}
 	for _, modules := range allModules {
 		for _, module := range modules {
@@ -210,7 +217,10 @@ func (ms *ManagementSvc) FetchModuleDescriptor(extract *models.RegistryExtract, 
 
 func (ms *ManagementSvc) RemoveApplication(applicationID string) error {
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/applications/%s", applicationID))
-	headers := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return err
+	}
 
 	var decodedResponse models.ApplicationDescriptor
 	if err := ms.HTTPClient.DeleteReturnStruct(requestURL, headers, &decodedResponse); err != nil {
@@ -223,7 +233,10 @@ func (ms *ManagementSvc) RemoveApplication(applicationID string) error {
 
 func (ms *ManagementSvc) GetModuleDiscovery(name string) (models.ModuleDiscoveryResponse, error) {
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/modules/discovery?query=name==%s&limit=1", name))
-	headers := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return models.ModuleDiscoveryResponse{}, err
+	}
 
 	var decodedResponse models.ModuleDiscoveryResponse
 	if err := ms.HTTPClient.GetReturnStruct(requestURL, headers, &decodedResponse); err != nil {
@@ -254,7 +267,10 @@ func (ms *ManagementSvc) UpdateModuleDiscovery(id string, restore bool, privateP
 		return err
 	}
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/modules/%s/discovery", id))
-	headers := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return err
+	}
 
 	var moduleDiscovery models.ModuleDiscovery
 	if err := ms.HTTPClient.PutReturnStruct(requestURL, payload, headers, &moduleDiscovery); err != nil {

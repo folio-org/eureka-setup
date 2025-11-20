@@ -1,4 +1,4 @@
-name: Build UI
+name: Build And Push UI
 
 on:
   schedule:
@@ -39,7 +39,7 @@ on:
 
 jobs:
   build-ui:
-    name: Build And Push UI Command
+    name: Build And Push UI
     runs-on: ubuntu-latest
     env:
       DEPLOYMENT_PROFILE: ${{ inputs.profile || 'combined' }}

@@ -29,7 +29,7 @@ type KeycloakProcessor interface {
 type KeycloakAdminManager interface {
 	GetAccessToken(tenantName string) (string, error)
 	GetMasterAccessToken(grantType constant.KeycloakGrantType) (string, error)
-	UpdateRealmAccessTokenSettings(lifespan int) error
+	UpdateRealmAccessTokenSettings(tenantName string, lifespan int) error
 	UpdatePublicClientSettings(tenantName string, url string) error
 }
 
@@ -86,19 +86,16 @@ func (ks *KeycloakSvc) GetAccessToken(tenantName string) (string, error) {
 	return tokenData["access_token"].(string), nil
 }
 
-// TODO Add new tests
 func (ks *KeycloakSvc) GetMasterAccessToken(grantType constant.KeycloakGrantType) (string, error) {
 	formData := url.Values{}
 	switch grantType {
 	case constant.ClientCredentials:
-		// TODO Extract literals to constant package
 		formData.Set("grant_type", constant.ClientCredentials)
-		formData.Set("client_id", "folio-backend-admin-client")
-		formData.Set("client_secret", "supersecret")
+		formData.Set("client_id", action.GetConfigEnv("KC_ADMIN_CLIENT_ID", ks.Action.ConfigGlobalEnv))
+		formData.Set("client_secret", action.GetConfigEnv("KC_ADMIN_CLIENT_SECRET", ks.Action.ConfigGlobalEnv))
 	case constant.Password:
-		// TODO Extract literals to constant package
 		formData.Set("grant_type", constant.Password)
-		formData.Set("client_id", "admin-cli")
+		formData.Set("client_id", constant.KeycloakAdminClient)
 		formData.Set("username", constant.KeycloakAdminUsername)
 		formData.Set("password", constant.KeycloakAdminPassword)
 	}
@@ -116,8 +113,7 @@ func (ks *KeycloakSvc) GetMasterAccessToken(grantType constant.KeycloakGrantType
 	return tokenData["access_token"].(string), nil
 }
 
-// TODO Add tests
-func (ks *KeycloakSvc) UpdateRealmAccessTokenSettings(lifespan int) error {
+func (ks *KeycloakSvc) UpdateRealmAccessTokenSettings(tenantName string, lifespan int) error {
 	payload, err := json.Marshal(map[string]any{
 		"accessTokenLifespan": lifespan,
 	})
@@ -125,12 +121,15 @@ func (ks *KeycloakSvc) UpdateRealmAccessTokenSettings(lifespan int) error {
 		return err
 	}
 
-	requestURL := fmt.Sprintf("%s/admin/realms/master", constant.KeycloakHTTP)
-	headers := helpers.SecureApplicationJSONHeaders(ks.Action.KeycloakMasterAccessToken)
+	requestURL := fmt.Sprintf("%s/admin/realms/%s", constant.KeycloakHTTP, tenantName)
+	headers, err := helpers.SecureApplicationJSONHeaders(ks.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return err
+	}
 	if err := ks.HTTPClient.PutReturnNoContent(requestURL, payload, headers); err != nil {
 		return err
 	}
-	slog.Info(ks.Action.Name, "text", "Updated keycloak realm settings", "accessTokenLifespan", lifespan)
+	slog.Info(ks.Action.Name, "text", "Updated keycloak realm settings", "realm", tenantName, "accessTokenLifespan", lifespan)
 
 	return nil
 }
@@ -138,7 +137,10 @@ func (ks *KeycloakSvc) UpdateRealmAccessTokenSettings(lifespan int) error {
 func (ks *KeycloakSvc) UpdatePublicClientSettings(tenantName string, url string) error {
 	clientID := fmt.Sprintf("%s%s", tenantName, action.GetConfigEnv("KC_LOGIN_CLIENT_SUFFIX", ks.Action.ConfigGlobalEnv))
 	getRequestURL := fmt.Sprintf("%s/admin/realms/%s/clients?clientId=%s", constant.KeycloakHTTP, tenantName, clientID)
-	headers := helpers.SecureApplicationJSONHeaders(ks.Action.KeycloakMasterAccessToken)
+	headers, err := helpers.SecureApplicationJSONHeaders(ks.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return err
+	}
 
 	var decodedResponse models.KeycloakClientsResponse
 	if err := ks.HTTPClient.GetRetryReturnStruct(getRequestURL, headers, &decodedResponse); err != nil {

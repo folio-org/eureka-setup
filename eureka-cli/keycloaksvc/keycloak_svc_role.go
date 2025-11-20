@@ -73,7 +73,11 @@ func (ks *KeycloakSvc) CreateRoles(configTenant string) error {
 			continue
 		}
 
-		headers := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+		headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+		if err != nil {
+			return err
+		}
+
 		payload, err := json.Marshal(map[string]string{
 			"name":        ks.Action.Caser.String(role),
 			"description": "Default",
@@ -91,7 +95,11 @@ func (ks *KeycloakSvc) CreateRoles(configTenant string) error {
 }
 
 func (ks *KeycloakSvc) RemoveRoles(tenantName string) error {
-	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	if err != nil {
+		return err
+	}
+
 	roles, err := ks.GetRoles(headers)
 	if err != nil {
 		return err

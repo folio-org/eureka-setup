@@ -80,7 +80,11 @@ func (ks *KeycloakSvc) GetCapabilitySetsByName(headers map[string]string, capabi
 }
 
 func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenantName string) error {
-	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	if err != nil {
+		return err
+	}
+
 	roles, err := ks.GetRoles(headers)
 	if err != nil {
 		return err
@@ -168,7 +172,11 @@ func (ks *KeycloakSvc) populateCapabilitySets(headers map[string]string, rolesCa
 }
 
 func (ks *KeycloakSvc) DetachCapabilitySetsFromRoles(tenantName string) error {
-	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	if err != nil {
+		return err
+	}
+
 	roles, err := ks.GetRoles(headers)
 	if err != nil {
 		return err

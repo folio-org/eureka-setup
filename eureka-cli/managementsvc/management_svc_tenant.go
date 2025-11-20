@@ -23,7 +23,10 @@ func (ms *ManagementSvc) GetTenants(consortiumName string, tenantType constant.T
 	if tenantType != constant.All {
 		requestURL += fmt.Sprintf("?query=description==%s-%s", consortiumName, tenantType)
 	}
-	headers := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return nil, err
+	}
 
 	var decodedResponse models.TenantsResponse
 	if err := ms.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
@@ -49,7 +52,10 @@ func (ms *ManagementSvc) GetTenants(consortiumName string, tenantType constant.T
 
 func (ms *ManagementSvc) CreateTenants() error {
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, "/tenants")
-	headers := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return err
+	}
 	for tenantName, properties := range ms.Action.ConfigTenants {
 		entry := properties.(map[string]any)
 		consortiumName := helpers.GetAnyOrDefault(entry, field.TenantsConsortiumEntry, nil)
@@ -89,7 +95,10 @@ func (ms *ManagementSvc) RemoveTenants(consortiumName string, tenantType constan
 		return err
 	}
 
-	headers := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return err
+	}
 	for _, value := range tenants {
 		entry := value.(map[string]any)
 		tenantName := entry["name"].(string)

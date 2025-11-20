@@ -42,19 +42,40 @@ var attachCapabilitySetsCmd = &cobra.Command{
 }
 
 func (run *Run) AttachCapabilitySets(consortiumName string, tenantType constant.TenantType, initialWait time.Duration) error {
+	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.Password); err != nil {
+		return err
+	}
+
 	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
 		if initialWait > 0 {
 			time.Sleep(initialWait)
 		}
+		if err := run.updateRealmAccessTokenSettingsAndRelogin(configTenant); err != nil {
+			return err
+		}
+		topicConfigTenant := run.Config.Action.GetKafkaTopicConfigTenant(configTenant)
 
-		slog.Info(run.Config.Action.Name, "text", "POLLING FOR CAPABILITY SETS CREATION")
-		if err := run.Config.KafkaSvc.PollConsumerGroup(configTenant); err != nil {
+		slog.Info(run.Config.Action.Name, "text", "POLLING FOR CAPABILITY SETS CREATION", "topicConfigTenant", topicConfigTenant)
+		if err := run.Config.KafkaSvc.PollConsumerGroup(topicConfigTenant); err != nil {
 			return err
 		}
 
 		slog.Info(run.Config.Action.Name, "text", "ATTACHING CAPABILITY SETS", "tenant", configTenant)
 		return run.Config.KeycloakSvc.AttachCapabilitySetsToRoles(configTenant)
 	})
+}
+
+func (run *Run) updateRealmAccessTokenSettingsAndRelogin(configTenant string) error {
+	if err := run.Config.KeycloakSvc.UpdateRealmAccessTokenSettings(configTenant, constant.KeycloakTenantRealmAccessTokenLifespan); err != nil {
+		return err
+	}
+	slog.Info(run.Config.Action.Name, "text", "Realm settings have been updated", "realm", configTenant)
+	if err := run.setKeycloakAccessTokenIntoContext(configTenant); err != nil {
+		return err
+	}
+	slog.Info(run.Config.Action.Name, "text", "New access token was set into context", "tenant", configTenant)
+
+	return nil
 }
 
 func init() {

@@ -19,7 +19,10 @@ type KeycloakUserManager interface {
 
 func (ks *KeycloakSvc) GetUsers(tenantName string) ([]any, error) {
 	requestURL := ks.Action.GetRequestURL(constant.KongPort, "/users?offset=0&limit=10000")
-	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	if err != nil {
+		return nil, err
+	}
 
 	var decodedResponse models.KeycloakUsersResponse
 	if err := ks.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
@@ -86,8 +89,10 @@ func (ks *KeycloakSvc) createUser(tenantName string, username string, entry map[
 		return nil, err
 	}
 	requestURL := ks.Action.GetRequestURL(constant.KongPort, "/users-keycloak/users")
-	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
-	// headers := helpers.SecureTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	if err != nil {
+		return nil, err
+	}
 
 	var decodedResponse map[string]any
 	if err := ks.HTTPClient.PostReturnStruct(requestURL, payload, headers, &decodedResponse); err != nil {
@@ -109,7 +114,10 @@ func (ks *KeycloakSvc) attachUserPassword(tenantName, userID, username string, e
 	}
 
 	requestURL := ks.Action.GetRequestURL(constant.KongPort, "/authn/credentials")
-	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	if err != nil {
+		return err
+	}
 	if err := ks.HTTPClient.PostReturnNoContent(requestURL, payload, headers); err != nil {
 		return err
 	}
@@ -120,7 +128,10 @@ func (ks *KeycloakSvc) attachUserPassword(tenantName, userID, username string, e
 
 func (ks *KeycloakSvc) attachUserRoles(tenantName, userID, username string, userRoles []any) error {
 	requestURL := ks.Action.GetRequestURL(constant.KongPort, "/roles/users")
-	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	if err != nil {
+		return err
+	}
 
 	var roleIDs []string
 	for _, userRole := range userRoles {
@@ -158,7 +169,10 @@ func (ks *KeycloakSvc) RemoveUsers(tenantName string) error {
 		return err
 	}
 
-	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	if err != nil {
+		return err
+	}
 	for _, value := range users {
 		entry := value.(map[string]any)
 		username := entry["username"].(string)

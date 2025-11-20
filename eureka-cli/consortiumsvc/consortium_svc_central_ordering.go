@@ -36,7 +36,10 @@ func (cs *ConsortiumSvc) EnableCentralOrdering(centralTenant string) error {
 	}
 
 	requestURL := cs.Action.GetRequestURL(constant.KongPort, "/orders-storage/settings")
-	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
+	if err != nil {
+		return err
+	}
 	if err := cs.HTTPClient.PostReturnNoContent(requestURL, payload, headers); err != nil {
 		return err
 	}
@@ -47,7 +50,10 @@ func (cs *ConsortiumSvc) EnableCentralOrdering(centralTenant string) error {
 
 func (cs *ConsortiumSvc) getEnableCentralOrderingByKey(centralTenant string, key string) (bool, error) {
 	requestURL := cs.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/orders-storage/settings?query=key==%s&limit=1", key))
-	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
+	if err != nil {
+		return false, err
+	}
 
 	var decodedResponse models.SettingsResponse
 	if err := cs.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {

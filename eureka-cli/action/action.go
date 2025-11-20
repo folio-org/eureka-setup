@@ -32,6 +32,8 @@ type Action struct {
 	ConfigEurekaRegistry              string
 	ConfigPortStart                   int
 	ConfigPortEnd                     int
+	ConfigManagementTopicSharing      bool
+	ConfigTopicSharingTenant          string
 	ConfigApplication                 map[string]any
 	ConfigApplicationName             string
 	ConfigApplicationVersion          string
@@ -72,6 +74,8 @@ func New(name string, gatewayURL string, actionParam *Param) *Action {
 		ConfigRegistryURL:                 viper.GetString(field.RegistryURL),
 		ConfigFolioRegistry:               viper.GetString(field.InstallFolio),
 		ConfigEurekaRegistry:              viper.GetString(field.InstallEureka),
+		ConfigManagementTopicSharing:      viper.GetBool(field.BackendModulesManagementTopicSharing),
+		ConfigTopicSharingTenant:          viper.GetString(field.EnvTopicSharingTenant),
 		ConfigApplication:                 viper.GetStringMap(field.Application),
 		ConfigApplicationName:             applicationName,
 		ConfigApplicationVersion:          applicationVersion,
@@ -190,4 +194,12 @@ func GetConfigEnv(key string, env map[string]string) string {
 
 func IsSet(key string) bool {
 	return viper.IsSet(key)
+}
+
+func (a *Action) GetKafkaTopicConfigTenant(configTenant string) string {
+	if a.ConfigManagementTopicSharing {
+		return a.ConfigTopicSharingTenant
+	}
+
+	return configTenant
 }

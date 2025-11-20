@@ -43,7 +43,10 @@ func (cs *ConsortiumSvc) GetSortedConsortiumTenants(consortiumName string) model
 }
 
 func (cs *ConsortiumSvc) CreateConsortiumTenants(centralTenant string, consortiumID string, consortiumTenants models.SortedConsortiumTenants, adminUsername string) error {
-	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
+	if err != nil {
+		return err
+	}
 	for _, consortiumTenant := range consortiumTenants {
 		payload, err := json.Marshal(map[string]any{
 			"id":        consortiumTenant.Name,
@@ -89,7 +92,10 @@ func (cs *ConsortiumSvc) CreateConsortiumTenants(centralTenant string, consortiu
 
 func (cs *ConsortiumSvc) getConsortiumTenantByIDAndName(centralTenant string, consortiumID string, tenant string) (any, error) {
 	requestURL := cs.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/consortia/%s/tenants", consortiumID))
-	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(centralTenant, cs.Action.KeycloakAccessToken)
+	if err != nil {
+		return nil, err
+	}
 
 	var decodedResponse models.ConsortiumTenantsResponse
 	if err := cs.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {

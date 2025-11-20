@@ -31,7 +31,7 @@ func TestGetVaultRootTokenFromLogs_WithWhitespace(t *testing.T) {
 }
 
 func TestGetPortFromURL_ValidURL(t *testing.T) {
-	// Arrange - Pattern ".*:" removes everything up to and including the colon
+	// Arrange
 	url := "http://localhost:8080"
 
 	// Act
@@ -51,6 +51,211 @@ func TestGetPortFromURL_InvalidPort(t *testing.T) {
 
 	// Assert
 	assert.Error(t, err)
+}
+
+func TestGetPortFromURL_WithPath(t *testing.T) {
+	// Arrange
+	url := "http://localhost:8080/api/v1"
+
+	// Act
+	result, err := helpers.GetPortFromURL(url)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, 8080, result)
+}
+
+func TestGetPortFromURL_NoPort(t *testing.T) {
+	// Arrange
+	url := "http://localhost"
+
+	// Act
+	_, err := helpers.GetPortFromURL(url)
+
+	// Assert
+	assert.Error(t, err)
+}
+
+func TestGetPortFromURL_WithoutProtocol(t *testing.T) {
+	// Arrange
+	url := "localhost:9000"
+
+	// Act
+	result, err := helpers.GetPortFromURL(url)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, 9000, result)
+}
+
+func TestGetPortFromURL_WithQueryString(t *testing.T) {
+	// Arrange
+	url := "http://localhost:8080?param=value"
+
+	// Act
+	result, err := helpers.GetPortFromURL(url)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, 8080, result)
+}
+
+func TestGetPortFromURL_PurePortNumber(t *testing.T) {
+	// Arrange
+	url := "30300"
+
+	// Act
+	result, err := helpers.GetPortFromURL(url)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, 30300, result)
+}
+
+func TestGetPortFromURL_ColonPrefixedPort(t *testing.T) {
+	// Arrange
+	url := ":30300"
+
+	// Act
+	result, err := helpers.GetPortFromURL(url)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, 30300, result)
+}
+
+func TestGetPortFromURL_PurePortNumberWithWhitespace(t *testing.T) {
+	// Arrange
+	url := "  8081  "
+
+	// Act
+	result, err := helpers.GetPortFromURL(url)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, 8081, result)
+}
+
+func TestGetPortFromURL_ColonPrefixedPortWithPath(t *testing.T) {
+	// Arrange
+	url := ":9000/api/health"
+
+	// Act
+	result, err := helpers.GetPortFromURL(url)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, 9000, result)
+}
+
+func TestGetPortFromURL_InvalidPurePort(t *testing.T) {
+	// Arrange
+	url := "invalid"
+
+	// Act
+	_, err := helpers.GetPortFromURL(url)
+
+	// Assert
+	assert.Error(t, err)
+}
+
+func TestGetHostnameFromURL_WithHTTPProtocol(t *testing.T) {
+	// Arrange
+	url := "http://host.docker.internal:8081"
+
+	// Act
+	result := helpers.GetHostnameFromURL(url)
+
+	// Assert
+	assert.Equal(t, "host.docker.internal", result)
+}
+
+func TestGetHostnameFromURL_WithHTTPSProtocol(t *testing.T) {
+	// Arrange
+	url := "https://example.com:443"
+
+	// Act
+	result := helpers.GetHostnameFromURL(url)
+
+	// Assert
+	assert.Equal(t, "example.com", result)
+}
+
+func TestGetHostnameFromURL_WithoutProtocol(t *testing.T) {
+	// Arrange
+	url := "localhost:9000"
+
+	// Act
+	result := helpers.GetHostnameFromURL(url)
+
+	// Assert
+	assert.Equal(t, "localhost", result)
+}
+
+func TestGetHostnameFromURL_IPAddress(t *testing.T) {
+	// Arrange
+	url := "192.168.1.1:8080"
+
+	// Act
+	result := helpers.GetHostnameFromURL(url)
+
+	// Assert
+	assert.Equal(t, "192.168.1.1", result)
+}
+
+func TestGetHostnameFromURL_IPAddressWithoutPort(t *testing.T) {
+	// Arrange
+	url := "192.168.1.1"
+
+	// Act
+	result := helpers.GetHostnameFromURL(url)
+
+	// Assert
+	assert.Equal(t, "192.168.1.1", result)
+}
+
+func TestGetHostnameFromURL_HostnameOnly(t *testing.T) {
+	// Arrange
+	url := "host.docker.internal"
+
+	// Act
+	result := helpers.GetHostnameFromURL(url)
+
+	// Assert
+	assert.Equal(t, "host.docker.internal", result)
+}
+
+func TestGetHostnameFromURL_WithPath(t *testing.T) {
+	// Arrange
+	url := "http://example.com:8080/api/v1"
+
+	// Act
+	result := helpers.GetHostnameFromURL(url)
+
+	// Assert
+	assert.Equal(t, "example.com", result)
+}
+
+func TestGetHostnameFromURL_WithQueryString(t *testing.T) {
+	// Arrange
+	url := "http://example.com/api?param=value"
+
+	// Act
+	result := helpers.GetHostnameFromURL(url)
+
+	// Assert
+	assert.Equal(t, "example.com", result)
+}
+
+func TestGetHostnameFromURL_WithFragment(t *testing.T) {
+	// Arrange
+	url := "http://example.com#section"
+
+	// Act
+	result := helpers.GetHostnameFromURL(url)
+
+	// Assert
+	assert.Equal(t, "example.com", result)
 }
 
 func TestGetModuleNameFromID_StandardModule(t *testing.T) {
@@ -144,15 +349,15 @@ func TestGetModuleVersionFromID_NoVersion(t *testing.T) {
 }
 
 func TestGetKafkaConsumerLagFromLogLine_WithNewlines(t *testing.T) {
-	// Arrange - Pattern `[\r\n\s-]+` removes newlines, spaces, and dashes
+	// Arrange
 	var stdout bytes.Buffer
-	stdout.WriteString("Consumer lag: 100\nAnother line\n")
+	stdout.WriteString("100\n50\n")
 
 	// Act
 	result := helpers.GetKafkaConsumerLagFromLogLine(stdout)
 
 	// Assert
-	assert.Equal(t, "Consumerlag:100Anotherline", result)
+	assert.Equal(t, "150", result)
 }
 
 func TestGetKafkaConsumerLagFromLogLine_EmptyBuffer(t *testing.T) {
@@ -163,7 +368,55 @@ func TestGetKafkaConsumerLagFromLogLine_EmptyBuffer(t *testing.T) {
 	result := helpers.GetKafkaConsumerLagFromLogLine(stdout)
 
 	// Assert
-	assert.Equal(t, "", result)
+	assert.Equal(t, "0", result)
+}
+
+func TestGetKafkaConsumerLagFromLogLine_WithDashes(t *testing.T) {
+	// Arrange - Dashes should be treated as 0
+	var stdout bytes.Buffer
+	stdout.WriteString("-\n0")
+
+	// Act
+	result := helpers.GetKafkaConsumerLagFromLogLine(stdout)
+
+	// Assert
+	assert.Equal(t, "0", result)
+}
+
+func TestGetKafkaConsumerLagFromLogLine_MixedValues(t *testing.T) {
+	// Arrange
+	var stdout bytes.Buffer
+	stdout.WriteString("-\n100\n-\n50\n25")
+
+	// Act
+	result := helpers.GetKafkaConsumerLagFromLogLine(stdout)
+
+	// Assert
+	assert.Equal(t, "175", result)
+}
+
+func TestGetKafkaConsumerLagFromLogLine_SingleValue(t *testing.T) {
+	// Arrange
+	var stdout bytes.Buffer
+	stdout.WriteString("42")
+
+	// Act
+	result := helpers.GetKafkaConsumerLagFromLogLine(stdout)
+
+	// Assert
+	assert.Equal(t, "42", result)
+}
+
+func TestGetKafkaConsumerLagFromLogLine_AllDashes(t *testing.T) {
+	// Arrange
+	var stdout bytes.Buffer
+	stdout.WriteString("-\n-\n-")
+
+	// Act
+	result := helpers.GetKafkaConsumerLagFromLogLine(stdout)
+
+	// Assert
+	assert.Equal(t, "0", result)
 }
 
 func TestMatchesModuleName_Matching(t *testing.T) {

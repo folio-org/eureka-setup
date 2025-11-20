@@ -31,7 +31,11 @@ func New(action *action.Action, httpClient httpclient.HTTPClientRunner) *SearchS
 
 func (ss *SearchSvc) ReindexInventoryRecords(tenantName string) error {
 	requestURL := ss.Action.GetRequestURL(constant.KongPort, "/search/index/inventory/reindex")
-	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ss.Action.KeycloakAccessToken)
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ss.Action.KeycloakAccessToken)
+	if err != nil {
+		return err
+	}
+
 	inventoryRecords := []string{"authority", "location", "linked-data-instance", "linked-data-work", "linked-data-hub"}
 	for _, record := range inventoryRecords {
 		payload, err := json.Marshal(map[string]any{
@@ -80,7 +84,10 @@ func (ss *SearchSvc) ReindexInstanceRecords(tenantName string) error {
 	}
 
 	requestURL := ss.Action.GetRequestURL(constant.KongPort, "/search/index/instance-records/reindex/full")
-	headers := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ss.Action.KeycloakAccessToken)
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ss.Action.KeycloakAccessToken)
+	if err != nil {
+		return err
+	}
 	if err := ss.HTTPClient.PostReturnNoContent(requestURL, payload, headers); err != nil {
 		return err
 	}
