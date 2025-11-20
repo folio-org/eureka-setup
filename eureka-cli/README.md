@@ -1,5 +1,41 @@
 # Eureka CLI
 
+## Table of Contents
+
+- [Eureka CLI](#eureka-cli)
+  - [Table of Contents](#table-of-contents)
+  - [Purpose](#purpose)
+  - [Prerequisites](#prerequisites)
+  - [Monitor system components](#monitor-system-components)
+  - [Commands](#commands)
+    - [Build a binary](#build-a-binary)
+    - [(Optional) Install binary](#optional-install-binary)
+    - [(Optional) Enable autocompletion](#optional-enable-autocompletion)
+    - [Deploy the _combined_ application](#deploy-the-combined-application)
+    - [Undeploy the _combined_ application](#undeploy-the-combined-application)
+    - [Deploy the _combined_ application from AWS ECR](#deploy-the-combined-application-from-aws-ecr)
+    - [Deploy the _ecs_ application](#deploy-the-ecs-application)
+    - [Undeploy the _ecs_ application](#undeploy-the-ecs-application)
+    - [Deploy the _ecs-single_ application](#deploy-the-ecs-single-application)
+    - [Undeploy the _ecs-single_ application](#undeploy-the-ecs-single-application)
+    - [Deploy the import application](#deploy-the-import-application)
+    - [Undeploy the import application](#undeploy-the-import-application)
+    - [Deploy child applications](#deploy-child-applications)
+      - [Deploy the export application](#deploy-the-export-application)
+      - [Deploy the search application](#deploy-the-search-application)
+      - [Deploy the edge application](#deploy-the-edge-application)
+    - [Undeploy child applications](#undeploy-child-applications)
+    - [Other commands](#other-commands)
+  - [Using a custom folio-module-sidecar](#using-a-custom-folio-module-sidecar)
+  - [Using a native folio-module-sidecar](#using-a-native-folio-module-sidecar)
+  - [Using local backend module images](#using-local-backend-module-images)
+  - [Using local frontend module descriptors](#using-local-frontend-module-descriptors)
+  - [Using the UI](#using-the-ui)
+  - [Using the environment](#using-the-environment)
+  - [Troubleshooting](#troubleshooting)
+    - [General](#general)
+    - [Command-based](#command-based)
+
 ## Purpose
 
 - A CLI to orchestrate the deployment of a local Eureka-based development environment
@@ -659,7 +695,13 @@ curl --request POST \
 
 ### General
 
-- If there are multiple instances of a container daemon (e.g. **Rancher Desktop**, **Docker Desktop**, **Podman**) running on the host machine, verify that `DOCKER_HOST` is set to point to the correct daemon (otherwise `/var/run/docker.sock` will be used)
+If there are multiple instances of a container daemon (e.g. **Rancher Desktop**, **Docker Desktop**, **Podman**) running on the host machine
+
+- Verify that `DOCKER_HOST` is set to point to the correct daemon (otherwise `/var/run/docker.sock` will be used)
+
+Vault UI does not have a **Userpass** sign-in method or login fails with admin/admin credentials
+
+- Your local Vault image is outdated, update the git repository of the CLI, rebuild the binary for your platform of choice and run `eureka-cli buildSystem -u` once before deploying any application
 
 ### Command-based
 
@@ -685,3 +727,13 @@ Module readiness checks are failing
 `"The module is not entitled on tenant ..."`
 
 - Rerun the deployment again with more available RAM
+
+When trying to deploy with `eureka-cli deployApplication -bu` or building with `eureka-cli buildSystem -u`
+
+```txt
+ERROR: unable to select packages:
+  bind-tools-9.18.41-r0:
+    breaks: world[bind-tools=9.18.39-r0]
+```
+
+- Update your local CLI git repository and rebuild the binary, our Dockefiles in the `misc` folder no longer dependent on pinned and non-deterministic package versions of Alpine Linux
