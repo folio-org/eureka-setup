@@ -92,7 +92,7 @@ func New(name string, gatewayURL string, actionParam *Param) *Action {
 		ConfigEnvFolio:                     viper.GetString(field.EnvFolio),
 		ConfigSidecarModule:                viper.GetStringMap(field.SidecarModule),
 		ConfigSidecarModuleResources:       viper.GetStringMap(field.SidecarModuleResources),
-		ConfigSidecarModuleNativeBinaryCmd: viper.GetStringSlice(field.SidecarModuleNativeBinaryCmd),
+		ConfigSidecarModuleNativeBinaryCmd: GetSidecarModuleCmd(),
 		ConfigBackendModules:               viper.GetStringMap(field.BackendModules),
 		ConfigFrontendModules:              viper.GetStringMap(field.FrontendModules),
 		ConfigCustomFrontendModules:        viper.GetStringMap(field.CustomFrontendModules),
@@ -111,6 +111,15 @@ func (a *Action) GetRequestURL(port string, route string) string {
 }
 
 // ==================== Environment ====================
+
+func GetSidecarModuleCmd() []string {
+	nativeBinaryCmd := viper.GetStringSlice(field.SidecarModuleNativeBinaryCmd)
+	if len(nativeBinaryCmd) > 0 {
+		return nativeBinaryCmd
+	}
+
+	return viper.GetStringSlice(field.SidecarModuleCmd)
+}
 
 func (a *Action) GetConfigEnvVars(key string) []string {
 	var envVars []string

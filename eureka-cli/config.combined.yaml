@@ -182,7 +182,7 @@ backend-modules:
     environment:
       X_OKAPI_TOKEN_HEADER_ENABLED: "false"
       LOGIN_COOKIE_SAMESITE: "NONE"
-      KC_ADMIN_TOKEN_TTL: 295s
+      KC_ADMIN_TOKEN_TTL: 895s
   mod-roles-keycloak:
     use-vault: true
     disable-system-user: true

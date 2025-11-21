@@ -5,34 +5,33 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/modulesvc"
 )
 
-func (is *InterceptModuleSvc) DeployCustomSidecarForInterception(pair *ModulePair, client *client.Client) error {
-	is.pair = pair
-	is.client = client
-	if err := is.undeployModuleAndSidecarPair(); err != nil {
+func (is *InterceptModuleSvc) DeployCustomSidecarForInterception(client *client.Client, pair *modulesvc.ModulePair) error {
+	if err := is.ModuleSvc.UndeployModuleAndSidecarPair(client, pair); err != nil {
 		return err
 	}
-	if err := is.prepareSidecarNetwork(); err != nil {
+	if err := is.prepareSidecarNetwork(pair); err != nil {
 		return err
 	}
 
 	slog.Info(is.Action.Name, "text", "DEPLOYING CUSTOM SIDECAR FOR INTERCEPTION")
-	if err := is.deploySidecar(); err != nil {
+	if err := is.ModuleSvc.DeployCustomSidecar(client, pair); err != nil {
 		return err
 	}
 
-	return is.checkModuleAndSidecarReadiness()
+	return is.ModuleSvc.CheckModuleAndSidecarReadiness(pair)
 }
 
-func (is *InterceptModuleSvc) prepareSidecarNetwork() error {
+func (is *InterceptModuleSvc) prepareSidecarNetwork(pair *modulesvc.ModulePair) error {
 	slog.Info(is.Action.Name, "text", "PREPARING SIDECAR NETWORK")
-	moduleServerPort, err := helpers.GetPortFromURL(is.pair.ModuleURL)
+	moduleServerPort, err := helpers.GetPortFromURL(pair.ModuleURL)
 	if err != nil {
 		return err
 	}
 
-	sidecarServerPort, err := helpers.GetPortFromURL(is.pair.SidecarURL)
+	sidecarServerPort, err := helpers.GetPortFromURL(pair.SidecarURL)
 	if err != nil {
 		return err
 	}
@@ -42,13 +41,13 @@ func (is *InterceptModuleSvc) prepareSidecarNetwork() error {
 		return err
 	}
 
-	is.pair.BackendModule, is.pair.Module = is.ModuleSvc.GetBackendModule(is.pair.Containers, is.pair.ModuleName)
-	is.pair.BackendModule.ModuleExposedServerPort = moduleServerPort
-	is.pair.BackendModule.SidecarExposedServerPort = sidecarServerPort
-	is.pair.BackendModule.SidecarExposedDebugPort = sidecarDebugPort
+	pair.BackendModule, pair.Module = is.ModuleSvc.GetBackendModule(pair.Containers, pair.ModuleName)
+	pair.BackendModule.ModuleExposedServerPort = moduleServerPort
+	pair.BackendModule.SidecarExposedServerPort = sidecarServerPort
+	pair.BackendModule.SidecarExposedDebugPort = sidecarDebugPort
 
-	is.pair.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, is.pair.BackendModule.PrivatePort)
-	if err := is.updateModuleDiscovery(); err != nil {
+	pair.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, pair.BackendModule.PrivatePort)
+	if err := is.updateModuleDiscovery(pair); err != nil {
 		return err
 	}
 

@@ -85,7 +85,7 @@ func CreateResources(isModule bool, r map[string]any) *container.Resources {
 		MemoryReservation: ConvertMemory(MibToBytes, GetIntOrDefault(r, field.ModuleResourceMemoryReservationEntry, constant.ModuleMemoryReservation)),
 		Memory:            ConvertMemory(MibToBytes, GetIntOrDefault(r, field.ModuleResourceMemoryEntry, constant.ModuleMemory)),
 		MemorySwap:        ConvertMemory(MibToBytes, GetIntOrDefault(r, field.ModuleResourceMemorySwapEntry, constant.ModuleSwap)),
-		OomKillDisable:    BoolP(GetBoolOrDefault(r, field.ModuleResourceOomKillDisableEntry, false)),
+		OomKillDisable:    BoolPtr(GetBoolOrDefault(r, field.ModuleResourceOomKillDisableEntry, false)),
 	}
 }
 
@@ -96,7 +96,7 @@ func createDefaultResources(isModule bool) *container.Resources {
 			MemoryReservation: ConvertMemory(MibToBytes, constant.ModuleMemoryReservation),
 			Memory:            ConvertMemory(MibToBytes, constant.ModuleMemory),
 			MemorySwap:        ConvertMemory(MibToBytes, constant.ModuleSwap),
-			OomKillDisable:    BoolP(false),
+			OomKillDisable:    BoolPtr(false),
 		}
 	}
 
@@ -105,7 +105,7 @@ func createDefaultResources(isModule bool) *container.Resources {
 		MemoryReservation: ConvertMemory(MibToBytes, constant.SidecarMemoryReservation),
 		Memory:            ConvertMemory(MibToBytes, constant.SidecarMemory),
 		MemorySwap:        ConvertMemory(MibToBytes, constant.SidecarSwap),
-		OomKillDisable:    BoolP(false),
+		OomKillDisable:    BoolPtr(false),
 	}
 }
 

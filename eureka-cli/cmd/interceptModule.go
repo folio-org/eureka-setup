@@ -24,8 +24,8 @@ import (
 	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/interceptmodulesvc"
 	"github.com/folio-org/eureka-cli/models"
+	"github.com/folio-org/eureka-cli/modulesvc"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -75,7 +75,7 @@ func (run *Run) InterceptModule() error {
 		return err
 	}
 
-	pair, err := interceptmodulesvc.NewModulePair(run.Config.Action, run.Config.Action.Param)
+	pair, err := modulesvc.NewModulePair(run.Config.Action, run.Config.Action.Param)
 	if err != nil {
 		return err
 	}
@@ -86,9 +86,9 @@ func (run *Run) InterceptModule() error {
 		IsManagement:   false,
 	}
 	if params.Restore {
-		return run.Config.InterceptModuleSvc.DeployDefaultModuleAndSidecarPair(pair, client)
+		return run.Config.InterceptModuleSvc.DeployDefaultModuleAndSidecarPair(client, pair)
 	} else {
-		return run.Config.InterceptModuleSvc.DeployCustomSidecarForInterception(pair, client)
+		return run.Config.InterceptModuleSvc.DeployCustomSidecarForInterception(client, pair)
 	}
 }
 

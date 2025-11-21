@@ -1,4 +1,4 @@
-package interceptmodulesvc
+package modulesvc
 
 import (
 	"github.com/docker/docker/api/types/network"
@@ -36,11 +36,11 @@ func NewModulePair(a *action.Action, p *action.Param) (*ModulePair, error) {
 }
 
 // ClearModuleURL clears the module URL from the intercept module
-func (mp *ModulePair) clearModuleURL() {
+func (mp *ModulePair) ClearModuleURL() {
 	mp.ModuleURL = ""
 }
 
 // ClearSidecarURL clears the sidecar URL from the intercept module
-func (mp *ModulePair) clearSidecarURL() {
+func (mp *ModulePair) ClearSidecarURL() {
 	mp.SidecarURL = ""
 }

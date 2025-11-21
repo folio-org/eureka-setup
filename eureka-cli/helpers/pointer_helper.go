@@ -2,15 +2,15 @@ package helpers
 
 import "time"
 
-func StringP(value string) *string {
+func StringPtr(value string) *string {
 	return &value
 }
 
-func BoolP(value bool) *bool {
+func BoolPtr(value bool) *bool {
 	return &value
 }
 
-func IntP(value int) *int {
+func IntPtr(value int) *int {
 	return &value
 }
 

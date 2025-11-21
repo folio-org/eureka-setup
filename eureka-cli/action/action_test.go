@@ -604,3 +604,97 @@ func TestGetKafkaTopicConfigTenant(t *testing.T) {
 		assert.Equal(t, "central", result3)
 	})
 }
+
+// ==================== GetSidecarModuleCmd Tests ====================
+
+func TestGetSidecarModuleCmd(t *testing.T) {
+	t.Run("TestGetSidecarModuleCmd_WithNativeBinaryCmd", func(t *testing.T) {
+		// Arrange
+		viper.Reset()
+		vc := testhelpers.SetupViperForTest(map[string]any{
+			field.SidecarModuleNativeBinaryCmd: []string{"./app", "-flag1", "-flag2"},
+		})
+		defer vc.Reset()
+
+		// Act
+		result := action.GetSidecarModuleCmd()
+
+		// Assert
+		assert.NotNil(t, result)
+		assert.Len(t, result, 3)
+		assert.Equal(t, "./app", result[0])
+		assert.Equal(t, "-flag1", result[1])
+		assert.Equal(t, "-flag2", result[2])
+	})
+
+	t.Run("TestGetSidecarModuleCmd_WithCmd_FallbackCompatibility", func(t *testing.T) {
+		// Arrange - test fallback to old "cmd" field when native-binary-cmd is not set
+		viper.Reset()
+		vc := testhelpers.SetupViperForTest(map[string]any{
+			field.SidecarModuleCmd: []string{"java", "-jar", "app.jar"},
+		})
+		defer vc.Reset()
+
+		// Act
+		result := action.GetSidecarModuleCmd()
+
+		// Assert
+		assert.NotNil(t, result)
+		assert.Len(t, result, 3)
+		assert.Equal(t, "java", result[0])
+		assert.Equal(t, "-jar", result[1])
+		assert.Equal(t, "app.jar", result[2])
+	})
+
+	t.Run("TestGetSidecarModuleCmd_NativeBinaryCmdTakesPrecedence", func(t *testing.T) {
+		// Arrange - test that native-binary-cmd takes precedence over cmd
+		viper.Reset()
+		vc := testhelpers.SetupViperForTest(map[string]any{
+			field.SidecarModuleNativeBinaryCmd: []string{"./native-app"},
+			field.SidecarModuleCmd:             []string{"java", "-jar", "app.jar"},
+		})
+		defer vc.Reset()
+
+		// Act
+		result := action.GetSidecarModuleCmd()
+
+		// Assert
+		assert.NotNil(t, result)
+		assert.Len(t, result, 1)
+		assert.Equal(t, "./native-app", result[0], "native-binary-cmd should take precedence over cmd")
+	})
+
+	t.Run("TestGetSidecarModuleCmd_EmptyWhenNeitherSet", func(t *testing.T) {
+		// Arrange
+		viper.Reset()
+		defer viper.Reset()
+
+		// Act
+		result := action.GetSidecarModuleCmd()
+
+		// Assert
+		if result == nil {
+			result = []string{}
+		}
+		assert.Empty(t, result)
+	})
+
+	t.Run("TestGetSidecarModuleCmd_EmptyNativeBinaryCmd", func(t *testing.T) {
+		// Arrange - empty native-binary-cmd should fallback to cmd
+		viper.Reset()
+		vc := testhelpers.SetupViperForTest(map[string]any{
+			field.SidecarModuleNativeBinaryCmd: []string{},
+			field.SidecarModuleCmd:             []string{"fallback", "command"},
+		})
+		defer vc.Reset()
+
+		// Act
+		result := action.GetSidecarModuleCmd()
+
+		// Assert
+		assert.NotNil(t, result)
+		assert.Len(t, result, 2)
+		assert.Equal(t, "fallback", result[0])
+		assert.Equal(t, "command", result[1])
+	})
+}
