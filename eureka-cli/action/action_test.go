@@ -56,7 +56,7 @@ func TestNewGeneric_AllViperFields(t *testing.T) {
 			field.RegistryURL:                  "https://registry.test.com",
 			field.InstallFolio:                 "folio-registry-url",
 			field.InstallEureka:                "eureka-registry-url",
-			field.ApplicationPlatform:          "kubernetes",
+			field.ApplicationPlatform:          "base",
 			field.ApplicationFetchDescriptors:  true,
 			field.ApplicationPortStart:         8000,
 			field.ApplicationPortEnd:           9000,
@@ -114,11 +114,11 @@ func TestNewGeneric_AllViperFields(t *testing.T) {
 		assert.Equal(t, "full-app", result.ConfigApplicationName)
 		assert.Equal(t, "3.0.0", result.ConfigApplicationVersion)
 		assert.Equal(t, "full-app-3.0.0", result.ConfigApplicationID)
-		assert.Equal(t, "production", result.ConfigProfile)
+		assert.Equal(t, "production", result.ConfigProfileName)
 		assert.Equal(t, "https://registry.test.com", result.ConfigRegistryURL)
-		assert.Equal(t, "folio-registry-url", result.ConfigFolioRegistry)
-		assert.Equal(t, "eureka-registry-url", result.ConfigEurekaRegistry)
-		assert.Equal(t, "kubernetes", result.ConfigApplicationPlatform)
+		assert.Equal(t, "folio-registry-url", result.ConfigInstallFolio)
+		assert.Equal(t, "eureka-registry-url", result.ConfigInstallEureka)
+		assert.Equal(t, "base", result.ConfigApplicationPlatform)
 		assert.True(t, result.ConfigApplicationFetchDescriptors)
 		assert.Equal(t, 8000, result.ConfigApplicationPortStart)
 		assert.Equal(t, 9000, result.ConfigApplicationPortEnd)
@@ -130,7 +130,7 @@ func TestNewGeneric_AllViperFields(t *testing.T) {
 		assert.NotNil(t, result.ConfigApplicationDependencies)
 		assert.NotNil(t, result.ConfigGlobalEnv)
 		assert.NotNil(t, result.ConfigSidecarModule)
-		assert.NotNil(t, result.ConfigSidecarResources)
+		assert.NotNil(t, result.ConfigSidecarModuleResources)
 		assert.NotNil(t, result.ConfigBackendModules)
 		assert.NotNil(t, result.ConfigFrontendModules)
 		assert.NotNil(t, result.ConfigCustomFrontendModules)
@@ -476,12 +476,12 @@ func TestGetCombinedInstallJsonURLs(t *testing.T) {
 	t.Run("TestGetCombinedInstallJsonURLs_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
-			ConfigFolioRegistry:  "https://folio.registry.com/install.json",
-			ConfigEurekaRegistry: "https://eureka.registry.com/install.json",
+			ConfigInstallFolio:  "https://folio.registry.com/install.json",
+			ConfigInstallEureka: "https://eureka.registry.com/install.json",
 		}
 
 		// Act
-		result := act.GetCombinedInstallJsonURLs()
+		result := act.GetCombinedInstallURLs()
 
 		// Assert
 		assert.Len(t, result, 2)
@@ -494,11 +494,11 @@ func TestGetEurekaInstallJsonURLs(t *testing.T) {
 	t.Run("TestGetEurekaInstallJsonURLs_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
-			ConfigEurekaRegistry: "https://eureka.registry.com/install.json",
+			ConfigInstallEureka: "https://eureka.registry.com/install.json",
 		}
 
 		// Act
-		result := act.GetEurekaInstallJsonURLs()
+		result := act.GetEurekaInstallURLs()
 
 		// Assert
 		assert.Len(t, result, 1)

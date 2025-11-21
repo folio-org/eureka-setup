@@ -47,7 +47,7 @@ func (is *InterceptModuleSvc) updateModuleDiscovery() error {
 
 func (is *InterceptModuleSvc) undeployModuleAndSidecarPair() error {
 	slog.Info(is.Action.Name, "text", "UNDEPLOYING MODULE AND SIDECAR PAIR")
-	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, is.Action.ConfigProfile, is.Action.Param.ModuleName)
+	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, is.Action.ConfigProfileName, is.Action.Param.ModuleName)
 	if err := is.ModuleSvc.UndeployModuleByNamePattern(is.client, pattern); err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (is *InterceptModuleSvc) deploySidecar() error {
 		HostConfig: &container.HostConfig{
 			PortBindings:  *is.pair.BackendModule.SidecarPortBindings,
 			RestartPolicy: *helpers.GetRestartPolicy(),
-			Resources:     *helpers.CreateResources(false, is.Action.ConfigSidecarResources),
+			Resources:     *helpers.CreateResources(false, is.Action.ConfigSidecarModuleResources),
 		},
 		NetworkConfig: helpers.GetModuleNetworkConfig(),
 		Platform:      helpers.GetPlatform(),

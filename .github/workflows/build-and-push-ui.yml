@@ -89,4 +89,3 @@ jobs:
             --platformCompleteURL $PLATFORM_COMPLETE_URL \
             --singleTenant $SINGLE_TENANT_MODE \
             --enableEcsRequests $ENABLE_ECS_REQUESTS
-          echo "Build And Push UI command ran successfully"

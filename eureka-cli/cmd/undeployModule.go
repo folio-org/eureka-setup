@@ -52,7 +52,7 @@ func (run *Run) UndeployModule() error {
 	}
 	defer run.Config.DockerClient.Close(client)
 
-	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, run.Config.Action.ConfigProfile, params.ModuleName)
+	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, run.Config.Action.ConfigProfileName, params.ModuleName)
 	return run.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
 }
 

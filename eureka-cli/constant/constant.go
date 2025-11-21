@@ -213,7 +213,8 @@ const (
 	ImportProfile         = "import"
 )
 
-// Container types
+// ==================== Container Types ====================
+
 const (
 	Management = "management"
 	Module     = "module"
@@ -224,7 +225,8 @@ func GetContainerTypes() []string {
 	return []string{Module, Sidecar, Management}
 }
 
-// Tenant types
+// ==================== Tenant Types ====================
+
 type TenantType string
 
 const (
@@ -238,13 +240,16 @@ func GetTenantTypes() []TenantType {
 	return []TenantType{Central, Member}
 }
 
-// Keycloak Grant types
+// ==================== Keycloak Grant Types ====================
+
 type KeycloakGrantType string
 
 const (
 	ClientCredentials = "client_credentials"
 	Password          = "password"
 )
+
+// ==================== Token Types ====================
 
 const (
 	DefaultToken        string = "tenant"
@@ -255,6 +260,8 @@ const (
 func GetTokenTypes() []string {
 	return []string{DefaultToken, MasterCustomToken, MasterAdminCLIToken}
 }
+
+// ==================== Required Containers ====================
 
 func GetInitialRequiredContainers() []string {
 	return []string{
@@ -267,6 +274,8 @@ func GetInitialRequiredContainers() []string {
 		KongContainer,
 	}
 }
+
+// ==================== Profiles ====================
 
 func GetProfiles() []string {
 	return []string{
