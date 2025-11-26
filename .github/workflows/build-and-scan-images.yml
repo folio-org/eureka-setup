@@ -67,7 +67,8 @@ jobs:
 
       - name: Upload scan results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
-        if: success() || failure()
+        if: (success() || failure()) && github.event_name != 'schedule'
         with:
           sarif_file: 'trivy-${{ matrix.image.name }}.sarif'
           category: 'docker-image-${{ matrix.image.name }}'
+          wait-for-processing: true
