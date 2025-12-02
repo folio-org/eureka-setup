@@ -46,8 +46,8 @@ jobs:
       DOCKERHUB_NAMESPACE: ${{ inputs.namespace || 'bkadirkhodjaev' }}
       TENANT_NAME: ${{ inputs.tenant || 'diku' }}
       PLATFORM_COMPLETE_URL: ${{ inputs.platformCompleteURL || 'http://localhost:3000' }}
-      SINGLE_TENANT_MODE: ${{ inputs.singleTenant || 'true' }}
-      ENABLE_ECS_REQUESTS: ${{ inputs.enableEcsRequests || 'false' }}
+      SINGLE_TENANT_MODE: ${{ inputs.singleTenant != false && 'true' || 'false' }}
+      ENABLE_ECS_REQUESTS: ${{ inputs.enableEcsRequests == true && 'true' || 'false' }}
     steps:
       - name: Using inputs
         run: |
