@@ -41,3 +41,22 @@ func CreateTempFile(t *testing.T, content string) string {
 
 	return tmpFile
 }
+
+// CreateJSONFileInDir creates a JSON file with the given name in the specified directory
+func CreateJSONFileInDir(t *testing.T, dir string, filename string, data any) string {
+	t.Helper()
+
+	filePath := filepath.Join(dir, filename)
+
+	jsonData, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		t.Fatalf("failed to marshal JSON: %v", err)
+	}
+
+	err = os.WriteFile(filePath, jsonData, 0600)
+	if err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+
+	return filePath
+}

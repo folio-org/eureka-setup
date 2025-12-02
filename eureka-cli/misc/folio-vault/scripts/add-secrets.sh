@@ -18,7 +18,7 @@ curl -sv -X POST \
 # create global secrets (in folio/master)
 secretsData='{
   "data": {
-    "supersecret": "supersecret",
+    "folio-backend-admin-client": "supersecret",
     "mgr-applications": "supersecret",
     "mgr-tenants": "supersecret",
     "mgr-tenant-entitlements": "supersecret"

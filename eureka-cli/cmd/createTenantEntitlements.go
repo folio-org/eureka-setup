@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
@@ -42,7 +43,16 @@ var createTenantEntitlementsCmd = &cobra.Command{
 
 func (run *Run) CreateTenantEntitlements(consortiumName string, tenantType constant.TenantType) error {
 	slog.Info(run.Config.Action.Name, "text", "CREATING TENANT ENTITLEMENTS")
-	return run.Config.ManagementSvc.CreateTenantEntitlement(consortiumName, tenantType)
+	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.ClientCredentials); err != nil {
+		return err
+	}
+
+	if err := run.Config.ManagementSvc.CreateTenantEntitlement(consortiumName, tenantType); err != nil {
+		return nil
+	}
+	time.Sleep(30 * time.Second)
+
+	return nil
 }
 
 func init() {

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-cli/models"
 )
 
 // UIPackageJSONProcessor defines the interface for UI package.json operations
@@ -13,17 +14,9 @@ type UIPackageJSONProcessor interface {
 }
 
 func (us *UISvc) PreparePackageJSON(configPath string) error {
-	var packageJSON struct {
-		Name            string            `json:"name"`
-		Version         string            `json:"version"`
-		License         string            `json:"license"`
-		Scripts         map[string]string `json:"scripts"`
-		Dependencies    map[string]string `json:"dependencies"`
-		DevDependencies map[string]string `json:"devDependencies"`
-		Resolutions     map[string]string `json:"resolutions"`
-	}
+	var packageJSON models.PackageJSON
 	packageJSONPath := filepath.Join(configPath, "package.json")
-	err := helpers.ReadJsonFromFile(us.Action.Name, packageJSONPath, &packageJSON)
+	err := helpers.ReadJSONFromFile(packageJSONPath, &packageJSON)
 	if err != nil {
 		return err
 	}
@@ -44,7 +37,7 @@ func (us *UISvc) PreparePackageJSON(configPath string) error {
 	}
 	if updates > 0 {
 		slog.Info(us.Action.Name, "text", "Added extra modules to package.json", "count", len(modules))
-		err = helpers.WriteJsonToFile(packageJSONPath, packageJSON)
+		err = helpers.WriteJSONToFile(packageJSONPath, packageJSON)
 		if err != nil {
 			return err
 		}

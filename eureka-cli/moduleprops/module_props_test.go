@@ -1,4 +1,4 @@
-package moduleparams_test
+package moduleprops_test
 
 import (
 	"os"
@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/actionparams"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/moduleparams"
+	"github.com/folio-org/eureka-cli/moduleprops"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +22,7 @@ func TestNew(t *testing.T) {
 		act := &action.Action{Name: "test-action"}
 
 		// Act
-		result := moduleparams.New(act)
+		result := moduleprops.New(act)
 
 		// Assert
 		assert.NotNil(t, result)
@@ -31,19 +30,44 @@ func TestNew(t *testing.T) {
 	})
 }
 
+func TestReadBackendModules_PortExhaustion(t *testing.T) {
+	t.Run("TestReadBackendModules_PortExhaustion_NoAvailablePorts", func(t *testing.T) {
+		// Arrange
+		act := &action.Action{
+			Name:                       "test-action",
+			Param:                      &action.Param{},
+			ReservedPorts:              []int{},
+			ConfigApplicationPortStart: 8000,
+			ConfigApplicationPortEnd:   8000, // No range
+			ConfigBackendModules: map[string]any{
+				"mod-inventory": nil,
+			},
+		}
+		mp := moduleprops.New(act)
+
+		// Act
+		result, err := mp.ReadBackendModules(false, false)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "port")
+	})
+}
+
 // ==================== ReadBackendModulesFromConfig Tests ====================
 
-func TestReadBackendModulesFromConfig_EmptyConfig(t *testing.T) {
-	t.Run("TestReadBackendModulesFromConfig_EmptyConfig_NoBackendModules", func(t *testing.T) {
+func TestReadBackendModules_EmptyConfig(t *testing.T) {
+	t.Run("TestReadBackendModules_EmptyConfig_NoBackendModules", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                 "test-action",
 			ConfigBackendModules: map[string]any{},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(false, false)
+		result, err := mp.ReadBackendModules(false, false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -52,12 +76,12 @@ func TestReadBackendModulesFromConfig_EmptyConfig(t *testing.T) {
 	})
 }
 
-func TestReadBackendModulesFromConfig_Management(t *testing.T) {
-	t.Run("TestReadBackendModulesFromConfig_Management_FilterManagementModules", func(t *testing.T) {
+func TestReadBackendModules_Management(t *testing.T) {
+	t.Run("TestReadBackendModules_Management_FilterManagementModules", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
-			Params:                     &actionparams.ActionParams{},
+			Param:                      &action.Param{},
 			ReservedPorts:              []int{},
 			ConfigApplicationPortStart: 8000,
 			ConfigApplicationPortEnd:   9000,
@@ -67,10 +91,10 @@ func TestReadBackendModulesFromConfig_Management(t *testing.T) {
 				"mod-inventory": nil,
 			},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(true, false)
+		result, err := mp.ReadBackendModules(true, false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -80,11 +104,11 @@ func TestReadBackendModulesFromConfig_Management(t *testing.T) {
 		assert.NotContains(t, result, "mod-inventory")
 	})
 
-	t.Run("TestReadBackendModulesFromConfig_Management_FilterNonManagementModules", func(t *testing.T) {
+	t.Run("TestReadBackendModules_Management_FilterNonManagementModules", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
-			Params:                     &actionparams.ActionParams{},
+			Param:                      &action.Param{},
 			ReservedPorts:              []int{},
 			ConfigApplicationPortStart: 8000,
 			ConfigApplicationPortEnd:   9000,
@@ -94,10 +118,10 @@ func TestReadBackendModulesFromConfig_Management(t *testing.T) {
 				"mod-users":     nil,
 			},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(false, false)
+		result, err := mp.ReadBackendModules(false, false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -108,12 +132,12 @@ func TestReadBackendModulesFromConfig_Management(t *testing.T) {
 	})
 }
 
-func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
-	t.Run("TestReadBackendModulesFromConfig_ConfigurableProperties_WithStringVersion", func(t *testing.T) {
+func TestReadBackendModules_ConfigurableProperties(t *testing.T) {
+	t.Run("TestReadBackendModules_ConfigurableProperties_WithStringVersion", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
-			Params:                     &actionparams.ActionParams{},
+			Param:                      &action.Param{},
 			ReservedPorts:              []int{},
 			ConfigApplicationPortStart: 8000,
 			ConfigApplicationPortEnd:   9000,
@@ -123,10 +147,10 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 				},
 			},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(false, false)
+		result, err := mp.ReadBackendModules(false, false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -136,11 +160,11 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 		assert.Equal(t, "1.0.0", *module.ModuleVersion)
 	})
 
-	t.Run("TestReadBackendModulesFromConfig_ConfigurableProperties_WithNumericVersion", func(t *testing.T) {
+	t.Run("TestReadBackendModules_ConfigurableProperties_WithNumericVersion", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
-			Params:                     &actionparams.ActionParams{},
+			Param:                      &action.Param{},
 			ReservedPorts:              []int{},
 			ConfigApplicationPortStart: 8000,
 			ConfigApplicationPortEnd:   9000,
@@ -150,10 +174,10 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 				},
 			},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(false, false)
+		result, err := mp.ReadBackendModules(false, false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -163,11 +187,11 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 		assert.Equal(t, "2.5", *module.ModuleVersion)
 	})
 
-	t.Run("TestReadBackendModulesFromConfig_ConfigurableProperties_WithCustomPort", func(t *testing.T) {
+	t.Run("TestReadBackendModules_ConfigurableProperties_WithCustomPort", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
-			Params:                     &actionparams.ActionParams{},
+			Param:                      &action.Param{},
 			ReservedPorts:              []int{},
 			ConfigApplicationPortStart: 8000,
 			ConfigApplicationPortEnd:   9000,
@@ -177,10 +201,10 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 				},
 			},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(false, false)
+		result, err := mp.ReadBackendModules(false, false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -189,11 +213,11 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 		assert.Equal(t, 9000, module.ModuleExposedServerPort)
 	})
 
-	t.Run("TestReadBackendModulesFromConfig_ConfigurableProperties_WithPrivatePort", func(t *testing.T) {
+	t.Run("TestReadBackendModules_ConfigurableProperties_WithPrivatePort", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
-			Params:                     &actionparams.ActionParams{},
+			Param:                      &action.Param{},
 			ReservedPorts:              []int{},
 			ConfigApplicationPortStart: 8000,
 			ConfigApplicationPortEnd:   9000,
@@ -203,10 +227,10 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 				},
 			},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(false, false)
+		result, err := mp.ReadBackendModules(false, false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -215,11 +239,11 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 		assert.Equal(t, 8090, module.PrivatePort)
 	})
 
-	t.Run("TestReadBackendModulesFromConfig_ConfigurableProperties_WithDeployModuleFalse", func(t *testing.T) {
+	t.Run("TestReadBackendModules_ConfigurableProperties_WithDeployModuleFalse", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
-			Params:                     &actionparams.ActionParams{},
+			Param:                      &action.Param{},
 			ReservedPorts:              []int{},
 			ConfigApplicationPortStart: 8000,
 			ConfigApplicationPortEnd:   9000,
@@ -229,10 +253,10 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 				},
 			},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(false, false)
+		result, err := mp.ReadBackendModules(false, false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -241,11 +265,11 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 		assert.Equal(t, 0, module.ModuleExposedServerPort)
 	})
 
-	t.Run("TestReadBackendModulesFromConfig_ConfigurableProperties_WithDeploySidecarFalse", func(t *testing.T) {
+	t.Run("TestReadBackendModules_ConfigurableProperties_WithDeploySidecarFalse", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
-			Params:                     &actionparams.ActionParams{},
+			Param:                      &action.Param{},
 			ReservedPorts:              []int{},
 			ConfigApplicationPortStart: 8000,
 			ConfigApplicationPortEnd:   9000,
@@ -255,10 +279,10 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 				},
 			},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(false, false)
+		result, err := mp.ReadBackendModules(false, false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -267,11 +291,11 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 		assert.Equal(t, 0, module.SidecarExposedServerPort)
 	})
 
-	t.Run("TestReadBackendModulesFromConfig_ConfigurableProperties_WithBooleanFlags", func(t *testing.T) {
+	t.Run("TestReadBackendModules_ConfigurableProperties_WithBooleanFlags", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
-			Params:                     &actionparams.ActionParams{},
+			Param:                      &action.Param{},
 			ReservedPorts:              []int{},
 			ConfigApplicationPortStart: 8000,
 			ConfigApplicationPortEnd:   9000,
@@ -283,10 +307,10 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 				},
 			},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(false, false)
+		result, err := mp.ReadBackendModules(false, false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -297,11 +321,11 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 		assert.True(t, module.UseOkapiURL)
 	})
 
-	t.Run("TestReadBackendModulesFromConfig_ConfigurableProperties_WithEnvAndResources", func(t *testing.T) {
+	t.Run("TestReadBackendModules_ConfigurableProperties_WithEnvAndResources", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
-			Params:                     &actionparams.ActionParams{},
+			Param:                      &action.Param{},
 			ReservedPorts:              []int{},
 			ConfigApplicationPortStart: 8000,
 			ConfigApplicationPortEnd:   9000,
@@ -316,10 +340,10 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 				},
 			},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(false, false)
+		result, err := mp.ReadBackendModules(false, false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -330,8 +354,8 @@ func TestReadBackendModulesFromConfig_ConfigurableProperties(t *testing.T) {
 	})
 }
 
-func TestReadBackendModulesFromConfig_LocalDescriptor(t *testing.T) {
-	t.Run("TestReadBackendModulesFromConfig_LocalDescriptor_ValidLocalDescriptor", func(t *testing.T) {
+func TestReadBackendModules_LocalDescriptor(t *testing.T) {
+	t.Run("TestReadBackendModules_LocalDescriptor_ValidLocalDescriptor", func(t *testing.T) {
 		// Arrange
 		tmpFile := filepath.Join(t.TempDir(), "descriptor.json")
 		err := os.WriteFile(tmpFile, []byte(`{}`), 0600)
@@ -339,7 +363,7 @@ func TestReadBackendModulesFromConfig_LocalDescriptor(t *testing.T) {
 
 		act := &action.Action{
 			Name:                       "test-action",
-			Params:                     &actionparams.ActionParams{},
+			Param:                      &action.Param{},
 			ReservedPorts:              []int{},
 			ConfigApplicationPortStart: 8000,
 			ConfigApplicationPortEnd:   9000,
@@ -349,10 +373,10 @@ func TestReadBackendModulesFromConfig_LocalDescriptor(t *testing.T) {
 				},
 			},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(false, false)
+		result, err := mp.ReadBackendModules(false, false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -361,21 +385,21 @@ func TestReadBackendModulesFromConfig_LocalDescriptor(t *testing.T) {
 		assert.Equal(t, tmpFile, module.LocalDescriptorPath)
 	})
 
-	t.Run("TestReadBackendModulesFromConfig_LocalDescriptor_InvalidLocalDescriptor", func(t *testing.T) {
+	t.Run("TestReadBackendModules_LocalDescriptor_InvalidLocalDescriptor", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
-			Name:   "test-action",
-			Params: &actionparams.ActionParams{},
+			Name:  "test-action",
+			Param: &action.Param{},
 			ConfigBackendModules: map[string]any{
 				"mod-inventory": map[string]any{
 					field.ModuleLocalDescriptorPathEntry: "/nonexistent/path/descriptor.json",
 				},
 			},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(false, false)
+		result, err := mp.ReadBackendModules(false, false)
 
 		// Assert
 		assert.Error(t, err)
@@ -384,14 +408,14 @@ func TestReadBackendModulesFromConfig_LocalDescriptor(t *testing.T) {
 	})
 }
 
-func TestReadBackendModulesFromConfig_Volumes(t *testing.T) {
-	t.Run("TestReadBackendModulesFromConfig_Volumes_ValidVolume", func(t *testing.T) {
+func TestReadBackendModules_Volumes(t *testing.T) {
+	t.Run("TestReadBackendModules_Volumes_ValidVolume", func(t *testing.T) {
 		// Arrange
 		tmpDir := t.TempDir()
 
 		act := &action.Action{
 			Name:                       "test-action",
-			Params:                     &actionparams.ActionParams{},
+			Param:                      &action.Param{},
 			ReservedPorts:              []int{},
 			ConfigApplicationPortStart: 8000,
 			ConfigApplicationPortEnd:   9000,
@@ -401,10 +425,10 @@ func TestReadBackendModulesFromConfig_Volumes(t *testing.T) {
 				},
 			},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(false, false)
+		result, err := mp.ReadBackendModules(false, false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -414,7 +438,7 @@ func TestReadBackendModulesFromConfig_Volumes(t *testing.T) {
 		assert.Contains(t, module.ModuleVolumes, tmpDir)
 	})
 
-	t.Run("TestReadBackendModulesFromConfig_Volumes_VolumeWithEurekaVariable_Windows", func(t *testing.T) {
+	t.Run("TestReadBackendModules_Volumes_VolumeWithEurekaVariable_Windows", func(t *testing.T) {
 		if runtime.GOOS != "windows" {
 			t.Skip("Skipping Windows-specific test")
 		}
@@ -433,7 +457,7 @@ func TestReadBackendModulesFromConfig_Volumes(t *testing.T) {
 
 		act := &action.Action{
 			Name:                       "test-action",
-			Params:                     &actionparams.ActionParams{},
+			Param:                      &action.Param{},
 			ReservedPorts:              []int{},
 			ConfigApplicationPortStart: 8000,
 			ConfigApplicationPortEnd:   9000,
@@ -443,10 +467,10 @@ func TestReadBackendModulesFromConfig_Volumes(t *testing.T) {
 				},
 			},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(false, false)
+		result, err := mp.ReadBackendModules(false, false)
 
 		// Assert
 		if err == nil {
@@ -457,11 +481,11 @@ func TestReadBackendModulesFromConfig_Volumes(t *testing.T) {
 		}
 	})
 
-	t.Run("TestReadBackendModulesFromConfig_Volumes_EmptyVolumes", func(t *testing.T) {
+	t.Run("TestReadBackendModules_Volumes_EmptyVolumes", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
-			Params:                     &actionparams.ActionParams{},
+			Param:                      &action.Param{},
 			ReservedPorts:              []int{},
 			ConfigApplicationPortStart: 8000,
 			ConfigApplicationPortEnd:   9000,
@@ -471,10 +495,10 @@ func TestReadBackendModulesFromConfig_Volumes(t *testing.T) {
 				},
 			},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(false, false)
+		result, err := mp.ReadBackendModules(false, false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -484,12 +508,12 @@ func TestReadBackendModulesFromConfig_Volumes(t *testing.T) {
 	})
 }
 
-func TestReadBackendModulesFromConfig_EdgeModules(t *testing.T) {
-	t.Run("TestReadBackendModulesFromConfig_EdgeModules_EdgeModuleNoSidecar", func(t *testing.T) {
+func TestReadBackendModules_EdgeModules(t *testing.T) {
+	t.Run("TestReadBackendModules_EdgeModules_EdgeModuleNoSidecar", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                       "test-action",
-			Params:                     &actionparams.ActionParams{},
+			Param:                      &action.Param{},
 			ReservedPorts:              []int{},
 			ConfigApplicationPortStart: 8000,
 			ConfigApplicationPortEnd:   9000,
@@ -497,10 +521,10 @@ func TestReadBackendModulesFromConfig_EdgeModules(t *testing.T) {
 				"edge-oai-pmh": nil,
 			},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadBackendModulesFromConfig(false, false)
+		result, err := mp.ReadBackendModules(false, false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -511,20 +535,20 @@ func TestReadBackendModulesFromConfig_EdgeModules(t *testing.T) {
 	})
 }
 
-// ==================== ReadFrontendModulesFromConfig Tests ====================
+// ==================== ReadFrontendModules Tests ====================
 
-func TestReadFrontendModulesFromConfig_EmptyConfig(t *testing.T) {
-	t.Run("TestReadFrontendModulesFromConfig_EmptyConfig_NoFrontendModules", func(t *testing.T) {
+func TestReadFrontendModules_EmptyConfig(t *testing.T) {
+	t.Run("TestReadFrontendModules_EmptyConfig_NoFrontendModules", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                        "test-action",
 			ConfigFrontendModules:       map[string]any{},
 			ConfigCustomFrontendModules: map[string]any{},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadFrontendModulesFromConfig(false)
+		result, err := mp.ReadFrontendModules(false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -533,18 +557,18 @@ func TestReadFrontendModulesFromConfig_EmptyConfig(t *testing.T) {
 	})
 }
 
-func TestReadFrontendModulesFromConfig_DefaultProperties(t *testing.T) {
-	t.Run("TestReadFrontendModulesFromConfig_DefaultProperties_NilValueCreatesDefault", func(t *testing.T) {
+func TestReadFrontendModules_DefaultProperties(t *testing.T) {
+	t.Run("TestReadFrontendModules_DefaultProperties_NilValueCreatesDefault", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                        "test-action",
 			ConfigFrontendModules:       map[string]any{"folio_inventory": nil},
 			ConfigCustomFrontendModules: map[string]any{},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadFrontendModulesFromConfig(false)
+		result, err := mp.ReadFrontendModules(false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -556,7 +580,7 @@ func TestReadFrontendModulesFromConfig_DefaultProperties(t *testing.T) {
 		assert.Nil(t, module.ModuleVersion)
 	})
 
-	t.Run("TestReadFrontendModulesFromConfig_DefaultProperties_WithVersion", func(t *testing.T) {
+	t.Run("TestReadFrontendModules_DefaultProperties_WithVersion", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name: "test-action",
@@ -567,10 +591,10 @@ func TestReadFrontendModulesFromConfig_DefaultProperties(t *testing.T) {
 			},
 			ConfigCustomFrontendModules: map[string]any{},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadFrontendModulesFromConfig(false)
+		result, err := mp.ReadFrontendModules(false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -580,7 +604,7 @@ func TestReadFrontendModulesFromConfig_DefaultProperties(t *testing.T) {
 		assert.Equal(t, "2.0.0", *module.ModuleVersion)
 	})
 
-	t.Run("TestReadFrontendModulesFromConfig_DefaultProperties_WithDeployModuleFalse", func(t *testing.T) {
+	t.Run("TestReadFrontendModules_DefaultProperties_WithDeployModuleFalse", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name: "test-action",
@@ -591,10 +615,10 @@ func TestReadFrontendModulesFromConfig_DefaultProperties(t *testing.T) {
 			},
 			ConfigCustomFrontendModules: map[string]any{},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadFrontendModulesFromConfig(false)
+		result, err := mp.ReadFrontendModules(false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -603,7 +627,7 @@ func TestReadFrontendModulesFromConfig_DefaultProperties(t *testing.T) {
 		assert.False(t, module.DeployModule)
 	})
 
-	t.Run("TestReadFrontendModulesFromConfig_DefaultProperties_WithLocalDescriptor", func(t *testing.T) {
+	t.Run("TestReadFrontendModules_DefaultProperties_WithLocalDescriptor", func(t *testing.T) {
 		// Arrange
 		tmpFile := filepath.Join(t.TempDir(), "frontend-descriptor.json")
 		err := os.WriteFile(tmpFile, []byte(`{}`), 0600)
@@ -618,10 +642,10 @@ func TestReadFrontendModulesFromConfig_DefaultProperties(t *testing.T) {
 			},
 			ConfigCustomFrontendModules: map[string]any{},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadFrontendModulesFromConfig(false)
+		result, err := mp.ReadFrontendModules(false)
 
 		// Assert
 		assert.NoError(t, err)
@@ -630,7 +654,7 @@ func TestReadFrontendModulesFromConfig_DefaultProperties(t *testing.T) {
 		assert.Equal(t, tmpFile, module.LocalDescriptorPath)
 	})
 
-	t.Run("TestReadFrontendModulesFromConfig_DefaultProperties_InvalidLocalDescriptor", func(t *testing.T) {
+	t.Run("TestReadFrontendModules_DefaultProperties_InvalidLocalDescriptor", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name: "test-action",
@@ -641,10 +665,10 @@ func TestReadFrontendModulesFromConfig_DefaultProperties(t *testing.T) {
 			},
 			ConfigCustomFrontendModules: map[string]any{},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadFrontendModulesFromConfig(false)
+		result, err := mp.ReadFrontendModules(false)
 
 		// Assert
 		assert.Error(t, err)
@@ -653,18 +677,18 @@ func TestReadFrontendModulesFromConfig_DefaultProperties(t *testing.T) {
 	})
 }
 
-func TestReadFrontendModulesFromConfig_CustomModules(t *testing.T) {
-	t.Run("TestReadFrontendModulesFromConfig_CustomModules_BothFrontendAndCustom", func(t *testing.T) {
+func TestReadFrontendModules_CustomModules(t *testing.T) {
+	t.Run("TestReadFrontendModules_CustomModules_BothFrontendAndCustom", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
 			Name:                        "test-action",
 			ConfigFrontendModules:       map[string]any{"folio_inventory": nil},
 			ConfigCustomFrontendModules: map[string]any{"custom_module": nil},
 		}
-		mp := moduleparams.New(act)
+		mp := moduleprops.New(act)
 
 		// Act
-		result, err := mp.ReadFrontendModulesFromConfig(false)
+		result, err := mp.ReadFrontendModules(false)
 
 		// Assert
 		assert.NoError(t, err)

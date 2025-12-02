@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/actionparams"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/models"
@@ -147,8 +146,8 @@ func TestSetConfigTenantParams_Success(t *testing.T) {
 	t.Run("TestSetConfigTenantParams_Success_AllFieldsSet", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
-			Name:   "test-action",
-			Params: &actionparams.ActionParams{},
+			Name:  "test-action",
+			Param: &action.Param{},
 			ConfigTenants: map[string]any{
 				"diku": map[string]any{
 					"single-tenant":         true,
@@ -165,16 +164,16 @@ func TestSetConfigTenantParams_Success(t *testing.T) {
 
 		// Assert
 		assert.NoError(t, err)
-		assert.True(t, svc.Action.Params.SingleTenant)
-		assert.True(t, svc.Action.Params.EnableECSRequests)
-		assert.Equal(t, "http://localhost:8080", svc.Action.Params.PlatformCompleteURL)
+		assert.True(t, svc.Action.Param.SingleTenant)
+		assert.True(t, svc.Action.Param.EnableECSRequests)
+		assert.Equal(t, "http://localhost:8080", svc.Action.Param.PlatformCompleteURL)
 	})
 
 	t.Run("TestSetConfigTenantParams_Success_PartialFieldsSet", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
-			Name:   "test-action",
-			Params: &actionparams.ActionParams{},
+			Name:  "test-action",
+			Param: &action.Param{},
 			ConfigTenants: map[string]any{
 				"diku": map[string]any{
 					"single-tenant": false,
@@ -189,14 +188,14 @@ func TestSetConfigTenantParams_Success(t *testing.T) {
 
 		// Assert
 		assert.NoError(t, err)
-		assert.False(t, svc.Action.Params.SingleTenant)
+		assert.False(t, svc.Action.Param.SingleTenant)
 	})
 
 	t.Run("TestSetConfigTenantParams_Success_EmptyConfigTenant", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
-			Name:   "test-action",
-			Params: &actionparams.ActionParams{},
+			Name:  "test-action",
+			Param: &action.Param{},
 			ConfigTenants: map[string]any{
 				"diku": map[string]any{},
 			},

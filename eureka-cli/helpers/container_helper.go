@@ -7,18 +7,38 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/strslice"
 	"github.com/docker/go-connections/nat"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/field"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 func GetModuleNetworkConfig() *network.NetworkingConfig {
-	endpointConfig := map[string]*network.EndpointSettings{constant.NetworkID: {
-		NetworkID: constant.NetworkID,
-		Aliases:   []string{constant.NetworkAlias},
-	}}
+	return &network.NetworkingConfig{
+		EndpointsConfig: map[string]*network.EndpointSettings{constant.NetworkID: {
+			NetworkID: constant.NetworkID,
+			Aliases:   []string{constant.NetworkAlias},
+		}},
+	}
+}
 
-	return &network.NetworkingConfig{EndpointsConfig: endpointConfig}
+func GetPlatform() *v1.Platform {
+	return &v1.Platform{}
+}
+
+func GetRestartPolicy() *container.RestartPolicy {
+	return &container.RestartPolicy{
+		Name: container.RestartPolicyAlways,
+	}
+}
+
+func GetConfigSidecarCmd(cmd []string) strslice.StrSlice {
+	if len(cmd) > 0 {
+		return cmd
+	}
+
+	return nil
 }
 
 func GetSidecarName(moduleName string) string {
@@ -55,17 +75,17 @@ func CreatePortBindings(hostServerPort int, hostServerDebugPort int, privateServ
 	return &portMap
 }
 
-func CreateResources(isModule bool, resources map[string]any) *container.Resources {
-	if len(resources) == 0 {
+func CreateResources(isModule bool, r map[string]any) *container.Resources {
+	if len(r) == 0 {
 		return createDefaultResources(isModule)
 	}
 
 	return &container.Resources{
-		CPUCount:          GetIntOrDefault(resources, field.ModuleResourceCpuCountEntry, constant.ModuleCPU),
-		MemoryReservation: ConvertMemory(MibToBytes, GetIntOrDefault(resources, field.ModuleResourceMemoryReservationEntry, constant.ModuleMemoryReservation)),
-		Memory:            ConvertMemory(MibToBytes, GetIntOrDefault(resources, field.ModuleResourceMemoryEntry, constant.ModuleMemory)),
-		MemorySwap:        ConvertMemory(MibToBytes, GetIntOrDefault(resources, field.ModuleResourceMemorySwapEntry, constant.ModuleSwap)),
-		OomKillDisable:    BoolP(GetBoolOrDefault(resources, field.ModuleResourceOomKillDisableEntry, false)),
+		CPUCount:          GetIntOrDefault(r, field.ModuleResourceCpuCountEntry, constant.ModuleCPU),
+		MemoryReservation: ConvertMemory(MibToBytes, GetIntOrDefault(r, field.ModuleResourceMemoryReservationEntry, constant.ModuleMemoryReservation)),
+		Memory:            ConvertMemory(MibToBytes, GetIntOrDefault(r, field.ModuleResourceMemoryEntry, constant.ModuleMemory)),
+		MemorySwap:        ConvertMemory(MibToBytes, GetIntOrDefault(r, field.ModuleResourceMemorySwapEntry, constant.ModuleSwap)),
+		OomKillDisable:    BoolP(GetBoolOrDefault(r, field.ModuleResourceOomKillDisableEntry, false)),
 	}
 }
 
@@ -89,17 +109,17 @@ func createDefaultResources(isModule bool) *container.Resources {
 	}
 }
 
-func AppendRequiredContainers(actionName string, requiredContainers []string, configBackendModules map[string]any) []string {
-	if IsModuleEnabled(constant.ModSearchModule, configBackendModules) {
-		requiredContainers = append(requiredContainers, constant.ElasticsearchContainer)
+func AppendRequiredContainers(actionName string, containers []string, backendModules map[string]any) []string {
+	if IsModuleEnabled(constant.ModSearchModule, backendModules) {
+		containers = append(containers, constant.ElasticsearchContainer)
 	}
-	if IsModuleEnabled(constant.ModDataExportWorkerModule, configBackendModules) {
+	if IsModuleEnabled(constant.ModDataExportWorkerModule, backendModules) {
 		extraContainers := []string{constant.MinIOContainer, constant.CreateBucketsContainer, constant.FTPServerContainer}
-		requiredContainers = append(requiredContainers, extraContainers...)
+		containers = append(containers, extraContainers...)
 	}
-	if len(requiredContainers) > 0 {
-		slog.Info(actionName, "text", "Retrieved required containers", "containers", requiredContainers)
+	if len(containers) > 0 {
+		slog.Info(actionName, "text", "Retrieved required containers", "containers", containers)
 	}
 
-	return requiredContainers
+	return containers
 }

@@ -62,13 +62,12 @@ func (run *Run) CheckPorts() error {
 
 func (run *Run) deployNetcatContainer() error {
 	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach", "netcat")
-
-	dir, err := helpers.GetHomeMiscDir(run.Config.Action.Name)
+	homeDir, err := helpers.GetHomeMiscDir()
 	if err != nil {
 		return err
 	}
 
-	return run.Config.ExecSvc.ExecFromDir(preparedCommand, dir)
+	return run.Config.ExecSvc.ExecFromDir(preparedCommand, homeDir)
 }
 
 func (run *Run) getDeployedModules() ([]container.Summary, error) {
@@ -96,7 +95,7 @@ func (run *Run) runNetcat(modules []container.Summary) {
 		name := fmt.Sprintf("%s.eureka", strings.ReplaceAll(module.Names[0], "/", ""))
 		for _, portPair := range module.Ports {
 			privatePort := strconv.Itoa(int(portPair.PrivatePort))
-			run.Config.ExecSvc.ExecIgnoreError(exec.Command("docker", "exec", "-i", "netcat", "nc", "-zv", name, privatePort))
+			_ = run.Config.ExecSvc.Exec(exec.Command("docker", "exec", "-i", "netcat", "nc", "-zv", name, privatePort))
 		}
 	}
 }

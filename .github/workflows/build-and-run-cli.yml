@@ -1,0 +1,172 @@
+name: Build And Run CLI
+
+on:
+  push:
+  pull_request:
+  workflow_call:
+
+jobs:
+  docker-lint:
+    name: Docker Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Validate misc/folio-netcat/Dockerfile
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: ./eureka-cli/misc/folio-netcat/Dockerfile
+          ignore: DL3018
+
+      - name: Validate misc/folio-vault/Dockerfile
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: ./eureka-cli/misc/folio-vault/Dockerfile
+          ignore: DL3018
+
+      - name: Validate misc/folio-kafka-tools/Dockerfile
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: ./eureka-cli/misc/folio-kafka-tools/Dockerfile
+          ignore: DL3018
+
+      - name: Validate misc/docker-compose.yml
+        run: docker compose -f ./eureka-cli/misc/docker-compose.yaml config
+
+  go-lint:
+    name: Go Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Go Environment
+        uses: ./.github/actions/setup-go
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          working-directory: ./eureka-cli
+          args: --timeout=5m
+          only-new-issues: true
+
+  go-trivy:
+    name: Go Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Go Environment
+        uses: ./.github/actions/setup-go
+
+      - name: Download Go dependencies
+        working-directory: ./eureka-cli
+        run: go mod download
+
+      - name: Quick scan for HIGH/CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: './eureka-cli'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+      - name: Run Trivy vulnerability scanner on Go dependencies
+        uses: aquasecurity/trivy-action@master
+        if: success() && github.actor != 'dependabot[bot]'
+        with:
+          scan-type: 'fs'
+          scan-ref: './eureka-cli'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && github.actor != 'dependabot[bot]'
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  go-test:
+    name: Go Test
+    runs-on: ubuntu-latest
+    env:
+      EXCLUDE_PATTERN: '/(cmd|constant|field|models|execsvc|interceptmodulesvc)$|/internal/|eureka-cli$'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Go Environment
+        uses: ./.github/actions/setup-go
+
+      - name: Prepare .eureka config directory
+        run: |
+          mkdir -p /home/runner/.eureka
+          chmod -R 0700 /home/runner/.eureka
+
+      - name: Run tests with coverage
+        working-directory: ./eureka-cli
+        run: |
+          echo "Running tests for testable packages (excluding infrastructure)..."
+          go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -parallel 10 -coverprofile=coverage.out -covermode=atomic
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./eureka-cli/coverage.out
+          flags: unit-tests
+          name: codecov-umbrella
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+
+  build-and-run-cli:
+    name: Build and Run CLI (${{ matrix.os }}-${{ matrix.goarch }})
+    needs: [docker-lint, go-lint, go-trivy, go-test]
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goarch: amd64
+          - os: windows-latest
+            goarch: amd64
+          - os: macos-latest
+            goarch: amd64
+          - os: macos-latest
+            goarch: arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Go Environment
+        uses: ./.github/actions/setup-go
+
+      - name: Set up .eureka directory permissions
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            mkdir -p "$USERPROFILE\.eureka"
+          else
+            mkdir -p "$HOME/.eureka"
+            chmod -R 0700 "$HOME/.eureka"
+          fi
+        env:
+          RUNNER_OS: ${{ runner.os }}
+
+      - name: Build CLI
+        working-directory: ./eureka-cli
+        env:
+          GOOS: ${{ runner.os == 'Windows' && 'windows' || runner.os == 'Linux' && 'linux' || 'darwin' }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build -o eureka-cli${{ runner.os == 'Windows' && '.exe' || '' }}
+
+      - name: Run CLI
+        working-directory: ./eureka-cli
+        shell: bash
+        run: |
+          ./eureka-cli${{ runner.os == 'Windows' && '.exe' || '' }} help -d
+          echo "CLI ran successfully"

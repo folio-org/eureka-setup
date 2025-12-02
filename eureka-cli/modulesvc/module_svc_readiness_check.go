@@ -25,8 +25,8 @@ func (ms *ModuleSvc) CheckModuleReadiness(wg *sync.WaitGroup, errCh chan<- error
 	waitDuration := helpers.DefaultDuration(ms.ReadinessWait, constant.ModuleReadinessWait)
 	requestURL := ms.Action.GetRequestURL(strconv.Itoa(port), "/admin/health")
 	for retryCount := range maxRetries {
-		ready, _ := ms.checkContainerStatusCode(requestURL)
-		if ready {
+		statusCode, _ := ms.HTTPClient.Ping(requestURL)
+		if statusCode == http.StatusOK {
 			slog.Info(ms.Action.Name, "text", "Module is ready", "module", moduleName)
 			return
 		}
@@ -39,13 +39,4 @@ func (ms *ModuleSvc) CheckModuleReadiness(wg *sync.WaitGroup, errCh chan<- error
 	case errCh <- errors.ModuleNotReady(moduleName):
 	default:
 	}
-}
-
-func (ms *ModuleSvc) checkContainerStatusCode(requestURL string) (bool, error) {
-	statusCode, err := ms.HTTPClient.CheckStatus(requestURL)
-	if err != nil {
-		return false, err
-	}
-
-	return statusCode == http.StatusOK, nil
 }

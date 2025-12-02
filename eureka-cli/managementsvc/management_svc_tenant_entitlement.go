@@ -28,6 +28,11 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 	}
 
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/entitlements?purgeOnRollback=true&ignoreErrors=false&async=false&tenantParameters=%s", tenantParameters))
+	headers, err := helpers.SecureOkapiApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return err
+	}
+
 	for _, value := range tenants {
 		entry := value.(map[string]any)
 		tenantName := entry["name"].(string)
@@ -44,8 +49,7 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 		}
 
 		var decodedResponse models.TenantEntitlementResponse
-		err = ms.HTTPClient.PostReturnStruct(requestURL, payload, map[string]string{}, &decodedResponse)
-		if err != nil {
+		if err := ms.HTTPClient.PostReturnStruct(requestURL, payload, headers, &decodedResponse); err != nil {
 			return err
 		}
 		slog.Info(ms.Action.Name, "text", "Created tenant entitlement", "tenant", tenantName, "flowId", decodedResponse.FlowID)
@@ -61,6 +65,11 @@ func (ms *ManagementSvc) RemoveTenantEntitlements(consortiumName string, tenantT
 	}
 
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/entitlements?purge=%t&ignoreErrors=false", purgeSchemas))
+	headers, err := helpers.SecureOkapiApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return err
+	}
+
 	for _, value := range tenants {
 		entry := value.(map[string]any)
 		tenantName := entry["name"].(string)
@@ -78,8 +87,7 @@ func (ms *ManagementSvc) RemoveTenantEntitlements(consortiumName string, tenantT
 		}
 
 		var decodedResponse models.TenantEntitlementResponse
-		err = ms.HTTPClient.DeleteWithBodyReturnStruct(requestURL, payload, map[string]string{}, &decodedResponse)
-		if err != nil {
+		if err := ms.HTTPClient.DeleteWithPayloadReturnStruct(requestURL, payload, headers, &decodedResponse); err != nil {
 			return err
 		}
 		slog.Info(ms.Action.Name, "text", "Removed tenant entitlement", "tenant", tenantName, "flowId", decodedResponse.FlowID)

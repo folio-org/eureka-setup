@@ -36,7 +36,7 @@ func TestNew_Success(t *testing.T) {
 	assert.NotNil(t, config.KeycloakSvc)
 	assert.NotNil(t, config.KongSvc)
 	assert.NotNil(t, config.RegistrySvc)
-	assert.NotNil(t, config.ModuleParams)
+	assert.NotNil(t, config.ModuleProps)
 	assert.NotNil(t, config.ModuleEnv)
 	assert.NotNil(t, config.ModuleSvc)
 	assert.NotNil(t, config.ManagementSvc)

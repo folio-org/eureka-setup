@@ -3,7 +3,6 @@ package interceptmodulesvc
 import (
 	"github.com/docker/docker/api/types/network"
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/actionparams"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/models"
 )
@@ -21,11 +20,8 @@ type ModulePair struct {
 }
 
 // NewModulePair creates a new ModulePair instance with configured URLs for interception
-func NewModulePair(a *action.Action, p *actionparams.ActionParams) (*ModulePair, error) {
-	var (
-		moduleURL  = p.ModuleURL
-		sidecarURL = p.SidecarURL
-	)
+func NewModulePair(a *action.Action, p *action.Param) (*ModulePair, error) {
+	var moduleURL, sidecarURL = p.ModuleURL, p.SidecarURL
 	if p.DefaultGateway {
 		gatewayURL, err := action.GetGatewayURL(a.Name)
 		if err != nil {

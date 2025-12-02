@@ -43,14 +43,7 @@ var detachCapabilitySetsCmd = &cobra.Command{
 func (run *Run) DetachCapabilitySets(consortiumName string, tenantType constant.TenantType) error {
 	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
 		slog.Info(run.Config.Action.Name, "text", "DETACHING CAPABILITY SETS", "tenant", configTenant)
-		keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
-		if err != nil {
-			return err
-		}
-		run.Config.Action.KeycloakAccessToken = keycloakAccessToken
-
-		err = run.Config.KeycloakSvc.DetachCapabilitySetsFromRoles(configTenant)
-		if err != nil {
+		if err := run.Config.KeycloakSvc.DetachCapabilitySetsFromRoles(configTenant); err != nil {
 			slog.Warn(run.Config.Action.Name, "text", "Capability sets detachment was unsuccessful", "tenant", configTenant, "error", err)
 		}
 

@@ -24,6 +24,8 @@ func TestBaseErrors(t *testing.T) {
 		{"ErrUnauthorized", apperrors.ErrUnauthorized, "unauthorized"},
 		{"ErrConfigMissing", apperrors.ErrConfigMissing, "configuration missing"},
 		{"ErrDeploymentFailed", apperrors.ErrDeploymentFailed, "deployment failed"},
+		{"ErrAccessTokenBlank", apperrors.ErrAccessTokenBlank, "access token cannot be blank"},
+		{"ErrTenantNameBlank", apperrors.ErrTenantNameBlank, "tenant name cannot be blank"},
 	}
 
 	for _, tt := range tests {
@@ -134,6 +136,44 @@ func TestLoggerNil(t *testing.T) {
 		// Assert
 		assert.Error(t, result)
 		assert.Equal(t, "logger cannot be nil", result.Error())
+	})
+}
+
+func TestRequiredParameterMissing(t *testing.T) {
+	t.Run("TestRequiredParameterMissing_Success", func(t *testing.T) {
+		// Act
+		result := apperrors.RequiredParameterMissing("tenant")
+
+		// Assert
+		assert.Error(t, result)
+		assert.Equal(t, "invalid input: tenant parameter required", result.Error())
+		assert.True(t, errors.Is(result, apperrors.ErrInvalidInput))
+	})
+}
+
+func TestAccessTokenBlank(t *testing.T) {
+	t.Run("TestAccessTokenBlank_Success", func(t *testing.T) {
+		// Act
+		result := apperrors.AccessTokenBlank()
+
+		// Assert
+		assert.Error(t, result)
+		assert.Equal(t, "access token cannot be blank", result.Error())
+		assert.True(t, errors.Is(result, apperrors.ErrAccessTokenBlank))
+		assert.Equal(t, apperrors.ErrAccessTokenBlank, result)
+	})
+}
+
+func TestTenantNameBlank(t *testing.T) {
+	t.Run("TestTenantNameBlank_Success", func(t *testing.T) {
+		// Act
+		result := apperrors.TenantNameBlank()
+
+		// Assert
+		assert.Error(t, result)
+		assert.Equal(t, "tenant name cannot be blank", result.Error())
+		assert.True(t, errors.Is(result, apperrors.ErrTenantNameBlank))
+		assert.Equal(t, apperrors.ErrTenantNameBlank, result)
 	})
 }
 
@@ -761,4 +801,99 @@ func TestReindexJobIDBlank(t *testing.T) {
 		assert.Error(t, result)
 		assert.Equal(t, "reindex job id is blank", result.Error())
 	})
+}
+
+// ==================== Registry Errors Tests ====================
+
+func TestLocalInstallFileNotFound(t *testing.T) {
+	t.Run("TestLocalInstallFileNotFound_Success", func(t *testing.T) {
+		// Arrange
+		baseErr := errors.New("file not found")
+
+		// Act
+		result := apperrors.LocalInstallFileNotFound(baseErr)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "failed to find local install file")
+		assert.Contains(t, result.Error(), "file not found")
+		assert.True(t, errors.Is(result, apperrors.ErrNotFound))
+		assert.True(t, errors.Is(result, baseErr))
+	})
+}
+
+// ==================== Flag Error Messages Tests ====================
+
+func TestRegisterFlagCompletionFailed(t *testing.T) {
+	t.Run("TestRegisterFlagCompletionFailed_Success", func(t *testing.T) {
+		// Arrange
+		baseErr := errors.New("completion function error")
+
+		// Act
+		result := apperrors.RegisterFlagCompletionFailed(baseErr)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "failed to register flag completion function")
+		assert.Contains(t, result.Error(), "completion function error")
+		assert.True(t, errors.Is(result, baseErr))
+	})
+}
+
+func TestMarkFlagRequiredFailed(t *testing.T) {
+	// Create mock flag structs for testing
+	type mockFlag struct {
+		name string
+	}
+
+	mockFlagGetName := func(f mockFlag) string {
+		return f.name
+	}
+
+	// Create a simple flag implementation
+	moduleName := mockFlag{name: "moduleName"}
+	tenant := mockFlag{name: "tenant"}
+
+	t.Run("TestMarkFlagRequiredFailed_ModuleName", func(t *testing.T) {
+		// Arrange
+		baseErr := errors.New("mark required error")
+
+		// Create adapter that implements Flag interface
+		flagAdapter := flagAdapter{name: mockFlagGetName(moduleName)}
+
+		// Act
+		result := apperrors.MarkFlagRequiredFailed(flagAdapter, baseErr)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "failed to mark moduleName flag as required")
+		assert.Contains(t, result.Error(), "mark required error")
+		assert.True(t, errors.Is(result, baseErr))
+	})
+
+	t.Run("TestMarkFlagRequiredFailed_Tenant", func(t *testing.T) {
+		// Arrange
+		baseErr := errors.New("mark required error")
+
+		// Create adapter that implements Flag interface
+		flagAdapter := flagAdapter{name: mockFlagGetName(tenant)}
+
+		// Act
+		result := apperrors.MarkFlagRequiredFailed(flagAdapter, baseErr)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "failed to mark tenant flag as required")
+		assert.Contains(t, result.Error(), "mark required error")
+		assert.True(t, errors.Is(result, baseErr))
+	})
+}
+
+// flagAdapter is a simple adapter to implement the Flag interface for testing
+type flagAdapter struct {
+	name string
+}
+
+func (f flagAdapter) GetName() string {
+	return f.name
 }

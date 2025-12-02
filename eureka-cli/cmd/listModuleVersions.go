@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/models"
@@ -47,7 +48,7 @@ var listModuleVersionsCmd = &cobra.Command{
 }
 
 func (run *Run) ListModuleVersions() error {
-	if actionParams.ID != "" {
+	if params.ID != "" {
 		return run.getModuleDescriptorByID()
 	}
 
@@ -55,13 +56,13 @@ func (run *Run) ListModuleVersions() error {
 }
 
 func (run *Run) getModuleDescriptorByID() error {
-	requestURL := fmt.Sprintf("%s/_/proxy/modules/%s", run.Config.Action.ConfigRegistryURL, actionParams.ID)
+	requestURL := fmt.Sprintf("%s/_/proxy/modules/%s", run.Config.Action.ConfigRegistryURL, params.ID)
 	respBytes, err := run.Config.HTTPClient.GetReturnRawBytes(requestURL, map[string]string{})
 	if err != nil {
 		return err
 	}
 
-	if !actionParams.EnableDebug {
+	if !params.EnableDebug {
 		fmt.Println(string(respBytes))
 	}
 
@@ -78,18 +79,18 @@ func (run *Run) listModuleVersionsSortedDescendingOrder() error {
 
 	var versions []string
 	for _, module := range decodedResponse {
-		if helpers.MatchesModuleName(module.ID, actionParams.ModuleName) {
+		if helpers.MatchesModuleName(module.ID, params.ModuleName) {
 			versions = append(versions, module.ID)
 		}
 	}
 	sort.Slice(versions, func(i, j int) bool {
-		vi := "v" + strings.TrimPrefix(versions[i], actionParams.ModuleName+"-")
-		vj := "v" + strings.TrimPrefix(versions[j], actionParams.ModuleName+"-")
+		vi := "v" + strings.TrimPrefix(versions[i], params.ModuleName+"-")
+		vj := "v" + strings.TrimPrefix(versions[j], params.ModuleName+"-")
 		return semver.Compare(vi, vj) > 0
 	})
 
 	for idx, version := range versions {
-		if idx >= actionParams.Versions {
+		if idx >= params.Versions {
 			break
 		}
 		fmt.Println(version)
@@ -100,17 +101,17 @@ func (run *Run) listModuleVersionsSortedDescendingOrder() error {
 
 func init() {
 	rootCmd.AddCommand(listModuleVersionsCmd)
-	listModuleVersionsCmd.PersistentFlags().StringVarP(&actionParams.ModuleName, "moduleName", "n", "", "Module name, e.g. mod-orders")
-	if err := listModuleVersionsCmd.RegisterFlagCompletionFunc("moduleName", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	listModuleVersionsCmd.PersistentFlags().StringVarP(&params.ModuleName, action.ModuleName.Long, action.ModuleName.Short, "", action.ModuleName.Description)
+	if err := listModuleVersionsCmd.RegisterFlagCompletionFunc(action.ModuleName.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
-		slog.Error("failed to register flag completion function", "error", err)
+		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
 		os.Exit(1)
 	}
-	listModuleVersionsCmd.PersistentFlags().StringVarP(&actionParams.ID, "id", "i", "", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021")
-	listModuleVersionsCmd.PersistentFlags().IntVarP(&actionParams.Versions, "versions", "v", 5, "Number of versions, e.g. 5")
-	if err := listModuleVersionsCmd.MarkPersistentFlagRequired("moduleName"); err != nil {
-		slog.Error("failed to mark moduleName flag as required", "error", err)
+	listModuleVersionsCmd.PersistentFlags().StringVarP(&params.ID, action.ID.Long, action.ID.Short, "", action.ID.Description)
+	listModuleVersionsCmd.PersistentFlags().IntVarP(&params.Versions, action.Versions.Long, action.Versions.Short, 5, action.Versions.Description)
+	if err := listModuleVersionsCmd.MarkPersistentFlagRequired(action.ModuleName.Long); err != nil {
+		slog.Error(errors.MarkFlagRequiredFailed(action.ModuleName, err).Error())
 		os.Exit(1)
 	}
 }

@@ -6,7 +6,10 @@ import (
 	"strings"
 
 	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/errors"
 )
+
+// ==================== Hostname ====================
 
 func IsHostnameReachable(actionName string, hostname string) error {
 	_, err := net.LookupHost(hostname)
@@ -17,6 +20,8 @@ func IsHostnameReachable(actionName string, hostname string) error {
 	return nil
 }
 
+// ==================== Hostname ====================
+
 func ConstructURL(url string, gatewayURL string) string {
 	if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
 		return url
@@ -25,36 +30,60 @@ func ConstructURL(url string, gatewayURL string) string {
 	return fmt.Sprintf("%s:%s", gatewayURL, url)
 }
 
-func ExtractPortFromURL(url string) (int, error) {
-	port, err := GetPortFromURL(url)
-	if err != nil {
-		return 0, err
+// ==================== Okapi Headers ====================
+
+func SecureOkapiApplicationJSONHeaders(accessToken string) (map[string]string, error) {
+	if accessToken == "" {
+		return nil, errors.AccessTokenBlank()
 	}
 
-	return port, nil
+	return map[string]string{
+		constant.ContentTypeHeader: constant.ApplicationJSON,
+		constant.OkapiTokenHeader:  accessToken,
+	}, nil
 }
 
-func TenantSecureApplicationJSONHeaders(tenantName string, accessToken string) map[string]string {
+func SecureOkapiTenantApplicationJSONHeaders(tenantName string, accessToken string) (map[string]string, error) {
+	if tenantName == "" {
+		return nil, errors.TenantNameBlank()
+	}
+	if accessToken == "" {
+		return nil, errors.AccessTokenBlank()
+	}
+
 	return map[string]string{
 		constant.ContentTypeHeader: constant.ApplicationJSON,
 		constant.OkapiTenantHeader: tenantName,
 		constant.OkapiTokenHeader:  accessToken,
-	}
+	}, nil
 }
 
-func TenantSecureNonOkapiApplicationJSONHeaders(tenantName string, accessToken string) map[string]string {
+// ==================== Non-Okapi Headers ====================
+
+func SecureTenantApplicationJSONHeaders(tenantName string, accessToken string) (map[string]string, error) {
+	if tenantName == "" {
+		return nil, errors.TenantNameBlank()
+	}
+	if accessToken == "" {
+		return nil, errors.AccessTokenBlank()
+	}
+
 	return map[string]string{
 		constant.ContentTypeHeader:   constant.ApplicationJSON,
 		constant.OkapiTenantHeader:   tenantName,
 		constant.AuthorizationHeader: fmt.Sprintf("Bearer %s", accessToken),
-	}
+	}, nil
 }
 
-func SecureApplicationJSONHeaders(accessToken string) map[string]string {
+func SecureApplicationJSONHeaders(accessToken string) (map[string]string, error) {
+	if accessToken == "" {
+		return nil, errors.AccessTokenBlank()
+	}
+
 	return map[string]string{
 		constant.ContentTypeHeader:   constant.ApplicationJSON,
 		constant.AuthorizationHeader: fmt.Sprintf("Bearer %s", accessToken),
-	}
+	}, nil
 }
 
 func ApplicationFormURLEncodedHeaders() map[string]string {

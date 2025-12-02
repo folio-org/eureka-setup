@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/folio-org/eureka-cli/actionparams"
+	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/gitrepository"
 	"github.com/folio-org/eureka-cli/internal/testhelpers"
@@ -37,9 +37,9 @@ func TestNew(t *testing.T) {
 
 func TestGetStripesBranch_DefaultBranch(t *testing.T) {
 	// Arrange
-	action := testhelpers.NewMockAction()
-	action.Params = &actionparams.ActionParams{}
-	svc := New(action, nil, nil, nil, nil)
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{}
+	svc := New(act, nil, nil, nil, nil)
 
 	// Act
 	branch := svc.GetStripesBranch()
@@ -229,13 +229,13 @@ func TestCloneAndUpdateRepository_RepositoryError(t *testing.T) {
 
 func TestPrepareImage_BuildImages(t *testing.T) {
 	// Arrange
-	action := testhelpers.NewMockAction()
-	action.Params = &actionparams.ActionParams{
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{
 		BuildImages:  true,
 		UpdateCloned: false,
 	}
 	mockGitClient := new(testhelpers.MockGitClient)
-	svc := New(action, nil, mockGitClient, nil, nil)
+	svc := New(act, nil, mockGitClient, nil, nil)
 
 	mockRepo := &gitrepository.GitRepository{
 		Label:  "platform-complete",
@@ -260,12 +260,12 @@ func TestPrepareImage_BuildImages(t *testing.T) {
 
 func TestPrepareImage_PullImage(t *testing.T) {
 	// Arrange
-	action := testhelpers.NewMockAction()
-	action.Params = &actionparams.ActionParams{
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{
 		BuildImages: false,
 	}
 	mockDockerClient := new(testhelpers.MockDockerClient)
-	svc := New(action, nil, nil, mockDockerClient, nil)
+	svc := New(act, nil, nil, mockDockerClient, nil)
 
 	expectedImageName := "platform-complete-ui-test-tenant:latest"
 	mockDockerClient.On("ForcePullImage", "platform-complete-ui-test-tenant").
@@ -282,12 +282,12 @@ func TestPrepareImage_PullImage(t *testing.T) {
 
 func TestPrepareImage_PullImageError(t *testing.T) {
 	// Arrange
-	action := testhelpers.NewMockAction()
-	action.Params = &actionparams.ActionParams{
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{
 		BuildImages: false,
 	}
 	mockDockerClient := new(testhelpers.MockDockerClient)
-	svc := New(action, nil, nil, mockDockerClient, nil)
+	svc := New(act, nil, nil, mockDockerClient, nil)
 
 	pullErr := errors.New("pull failed")
 	mockDockerClient.On("ForcePullImage", "platform-complete-ui-test-tenant").

@@ -1,8 +1,6 @@
 package constant
 
-import (
-	"time"
-)
+import "time"
 
 const (
 	// Command wait durations
@@ -121,8 +119,9 @@ const (
 	NoneConsortium = "nop"
 
 	// Config
-	ConfigDir  = ".eureka"
-	ConfigType = "yaml"
+	ConfigPrefix = "config"
+	ConfigDir    = ".eureka"
+	ConfigType   = "yaml"
 
 	// Module registries
 	FolioRegistry  = "folio"
@@ -152,10 +151,11 @@ const (
 	SingleUiContainerPattern              = "eureka-platform-complete-ui-%s"
 
 	// Other regexp patterns
+	VaultRootTokenPattern = "init.sh: Root VAULT TOKEN is:"
 	ColonDelimitedPattern = ".*:"
 	ModuleIDPattern       = `^([a-z_-]+)([\d_.-]+)([-\w.]+)$`
-	VaultRootTokenPattern = "init.sh: Root VAULT TOKEN is:"
 	NewLinePattern        = `[\r\n\s-]+`
+	ProtocolPattern       = `^[a-zA-Z]+://`
 
 	// System containers name
 	PostgreSQLContainer    = "postgres"
@@ -170,9 +170,13 @@ const (
 	CreateBucketsContainer = "createbuckets"
 	FTPServerContainer     = "ftp-server"
 
-	// Keycloak credentials
-	KeycloakAdminUsername = "admin"
-	KeycloakAdminPassword = "admin"
+	// Keycloak properties
+	KeycloakAdminClient                    = "admin-cli"
+	KeycloakAdminUsername                  = "admin"
+	KeycloakAdminPassword                  = "admin"
+	KeycloakMasterRealm                    = "master"
+	KeycloakMasterRealmAccessTokenLifespan = 1800
+	KeycloakTenantRealmAccessTokenLifespan = 900
 
 	// System container ports
 	KongPort        = "8000"
@@ -211,13 +215,13 @@ const (
 
 // Container types
 const (
-	ManagementType = "management"
-	ModuleType     = "module"
-	SidecarType    = "sidecar"
+	Management = "management"
+	Module     = "module"
+	Sidecar    = "sidecar"
 )
 
 func GetContainerTypes() []string {
-	return []string{ModuleType, SidecarType, ManagementType}
+	return []string{Module, Sidecar, Management}
 }
 
 // Tenant types
@@ -232,6 +236,24 @@ const (
 
 func GetTenantTypes() []TenantType {
 	return []TenantType{Central, Member}
+}
+
+// Keycloak Grant types
+type KeycloakGrantType string
+
+const (
+	ClientCredentials = "client_credentials"
+	Password          = "password"
+)
+
+const (
+	DefaultToken        string = "tenant"
+	MasterCustomToken   string = "master-custom"
+	MasterAdminCLIToken string = "master-admin-cli"
+)
+
+func GetTokenTypes() []string {
+	return []string{DefaultToken, MasterCustomToken, MasterAdminCLIToken}
 }
 
 func GetInitialRequiredContainers() []string {

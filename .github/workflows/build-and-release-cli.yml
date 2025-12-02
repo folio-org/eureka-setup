@@ -1,16 +1,16 @@
-name: Release CLI
+name: Build and Release CLI
 
 on:
   push:
     tags:
-      - "v*.*.*" # Triggers on version tags like v1.2.3
+      - "v*.*.*"
 
 jobs:
   test:
-    uses: ./.github/workflows/test.yml
+    uses: ./.github/workflows/build-and-run-cli.yml
 
   release:
-    name: Build and Release
+    name: Build and Release CLI
     needs: test
     runs-on: ubuntu-latest
     steps:

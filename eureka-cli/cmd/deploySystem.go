@@ -45,25 +45,25 @@ func (run *Run) DeploySystem() error {
 	if err := run.CloneUpdateRepositories(); err != nil {
 		return err
 	}
-	if actionParams.BuildImages {
+	if params.BuildImages {
 		if err := run.BuildSystem(); err != nil {
 			return err
 		}
 	}
 
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}
-	if actionParams.OnlyRequired {
+	if params.OnlyRequired {
 		initialRequiredContainers := constant.GetInitialRequiredContainers()
 		finalRequiredContainers := helpers.AppendRequiredContainers(run.Config.Action.Name, initialRequiredContainers, run.Config.Action.ConfigBackendModules)
 		subCommand = append(subCommand, finalRequiredContainers...)
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "DEPLOYING SYSTEM CONTAINERS")
-	dir, err := helpers.GetHomeMiscDir(run.Config.Action.Name)
+	homeDir, err := helpers.GetHomeMiscDir()
 	if err != nil {
 		return err
 	}
-	if err := run.Config.ExecSvc.ExecFromDir(exec.Command("docker", subCommand...), dir); err != nil {
+	if err := run.Config.ExecSvc.ExecFromDir(exec.Command("docker", subCommand...), homeDir); err != nil {
 		return err
 	}
 	slog.Info(run.Config.Action.Name, "text", "WAITING FOR SYSTEM CONTAINERS TO BECOME READY")
@@ -75,7 +75,7 @@ func (run *Run) DeploySystem() error {
 
 func init() {
 	rootCmd.AddCommand(deploySystemCmd)
-	deploySystemCmd.PersistentFlags().BoolVarP(&actionParams.BuildImages, "buildImages", "b", false, "Build Docker images")
-	deploySystemCmd.PersistentFlags().BoolVarP(&actionParams.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
-	deploySystemCmd.PersistentFlags().BoolVarP(&actionParams.OnlyRequired, "onlyRequired", "q", false, "Use only required system containers")
+	deploySystemCmd.PersistentFlags().BoolVarP(&params.BuildImages, action.BuildImages.Long, action.BuildImages.Short, false, action.BuildImages.Description)
+	deploySystemCmd.PersistentFlags().BoolVarP(&params.UpdateCloned, action.UpdateCloned.Long, action.UpdateCloned.Short, false, action.UpdateCloned.Description)
+	deploySystemCmd.PersistentFlags().BoolVarP(&params.OnlyRequired, action.OnlyRequired.Long, action.OnlyRequired.Short, false, action.OnlyRequired.Description)
 }

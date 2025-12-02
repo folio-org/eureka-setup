@@ -57,11 +57,11 @@ func (ms *ModuleSvc) GetBackendModule(containers *models.Containers, moduleName 
 	allModules := [][]*models.ProxyModule{containers.Modules.FolioModules, containers.Modules.EurekaModules}
 	for _, modules := range allModules {
 		for _, module := range modules {
-			backendModule, exists := containers.BackendModules[module.Name]
+			backendModule, exists := containers.BackendModules[module.Metadata.Name]
 			if !exists || !backendModule.DeployModule {
 				continue
 			}
-			if module.Name == moduleName {
+			if module.Metadata.Name == moduleName {
 				return &backendModule, module
 			}
 		}
@@ -75,7 +75,7 @@ func (ms *ModuleSvc) GetModuleImageVersion(backendModule models.BackendModule, m
 		return *backendModule.ModuleVersion
 	}
 
-	return *module.Version
+	return *module.Metadata.Version
 }
 
 func (ms *ModuleSvc) GetSidecarImage(modules []*models.ProxyModule) (string, bool, error) {
@@ -118,8 +118,8 @@ func (ms *ModuleSvc) getSidecarImageVersion(modules []*models.ProxyModule, rawCo
 
 func (ms *ModuleSvc) findRegistrySidecarImageVersion(modules []*models.ProxyModule) (string, bool) {
 	for _, module := range modules {
-		if module.Name == constant.SidecarProjectName {
-			return *module.Version, true
+		if module.Metadata.Name == constant.SidecarProjectName {
+			return *module.Metadata.Version, true
 		}
 	}
 
@@ -127,19 +127,19 @@ func (ms *ModuleSvc) findRegistrySidecarImageVersion(modules []*models.ProxyModu
 }
 
 func (ms *ModuleSvc) GetModuleImage(moduleVersion string, module *models.ProxyModule) string {
-	return fmt.Sprintf("%s/%s:%s", ms.RegistrySvc.GetNamespace(moduleVersion), module.Name, moduleVersion)
+	return fmt.Sprintf("%s/%s:%s", ms.RegistrySvc.GetNamespace(moduleVersion), module.Metadata.Name, moduleVersion)
 }
 
 func (ms *ModuleSvc) GetModuleEnv(container *models.Containers, module *models.ProxyModule, backendModule models.BackendModule) []string {
-	env := container.GlobalEnv
+	env := ms.Action.GetConfigEnvVars(field.Env)
 	if backendModule.UseVault {
-		env = ms.ModuleEnv.VaultEnv(env, container.VaultRootToken)
+		env = ms.ModuleEnv.VaultEnv(env, ms.Action.VaultRootToken)
 	}
 	if backendModule.UseOkapiURL {
-		env = ms.ModuleEnv.OkapiEnv(env, module.SidecarName, backendModule.PrivatePort)
+		env = ms.ModuleEnv.OkapiEnv(env, module.Metadata.SidecarName, backendModule.PrivatePort)
 	}
 	if backendModule.DisableSystemUser {
-		env = ms.ModuleEnv.DisabledSystemUserEnv(env, module.Name)
+		env = ms.ModuleEnv.DisabledSystemUserEnv(env, module.Metadata.Name)
 	}
 	env = ms.ModuleEnv.ModuleEnv(env, backendModule.ModuleEnv)
 
@@ -147,8 +147,8 @@ func (ms *ModuleSvc) GetModuleEnv(container *models.Containers, module *models.P
 }
 
 func (ms *ModuleSvc) GetSidecarEnv(containers *models.Containers, module *models.ProxyModule, backendModule models.BackendModule, moduleURL, sidecarURL string) []string {
-	env := containers.SidecarEnv
-	env = ms.ModuleEnv.VaultEnv(env, containers.VaultRootToken)
+	env := ms.Action.GetConfigEnvVars(field.SidecarModuleEnv)
+	env = ms.ModuleEnv.VaultEnv(env, ms.Action.VaultRootToken)
 	env = ms.ModuleEnv.KeycloakEnv(env)
 	env = ms.ModuleEnv.SidecarEnv(env, module, backendModule.PrivatePort, moduleURL, sidecarURL)
 

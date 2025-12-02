@@ -38,7 +38,7 @@ func TestCheckRouteExists_Success(t *testing.T) {
 		Expression: `(http.path == "/test")`,
 	}
 
-	mockHTTP.On("CheckStatus",
+	mockHTTP.On("Ping",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/routes/"+routeID)
 		})).
@@ -76,7 +76,7 @@ func TestCheckRouteExists_NotFound(t *testing.T) {
 
 	routeID := "nonexistent-route"
 
-	mockHTTP.On("CheckStatus",
+	mockHTTP.On("Ping",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/routes/"+routeID)
 		})).
@@ -101,7 +101,7 @@ func TestCheckRouteExists_HTTPError(t *testing.T) {
 	routeID := "route-123"
 	expectedError := errors.New("HTTP request failed")
 
-	mockHTTP.On("CheckStatus",
+	mockHTTP.On("Ping",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/routes/"+routeID)
 		})).
@@ -126,7 +126,7 @@ func TestCheckRouteExists_InternalServerError(t *testing.T) {
 
 	routeID := "route-123"
 
-	mockHTTP.On("CheckStatus",
+	mockHTTP.On("Ping",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/routes/"+routeID)
 		})).
@@ -152,7 +152,7 @@ func TestCheckRouteExists_GetStructError(t *testing.T) {
 	routeID := "route-123"
 	expectedError := errors.New("Failed to decode response")
 
-	mockHTTP.On("CheckStatus",
+	mockHTTP.On("Ping",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/routes/"+routeID)
 		})).

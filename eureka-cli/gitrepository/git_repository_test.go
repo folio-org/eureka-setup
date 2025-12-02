@@ -5,21 +5,17 @@ import (
 	"testing"
 
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/actionparams"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/stretchr/testify/assert"
 )
 
 // newMockAction creates a minimal Action instance for testing
 func newMockAction() *action.Action {
-	params := &actionparams.ActionParams{}
-	return action.NewWithCredentials(
+	params := &action.Param{}
+	return action.New(
 		"test-action",
 		"http://localhost:%s",
 		params,
-		"test-vault-token",
-		"test-keycloak-token",
-		"test-master-token",
 	)
 }
 

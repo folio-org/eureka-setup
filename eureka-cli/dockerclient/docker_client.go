@@ -14,6 +14,7 @@ import (
 	"github.com/folio-org/eureka-cli/field"
 )
 
+// TODO Add testcontainers tests
 // DockerClientRunner defines the interface for Docker client operations
 type DockerClientRunner interface {
 	Create() (*client.Client, error)

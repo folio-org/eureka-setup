@@ -53,11 +53,11 @@ func (run *Run) GetVaultRootToken() error {
 }
 
 func (run *Run) setVaultRootTokenIntoContext(client *client.Client) error {
-	vaultRootToken, err := run.Config.ModuleSvc.GetVaultRootToken(client)
+	rootToken, err := run.Config.ModuleSvc.GetVaultRootToken(client)
 	if err != nil {
 		return err
 	}
-	run.Config.Action.VaultRootToken = vaultRootToken
+	run.Config.Action.VaultRootToken = rootToken
 
 	return nil
 }

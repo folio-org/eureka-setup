@@ -10,7 +10,7 @@ import (
 type HTTPClientDeleteManager interface {
 	Delete(url string, headers map[string]string) error
 	DeleteReturnStruct(url string, headers map[string]string, target any) error
-	DeleteWithBodyReturnStruct(url string, payload []byte, headers map[string]string, target any) error
+	DeleteWithPayloadReturnStruct(url string, payload []byte, headers map[string]string, target any) error
 }
 
 func (hc *HTTPClient) Delete(url string, headers map[string]string) error {
@@ -41,7 +41,7 @@ func (hc *HTTPClient) DeleteReturnStruct(url string, headers map[string]string, 
 	return json.Unmarshal(body, target)
 }
 
-func (hc *HTTPClient) DeleteWithBodyReturnStruct(url string, payload []byte, headers map[string]string, target any) error {
+func (hc *HTTPClient) DeleteWithPayloadReturnStruct(url string, payload []byte, headers map[string]string, target any) error {
 	httpResponse, err := hc.doRequest(http.MethodDelete, url, payload, headers, false)
 	if err != nil {
 		return err

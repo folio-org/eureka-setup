@@ -31,7 +31,11 @@ func New(action *action.Action, httpClient httpclient.HTTPClientRunner) *SearchS
 
 func (ss *SearchSvc) ReindexInventoryRecords(tenantName string) error {
 	requestURL := ss.Action.GetRequestURL(constant.KongPort, "/search/index/inventory/reindex")
-	headers := helpers.TenantSecureApplicationJSONHeaders(tenantName, ss.Action.KeycloakAccessToken)
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ss.Action.KeycloakAccessToken)
+	if err != nil {
+		return err
+	}
+
 	inventoryRecords := []string{"authority", "location", "linked-data-instance", "linked-data-work", "linked-data-hub"}
 	for _, record := range inventoryRecords {
 		payload, err := json.Marshal(map[string]any{
@@ -43,7 +47,7 @@ func (ss *SearchSvc) ReindexInventoryRecords(tenantName string) error {
 		}
 
 		var job models.ReindexJobResponse
-		if err = ss.HTTPClient.PostReturnStruct(requestURL, payload, headers, &job); err != nil {
+		if err := ss.HTTPClient.PostReturnStruct(requestURL, payload, headers, &job); err != nil {
 			slog.Warn(ss.Action.Name, "text", err)
 			continue
 		}
@@ -69,6 +73,7 @@ func (ss *SearchSvc) validateInventoryRecordsResponse(job models.ReindexJobRespo
 	if job.ID == "" {
 		return errors.ReindexJobIDBlank()
 	}
+
 	return nil
 }
 
@@ -79,8 +84,11 @@ func (ss *SearchSvc) ReindexInstanceRecords(tenantName string) error {
 	}
 
 	requestURL := ss.Action.GetRequestURL(constant.KongPort, "/search/index/instance-records/reindex/full")
-	headers := helpers.TenantSecureApplicationJSONHeaders(tenantName, ss.Action.KeycloakAccessToken)
-	if err = ss.HTTPClient.PostReturnNoContent(requestURL, payload, headers); err != nil {
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ss.Action.KeycloakAccessToken)
+	if err != nil {
+		return err
+	}
+	if err := ss.HTTPClient.PostReturnNoContent(requestURL, payload, headers); err != nil {
 		return err
 	}
 	slog.Info(ss.Action.Name, "text", "Reindexed instance records for tenant", "tenant", tenantName)

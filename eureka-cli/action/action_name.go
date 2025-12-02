@@ -6,6 +6,7 @@ const (
 	BuildSystem                 = "Build System"
 	CheckPorts                  = "Check Ports"
 	CreateConsortiums           = "Create Consortiums"
+	CreatePortProxy             = "Create Port Proxy"
 	CreateRoles                 = "Create Roles"
 	CreateTenantEntitlements    = "Create Tenant Entitlements"
 	CreateTenants               = "Create Tenants"

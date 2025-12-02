@@ -17,13 +17,11 @@ package cmd
 
 import (
 	"log/slog"
-	"sync"
 	"time"
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/errors"
-	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/models"
 	"github.com/spf13/cobra"
 )
@@ -44,15 +42,15 @@ var deployManagementCmd = &cobra.Command{
 }
 
 func (run *Run) DeployManagement() error {
-	slog.Info(run.Config.Action.Name, "text", "READING BACKEND MODULES FROM CONFIG")
-	backendModules, err := run.Config.ModuleParams.ReadBackendModulesFromConfig(true, true)
+	slog.Info(run.Config.Action.Name, "text", "READING BACKEND MODULES")
+	backendModules, err := run.Config.ModuleProps.ReadBackendModules(true, true)
 	if err != nil {
 		return err
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
 	instalJsonURLs := run.Config.Action.GetEurekaInstallJsonURLs()
-	modules, err := run.Config.RegistrySvc.GetModules(instalJsonURLs, true)
+	modules, err := run.Config.RegistrySvc.GetModules(instalJsonURLs, true, true)
 	if err != nil {
 		return err
 	}
@@ -68,9 +66,11 @@ func (run *Run) DeployManagement() error {
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "DEPLOYING MANAGEMENT MODULES")
-	env := run.Config.Action.GetConfigEnvVars(field.Env)
-	containers := models.NewManagementContainers(run.Config.Action.VaultRootToken, modules, backendModules, env)
-	deployedModules, err := run.Config.ModuleSvc.DeployModules(client, containers, "", nil)
+	deployedModules, err := run.Config.ModuleSvc.DeployModules(client, &models.Containers{
+		Modules:        modules,
+		BackendModules: backendModules,
+		IsManagement:   true,
+	}, "", nil)
 	if err != nil {
 		return err
 	}
@@ -80,30 +80,28 @@ func (run *Run) DeployManagement() error {
 	time.Sleep(constant.DeployManagementWait)
 
 	slog.Info(run.Config.Action.Name, "text", "WAITING FOR MANAGEMENT MODULES TO BECOME READY")
-	var deployManagementWG sync.WaitGroup
-	errCh := make(chan error, len(deployedModules))
-	deployManagementWG.Add(len(deployedModules))
-	for deployedModule := range deployedModules {
-		go run.Config.ModuleSvc.CheckModuleReadiness(&deployManagementWG, errCh, deployedModule, deployedModules[deployedModule])
-	}
-	deployManagementWG.Wait()
-	close(errCh)
-
-	for err := range errCh {
-		if err != nil {
-			return err
-		}
+	if err := run.CheckDeployedModuleReadiness(constant.Management, deployedModules); err != nil {
+		return err
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "WAITING FOR KONG ROUTES TO BECOME READY")
 	if err := run.Config.KongSvc.CheckRouteReadiness(); err != nil {
 		return err
 	}
-	slog.Info(run.Config.Action.Name, "text", "All management modules are ready")
+
+	slog.Info(run.Config.Action.Name, "text", "UPDATING REALM SETTINGS")
+	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.Password); err != nil {
+		return err
+	}
+	if err := run.Config.KeycloakSvc.UpdateRealmAccessTokenSettings(constant.KeycloakMasterRealm, constant.KeycloakMasterRealmAccessTokenLifespan); err != nil {
+		return err
+	}
+	slog.Info(run.Config.Action.Name, "text", "Realm settings have been updated", "realm", constant.KeycloakMasterRealm)
 
 	return nil
 }
 
 func init() {
 	rootCmd.AddCommand(deployManagementCmd)
+	deployManagementCmd.PersistentFlags().BoolVarP(&params.SkipRegistry, action.SkipRegistry.Long, action.SkipRegistry.Short, false, action.SkipRegistry.Description)
 }

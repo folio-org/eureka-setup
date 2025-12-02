@@ -46,11 +46,6 @@ func (run *Run) ReindexIndices(consortiumName string, tenantType constant.Tenant
 	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
 		if action.IsSet(field.Consortiums) && tenantType == fmt.Sprintf("%s-%s", consortiumName, constant.Central) {
 			slog.Info(run.Config.Action.Name, "text", "REINDEXING INDICES", "tenant", configTenant)
-			keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(configTenant)
-			if err != nil {
-				return err
-			}
-			run.Config.Action.KeycloakAccessToken = keycloakAccessToken
 			if err := run.Config.SearchSvc.ReindexInventoryRecords(configTenant); err != nil {
 				return err
 			}

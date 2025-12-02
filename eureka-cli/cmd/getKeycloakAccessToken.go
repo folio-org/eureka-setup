@@ -21,6 +21,8 @@ import (
 	"os"
 
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -37,30 +39,71 @@ var getKeycloakAccessTokenCmd = &cobra.Command{
 		if err := run.GetVaultRootToken(); err != nil {
 			return err
 		}
-		if err := run.GetKeycloakAccessToken(); err != nil {
+
+		accessToken, err := run.GetKeycloakAccessToken(params.TokenType, params.Tenant)
+		if err != nil {
 			return err
 		}
-		fmt.Println(run.Config.Action.KeycloakAccessToken)
+		fmt.Println(accessToken)
 
 		return nil
 	},
 }
 
-func (run *Run) GetKeycloakAccessToken() error {
-	keycloakAccessToken, err := run.Config.KeycloakSvc.GetKeycloakAccessToken(actionParams.Tenant)
+func (run *Run) GetKeycloakAccessToken(tokenType, tenant string) (string, error) {
+	switch tokenType {
+	case constant.MasterCustomToken:
+		if err := run.setKeycloakMasterAccessTokenIntoContext(constant.ClientCredentials); err != nil {
+			return "", err
+		}
+
+		return run.Config.Action.KeycloakMasterAccessToken, nil
+	case constant.MasterAdminCLIToken:
+		if err := run.setKeycloakMasterAccessTokenIntoContext(constant.Password); err != nil {
+			return "", err
+		}
+
+		return run.Config.Action.KeycloakMasterAccessToken, nil
+	default:
+		if tenant == "" {
+			return "", errors.RequiredParameterMissing("tenant")
+		}
+		if err := run.setKeycloakAccessTokenIntoContext(tenant); err != nil {
+			return "", err
+		}
+
+		return run.Config.Action.KeycloakAccessToken, nil
+	}
+}
+
+func (run *Run) setKeycloakAccessTokenIntoContext(tenant string) error {
+	accessToken, err := run.Config.KeycloakSvc.GetAccessToken(tenant)
 	if err != nil {
 		return err
 	}
-	run.Config.Action.KeycloakAccessToken = keycloakAccessToken
+	run.Config.Action.KeycloakAccessToken = accessToken
+
+	return nil
+}
+
+func (run *Run) setKeycloakMasterAccessTokenIntoContext(grantType constant.KeycloakGrantType) error {
+	accessToken, err := run.Config.KeycloakSvc.GetMasterAccessToken(grantType)
+	if err != nil {
+		return err
+	}
+	run.Config.Action.KeycloakMasterAccessToken = accessToken
 
 	return nil
 }
 
 func init() {
 	rootCmd.AddCommand(getKeycloakAccessTokenCmd)
-	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&actionParams.Tenant, "tenant", "t", "", "Tenant")
-	if err := getKeycloakAccessTokenCmd.MarkPersistentFlagRequired("tenant"); err != nil {
-		slog.Error("failed to mark tenant flag as required", "error", err)
+	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&params.Tenant, action.Tenant.Long, action.Tenant.Short, "", action.Tenant.Description)
+	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&params.TokenType, action.TokenType.Long, action.TokenType.Short, "", action.TokenType.Description)
+	if err := getKeycloakAccessTokenCmd.RegisterFlagCompletionFunc(action.TokenType.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return constant.GetTokenTypes(), cobra.ShellCompDirectiveNoFileComp
+	}); err != nil {
+		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
 		os.Exit(1)
 	}
 }

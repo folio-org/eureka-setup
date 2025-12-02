@@ -83,6 +83,7 @@ func (hc *HTTPClient) doRequest(method, url string, payload []byte, headers map[
 		return nil, err
 	}
 	if err := helpers.DumpResponse(method, url, httpResponse, false); err != nil {
+		CloseResponse(httpResponse)
 		return nil, err
 	}
 

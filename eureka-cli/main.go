@@ -23,19 +23,19 @@ import (
 
 var (
 	//go:embed misc/edge-modules
-	//go:embed misc/folio-keycloak-nginx
-	//go:embed misc/folio-vault
 	//go:embed misc/folio-kafka-tools
+	//go:embed misc/folio-keycloak-nginx
 	//go:embed misc/folio-netcat
+	//go:embed misc/folio-vault
 	//go:embed misc/postgres
-	//go:embed misc/docker-compose.yaml
 	//go:embed misc/.env
-	//go:embed misc/add-hosts.ps1
-	//go:embed misc/add-hosts.sh
+	//go:embed misc/*.ps1
+	//go:embed misc/*.sh
+	//go:embed misc/docker-compose.yaml
 	//go:embed *.yaml
-	embeddedFs embed.FS
+	fs embed.FS
 )
 
 func main() {
-	cmd.Execute(&embeddedFs)
+	cmd.Execute(&fs)
 }

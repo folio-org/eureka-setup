@@ -2,11 +2,12 @@ package httpclient
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/folio-org/eureka-cli/helpers"
 )
 
 // HTTPClientPostManager defines the interface for HTTP POST operations
@@ -30,7 +31,6 @@ func (hc *HTTPClient) PostReturnNoContent(url string, payload []byte, headers ma
 func (hc *HTTPClient) PostRetryReturnNoContent(url string, payload []byte, headers map[string]string) error {
 	httpResponse, err := hc.doRequest(http.MethodPost, url, payload, headers, true)
 	if err != nil {
-		fmt.Println("Failed=", err)
 		return err
 	}
 	defer CloseResponse(httpResponse)
@@ -61,12 +61,18 @@ func (hc *HTTPClient) PostReturnStruct(url string, payload []byte, headers map[s
 }
 
 func (hc *HTTPClient) PostFormDataReturnStruct(url string, formValues url.Values, headers map[string]string, target any) error {
+	helpers.DumpRequestFormData(formValues)
+
 	httpRequest, err := http.NewRequest(http.MethodPost, url, strings.NewReader(formValues.Encode()))
 	if err != nil {
 		return err
 	}
 
 	setRequestHeaders(httpRequest, headers)
+	if err := helpers.DumpRequest(httpRequest); err != nil {
+		return err
+	}
+
 	httpResponse, err := hc.customClient.Do(httpRequest)
 	if err != nil {
 		return err
@@ -76,7 +82,9 @@ func (hc *HTTPClient) PostFormDataReturnStruct(url string, formValues url.Values
 	if err := hc.validateResponse(url, http.MethodPost, httpResponse); err != nil {
 		return err
 	}
-
+	if err := helpers.DumpResponse(http.MethodPost, url, httpResponse, false); err != nil {
+		return err
+	}
 	if httpResponse.ContentLength == 0 {
 		return nil
 	}

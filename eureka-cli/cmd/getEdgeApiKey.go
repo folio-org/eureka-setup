@@ -26,6 +26,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -45,15 +46,15 @@ var getEdgeApiKeyCmd = &cobra.Command{
 }
 
 func (run *Run) GetEdgeApiKey() error {
-	randomStr, err := run.getRandomString(actionParams.Length)
+	randomStr, err := run.getRandomString(params.Length)
 	if err != nil {
 		return err
 	}
 
 	payload, err := json.Marshal(map[string]any{
 		"s": randomStr,
-		"t": actionParams.Tenant,
-		"u": actionParams.User,
+		"t": params.Tenant,
+		"u": params.User,
 	})
 	if err != nil {
 		return err
@@ -80,15 +81,15 @@ func (run *Run) getRandomString(length int) (string, error) {
 
 func init() {
 	rootCmd.AddCommand(getEdgeApiKeyCmd)
-	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&actionParams.Tenant, "tenant", "t", "", "Tenant")
-	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&actionParams.User, "user", "x", "", "User")
-	getEdgeApiKeyCmd.PersistentFlags().IntVarP(&actionParams.Length, "length", "l", 17, "Salt length")
-	if err := getEdgeApiKeyCmd.MarkPersistentFlagRequired("tenant"); err != nil {
-		slog.Error("failed to mark tenant flag as required", "error", err)
+	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&params.Tenant, action.Tenant.Long, action.Tenant.Short, "", action.Tenant.Description)
+	getEdgeApiKeyCmd.PersistentFlags().StringVarP(&params.User, action.User.Long, action.User.Short, "", action.User.Description)
+	getEdgeApiKeyCmd.PersistentFlags().IntVarP(&params.Length, action.Length.Long, action.Length.Short, 17, action.Length.Description)
+	if err := getEdgeApiKeyCmd.MarkPersistentFlagRequired(action.Tenant.Long); err != nil {
+		slog.Error(errors.MarkFlagRequiredFailed(action.Tenant, err).Error())
 		os.Exit(1)
 	}
-	if err := getEdgeApiKeyCmd.MarkPersistentFlagRequired("user"); err != nil {
-		slog.Error("failed to mark user flag as required", "error", err)
+	if err := getEdgeApiKeyCmd.MarkPersistentFlagRequired(action.User.Long); err != nil {
+		slog.Error(errors.MarkFlagRequiredFailed(action.User, err).Error())
 		os.Exit(1)
 	}
 }

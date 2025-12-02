@@ -7,7 +7,6 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/actionparams"
 	"github.com/folio-org/eureka-cli/models"
 	"github.com/stretchr/testify/mock"
 )
@@ -17,12 +16,12 @@ type MockHTTPClient struct {
 	mock.Mock
 }
 
-func (m *MockHTTPClient) Ping(url string) error {
+func (m *MockHTTPClient) PingRetry(url string) error {
 	args := m.Called(url)
 	return args.Error(0)
 }
 
-func (m *MockHTTPClient) CheckStatus(url string) (int, error) {
+func (m *MockHTTPClient) Ping(url string) (int, error) {
 	args := m.Called(url)
 	return args.Int(0), args.Error(1)
 }
@@ -95,21 +94,18 @@ func (m *MockHTTPClient) DeleteReturnStruct(url string, headers map[string]strin
 	return args.Error(0)
 }
 
-func (m *MockHTTPClient) DeleteWithBodyReturnStruct(url string, payload []byte, headers map[string]string, target any) error {
+func (m *MockHTTPClient) DeleteWithPayloadReturnStruct(url string, payload []byte, headers map[string]string, target any) error {
 	args := m.Called(url, payload, headers, target)
 	return args.Error(0)
 }
 
 // NewMockAction creates a minimal Action instance for testing
 func NewMockAction() *action.Action {
-	params := &actionparams.ActionParams{}
-	return action.NewWithCredentials(
+	params := &action.Param{}
+	return action.New(
 		"test-action",
 		"http://localhost:%s", // Gateway URL template
 		params,
-		"test-vault-token",
-		"test-keycloak-token",
-		"test-master-token",
 	)
 }
 
@@ -151,8 +147,8 @@ func (m *MockRegistrySvc) ExtractModuleMetadata(modules *models.ProxyModulesByRe
 	m.Called(modules)
 }
 
-func (m *MockRegistrySvc) GetModules(installJsonURLs map[string]string, verbose bool) (*models.ProxyModulesByRegistry, error) {
-	args := m.Called(installJsonURLs, verbose)
+func (m *MockRegistrySvc) GetModules(installJsonURLs map[string]string, useRemote, verbose bool) (*models.ProxyModulesByRegistry, error) {
+	args := m.Called(installJsonURLs, useRemote, verbose)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

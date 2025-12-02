@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -41,21 +42,21 @@ var buildAndPushUiCmd = &cobra.Command{
 
 func (run *Run) BuildAndPushUi() error {
 	start := time.Now()
-	if err := run.Config.TenantSvc.SetConfigTenantParams(actionParams.Tenant); err != nil {
+	if err := run.Config.TenantSvc.SetConfigTenantParams(params.Tenant); err != nil {
 		return err
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "BUILDING AND PUSHING PLATFORM COMPLETE UI IMAGE TO DOCKER HUB")
-	outputDir, err := run.Config.UISvc.CloneAndUpdateRepository(actionParams.UpdateCloned)
+	outputDir, err := run.Config.UISvc.CloneAndUpdateRepository(params.UpdateCloned)
 	if err != nil {
 		return err
 	}
 
-	imageName, err := run.Config.UISvc.BuildImage(actionParams.Tenant, outputDir)
+	imageName, err := run.Config.UISvc.BuildImage(params.Tenant, outputDir)
 	if err != nil {
 		return err
 	}
-	if err := run.Config.DockerClient.PushImage(actionParams.Namespace, imageName); err != nil {
+	if err := run.Config.DockerClient.PushImage(params.Namespace, imageName); err != nil {
 		return err
 	}
 	slog.Info(run.Config.Action.Name, "text", "Command completed", "duration", time.Since(start))
@@ -65,18 +66,18 @@ func (run *Run) BuildAndPushUi() error {
 
 func init() {
 	rootCmd.AddCommand(buildAndPushUiCmd)
-	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.Namespace, "namespace", "", "", "DockerHub namespace")
-	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.Tenant, "tenant", "t", "", "Tenant")
-	buildAndPushUiCmd.PersistentFlags().StringVarP(&actionParams.PlatformCompleteURL, "platformCompleteURL", "", "http://localhost:3000", "Platform Complete UI url")
-	buildAndPushUiCmd.PersistentFlags().BoolVarP(&actionParams.SingleTenant, "singleTenant", "", true, "Use for Single Tenant workflow")
-	buildAndPushUiCmd.PersistentFlags().BoolVarP(&actionParams.EnableECSRequests, "enableEcsRequests", "", false, "Enable ECS requests")
-	buildAndPushUiCmd.PersistentFlags().BoolVarP(&actionParams.UpdateCloned, "updateCloned", "u", false, "Update Git cloned projects")
-	if err := buildAndPushUiCmd.MarkPersistentFlagRequired("namespace"); err != nil {
-		slog.Error("failed to mark namespace flag as required", "error", err)
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&params.Namespace, action.Namespace.Long, action.Namespace.Short, "", action.Namespace.Description)
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&params.Tenant, action.Tenant.Long, action.Tenant.Short, "", action.Tenant.Description)
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&params.PlatformCompleteURL, action.PlatformCompleteURL.Long, action.PlatformCompleteURL.Short, "http://localhost:3000", action.PlatformCompleteURL.Description)
+	buildAndPushUiCmd.PersistentFlags().BoolVarP(&params.SingleTenant, action.SingleTenant.Long, action.SingleTenant.Short, true, action.SingleTenant.Description)
+	buildAndPushUiCmd.PersistentFlags().BoolVarP(&params.EnableECSRequests, action.EnableECSRequests.Long, action.EnableECSRequests.Short, false, action.EnableECSRequests.Description)
+	buildAndPushUiCmd.PersistentFlags().BoolVarP(&params.UpdateCloned, action.UpdateCloned.Long, action.UpdateCloned.Short, false, action.UpdateCloned.Description)
+	if err := buildAndPushUiCmd.MarkPersistentFlagRequired(action.Namespace.Long); err != nil {
+		slog.Error(errors.MarkFlagRequiredFailed(action.Namespace, err).Error())
 		os.Exit(1)
 	}
-	if err := buildAndPushUiCmd.MarkPersistentFlagRequired("tenant"); err != nil {
-		slog.Error("failed to mark tenant flag as required", "error", err)
+	if err := buildAndPushUiCmd.MarkPersistentFlagRequired(action.Tenant.Long); err != nil {
+		slog.Error(errors.MarkFlagRequiredFailed(action.Tenant, err).Error())
 		os.Exit(1)
 	}
 }

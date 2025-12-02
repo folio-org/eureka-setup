@@ -42,6 +42,10 @@ var removeTenantsCmd = &cobra.Command{
 
 func (run *Run) RemoveTenants(consortiumName string, tenantType constant.TenantType) error {
 	slog.Info(run.Config.Action.Name, "text", "REMOVING TENANTS")
+	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.ClientCredentials); err != nil {
+		return err
+	}
+
 	return run.Config.ManagementSvc.RemoveTenants(consortiumName, tenantType)
 }
 
