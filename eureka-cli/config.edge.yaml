@@ -3,7 +3,6 @@ profile:
 application:
   name: app-edge
   version: 1.0.0
-  platform: base
   fetch-descriptors: false
   port-start: 33000
   port-end: 33999

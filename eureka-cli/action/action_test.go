@@ -56,7 +56,6 @@ func TestNewGeneric_AllViperFields(t *testing.T) {
 			field.RegistryURL:                  "https://registry.test.com",
 			field.InstallFolio:                 "folio-registry-url",
 			field.InstallEureka:                "eureka-registry-url",
-			field.ApplicationPlatform:          "kubernetes",
 			field.ApplicationFetchDescriptors:  true,
 			field.ApplicationPortStart:         8000,
 			field.ApplicationPortEnd:           9000,
@@ -118,7 +117,6 @@ func TestNewGeneric_AllViperFields(t *testing.T) {
 		assert.Equal(t, "https://registry.test.com", result.ConfigRegistryURL)
 		assert.Equal(t, "folio-registry-url", result.ConfigFolioRegistry)
 		assert.Equal(t, "eureka-registry-url", result.ConfigEurekaRegistry)
-		assert.Equal(t, "kubernetes", result.ConfigApplicationPlatform)
 		assert.True(t, result.ConfigApplicationFetchDescriptors)
 		assert.Equal(t, 8000, result.ConfigApplicationPortStart)
 		assert.Equal(t, 9000, result.ConfigApplicationPortEnd)

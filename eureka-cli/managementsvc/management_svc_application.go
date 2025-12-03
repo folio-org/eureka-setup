@@ -153,7 +153,6 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryExtract) err
 		"name":                ms.Action.ConfigApplicationName,
 		"version":             ms.Action.ConfigApplicationVersion,
 		"description":         "Default",
-		"platform":            ms.Action.ConfigApplicationPlatform,
 		"dependencies":        dependencies,
 		"modules":             backendModules,
 		"uiModules":           frontendModules,
