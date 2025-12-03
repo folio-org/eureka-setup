@@ -1,6 +1,6 @@
 # Eureka Setup
 
-[![Test CLI](https://github.com/folio-org/eureka-setup/actions/workflows/test.yml/badge.svg)](https://github.com/folio-org/eureka-setup/actions/workflows/test.yml)
+[![Build And Run CLI](https://github.com/folio-org/eureka-setup/actions/workflows/build-and-run-cli.yml/badge.svg)](https://github.com/folio-org/eureka-setup/actions/workflows/build-and-run-cli.yml)
 
 ## Purpose
 
