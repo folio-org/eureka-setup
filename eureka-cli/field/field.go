@@ -6,7 +6,6 @@ const (
 	Application                          = "application"
 	ApplicationName                      = "application.name"
 	ApplicationVersion                   = "application.version"
-	ApplicationPlatform                  = "application.platform"
 	ApplicationFetchDescriptors          = "application.fetch-descriptors"
 	ApplicationPortStart                 = "application.port-start"
 	ApplicationPortEnd                   = "application.port-end"
