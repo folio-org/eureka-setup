@@ -56,7 +56,6 @@ func TestNewGeneric_AllViperFields(t *testing.T) {
 			field.RegistryURL:                  "https://registry.test.com",
 			field.InstallFolio:                 "folio-registry-url",
 			field.InstallEureka:                "eureka-registry-url",
-			field.ApplicationPlatform:          "base",
 			field.ApplicationFetchDescriptors:  true,
 			field.ApplicationPortStart:         8000,
 			field.ApplicationPortEnd:           9000,

@@ -53,7 +53,6 @@ jobs:
           scan-type: 'image'
           image-ref: '${{ matrix.image.name }}:test'
           format: 'table'
-          severity: 'CRITICAL,HIGH'
           exit-code: '0'
 
       - name: Generate SARIF report
@@ -64,6 +63,7 @@ jobs:
           image-ref: '${{ matrix.image.name }}:test'
           format: 'sarif'
           output: 'trivy-${{ matrix.image.name }}.sarif'
+          severity: 'CRITICAL,HIGH'
 
       - name: Upload scan results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4

@@ -376,7 +376,6 @@ func TestCreateApplications_HeaderCreationError(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
@@ -1408,7 +1407,6 @@ func TestCreateApplications_MinimalSuccess(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
@@ -1494,7 +1492,6 @@ func TestCreateApplications_WithFrontendModule(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
@@ -1560,7 +1557,6 @@ func TestCreateApplications_SkipsManagementModule(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
@@ -1628,7 +1624,6 @@ func TestCreateApplications_HTTPError(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
@@ -1670,7 +1665,6 @@ func TestCreateApplications_WithModuleVersionOverride(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
@@ -1758,7 +1752,6 @@ func TestCreateApplications_WithFetchDescriptorsFromRemote(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	action.ConfigApplicationFetchDescriptors = true // Enable descriptor fetching
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
@@ -1859,7 +1852,6 @@ func TestCreateApplications_FetchDescriptorError(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	action.ConfigApplicationFetchDescriptors = true
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
@@ -1915,7 +1907,6 @@ func TestCreateApplications_WithDependencies(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	action.ConfigApplicationDependencies = map[string]any{
 		"dependency1": "value1",
 		"dependency2": "value2",
@@ -2064,7 +2055,6 @@ func TestCreateApplications_SkipsModuleNotInConfig(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
@@ -2129,7 +2119,6 @@ func TestCreateApplications_SkipsModuleWithDeployFalse(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
@@ -2197,7 +2186,6 @@ func TestCreateApplications_WithEurekaModules(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
@@ -2278,7 +2266,6 @@ func TestCreateApplications_DiscoveryPostError(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
@@ -2352,7 +2339,6 @@ func TestCreateApplications_WithModuleURLs(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	action.ConfigApplicationFetchDescriptors = false // Don't fetch descriptors
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
@@ -2440,7 +2426,6 @@ func TestCreateApplications_FrontendModuleWithFetchDescriptors(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	action.ConfigApplicationFetchDescriptors = true
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
@@ -2525,7 +2510,6 @@ func TestCreateApplications_FrontendModuleWithURL(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	action.ConfigApplicationFetchDescriptors = false // Don't fetch
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
@@ -2598,7 +2582,6 @@ func TestCreateApplications_FrontendVersionOverride(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
@@ -2671,7 +2654,6 @@ func TestCreateApplications_MixedBackendAndFrontend(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
@@ -2771,7 +2753,6 @@ func TestCreateApplications_BothModulesBackendVersionOverride(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
@@ -2867,7 +2848,6 @@ func TestCreateApplications_BothModulesFrontendVersionOverride(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
@@ -2964,7 +2944,6 @@ func TestCreateApplications_BothModulesBothVersionOverrides(t *testing.T) {
 	action.ConfigApplicationID = "test-app"
 	action.ConfigApplicationName = "Test Application"
 	action.ConfigApplicationVersion = "1.0.0"
-	action.ConfigApplicationPlatform = "test-platform"
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 

@@ -38,7 +38,6 @@ type Action struct {
 	ConfigApplicationName              string
 	ConfigApplicationVersion           string
 	ConfigApplicationID                string
-	ConfigApplicationPlatform          string
 	ConfigApplicationFetchDescriptors  bool
 	ConfigApplicationPortStart         int
 	ConfigApplicationPortEnd           int
@@ -80,7 +79,6 @@ func New(name string, gatewayURL string, actionParam *Param) *Action {
 		ConfigApplicationName:              applicationName,
 		ConfigApplicationVersion:           applicationVersion,
 		ConfigApplicationID:                fmt.Sprintf("%s-%s", applicationName, applicationVersion),
-		ConfigApplicationPlatform:          viper.GetString(field.ApplicationPlatform),
 		ConfigApplicationFetchDescriptors:  viper.GetBool(field.ApplicationFetchDescriptors),
 		ConfigApplicationPortStart:         viper.GetInt(field.ApplicationPortStart),
 		ConfigApplicationPortEnd:           viper.GetInt(field.ApplicationPortEnd),

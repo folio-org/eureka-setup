@@ -3,7 +3,6 @@ profile:
 application:
   name: app-ecs
   version: 1.0.0
-  platform: base
   fetch-descriptors: false
   port-start: 30000
   port-end: 30999
@@ -299,10 +298,10 @@ frontend-modules:
   folio_plugin-find-authority:
 custom-frontend-modules:
   folio_authorization-roles:
-    version: 2.1.109900000000214
+    version: 2.1.1099000000000223
   folio_authorization-policies:
-    version: 2.0.109900000000102
+    version: 2.0.1099000000000111
   folio_plugin-select-application:
-    version: 2.0.109900000000116
+    version: 2.0.1099000000000124
   folio_consortia-settings:
-    version: 3.0.109900000000130
+    version: 3.0.1099000000000154
