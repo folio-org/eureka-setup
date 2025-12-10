@@ -2,7 +2,7 @@
 
 ## Purpose
 
-- Development commands to aid with Live Compilation, Debugger in VSCode and Module Interception in IntelliJ
+- Development commands to aid with Live Compilation and debugging in VSCode
 
 ## Commands
 

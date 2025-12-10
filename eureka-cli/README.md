@@ -31,6 +31,7 @@
   - [Using local backend module images](#using-local-backend-module-images)
   - [Using local frontend module descriptors](#using-local-frontend-module-descriptors)
   - [Using the UI](#using-the-ui)
+  - [Using Single Tenant UX](#using-single-tenant-ux)
   - [Using the environment](#using-the-environment)
   - [Troubleshooting](#troubleshooting)
     - [General](#general)
@@ -378,6 +379,9 @@ eureka-cli listModuleVersions -n edge-orders
 
 # Get module descriptor for a particular version
 eureka-cli listModuleVersions -n edge-orders -i edge-orders-3.3.0-SNAPSHOT.88
+
+# Get module descriptor for a particular version but specify the number of versions to display (the default value is 5) 
+eureka-cli listModuleVersions -n edge-orders -i edge-orders-3.3.0-SNAPSHOT.88 -v 10
 ```
 
 - Get current Vault Root Token used by the modules
@@ -448,6 +452,16 @@ eureka-cli interceptModule -n mod-orders -r
 ```
 
 ![CLI Intercept Module](images/cli_intercept_module_5.png)
+
+- Create a port proxy (Windows only), to route traffic to a specific deployed sidecar container. This command helps resolving some HTTP client issues in some modules when intercepted by the _interceptModule_ command
+
+```bash
+# Route the traffic from mod-inventorys-storage:8082 on the host network to host.docker.internal:37002 deployed as a container
+# both the gateway hostname, i.e. host.docker.internal as well as the sidecar internal port 8082 can be overridden by the command
+eureka-cli createPortProxy -n mod-inventory-storage -s 37002
+```
+
+> This command assumes that the host, e.g. `mod-inventory-storage` is added to `/etc/hosts` beforehand, because on some corporate machines scripted addition of hosts can be banned by group policies
 
 To intercept multiple modules, make sure to use the right set of environment variables, JVM flags and instance ports for each target module
 
@@ -624,6 +638,12 @@ eureka-cli deployApplication -b -u
 # Will only build and deploy the platform-complete image
 eureka-cli deployUi -b -u
 ```
+
+## Using Single Tenant UX
+
+Single tenant UX is by default enabled for both _ecs_ and _ecs-single_ profiles. This functionality allows users in member tenant to automatically log-in in their respective tenant space from a single user login form, configured for the central tenant. Under the hood, the implementation behind Single Tenant UX uses shadow users created in the both the central tenant and the Keycloak realm to perform authentication using a member tenant identity provider.
+
+- To disable this functionality from running automatically during the deployment, set `SINGLE_TENANT_UX` from `true` to `false` for both `mod-users-keycloak` and `mod-consortia-keycloak` backend modules
 
 ## Using the environment
 
