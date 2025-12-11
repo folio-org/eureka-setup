@@ -105,7 +105,6 @@ func setDefaultLogger() (*slog.Logger, error) {
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return nil, err
 	}
-
 	timestamp := time.Now().Format(constant.LogTimestampFormat)
 	logFilePath := filepath.Join(logDir, fmt.Sprintf("%s-%s.log", params.Profile, timestamp))
 
