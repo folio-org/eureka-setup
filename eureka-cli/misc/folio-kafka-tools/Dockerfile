@@ -1,11 +1,16 @@
-FROM alpine:3.20
+ARG ALPINE_VERSION=3.23
+
+FROM alpine:${ALPINE_VERSION}
+
+ARG KAFKA_VERSION=4.1.1
+ARG SCALA_VERSION=2.13
 
 RUN apk update && apk add --no-cache wget openjdk17-jre-headless coreutils bash procps-ng && \
-    wget -q https://dlcdn.apache.org/kafka/4.1.0/kafka_2.13-4.1.0.tgz && \
-    tar -xzf kafka_2.13-4.1.0.tgz && \
-    mv kafka_2.13-4.1.0 /opt/kafka && \
+    wget -q https://dlcdn.apache.org/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
+    tar -xzf kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
+    mv kafka_${SCALA_VERSION}-${KAFKA_VERSION} /opt/kafka && \
     ln -s /opt/kafka/bin/* /usr/local/bin/ && \
-    rm kafka_2.13-4.1.0.tgz && \
+    rm kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
     rm -rf /var/cache/apk/* && \
     which bash && ls -la /bin/bash && \
     addgroup -g 1000 kafka && \

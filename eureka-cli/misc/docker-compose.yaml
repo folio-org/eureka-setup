@@ -77,7 +77,7 @@ services:
   ### Kafka UI (optional), Kafka (required), Kafka tools (required) ###
   kafka-ui:
     container_name: kafka-ui
-    image: provectuslabs/kafka-ui:${KAFKA_UI_VERSION}
+    image: ghcr.io/kafbat/kafka-ui:${KAFKA_UI_VERSION}
     restart: unless-stopped
     cpus: "0.5"
     mem_limit: 350m
@@ -94,8 +94,8 @@ services:
     ports:
       - "9080:8080"
     healthcheck:
-      test: wget --spider --timeout 1 localhost:8080
-      interval: 10s
+      test: wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health
+      interval: 30s
       timeout: 10s
       retries: 10
 
@@ -371,9 +371,12 @@ services:
       - minio
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc config host add minio http://minio.eureka:9000 minioadmin minioadmin;
-      /usr/bin/mc rm -r --force minio/example-bucket;
+      until /usr/bin/mc alias set minio http://minio.eureka:9000 minioadmin minioadmin; do
+        sleep 5;
+      done;
       /usr/bin/mc mb minio/example-bucket;
+      /usr/bin/mc mb minio/example-bucket2;
+      /usr/bin/mc mb minio/example-bucket3;
       exit 0;
       "
 

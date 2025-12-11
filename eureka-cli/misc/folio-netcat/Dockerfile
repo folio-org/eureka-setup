@@ -1,4 +1,6 @@
-FROM alpine:3.20
+ARG ALPINE_VERSION=3.23
+
+FROM alpine:${ALPINE_VERSION}
 
 RUN apk update && apk add --no-cache netcat-openbsd curl wget bind-tools traceroute && \
     rm -rf /var/cache/apk/* && \

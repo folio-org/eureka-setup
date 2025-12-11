@@ -58,7 +58,9 @@ func (us *UISvc) PrepareStripesConfigJS(tenantName string, configPath string) er
 		}
 		newReadFileStr = strings.ReplaceAll(newReadFileStr, key, value)
 	}
-	newReadFileStr = strings.ReplaceAll(newReadFileStr, "'@folio/users' : {}", "'@folio/users' : {},\n    '@folio/consortia-settings' : {}")
+	if !us.Action.Param.SingleTenant {
+		newReadFileStr = strings.ReplaceAll(newReadFileStr, "'@folio/users' : {}", "'@folio/users' : {},\n    '@folio/consortia-settings' : {}")
+	}
 	fmt.Println()
 	fmt.Println("DUMPING stripes.config.js")
 	fmt.Println(newReadFileStr)
