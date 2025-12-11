@@ -2,7 +2,7 @@
 
 ## Purpose
 
-- Development commands to aid with Live Compilation and Debugging in VSCode
+- Development commands to aid with Live Compilation and debugging in VSCode
 
 ## Commands
 

@@ -235,7 +235,7 @@ backend-modules:
     disable-system-user: true
     port: 9904
     environment:
-      SINGLE_TENANT_UX: "false"
+      SINGLE_TENANT_UX: "true"
       INCLUDE_ONLY_VISIBLE_PERMISSIONS: "false"
       KAFKA_SYS_USER_TOPIC_RETRY_DELAY: 1s
       KAFKA_SYS_USER_TOPIC_RETRY_ATTEMPTS: "9223372036854775807"
@@ -272,6 +272,9 @@ backend-modules:
     use-okapi-url: true
     disable-system-user: true
     port: 9908
+    environment:
+      SINGLE_TENANT_UX: "true"
+      KC_IDENTITY_PROVIDER_BASE_URL: http://keycloak.eureka:8080
   mod-okapi-facade:
     environment:
       TENANT_APPS_TTL: 600s
