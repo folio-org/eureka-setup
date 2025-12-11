@@ -74,6 +74,7 @@ func (rc *GitClient) Clone(repository *gitrepository.GitRepository) error {
 	targetRepository, err := git.PlainClone(repository.Dir, false, &git.CloneOptions{
 		URL:           repository.URL,
 		ReferenceName: repository.Branch,
+		SingleBranch:  true,
 		Progress:      os.Stdout,
 	})
 	if err != nil {

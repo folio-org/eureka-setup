@@ -118,10 +118,14 @@ const (
 	// Consortium properties
 	NoneConsortium = "nop"
 
-	// Config
+	// Configs
 	ConfigPrefix = "config"
 	ConfigDir    = ".eureka"
 	ConfigType   = "yaml"
+
+	// Logs
+	LogDir             = "logs"
+	LogTimestampFormat = "20060102-150405"
 
 	// Module registries
 	FolioRegistry  = "folio"
