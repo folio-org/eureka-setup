@@ -16,19 +16,23 @@ type UIPackageJSONProcessor interface {
 func (us *UISvc) PreparePackageJSON(configPath string) error {
 	var packageJSON models.PackageJSON
 	packageJSONPath := filepath.Join(configPath, "package.json")
+
 	err := helpers.ReadJSONFromFile(packageJSONPath, &packageJSON)
 	if err != nil {
 		return err
 	}
-
 	packageJSON.Scripts["build"] = "export DEBUG=stripes*; export NODE_OPTIONS=\"--max-old-space-size=8000 $NODE_OPTIONS\"; stripes build stripes.config.js --languages en --sourcemap=false --no-minify"
-	updates := 0
+
 	modules := []string{
-		"@folio/consortia-settings",
 		"@folio/authorization-policies",
 		"@folio/authorization-roles",
 		"@folio/plugin-select-application",
 	}
+	if !us.Action.Param.SingleTenant {
+		modules = append(modules, "@folio/consortia-settings")
+	}
+
+	updates := 0
 	for _, module := range modules {
 		if packageJSON.Dependencies[module] == "" {
 			packageJSON.Dependencies[module] = ">=1.0.0"

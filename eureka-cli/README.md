@@ -641,7 +641,7 @@ eureka-cli deployUi -b -u
 
 ## Using Single Tenant UX
 
-Single tenant UX is by default enabled for both _ecs_ and _ecs-single_ profiles. This functionality allows users in member tenant to automatically log-in in their respective tenant space from a single user login form, configured for the central tenant. Under the hood, the implementation behind Single Tenant UX uses shadow users created in the both the central tenant and the Keycloak realm to perform authentication using a member tenant identity provider.
+Single tenant UX is by default enabled for both _ecs_ and _ecs-single_ profiles. This functionality allows users in member tenant to automatically log-in in their respective tenant space from a single user login form, configured for the central tenant. Under the hood, the implementation behind Single Tenant UX uses shadow users created in the central tenant and the Keycloak realm to perform authentication using the correct member tenant identity provider.
 
 - To disable this functionality from running automatically during the deployment, set `SINGLE_TENANT_UX` from `true` to `false` for both `mod-users-keycloak` and `mod-consortia-keycloak` backend modules
 
@@ -748,7 +748,7 @@ Module readiness checks are failing
 
 - Rerun the deployment again with more available RAM
 
-When trying to deploy with `eureka-cli deployApplication -bu` or building with `eureka-cli buildSystem -u`
+When trying to deploy with `eureka-cli deployApplication -bu` or building with `eureka-cli buildSystem -u` (retry if fails on `Error: worktree contains unstaged changes`)
 
 ```txt
 ERROR: unable to select packages:

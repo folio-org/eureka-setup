@@ -19,9 +19,11 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
@@ -52,7 +54,6 @@ func Execute(fs *embed.FS) {
 
 func initConfig() {
 	setConfig(&params)
-	logger = setDefaultLogger()
 	viper.AutomaticEnv()
 
 	if params.OverwriteFiles {
@@ -64,6 +65,9 @@ func initConfig() {
 	}
 
 	err := viper.ReadInConfig()
+	cobra.CheckErr(err)
+
+	logger, err = setDefaultLogger()
 	cobra.CheckErr(err)
 }
 
@@ -86,18 +90,41 @@ func setConfig(params *action.Param) {
 	}
 }
 
-func setDefaultLogger() *slog.Logger {
+func setDefaultLogger() (*slog.Logger, error) {
 	logLevel := slog.LevelInfo
 	if params.EnableDebug {
 		logLevel = slog.LevelDebug
 	}
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+
+	logDir := filepath.Join(home, constant.ConfigDir, constant.LogDir)
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		return nil, err
+	}
+	timestamp := time.Now().Format(constant.LogTimestampFormat)
+	logFilePath := filepath.Join(logDir, fmt.Sprintf("%s-%s.log", params.Profile, timestamp))
+
+	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return nil, err
+	}
+
+	multiWriter := io.MultiWriter(os.Stdout, logFile)
+	logger := slog.New(slog.NewTextHandler(multiWriter, &slog.HandlerOptions{
 		Level:     logLevel,
 		AddSource: true,
 	}))
 	slog.SetDefault(logger)
 
-	return logger
+	if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
+		fmt.Printf("Logging to: %s\n", logFilePath)
+	}
+
+	return logger, nil
 }
 
 func createHomeDir(overwriteFiles bool) {

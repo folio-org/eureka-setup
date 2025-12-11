@@ -8,6 +8,9 @@ coverage:
       default:
         target: 75%
         threshold: 1%
+        only_pulls: true
+        removed_code_behavior: adjust_base
+  range: "70...90"
   flags:
     unit-tests:
       paths:
@@ -16,7 +19,8 @@ coverage:
 comment:
   layout: "header, diff, flags, components, files, footer"
   behavior: default
-  require_changes: false
+  require_changes: true
   require_base: false
   require_head: true
   after_n_builds: 1
+  minimum_lines_changed: 5
