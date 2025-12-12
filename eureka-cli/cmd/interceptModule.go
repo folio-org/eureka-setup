@@ -95,19 +95,21 @@ func (run *Run) InterceptModule() error {
 func init() {
 	rootCmd.AddCommand(interceptModuleCmd)
 	interceptModuleCmd.PersistentFlags().StringVarP(&params.ModuleName, action.ModuleName.Long, action.ModuleName.Short, "", action.ModuleName.Description)
-	if err := interceptModuleCmd.RegisterFlagCompletionFunc(action.ModuleName.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
-	}); err != nil {
-		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
-		os.Exit(1)
-	}
 	interceptModuleCmd.PersistentFlags().StringVarP(&params.ModuleURL, action.ModuleURL.Long, action.ModuleURL.Short, "", action.ModuleURL.Description)
 	interceptModuleCmd.PersistentFlags().StringVarP(&params.SidecarURL, action.SidecarURL.Long, action.SidecarURL.Short, "", action.SidecarURL.Description)
 	interceptModuleCmd.PersistentFlags().BoolVarP(&params.Restore, action.Restore.Long, action.Restore.Short, false, action.Restore.Description)
 	interceptModuleCmd.PersistentFlags().BoolVarP(&params.DefaultGateway, action.DefaultGateway.Long, action.DefaultGateway.Short, false, action.DefaultGateway.Description)
 	interceptModuleCmd.PersistentFlags().BoolVarP(&params.SkipRegistry, action.SkipRegistry.Long, action.SkipRegistry.Short, false, action.SkipRegistry.Description)
+
 	if err := interceptModuleCmd.MarkPersistentFlagRequired(action.ModuleName.Long); err != nil {
 		slog.Error(errors.MarkFlagRequiredFailed(action.ModuleName, err).Error())
+		os.Exit(1)
+	}
+
+	if err := interceptModuleCmd.RegisterFlagCompletionFunc(action.ModuleName.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
+	}); err != nil {
+		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
 		os.Exit(1)
 	}
 }

@@ -76,13 +76,14 @@ func init() {
 	rootCmd.AddCommand(listModulesCmd)
 	listModulesCmd.Flags().BoolVarP(&params.All, action.All.Long, action.All.Short, false, action.All.Description)
 	listModulesCmd.Flags().StringVarP(&params.ModuleName, action.ModuleName.Long, action.ModuleName.Short, "", action.ModuleName.Description)
+	listModulesCmd.Flags().StringVarP(&params.ModuleType, action.ModuleType.Long, action.ModuleType.Short, "", action.ModuleType.Description)
+
 	if err := listModulesCmd.RegisterFlagCompletionFunc(action.ModuleName.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
 		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
 		os.Exit(1)
 	}
-	listModulesCmd.Flags().StringVarP(&params.ModuleType, action.ModuleType.Long, action.ModuleType.Short, "", action.ModuleType.Description)
 	if err := listModulesCmd.RegisterFlagCompletionFunc(action.ModuleType.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return constant.GetContainerTypes(), cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {

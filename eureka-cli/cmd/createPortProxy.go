@@ -141,14 +141,24 @@ func (run *Run) execWithArgs(args ...string) error {
 func init() {
 	rootCmd.AddCommand(createPortProxyCmd)
 	createPortProxyCmd.PersistentFlags().StringVarP(&params.ModuleName, action.ModuleName.Long, action.ModuleName.Short, "", action.ModuleName.Description)
+	createPortProxyCmd.PersistentFlags().StringVarP(&params.SidecarURL, action.SidecarURL.Long, action.SidecarURL.Short, "", action.SidecarURL.Description)
+	createPortProxyCmd.PersistentFlags().IntVarP(&params.PrivatePort, action.PrivatePort.Long, action.PrivatePort.Short, 8081, action.PrivatePort.Description)
+	createPortProxyCmd.PersistentFlags().StringVarP(&params.GatewayHostname, action.GatewayHostname.Long, action.GatewayHostname.Short, "host.docker.internal", action.GatewayHostname.Description)
+	createPortProxyCmd.PersistentFlags().BoolVarP(&params.Restore, action.Restore.Long, action.Restore.Short, false, action.Restore.Description)
+
+	if err := createPortProxyCmd.MarkPersistentFlagRequired(action.SidecarURL.Long); err != nil {
+		slog.Error(errors.MarkFlagRequiredFailed(action.SidecarURL, err).Error())
+		os.Exit(1)
+	}
+	if err := createPortProxyCmd.MarkPersistentFlagRequired(action.ModuleName.Long); err != nil {
+		slog.Error(errors.MarkFlagRequiredFailed(action.ModuleName, err).Error())
+		os.Exit(1)
+	}
+
 	if err := createPortProxyCmd.RegisterFlagCompletionFunc(action.ModuleName.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
 		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
 		os.Exit(1)
 	}
-	createPortProxyCmd.PersistentFlags().StringVarP(&params.SidecarURL, action.SidecarURL.Long, action.SidecarURL.Short, "", action.SidecarURL.Description)
-	createPortProxyCmd.PersistentFlags().IntVarP(&params.PrivatePort, action.PrivatePort.Long, action.PrivatePort.Short, 8081, action.PrivatePort.Description)
-	createPortProxyCmd.PersistentFlags().StringVarP(&params.GatewayHostname, action.GatewayHostname.Long, action.GatewayHostname.Short, "host.docker.internal", action.GatewayHostname.Description)
-	createPortProxyCmd.PersistentFlags().BoolVarP(&params.Restore, action.Restore.Long, action.Restore.Short, false, action.Restore.Description)
 }

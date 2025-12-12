@@ -150,13 +150,14 @@ func init() {
 	profiles := constant.GetProfiles()
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVarP(&params.Profile, action.Profile.Long, action.Profile.Short, "combined", fmt.Sprintf(action.Profile.Description, profiles))
+	rootCmd.PersistentFlags().StringVarP(&params.ConfigFile, action.ConfigFile.Long, action.ConfigFile.Short, "", action.ConfigFile.Description)
+	rootCmd.PersistentFlags().BoolVarP(&params.OverwriteFiles, action.OverwriteFiles.Long, action.OverwriteFiles.Short, false, fmt.Sprintf(action.OverwriteFiles.Description, constant.ConfigDir))
+	rootCmd.PersistentFlags().BoolVarP(&params.EnableDebug, action.EnableDebug.Long, action.EnableDebug.Short, false, action.EnableDebug.Description)
+
 	if err := rootCmd.RegisterFlagCompletionFunc(action.Profile.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return profiles, cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
 		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
 		os.Exit(1)
 	}
-	rootCmd.PersistentFlags().StringVarP(&params.ConfigFile, action.ConfigFile.Long, action.ConfigFile.Short, "", action.ConfigFile.Description)
-	rootCmd.PersistentFlags().BoolVarP(&params.OverwriteFiles, action.OverwriteFiles.Long, action.OverwriteFiles.Short, false, fmt.Sprintf(action.OverwriteFiles.Description, constant.ConfigDir))
-	rootCmd.PersistentFlags().BoolVarP(&params.EnableDebug, action.EnableDebug.Long, action.EnableDebug.Short, false, action.EnableDebug.Description)
 }
