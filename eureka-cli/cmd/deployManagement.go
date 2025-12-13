@@ -49,8 +49,8 @@ func (run *Run) DeployManagement() error {
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
-	instalJsonURLs := run.Config.Action.GetEurekaInstallJsonURLs()
-	modules, err := run.Config.RegistrySvc.GetModules(instalJsonURLs, true, true)
+	installURLs := run.Config.Action.GetEurekaInstallURLs()
+	modules, err := run.Config.RegistrySvc.GetModules(installURLs, true, true)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,6 @@ func (run *Run) DeployManagement() error {
 	if err := run.Config.KeycloakSvc.UpdateRealmAccessTokenSettings(constant.KeycloakMasterRealm, constant.KeycloakMasterRealmAccessTokenLifespan); err != nil {
 		return err
 	}
-	slog.Info(run.Config.Action.Name, "text", "Realm settings have been updated", "realm", constant.KeycloakMasterRealm)
 
 	return nil
 }

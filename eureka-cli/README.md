@@ -8,7 +8,7 @@
   - [Prerequisites](#prerequisites)
   - [Monitor system components](#monitor-system-components)
   - [Commands](#commands)
-    - [Build a binary](#build-a-binary)
+    - [Build the binary](#build-the-binary)
     - [(Optional) Install binary](#optional-install-binary)
     - [(Optional) Enable autocompletion](#optional-enable-autocompletion)
     - [Deploy the _combined_ application](#deploy-the-combined-application)
@@ -73,7 +73,7 @@ Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc
 
 ## Commands
 
-### Build a binary
+### Build the binary
 
 ```bash
 mkdir -p ./bin
@@ -453,6 +453,8 @@ eureka-cli interceptModule -n mod-orders -r
 
 ![CLI Intercept Module](images/cli_intercept_module_5.png)
 
+To intercept multiple modules, make sure to use the right set of environment variables, JVM flags and instance ports for each target module
+
 - Create a port proxy (Windows only), to route traffic to a specific deployed sidecar container. This command helps resolving some HTTP client issues in some modules when intercepted by the _interceptModule_ command
 
 ```bash
@@ -462,8 +464,6 @@ eureka-cli createPortProxy -n mod-inventory-storage -s 37002
 ```
 
 > This command assumes that the host, e.g. `mod-inventory-storage` is added to `/etc/hosts` beforehand, because on some corporate machines scripted addition of hosts can be banned by group policies
-
-To intercept multiple modules, make sure to use the right set of environment variables, JVM flags and instance ports for each target module
 
 ## Using a custom folio-module-sidecar
 

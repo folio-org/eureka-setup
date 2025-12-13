@@ -1,6 +1,10 @@
 package helpers
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/Masterminds/semver/v3"
+)
 
 func StripModuleVersion(name string) string {
 	idx := strings.LastIndex(name, "-")
@@ -29,4 +33,14 @@ func FilterEmptyLines(input string) string {
 	}
 
 	return strings.Join(filteredLines, "\n")
+}
+
+func IsVersionGreater(version1, version2 string) bool {
+	semVer1, err1 := semver.NewVersion(version1)
+	semVer2, err2 := semver.NewVersion(version2)
+	if err1 != nil || err2 != nil {
+		return version1 > version2
+	}
+
+	return semVer1.GreaterThan(semVer2)
 }

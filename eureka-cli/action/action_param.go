@@ -6,6 +6,7 @@ type Param struct {
 	All                 bool
 	ApplicationNames    []string
 	BuildImages         bool
+	BuildModule         bool
 	ConfigFile          string
 	DefaultGateway      bool
 	EnableDebug         bool
@@ -17,6 +18,8 @@ type Param struct {
 	ModuleName          string
 	ModuleType          string
 	ModuleURL           string
+	ModuleTargetPath    string
+	ModuleVersion       string
 	Namespace           string
 	OnlyRequired        bool
 	OverwriteFiles      bool
@@ -56,6 +59,7 @@ var (
 	All                 = Flag{"all", "a", "All modules for all profiles"}
 	ApplicationNames    = Flag{"apps", "", "Application names"}
 	BuildImages         = Flag{"buildImages", "b", "Build Docker images"}
+	BuildModule         = Flag{"buildModule", "", "Build Module"}
 	ConfigFile          = Flag{"configFile", "c", "Use a specific config file"}
 	DefaultGateway      = Flag{"defaultGateway", "g", "Use default gateway in URLs, .e.g. http://host.docker.internal:{{port}} will be set automatically"}
 	EnableDebug         = Flag{"enableDebug", "d", "Enable debug"}
@@ -67,6 +71,8 @@ var (
 	ModuleName          = Flag{"moduleName", "n", "Module name, e.g. mod-orders"}
 	ModuleType          = Flag{"moduleType", "y", "Module type, e.g. management"}
 	ModuleURL           = Flag{"moduleUrl", "m", "Module URL, e.g. http://host.docker.internal:36002 or 36002 (if -g is used)"}
+	ModuleTargetPath    = Flag{"moduleTargetPath", "", "Module target path, e.g. the path of your module in IntelliJ"}
+	ModuleVersion       = Flag{"moduleVersion", "", "Module version, e.g. 13.1.0-SNAPSHOT.1093"}
 	Namespace           = Flag{"namespace", "", "DockerHub namespace"}
 	OnlyRequired        = Flag{"onlyRequired", "q", "Use only required system containers"}
 	OverwriteFiles      = Flag{"overwriteFiles", "o", "Overwrite files in %s home directory"}

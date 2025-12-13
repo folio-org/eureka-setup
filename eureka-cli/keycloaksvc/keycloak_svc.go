@@ -93,6 +93,7 @@ func (ks *KeycloakSvc) GetMasterAccessToken(grantType constant.KeycloakGrantType
 		formData.Set("grant_type", constant.ClientCredentials)
 		formData.Set("client_id", action.GetConfigEnv("KC_ADMIN_CLIENT_ID", ks.Action.ConfigGlobalEnv))
 		formData.Set("client_secret", action.GetConfigEnv("KC_ADMIN_CLIENT_SECRET", ks.Action.ConfigGlobalEnv))
+		formData.Set("scope", "email openid")
 	case constant.Password:
 		formData.Set("grant_type", constant.Password)
 		formData.Set("client_id", constant.KeycloakAdminClient)

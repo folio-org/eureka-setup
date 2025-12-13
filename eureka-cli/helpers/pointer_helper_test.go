@@ -8,12 +8,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestStringP(t *testing.T) {
+func TestStringPtr(t *testing.T) {
 	// Arrange
 	value := "test-string"
 
 	// Act
-	result := helpers.StringP(value)
+	result := helpers.StringPtr(value)
 
 	// Assert
 	assert.NotNil(t, result)
@@ -21,72 +21,72 @@ func TestStringP(t *testing.T) {
 	assert.Equal(t, &value, result)
 }
 
-func TestStringP_EmptyString(t *testing.T) {
+func TestStringPtr_EmptyString(t *testing.T) {
 	// Arrange
 	value := ""
 
 	// Act
-	result := helpers.StringP(value)
+	result := helpers.StringPtr(value)
 
 	// Assert
 	assert.NotNil(t, result)
 	assert.Equal(t, "", *result)
 }
 
-func TestBoolP_True(t *testing.T) {
+func TestBoolPtr_True(t *testing.T) {
 	// Arrange
 	value := true
 
 	// Act
-	result := helpers.BoolP(value)
+	result := helpers.BoolPtr(value)
 
 	// Assert
 	assert.NotNil(t, result)
 	assert.Equal(t, true, *result)
 }
 
-func TestBoolP_False(t *testing.T) {
+func TestBoolPtr_False(t *testing.T) {
 	// Arrange
 	value := false
 
 	// Act
-	result := helpers.BoolP(value)
+	result := helpers.BoolPtr(value)
 
 	// Assert
 	assert.NotNil(t, result)
 	assert.Equal(t, false, *result)
 }
 
-func TestIntP(t *testing.T) {
+func TestIntPtr(t *testing.T) {
 	// Arrange
 	value := 42
 
 	// Act
-	result := helpers.IntP(value)
+	result := helpers.IntPtr(value)
 
 	// Assert
 	assert.NotNil(t, result)
 	assert.Equal(t, 42, *result)
 }
 
-func TestIntP_Zero(t *testing.T) {
+func TestIntPtr_Zero(t *testing.T) {
 	// Arrange
 	value := 0
 
 	// Act
-	result := helpers.IntP(value)
+	result := helpers.IntPtr(value)
 
 	// Assert
 	assert.NotNil(t, result)
 	assert.Equal(t, 0, *result)
 }
 
-func TestIntP_Negative(t *testing.T) {
+func TestIntPtr_Negative(t *testing.T) {
 	// Arrange
 	value := -10
 
 	// Act
-	result := helpers.IntP(value)
+	result := helpers.IntPtr(value)
 
 	// Assert
 	assert.NotNil(t, result)

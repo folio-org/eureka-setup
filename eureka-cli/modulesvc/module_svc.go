@@ -22,6 +22,7 @@ type ModuleProcessor interface {
 	ModuleReadinessChecker
 	ModuleProvisioner
 	ModuleManager
+	ModuleCustomizer
 }
 
 // ModuleProvisioner defines the interface for module provisioning operations

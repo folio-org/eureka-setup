@@ -92,7 +92,7 @@ func (mp *ModuleProps) createBackendModule(properties models.BackendModuleProper
 func (mp *ModuleProps) createDefaultBackendProperties(name string) (p models.BackendModuleProperties, err error) {
 	p.DeployModule = true
 	if !mp.isManagementModule(name) && !mp.isEdgeModule(name) {
-		p.DeploySidecar = helpers.BoolP(true)
+		p.DeploySidecar = helpers.BoolPtr(true)
 	}
 
 	p.Port, err = mp.getDefaultPort()
@@ -116,16 +116,20 @@ func (mp *ModuleProps) isEdgeModule(name string) bool {
 }
 
 func (mp *ModuleProps) createConfigurableBackendProperties(value any, name string) (p models.BackendModuleProperties, err error) {
-	entry := value.(map[string]any)
-	p.DeployModule = helpers.GetAnyOrDefault(entry, field.ModuleDeployModuleEntry, true).(bool)
+	entry, ok := value.(map[string]any)
+	if !ok {
+		return models.BackendModuleProperties{}, errors.Newf("invalid configuration for module %s: expected map but got %T", name, value)
+	}
+
+	p.DeployModule = helpers.GetBoolOrDefault(entry, field.ModuleDeployModuleEntry, true)
 	if !strings.HasPrefix(name, constant.ManagementModulePattern) && !strings.HasPrefix(name, constant.EdgeModulePattern) {
 		p.DeploySidecar = mp.getDeploySidecar(entry)
 	}
 
-	p.UseVault = helpers.GetAnyOrDefault(entry, field.ModuleUseVaultEntry, false).(bool)
-	p.DisableSystemUser = helpers.GetAnyOrDefault(entry, field.ModuleDisableSystemUserEntry, false).(bool)
-	p.UseOkapiURL = helpers.GetAnyOrDefault(entry, field.ModuleUseOkapiURLEntry, false).(bool)
-	p.LocalDescriptorPath = helpers.GetAnyOrDefault(entry, field.ModuleLocalDescriptorPathEntry, "").(string)
+	p.UseVault = helpers.GetBool(entry, field.ModuleUseVaultEntry)
+	p.DisableSystemUser = helpers.GetBool(entry, field.ModuleDisableSystemUserEntry)
+	p.UseOkapiURL = helpers.GetBool(entry, field.ModuleUseOkapiURLEntry)
+	p.LocalDescriptorPath = helpers.GetString(entry, field.ModuleLocalDescriptorPathEntry)
 	if p.LocalDescriptorPath != "" {
 		if _, err := os.Stat(p.LocalDescriptorPath); os.IsNotExist(err) {
 			return models.BackendModuleProperties{}, errors.LocalDescriptorNotFound(p.LocalDescriptorPath, name)
@@ -139,8 +143,8 @@ func (mp *ModuleProps) createConfigurableBackendProperties(value any, name strin
 	}
 
 	p.PrivatePort = mp.getPrivatePort(entry)
-	p.Env = helpers.GetAnyOrDefault(entry, field.ModuleEnvEntry, make(map[string]any)).(map[string]any)
-	p.Resources = helpers.GetAnyOrDefault(entry, field.ModuleResourceEntry, make(map[string]any)).(map[string]any)
+	p.Env = helpers.GetMap(entry, field.ModuleEnvEntry)
+	p.Resources = helpers.GetMap(entry, field.ModuleResourceEntry)
 	p.Volumes, err = mp.getVolumes(entry)
 	if err != nil {
 		return models.BackendModuleProperties{}, err
@@ -150,11 +154,10 @@ func (mp *ModuleProps) createConfigurableBackendProperties(value any, name strin
 }
 
 func (mp *ModuleProps) getDeploySidecar(entry map[string]any) *bool {
-	if entry[field.ModuleDeploySidecarEntry] == nil {
-		return helpers.BoolP(true)
+	if boolPtr := helpers.GetBoolPtr(entry, field.ModuleDeploySidecarEntry); boolPtr != nil {
+		return boolPtr
 	}
-
-	return helpers.BoolP(entry[field.ModuleDeploySidecarEntry].(bool))
+	return helpers.BoolPtr(true)
 }
 
 func (mp *ModuleProps) getVersion(entry map[string]any) *string {
@@ -166,12 +169,12 @@ func (mp *ModuleProps) getVersion(entry map[string]any) *string {
 	floatValue, ok := rawVersion.(float64)
 	if ok {
 		value := strconv.FormatFloat(floatValue, 'f', -1, 64)
-		return helpers.StringP(value)
+		return helpers.StringPtr(value)
 	}
 
 	value, ok := rawVersion.(string)
 	if ok {
-		return helpers.StringP(value)
+		return helpers.StringPtr(value)
 	}
 
 	return nil
@@ -179,13 +182,14 @@ func (mp *ModuleProps) getVersion(entry map[string]any) *string {
 
 func (mp *ModuleProps) getPort(entry map[string]any, deployModule bool) (*int, error) {
 	if !deployModule {
-		return helpers.IntP(0), nil
-	}
-	if entry[field.ModulePortEntry] == nil {
-		return mp.getDefaultPort()
+		return helpers.IntPtr(0), nil
 	}
 
-	return helpers.IntP(entry[field.ModulePortEntry].(int)), nil
+	if portPtr := helpers.GetIntPtr(entry, field.ModulePortEntry); portPtr != nil {
+		return portPtr, nil
+	}
+
+	return mp.getDefaultPort()
 }
 
 func (mp *ModuleProps) getDefaultPort() (*int, error) {
@@ -194,37 +198,49 @@ func (mp *ModuleProps) getDefaultPort() (*int, error) {
 		return nil, err
 	}
 
-	return helpers.IntP(port), nil
+	return helpers.IntPtr(port), nil
 }
 
 func (mp *ModuleProps) getPrivatePort(entry map[string]any) *int {
-	if entry[field.ModulePrivatePortEntry] == nil {
+	// Check if private-port key exists (even if nil)
+	rawPrivatePort, privatePortExists := entry[field.ModulePrivatePortEntry]
+	if !privatePortExists || rawPrivatePort == nil {
 		return mp.getDefaultPrivatePort()
 	}
 
-	return helpers.IntP(entry[field.ModulePrivatePortEntry].(int))
+	// Check for port-server (compatibility alias) first
+	if portServerPtr := helpers.GetIntPtr(entry, field.ModulePortServerEntry); portServerPtr != nil {
+		return portServerPtr
+	}
+
+	// Fall back to private-port
+	if privatePortPtr := helpers.GetIntPtr(entry, field.ModulePrivatePortEntry); privatePortPtr != nil {
+		return privatePortPtr
+	}
+
+	// If type assertion failed, return default
+	return mp.getDefaultPrivatePort()
 }
 
 func (mp *ModuleProps) getDefaultPrivatePort() *int {
 	defaultServerPort, _ := strconv.Atoi(constant.PrivateServerPort)
 
-	return helpers.IntP(defaultServerPort)
+	return helpers.IntPtr(defaultServerPort)
 }
 
 func (mp *ModuleProps) getVolumes(entry map[string]any) ([]string, error) {
-	if entry[field.ModuleVolumesEntry] == nil {
+	volumesList := helpers.GetStringSlice(entry, field.ModuleVolumesEntry)
+	if len(volumesList) == 0 {
 		return []string{}, nil
 	}
 
 	var volumes []string
-	for _, value := range entry[field.ModuleVolumesEntry].([]any) {
-		var volume = value.(string)
+	for _, volume := range volumesList {
 		if runtime.GOOS == "windows" && strings.Contains(volume, "$EUREKA") {
 			homeConfigDir, err := helpers.GetHomeDirPath()
 			if err != nil {
 				return nil, err
 			}
-
 			volume = strings.ReplaceAll(volume, "$EUREKA", homeConfigDir)
 		}
 		if _, err := os.Stat(volume); os.IsNotExist(err) {
@@ -254,21 +270,22 @@ func (mp *ModuleProps) ReadFrontendModules(verbose bool) (map[string]models.Fron
 				localDescriptorPath = ""
 			)
 			if value != nil {
-				entry := value.(map[string]any)
-				if entry[field.ModuleDeployModuleEntry] != nil {
-					deployModule = entry[field.ModuleDeployModuleEntry].(bool)
-				}
-				if entry[field.ModuleVersionEntry] != nil {
-					version = helpers.StringP(entry[field.ModuleVersionEntry].(string))
+				entry, ok := value.(map[string]any)
+				if !ok {
+					continue
 				}
 
-				localDescriptorPath = helpers.GetAnyOrDefault(entry, field.ModuleLocalDescriptorPathEntry, "").(string)
+				deployModule = helpers.GetBoolOrDefault(entry, field.ModuleDeployModuleEntry, true)
+				if v := helpers.GetString(entry, field.ModuleVersionEntry); v != "" {
+					version = helpers.StringPtr(v)
+				}
+
+				localDescriptorPath = helpers.GetString(entry, field.ModuleLocalDescriptorPathEntry)
 				if localDescriptorPath != "" {
 					if _, err := os.Stat(localDescriptorPath); os.IsNotExist(err) {
 						return nil, errors.LocalDescriptorNotFound(localDescriptorPath, name)
 					}
 				}
-
 			}
 
 			modules[name] = models.FrontendModule{

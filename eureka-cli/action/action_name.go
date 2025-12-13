@@ -42,4 +42,5 @@ const (
 	UndeployUi                  = "Undeploy UI"
 	UpdateKeycloakPublicClients = "Update Keycloak Public Clients"
 	UpdateModuleDiscovery       = "Update Module Discovery"
+	UpgradeModule               = "Upgrade Module"
 )

@@ -197,3 +197,311 @@ func TestFilterEmptyLines_WindowsLineEndings(t *testing.T) {
 	assert.Contains(t, result, "line1")
 	assert.Contains(t, result, "line2")
 }
+
+// ==================== IsVersionGreater Tests ====================
+
+func TestIsVersionGreater_ValidSemanticVersions(t *testing.T) {
+	tests := []struct {
+		name     string
+		version1 string
+		version2 string
+		expected bool
+	}{
+		{
+			name:     "TestIsVersionGreater_ValidSemanticVersions_MajorVersionDifference",
+			version1: "2.0.0",
+			version2: "1.0.0",
+			expected: true,
+		},
+		{
+			name:     "TestIsVersionGreater_ValidSemanticVersions_MinorVersionDifference",
+			version1: "1.5.0",
+			version2: "1.3.0",
+			expected: true,
+		},
+		{
+			name:     "TestIsVersionGreater_ValidSemanticVersions_PatchVersionDifference",
+			version1: "1.0.5",
+			version2: "1.0.3",
+			expected: true,
+		},
+		{
+			name:     "TestIsVersionGreater_ValidSemanticVersions_EqualVersions",
+			version1: "1.0.0",
+			version2: "1.0.0",
+			expected: false,
+		},
+		{
+			name:     "TestIsVersionGreater_ValidSemanticVersions_FirstVersionLower",
+			version1: "1.0.0",
+			version2: "2.0.0",
+			expected: false,
+		},
+		{
+			name:     "TestIsVersionGreater_ValidSemanticVersions_ComplexVersions",
+			version1: "10.25.100",
+			version2: "9.30.200",
+			expected: true,
+		},
+		{
+			name:     "TestIsVersionGreater_ValidSemanticVersions_LeadingZeros",
+			version1: "1.02.3",
+			version2: "1.02.2",
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange - test data provided in table
+
+			// Act
+			result := helpers.IsVersionGreater(tt.version1, tt.version2)
+
+			// Assert
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestIsVersionGreater_WithPreReleaseVersions(t *testing.T) {
+	tests := []struct {
+		name     string
+		version1 string
+		version2 string
+		expected bool
+	}{
+		{
+			name:     "TestIsVersionGreater_WithPreReleaseVersions_ReleaseVsPreRelease",
+			version1: "1.0.0",
+			version2: "1.0.0-alpha",
+			expected: true,
+		},
+		{
+			name:     "TestIsVersionGreater_WithPreReleaseVersions_AlphaVsBeta",
+			version1: "1.0.0-beta",
+			version2: "1.0.0-alpha",
+			expected: true,
+		},
+		{
+			name:     "TestIsVersionGreater_WithPreReleaseVersions_BetaVsRC",
+			version1: "1.0.0-rc.1",
+			version2: "1.0.0-beta.2",
+			expected: true,
+		},
+		{
+			name:     "TestIsVersionGreater_WithPreReleaseVersions_SamePreReleaseType",
+			version1: "1.0.0-alpha.2",
+			version2: "1.0.0-alpha.1",
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange - test data provided in table
+
+			// Act
+			result := helpers.IsVersionGreater(tt.version1, tt.version2)
+
+			// Assert
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestIsVersionGreater_WithBuildMetadata(t *testing.T) {
+	tests := []struct {
+		name     string
+		version1 string
+		version2 string
+		expected bool
+	}{
+		{
+			name:     "TestIsVersionGreater_WithBuildMetadata_DifferentBuilds",
+			version1: "1.0.0+build.2",
+			version2: "1.0.0+build.1",
+			expected: false, // Build metadata should be ignored per semver spec
+		},
+		{
+			name:     "TestIsVersionGreater_WithBuildMetadata_WithAndWithout",
+			version1: "1.0.1",
+			version2: "1.0.0+build.1",
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange - test data provided in table
+
+			// Act
+			result := helpers.IsVersionGreater(tt.version1, tt.version2)
+
+			// Assert
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestIsVersionGreater_InvalidSemanticVersions_FallbackToStringComparison(t *testing.T) {
+	tests := []struct {
+		name     string
+		version1 string
+		version2 string
+		expected bool
+	}{
+		{
+			name:     "TestIsVersionGreater_InvalidSemanticVersions_BothInvalid_Alphabetical",
+			version1: "invalid-v2",
+			version2: "invalid-v1",
+			expected: true, // String comparison: "invalid-v2" > "invalid-v1"
+		},
+		{
+			name:     "TestIsVersionGreater_InvalidSemanticVersions_FirstInvalid",
+			version1: "not-a-version",
+			version2: "1.0.0",
+			expected: true, // String comparison: "not-a-version" > "1.0.0"
+		},
+		{
+			name:     "TestIsVersionGreater_InvalidSemanticVersions_SecondInvalid",
+			version1: "1.0.0",
+			version2: "not-a-version",
+			expected: false, // String comparison: "1.0.0" < "not-a-version"
+		},
+		{
+			name:     "TestIsVersionGreater_InvalidSemanticVersions_EmptyStrings",
+			version1: "",
+			version2: "",
+			expected: false,
+		},
+		{
+			name:     "TestIsVersionGreater_InvalidSemanticVersions_FirstEmpty",
+			version1: "",
+			version2: "1.0.0",
+			expected: false,
+		},
+		{
+			name:     "TestIsVersionGreater_InvalidSemanticVersions_SecondEmpty",
+			version1: "1.0.0",
+			version2: "",
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange - test data provided in table
+
+			// Act
+			result := helpers.IsVersionGreater(tt.version1, tt.version2)
+
+			// Assert
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestIsVersionGreater_EdgeCases(t *testing.T) {
+	tests := []struct {
+		name     string
+		version1 string
+		version2 string
+		expected bool
+	}{
+		{
+			name:     "TestIsVersionGreater_EdgeCases_WithVPrefix",
+			version1: "v2.0.0",
+			version2: "v1.0.0",
+			expected: true,
+		},
+		{
+			name:     "TestIsVersionGreater_EdgeCases_MixedVPrefix",
+			version1: "v2.0.0",
+			version2: "1.0.0",
+			expected: true,
+		},
+		{
+			name:     "TestIsVersionGreater_EdgeCases_SnapshotVersions",
+			version1: "1.0.0-SNAPSHOT",
+			version2: "1.0.0",
+			expected: false,
+		},
+		{
+			name:     "TestIsVersionGreater_EdgeCases_VeryLongVersion",
+			version1: "1.2.3.4.5.6.7.8.9.10",
+			version2: "1.2.3.4.5.6.7.8.9.9",
+			expected: false, // String comparison: "1.2.3.4.5.6.7.8.9.10" < "1.2.3.4.5.6.7.8.9.9" (lexicographically, "10" < "9")
+		},
+		{
+			name:     "TestIsVersionGreater_EdgeCases_SingleDigit",
+			version1: "2",
+			version2: "1",
+			expected: true, // String comparison: "2" > "1"
+		},
+		{
+			name:     "TestIsVersionGreater_EdgeCases_TwoPartVersion",
+			version1: "2.5",
+			version2: "2.4",
+			expected: true, // String comparison
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange - test data provided in table
+
+			// Act
+			result := helpers.IsVersionGreater(tt.version1, tt.version2)
+
+			// Assert
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestIsVersionGreater_RealWorldModuleVersions(t *testing.T) {
+	tests := []struct {
+		name     string
+		version1 string
+		version2 string
+		expected bool
+	}{
+		{
+			name:     "TestIsVersionGreater_RealWorldModuleVersions_ModUsers",
+			version1: "19.3.0",
+			version2: "19.2.0",
+			expected: true,
+		},
+		{
+			name:     "TestIsVersionGreater_RealWorldModuleVersions_ModInventoryStorage",
+			version1: "25.1.0",
+			version2: "25.0.0",
+			expected: true,
+		},
+		{
+			name:     "TestIsVersionGreater_RealWorldModuleVersions_MajorUpgrade",
+			version1: "20.0.0",
+			version2: "19.99.99",
+			expected: true,
+		},
+		{
+			name:     "TestIsVersionGreater_RealWorldModuleVersions_PatchRelease",
+			version1: "1.2.4",
+			version2: "1.2.3",
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange - test data provided in table
+
+			// Act
+			result := helpers.IsVersionGreater(tt.version1, tt.version2)
+
+			// Assert
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

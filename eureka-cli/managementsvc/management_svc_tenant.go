@@ -58,22 +58,9 @@ func (ms *ManagementSvc) CreateTenants() error {
 	}
 	for tenantName, properties := range ms.Action.ConfigTenants {
 		entry := properties.(map[string]any)
-		consortiumName := helpers.GetAnyOrDefault(entry, field.TenantsConsortiumEntry, nil)
-
-		var description string
-		if consortiumName == nil {
-			description = fmt.Sprintf("%s-%s", constant.NoneConsortium, constant.Default)
-		} else {
-			tenantType := constant.Member
-			if helpers.GetBool(entry, field.TenantsCentralTenantEntry) {
-				tenantType = constant.Central
-			}
-			description = fmt.Sprintf("%s-%s", consortiumName, tenantType)
-		}
-
 		payload, err := json.Marshal(map[string]string{
 			"name":        tenantName,
-			"description": description,
+			"description": ms.GetTenantType(entry),
 		})
 		if err != nil {
 			return err
@@ -87,6 +74,20 @@ func (ms *ManagementSvc) CreateTenants() error {
 	}
 
 	return nil
+}
+
+func (ms *ManagementSvc) GetTenantType(entry map[string]any) string {
+	consortiumName := helpers.GetString(entry, field.TenantsConsortiumEntry)
+	if consortiumName == "" {
+		return fmt.Sprintf("%s-%s", constant.NoneConsortium, constant.Default)
+	}
+
+	tenantType := constant.Member
+	if helpers.GetBool(entry, field.TenantsCentralTenantEntry) {
+		tenantType = constant.Central
+	}
+
+	return fmt.Sprintf("%s-%s", consortiumName, tenantType)
 }
 
 func (ms *ManagementSvc) RemoveTenants(consortiumName string, tenantType constant.TenantType) error {

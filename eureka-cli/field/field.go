@@ -46,7 +46,8 @@ const (
 	SidecarModule                        = "sidecar-module"
 	SidecarModuleEnv                     = "sidecar-module.environment"
 	SidecarModuleResources               = "sidecar-module.resources"
-	SidecarModuleNativeBinaryCmd         = "sidecar-module.native-binary-cmd"
+	SidecarModuleCmd                     = "sidecar-module.cmd"
+	SidecarModuleNativeBinaryCmd         = "sidecar-module.native-binary-cmd" // Alias of "sidecar-module.cmd" for compatibility
 	SidecarModuleImageEntry              = "image"
 	SidecarModuleCustomNamespaceEntry    = "custom-namespace"
 	SidecarModuleVersionEntry            = "version"
@@ -59,6 +60,7 @@ const (
 	ModuleVersionEntry                   = "version"
 	ModulePortEntry                      = "port"
 	ModulePrivatePortEntry               = "private-port"
+	ModulePortServerEntry                = "port-server" // Alias of "private-port" for compatibility
 	ModuleUseVaultEntry                  = "use-vault"
 	ModuleUseOkapiURLEntry               = "use-okapi-url"
 	ModuleDisableSystemUserEntry         = "disable-system-user"

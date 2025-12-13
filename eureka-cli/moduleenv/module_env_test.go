@@ -284,7 +284,7 @@ func TestSidecarEnv(t *testing.T) {
 		module := &models.ProxyModule{
 			Metadata: models.ProxyModuleMetadata{
 				Name:        "mod-inventory",
-				Version:     helpers.StringP("1.0.0"),
+				Version:     helpers.StringPtr("1.0.0"),
 				SidecarName: "mod-inventory-sidecar",
 			},
 		}
@@ -312,7 +312,7 @@ func TestSidecarEnv(t *testing.T) {
 		module := &models.ProxyModule{
 			Metadata: models.ProxyModuleMetadata{
 				Name:        "mod-users",
-				Version:     helpers.StringP("2.0.0"),
+				Version:     helpers.StringPtr("2.0.0"),
 				SidecarName: "mod-users-sidecar",
 			},
 		}
@@ -339,7 +339,7 @@ func TestSidecarEnv(t *testing.T) {
 		module := &models.ProxyModule{
 			Metadata: models.ProxyModuleMetadata{
 				Name:        "mod-circulation",
-				Version:     helpers.StringP("1.5.0"),
+				Version:     helpers.StringPtr("1.5.0"),
 				SidecarName: "mod-circulation-sidecar",
 			},
 		}
@@ -364,7 +364,7 @@ func TestSidecarEnv(t *testing.T) {
 		module := &models.ProxyModule{
 			Metadata: models.ProxyModuleMetadata{
 				Name:        "mod-permissions",
-				Version:     helpers.StringP("1.0.0"),
+				Version:     helpers.StringPtr("1.0.0"),
 				SidecarName: "mod-permissions-sidecar",
 			},
 		}

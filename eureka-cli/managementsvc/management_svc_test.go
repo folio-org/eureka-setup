@@ -551,10 +551,15 @@ func TestGetModuleDiscovery_Success(t *testing.T) {
 
 	mockHTTP.On("GetReturnStruct",
 		mock.MatchedBy(func(url string) bool {
-			return strings.Contains(url, "/modules/discovery") && strings.Contains(url, "name=="+moduleName)
+			// The URL contains query-escaped characters: %28 = (, %29 = )
+			return strings.Contains(url, "/modules/discovery") &&
+				strings.Contains(url, "query=") &&
+				strings.Contains(url, "name")
 		}),
-		mock.Anything,
-		mock.Anything).
+		mock.MatchedBy(func(headers map[string]string) bool {
+			return headers["Authorization"] == "Bearer test-token" && headers["Content-Type"] == "application/json"
+		}),
+		mock.AnythingOfType("*models.ModuleDiscoveryResponse")).
 		Run(func(args mock.Arguments) {
 			target := args.Get(2).(*models.ModuleDiscoveryResponse)
 			target.Discovery = []models.ModuleDiscovery{
@@ -1953,6 +1958,98 @@ func TestCreateApplications_WithDependencies(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
+}
+
+func TestGetTenantType_NoConsortium(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	entry := map[string]any{}
+
+	// Act
+	result := svc.GetTenantType(entry)
+
+	// Assert
+	assert.Equal(t, "nop-default", result)
+}
+
+func TestGetTenantType_MemberTenant(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	entry := map[string]any{
+		"consortium":     "test-consortium",
+		"central-tenant": false,
+	}
+
+	// Act
+	result := svc.GetTenantType(entry)
+
+	// Assert
+	assert.Equal(t, "test-consortium-member", result)
+}
+
+func TestGetTenantType_CentralTenant(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	entry := map[string]any{
+		"consortium":     "test-consortium",
+		"central-tenant": true,
+	}
+
+	// Act
+	result := svc.GetTenantType(entry)
+
+	// Assert
+	assert.Equal(t, "test-consortium-central", result)
+}
+
+func TestGetTenantType_EmptyConsortiumName(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	entry := map[string]any{
+		"consortium":     "",
+		"central-tenant": true,
+	}
+
+	// Act
+	result := svc.GetTenantType(entry)
+
+	// Assert
+	assert.Equal(t, "nop-default", result)
+}
+
+func TestGetTenantType_MissingCentralTenantField(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	entry := map[string]any{
+		"consortium": "test-consortium",
+	}
+
+	// Act
+	result := svc.GetTenantType(entry)
+
+	// Assert
+	// When central-tenant field is missing, defaults to member
+	assert.Equal(t, "test-consortium-member", result)
 }
 
 func TestCreateApplications_SkipsModuleNotInConfig(t *testing.T) {

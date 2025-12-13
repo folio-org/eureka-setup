@@ -70,6 +70,14 @@ func (m *MockManagementSvc) GetApplications() (models.ApplicationsResponse, erro
 	return args.Get(0).(models.ApplicationsResponse), args.Error(1)
 }
 
+func (m *MockManagementSvc) GetLatestApplication() (map[string]any, error) {
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(map[string]any), args.Error(1)
+}
+
 func (m *MockManagementSvc) CreateApplications(extract *models.RegistryExtract) error {
 	args := m.Called(extract)
 	return args.Error(0)

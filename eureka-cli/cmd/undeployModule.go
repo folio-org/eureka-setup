@@ -52,21 +52,23 @@ func (run *Run) UndeployModule() error {
 	}
 	defer run.Config.DockerClient.Close(client)
 
-	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, run.Config.Action.ConfigProfile, params.ModuleName)
+	pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, run.Config.Action.ConfigProfileName, params.ModuleName)
 	return run.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern)
 }
 
 func init() {
 	rootCmd.AddCommand(undeployModuleCmd)
 	undeployModuleCmd.PersistentFlags().StringVarP(&params.ModuleName, action.ModuleName.Long, action.ModuleName.Short, "", action.ModuleName.Description)
+
+	if err := undeployModuleCmd.MarkPersistentFlagRequired(action.ModuleName.Long); err != nil {
+		slog.Error(errors.MarkFlagRequiredFailed(action.ModuleName, err).Error())
+		os.Exit(1)
+	}
+
 	if err := undeployModuleCmd.RegisterFlagCompletionFunc(action.ModuleName.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
 		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
-		os.Exit(1)
-	}
-	if err := undeployModuleCmd.MarkPersistentFlagRequired(action.ModuleName.Long); err != nil {
-		slog.Error(errors.MarkFlagRequiredFailed(action.ModuleName, err).Error())
 		os.Exit(1)
 	}
 }

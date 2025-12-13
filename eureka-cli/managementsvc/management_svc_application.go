@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/url"
+	"sort"
 	"strings"
 
 	"github.com/folio-org/eureka-cli/action"
@@ -24,6 +26,7 @@ type ManagementProcessor interface {
 // ManagementApplicationManager defines the interface for application management operations
 type ManagementApplicationManager interface {
 	GetApplications() (models.ApplicationsResponse, error)
+	GetLatestApplication() (map[string]any, error)
 	CreateApplications(extract *models.RegistryExtract) error
 	RemoveApplication(applicationID string) error
 	GetModuleDiscovery(name string) (models.ModuleDiscoveryResponse, error)
@@ -55,6 +58,21 @@ func (ms *ManagementSvc) GetApplications() (models.ApplicationsResponse, error) 
 	}
 
 	return decodedResponse, nil
+}
+
+func (ms *ManagementSvc) GetLatestApplication() (map[string]any, error) {
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/applications?appName=%s&latest=1&full=true", ms.Action.ConfigApplicationName))
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	var decodedResponse models.ApplicationsResponse
+	if err := ms.HTTPClient.GetReturnStruct(requestURL, headers, &decodedResponse); err != nil {
+		return nil, err
+	}
+
+	return decodedResponse.ApplicationDescriptors[0], nil
 }
 
 func (ms *ManagementSvc) CreateApplications(extract *models.RegistryExtract) error {
@@ -162,9 +180,9 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryExtract) err
 	if err != nil {
 		return err
 	}
+	appRequestURL := ms.Action.GetRequestURL(constant.KongPort, "/applications?check=true")
 
 	var appResponse models.ApplicationDescriptor
-	appRequestURL := ms.Action.GetRequestURL(constant.KongPort, "/applications?check=true")
 	if err := ms.HTTPClient.PostReturnStruct(appRequestURL, payload1, headers, &appResponse); err != nil {
 		return err
 	}
@@ -231,7 +249,8 @@ func (ms *ManagementSvc) RemoveApplication(applicationID string) error {
 }
 
 func (ms *ManagementSvc) GetModuleDiscovery(name string) (models.ModuleDiscoveryResponse, error) {
-	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/modules/discovery?query=name==%s&limit=1", name))
+	rawQuery := fmt.Sprintf("(name==%s) sortby version", name)
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/modules/discovery?query=%s", url.QueryEscape(rawQuery)))
 	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
 	if err != nil {
 		return models.ModuleDiscoveryResponse{}, err
@@ -240,6 +259,14 @@ func (ms *ManagementSvc) GetModuleDiscovery(name string) (models.ModuleDiscovery
 	var decodedResponse models.ModuleDiscoveryResponse
 	if err := ms.HTTPClient.GetReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return models.ModuleDiscoveryResponse{}, err
+	}
+
+	if len(decodedResponse.Discovery) > 0 {
+		sort.Slice(decodedResponse.Discovery, func(i, j int) bool {
+			return helpers.IsVersionGreater(decodedResponse.Discovery[i].Version, decodedResponse.Discovery[j].Version)
+		})
+		decodedResponse.Discovery = decodedResponse.Discovery[:1]
+		decodedResponse.TotalRecords = 1
 	}
 
 	return decodedResponse, nil

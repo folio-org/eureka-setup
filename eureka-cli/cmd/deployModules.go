@@ -56,8 +56,8 @@ func (run *Run) DeployModules() error {
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
-	instalJsonURLs := run.Config.Action.GetCombinedInstallJsonURLs()
-	modules, err := run.Config.RegistrySvc.GetModules(instalJsonURLs, true, true)
+	installURLs := run.Config.Action.GetCombinedInstallURLs()
+	modules, err := run.Config.RegistrySvc.GetModules(installURLs, true, true)
 	if err != nil {
 		return err
 	}
@@ -92,7 +92,7 @@ func (run *Run) DeployModules() error {
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "DEPLOYING MODULES")
-	sidecarResources := helpers.CreateResources(false, run.Config.Action.ConfigSidecarResources)
+	sidecarResources := helpers.CreateResources(false, run.Config.Action.ConfigSidecarModuleResources)
 	deployedModules, err := run.Config.ModuleSvc.DeployModules(client, containers, sidecarImage, sidecarResources)
 	if err != nil {
 		return err

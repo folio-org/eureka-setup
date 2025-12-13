@@ -100,6 +100,7 @@ func init() {
 	rootCmd.AddCommand(getKeycloakAccessTokenCmd)
 	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&params.Tenant, action.Tenant.Long, action.Tenant.Short, "", action.Tenant.Description)
 	getKeycloakAccessTokenCmd.PersistentFlags().StringVarP(&params.TokenType, action.TokenType.Long, action.TokenType.Short, "", action.TokenType.Description)
+
 	if err := getKeycloakAccessTokenCmd.RegisterFlagCompletionFunc(action.TokenType.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return constant.GetTokenTypes(), cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {

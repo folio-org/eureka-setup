@@ -29,7 +29,6 @@ import (
 	"github.com/folio-org/eureka-cli/models"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/mod/semver"
 )
 
 // listModuleVersionsCmd represents the listModuleVersions command
@@ -84,9 +83,9 @@ func (run *Run) listModuleVersionsSortedDescendingOrder() error {
 		}
 	}
 	sort.Slice(versions, func(i, j int) bool {
-		vi := "v" + strings.TrimPrefix(versions[i], params.ModuleName+"-")
-		vj := "v" + strings.TrimPrefix(versions[j], params.ModuleName+"-")
-		return semver.Compare(vi, vj) > 0
+		vi := strings.TrimPrefix(versions[i], params.ModuleName+"-")
+		vj := strings.TrimPrefix(versions[j], params.ModuleName+"-")
+		return helpers.IsVersionGreater(vi, vj)
 	})
 
 	for idx, version := range versions {
@@ -102,16 +101,18 @@ func (run *Run) listModuleVersionsSortedDescendingOrder() error {
 func init() {
 	rootCmd.AddCommand(listModuleVersionsCmd)
 	listModuleVersionsCmd.PersistentFlags().StringVarP(&params.ModuleName, action.ModuleName.Long, action.ModuleName.Short, "", action.ModuleName.Description)
+	listModuleVersionsCmd.PersistentFlags().StringVarP(&params.ID, action.ID.Long, action.ID.Short, "", action.ID.Description)
+	listModuleVersionsCmd.PersistentFlags().IntVarP(&params.Versions, action.Versions.Long, action.Versions.Short, 5, action.Versions.Description)
+
+	if err := listModuleVersionsCmd.MarkPersistentFlagRequired(action.ModuleName.Long); err != nil {
+		slog.Error(errors.MarkFlagRequiredFailed(action.ModuleName, err).Error())
+		os.Exit(1)
+	}
+
 	if err := listModuleVersionsCmd.RegisterFlagCompletionFunc(action.ModuleName.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
 		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
-		os.Exit(1)
-	}
-	listModuleVersionsCmd.PersistentFlags().StringVarP(&params.ID, action.ID.Long, action.ID.Short, "", action.ID.Description)
-	listModuleVersionsCmd.PersistentFlags().IntVarP(&params.Versions, action.Versions.Long, action.Versions.Short, 5, action.Versions.Description)
-	if err := listModuleVersionsCmd.MarkPersistentFlagRequired(action.ModuleName.Long); err != nil {
-		slog.Error(errors.MarkFlagRequiredFailed(action.ModuleName, err).Error())
 		os.Exit(1)
 	}
 }

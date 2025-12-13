@@ -62,37 +62,262 @@ func TestGetBool_KeyNotExists(t *testing.T) {
 	assert.False(t, result)
 }
 
-func TestGetAnyOrDefault_ValueExists(t *testing.T) {
+// ==================== GetInt Tests ====================
+
+func TestGetInt_ValueExists(t *testing.T) {
 	// Arrange
-	entry := map[string]any{"key": "value"}
+	entry := map[string]any{"port": 8080}
 
 	// Act
-	result := helpers.GetAnyOrDefault(entry, "key", "default")
+	result := helpers.GetInt(entry, "port")
 
 	// Assert
-	assert.Equal(t, "value", result)
+	assert.Equal(t, 8080, result)
 }
 
-func TestGetAnyOrDefault_NilValue(t *testing.T) {
+func TestGetInt_NilValue(t *testing.T) {
 	// Arrange
-	entry := map[string]any{"key": nil}
+	entry := map[string]any{"port": nil}
 
 	// Act
-	result := helpers.GetAnyOrDefault(entry, "key", "default")
+	result := helpers.GetInt(entry, "port")
 
 	// Assert
-	assert.Equal(t, "default", result)
+	assert.Equal(t, 0, result)
 }
 
-func TestGetAnyOrDefault_KeyNotExists(t *testing.T) {
+func TestGetInt_KeyNotExists(t *testing.T) {
 	// Arrange
 	entry := map[string]any{}
 
 	// Act
-	result := helpers.GetAnyOrDefault(entry, "key", "default")
+	result := helpers.GetInt(entry, "port")
 
 	// Assert
-	assert.Equal(t, "default", result)
+	assert.Equal(t, 0, result)
+}
+
+func TestGetInt_WrongType(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"port": "8080"}
+
+	// Act
+	result := helpers.GetInt(entry, "port")
+
+	// Assert
+	assert.Equal(t, 0, result)
+}
+
+// ==================== GetIntPtr Tests ====================
+
+func TestGetIntPtr_ValueExists(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"port": 8080}
+
+	// Act
+	result := helpers.GetIntPtr(entry, "port")
+
+	// Assert
+	assert.NotNil(t, result)
+	assert.Equal(t, 8080, *result)
+}
+
+func TestGetIntPtr_NilValue(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"port": nil}
+
+	// Act
+	result := helpers.GetIntPtr(entry, "port")
+
+	// Assert
+	assert.Nil(t, result)
+}
+
+func TestGetIntPtr_KeyNotExists(t *testing.T) {
+	// Arrange
+	entry := map[string]any{}
+
+	// Act
+	result := helpers.GetIntPtr(entry, "port")
+
+	// Assert
+	assert.Nil(t, result)
+}
+
+func TestGetIntPtr_WrongType(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"port": "8080"}
+
+	// Act
+	result := helpers.GetIntPtr(entry, "port")
+
+	// Assert
+	assert.Nil(t, result)
+}
+
+// ==================== GetBoolPtr Tests ====================
+
+func TestGetBoolPtr_ValueExists(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"enabled": true}
+
+	// Act
+	result := helpers.GetBoolPtr(entry, "enabled")
+
+	// Assert
+	assert.NotNil(t, result)
+	assert.True(t, *result)
+}
+
+func TestGetBoolPtr_NilValue(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"enabled": nil}
+
+	// Act
+	result := helpers.GetBoolPtr(entry, "enabled")
+
+	// Assert
+	assert.Nil(t, result)
+}
+
+func TestGetBoolPtr_KeyNotExists(t *testing.T) {
+	// Arrange
+	entry := map[string]any{}
+
+	// Act
+	result := helpers.GetBoolPtr(entry, "enabled")
+
+	// Assert
+	assert.Nil(t, result)
+}
+
+func TestGetBoolPtr_WrongType(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"enabled": "true"}
+
+	// Act
+	result := helpers.GetBoolPtr(entry, "enabled")
+
+	// Assert
+	assert.Nil(t, result)
+}
+
+// ==================== GetStringSlice Tests ====================
+
+func TestGetStringSlice_ValueExists(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"items": []any{"a", "b", "c"}}
+
+	// Act
+	result := helpers.GetStringSlice(entry, "items")
+
+	// Assert
+	assert.Equal(t, []string{"a", "b", "c"}, result)
+}
+
+func TestGetStringSlice_MixedTypes(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"items": []any{"a", 123, "b", true, "c"}}
+
+	// Act
+	result := helpers.GetStringSlice(entry, "items")
+
+	// Assert
+	assert.Equal(t, []string{"a", "b", "c"}, result)
+}
+
+func TestGetStringSlice_NilValue(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"items": nil}
+
+	// Act
+	result := helpers.GetStringSlice(entry, "items")
+
+	// Assert
+	assert.Empty(t, result)
+}
+
+func TestGetStringSlice_KeyNotExists(t *testing.T) {
+	// Arrange
+	entry := map[string]any{}
+
+	// Act
+	result := helpers.GetStringSlice(entry, "items")
+
+	// Assert
+	assert.Empty(t, result)
+}
+
+func TestGetStringSlice_WrongType(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"items": "not-a-slice"}
+
+	// Act
+	result := helpers.GetStringSlice(entry, "items")
+
+	// Assert
+	assert.Empty(t, result)
+}
+
+func TestGetStringSlice_EmptySlice(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"items": []any{}}
+
+	// Act
+	result := helpers.GetStringSlice(entry, "items")
+
+	// Assert
+	assert.Empty(t, result)
+}
+
+// ==================== GetMap Tests ====================
+
+func TestGetMap_ValueExists(t *testing.T) {
+	// Arrange
+	innerMap := map[string]any{"key": "value"}
+	entry := map[string]any{"config": innerMap}
+
+	// Act
+	result := helpers.GetMap(entry, "config")
+
+	// Assert
+	assert.Equal(t, innerMap, result)
+}
+
+func TestGetMap_NilValue(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"config": nil}
+
+	// Act
+	result := helpers.GetMap(entry, "config")
+
+	// Assert
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
+}
+
+func TestGetMap_KeyNotExists(t *testing.T) {
+	// Arrange
+	entry := map[string]any{}
+
+	// Act
+	result := helpers.GetMap(entry, "config")
+
+	// Assert
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
+}
+
+func TestGetMap_WrongType(t *testing.T) {
+	// Arrange
+	entry := map[string]any{"config": "not-a-map"}
+
+	// Act
+	result := helpers.GetMap(entry, "config")
+
+	// Assert
+	assert.NotNil(t, result)
+	assert.Empty(t, result)
 }
 
 func TestGetIntOrDefault_ValidInt(t *testing.T) {

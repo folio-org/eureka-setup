@@ -72,6 +72,7 @@ func init() {
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&params.SingleTenant, action.SingleTenant.Long, action.SingleTenant.Short, true, action.SingleTenant.Description)
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&params.EnableECSRequests, action.EnableECSRequests.Long, action.EnableECSRequests.Short, false, action.EnableECSRequests.Description)
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&params.UpdateCloned, action.UpdateCloned.Long, action.UpdateCloned.Short, false, action.UpdateCloned.Description)
+
 	if err := buildAndPushUiCmd.MarkPersistentFlagRequired(action.Namespace.Long); err != nil {
 		slog.Error(errors.MarkFlagRequiredFailed(action.Namespace, err).Error())
 		os.Exit(1)
