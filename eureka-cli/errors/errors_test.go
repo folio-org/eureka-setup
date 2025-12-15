@@ -728,6 +728,24 @@ func TestModuleDiscoveryNotFound(t *testing.T) {
 	})
 }
 
+func TestModuleDescriptorNotFound(t *testing.T) {
+	t.Run("TestModuleDescriptorNotFound_Success", func(t *testing.T) {
+		// Arrange
+		moduleName := "mod-inventory"
+		moduleVersion := "1.2.3"
+		descriptorPath := "/path/to/target/ModuleDescriptor.json"
+
+		// Act
+		result := apperrors.ModuleDescriptorNotFound(moduleName, moduleVersion, descriptorPath)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "module descriptor for mod-inventory-1.2.3")
+		assert.Contains(t, result.Error(), "/path/to/target/ModuleDescriptor.json")
+		assert.True(t, errors.Is(result, apperrors.ErrNotFound))
+	})
+}
+
 // ==================== Tenant Errors Tests ====================
 
 func TestTenantNotFound(t *testing.T) {

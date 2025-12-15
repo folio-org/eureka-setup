@@ -66,11 +66,12 @@ func (run *Run) UpgradeModule() error {
 	params.ID = fmt.Sprintf("%s-%s", moduleName, newModuleVersion)
 
 	slog.Info(run.Config.Action.Name, "text", "UPGRADING MODULE", "module", moduleName, "version", newModuleVersion)
-	if run.Config.Action.Param.BuildModule {
+	if !run.Config.Action.Param.SkipBuildModuleArtifact {
 		if err := run.buildModuleArtifact(moduleName, newModuleVersion, modulePath); err != nil {
 			return err
 		}
-
+	}
+	if !run.Config.Action.Param.SkipBuildModuleImage {
 		if err := run.buildModuleImage(namespace, moduleName, newModuleVersion, modulePath); err != nil {
 			return err
 		}
@@ -80,8 +81,10 @@ func (run *Run) UpgradeModule() error {
 	if err != nil {
 		return err
 	}
-	if err := run.deployNewModuleAndSidecarPair(); err != nil {
-		return err
+	if !run.Config.Action.Param.SkipModuleDeployment {
+		if err := run.deployNewModuleAndSidecarPair(); err != nil {
+			return err
+		}
 	}
 
 	app, err := run.getLatestApplication()
@@ -112,20 +115,26 @@ func (run *Run) UpgradeModule() error {
 
 	newFrontendModules := run.updateFrontendModules(app["uiModules"].([]any))
 	newModuleDescriptors := run.updateBackendModuleDescriptors(oldModuleID, app["moduleDescriptors"].([]any), newModuleDescriptor)
-	if err := run.createNewApplication(app, appName, newAppID, newAppVersion, newBackendModules, newFrontendModules, newModuleDescriptors, headers); err != nil {
-		return err
-	}
-	if err := run.createNewModuleDiscovery(newDiscoveryModules, headers); err != nil {
-		if downstreamErr := run.cleanupApplicationsOnFailure(appName, headers, err); downstreamErr != nil {
-			return downstreamErr
+	if !run.Config.Action.Param.SkipApplication {
+		if err := run.createNewApplication(app, appName, newAppID, newAppVersion, newBackendModules, newFrontendModules, newModuleDescriptors, headers); err != nil {
+			return err
 		}
-		return err
 	}
-	if err := run.upgradeTenantEntitlement(oldAppVersion, newAppID, headers); err != nil {
-		if downstreamErr := run.cleanupApplicationsOnFailure(appName, headers, err); downstreamErr != nil {
-			return downstreamErr
+	if !run.Config.Action.Param.SkipModuleDiscovery {
+		if err := run.createNewModuleDiscovery(newDiscoveryModules, headers); err != nil {
+			if downstreamErr := run.cleanupApplicationsOnFailure(appName, headers, err); downstreamErr != nil {
+				return downstreamErr
+			}
+			return err
 		}
-		return err
+	}
+	if !run.Config.Action.Param.SkipTenantEntitlement {
+		if err := run.upgradeTenantEntitlement(oldAppVersion, newAppID, headers); err != nil {
+			if downstreamErr := run.cleanupApplicationsOnFailure(appName, headers, err); downstreamErr != nil {
+				return downstreamErr
+			}
+			return err
+		}
 	}
 
 	return run.removeApplications(appName, newAppID, headers)
@@ -427,7 +436,12 @@ func init() {
 	upgradeModuleCmd.PersistentFlags().StringVarP(&params.ModuleVersion, action.ModuleVersion.Long, action.ModuleVersion.Short, "", action.ModuleVersion.Description)
 	upgradeModuleCmd.PersistentFlags().StringVarP(&params.ModulePath, action.ModulePath.Long, action.ModulePath.Short, "", action.ModulePath.Description)
 	upgradeModuleCmd.PersistentFlags().StringVarP(&params.Namespace, action.Namespace.Long, action.Namespace.Short, constant.LocalNamespace, action.Namespace.Description)
-	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.BuildModule, action.BuildModule.Long, action.BuildModule.Short, false, action.BuildModule.Description)
+	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipBuildModuleArtifact, action.SkipBuildModuleArtifact.Long, action.SkipBuildModuleArtifact.Short, false, action.SkipBuildModuleArtifact.Description)
+	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipBuildModuleImage, action.SkipBuildModuleImage.Long, action.SkipBuildModuleImage.Short, false, action.SkipBuildModuleImage.Description)
+	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipModuleDeployment, action.SkipModuleDeployment.Long, action.SkipModuleDeployment.Short, false, action.SkipModuleDeployment.Description)
+	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipApplication, action.SkipApplication.Long, action.SkipApplication.Short, false, action.SkipApplication.Description)
+	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipModuleDiscovery, action.SkipModuleDiscovery.Long, action.SkipModuleDiscovery.Short, false, action.SkipModuleDiscovery.Description)
+	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipTenantEntitlement, action.SkipTenantEntitlement.Long, action.SkipTenantEntitlement.Short, false, action.SkipTenantEntitlement.Description)
 
 	if err := upgradeModuleCmd.MarkPersistentFlagRequired(action.ModuleName.Long); err != nil {
 		slog.Error(errors.MarkFlagRequiredFailed(action.ModuleName, err).Error())

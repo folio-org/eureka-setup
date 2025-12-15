@@ -228,6 +228,10 @@ func ModuleDiscoveryNotFound(moduleName string) error {
 	return fmt.Errorf("%w: module discovery %s in application", ErrNotFound, moduleName)
 }
 
+func ModuleDescriptorNotFound(moduleName, moduleVersion, descriptorPath string) error {
+	return fmt.Errorf("%w: module descriptor for %s-%s at path %s", ErrNotFound, moduleName, moduleVersion, descriptorPath)
+}
+
 // ==================== Tenant Errors ====================
 
 func TenantNotFound(tenantName string) error {
