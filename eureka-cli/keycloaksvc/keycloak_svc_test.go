@@ -98,6 +98,11 @@ func (m *MockManagementSvc) UpdateModuleDiscovery(id string, restore bool, priva
 	return args.Error(0)
 }
 
+func (m *MockManagementSvc) GetTenantEntitlements(tenantName string, includeModules bool) (models.TenantEntitlementResponse, error) {
+	args := m.Called(tenantName, includeModules)
+	return args.Get(0).(models.TenantEntitlementResponse), args.Error(1)
+}
+
 func (m *MockManagementSvc) CreateTenantEntitlement(consortiumName string, tenantType constant.TenantType) error {
 	args := m.Called(consortiumName, tenantType)
 	return args.Error(0)

@@ -104,7 +104,6 @@ func (us *UISvc) PrepareImage(tenantName string) (string, error) {
 }
 
 func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error) {
-	finalImageName := fmt.Sprintf("platform-complete-ui-%s", tenantName)
 	slog.Info(us.Action.Name, "text", "Copying UI configs")
 	configName := "stripes.config.js"
 	err := helpers.CopySingleFile(filepath.Join(outputDir, "eureka-tpl", configName), filepath.Join(outputDir, configName))
@@ -123,7 +122,8 @@ func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error)
 		return "", err
 	}
 
-	slog.Info(us.Action.Name, "text", "Building UI from a Dockerfile")
+	slog.Info(us.Action.Name, "text", "Building UI image")
+	finalImageName := fmt.Sprintf("platform-complete-ui-%s", tenantName)
 	err = us.ExecSvc.ExecFromDir(exec.Command("docker", "build", "--tag", finalImageName,
 		"--build-arg", fmt.Sprintf("OKAPI_URL=%s", constant.KongExternalHTTP),
 		"--build-arg", fmt.Sprintf("TENANT_ID=%s", tenantName),
@@ -155,12 +155,7 @@ func (us *UISvc) DeployContainer(tenantName string, imageName string, externalPo
 	if err != nil {
 		return err
 	}
-
 	slog.Info(us.Action.Name, "text", "Connecting UI container for tenant to network", "tenant", tenantName, "network", constant.NetworkID)
-	err = us.ExecSvc.Exec(exec.Command("docker", "network", "connect", constant.NetworkID, containerName))
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return us.ExecSvc.Exec(exec.Command("docker", "network", "connect", constant.NetworkID, containerName))
 }

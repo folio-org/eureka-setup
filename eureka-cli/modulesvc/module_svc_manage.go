@@ -110,7 +110,7 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 			if err := ms.DeployModule(client, &models.Container{
 				Name: module.Metadata.Name,
 				Config: &container.Config{
-					Image:        ms.GetModuleImage(version, module),
+					Image:        ms.GetModuleImage(module, version),
 					Hostname:     module.Metadata.Name,
 					Env:          ms.GetModuleEnv(containers, module, backendModule),
 					ExposedPorts: *backendModule.ModuleExposedPorts,

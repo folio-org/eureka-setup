@@ -115,7 +115,7 @@ func TestGetNamespace_SnapshotVersion(t *testing.T) {
 	namespace := svc.GetNamespace("1.0.0-SNAPSHOT")
 
 	// Assert
-	assert.Equal(t, constant.SnapshotRegistry, namespace)
+	assert.Equal(t, constant.SnapshotNamespace, namespace)
 	mockAWS.AssertExpectations(t)
 }
 
@@ -132,7 +132,7 @@ func TestGetNamespace_ReleaseVersion(t *testing.T) {
 	namespace := svc.GetNamespace("1.0.0")
 
 	// Assert
-	assert.Equal(t, constant.ReleaseRegistry, namespace)
+	assert.Equal(t, constant.ReleaseNamespace, namespace)
 	mockAWS.AssertExpectations(t)
 }
 

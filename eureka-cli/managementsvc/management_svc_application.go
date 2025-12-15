@@ -207,12 +207,12 @@ func (ms *ManagementSvc) CreateApplications(extract *models.RegistryExtract) err
 	return nil
 }
 
-func (ms *ManagementSvc) FetchModuleDescriptor(extract *models.RegistryExtract, moduleID, moduleDescriptorURL, localPath string, isLocalModule bool) error {
+func (ms *ManagementSvc) FetchModuleDescriptor(extract *models.RegistryExtract, moduleID, moduleDescriptorURL, descriptorPath string, isLocalModule bool) error {
 	if isLocalModule {
 		slog.Info(ms.Action.Name, "text", "Fetching local module descriptor", "module", moduleID)
 
 		var moduleDescriptorData map[string]any
-		if err := helpers.ReadJSONFromFile(localPath, &moduleDescriptorData); err != nil {
+		if err := helpers.ReadJSONFromFile(descriptorPath, &moduleDescriptorData); err != nil {
 			return err
 		}
 		extract.ModuleDescriptors[moduleID] = moduleDescriptorData

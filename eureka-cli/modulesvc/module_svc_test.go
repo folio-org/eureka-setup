@@ -396,7 +396,7 @@ func TestGetModuleImage(t *testing.T) {
 	}
 
 	// Act
-	image := svc.GetModuleImage("1.5.0", module)
+	image := svc.GetModuleImage(module, "1.5.0")
 
 	// Assert
 	assert.Equal(t, "ghcr.io/folio-org/mod-users:1.5.0", image)
@@ -845,4 +845,182 @@ func TestCheckModuleReadiness_DefaultMaxRetries(t *testing.T) {
 		// Success - no error sent, defaults to constant.ModuleReadinessMaxRetries
 	}
 	mockHTTP.AssertExpectations(t)
+}
+
+// ==================== GetLocalModuleImage Tests ====================
+
+func TestGetLocalModuleImage_Success(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	svc := New(action, nil, nil, nil, nil)
+
+	namespace := "ghcr.io/folio-org"
+	moduleName := "mod-inventory"
+	moduleVersion := "1.2.3"
+
+	// Act
+	result := svc.GetLocalModuleImage(namespace, moduleName, moduleVersion)
+
+	// Assert
+	assert.Equal(t, "ghcr.io/folio-org/mod-inventory:1.2.3", result)
+}
+
+func TestGetLocalModuleImage_WithSnapshot(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	svc := New(action, nil, nil, nil, nil)
+
+	namespace := "docker.dev.folio.org"
+	moduleName := "mod-circulation"
+	moduleVersion := "2.0.0-SNAPSHOT"
+
+	// Act
+	result := svc.GetLocalModuleImage(namespace, moduleName, moduleVersion)
+
+	// Assert
+	assert.Equal(t, "docker.dev.folio.org/mod-circulation:2.0.0-SNAPSHOT", result)
+}
+
+func TestGetLocalModuleImage_CustomNamespace(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	svc := New(action, nil, nil, nil, nil)
+
+	namespace := "localhost:5000"
+	moduleName := "mod-custom"
+	moduleVersion := "1.0.0"
+
+	// Act
+	result := svc.GetLocalModuleImage(namespace, moduleName, moduleVersion)
+
+	// Assert
+	assert.Equal(t, "localhost:5000/mod-custom:1.0.0", result)
+}
+
+func TestGetLocalModuleImage_EmptyNamespace(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	svc := New(action, nil, nil, nil, nil)
+
+	namespace := ""
+	moduleName := "mod-test"
+	moduleVersion := "1.0.0"
+
+	// Act
+	result := svc.GetLocalModuleImage(namespace, moduleName, moduleVersion)
+
+	// Assert
+	assert.Equal(t, "/mod-test:1.0.0", result)
+}
+
+func TestGetLocalModuleImage_EmptyModuleName(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	svc := New(action, nil, nil, nil, nil)
+
+	namespace := "docker.io/library"
+	moduleName := ""
+	moduleVersion := "1.0.0"
+
+	// Act
+	result := svc.GetLocalModuleImage(namespace, moduleName, moduleVersion)
+
+	// Assert
+	assert.Equal(t, "docker.io/library/:1.0.0", result)
+}
+
+func TestGetLocalModuleImage_EmptyVersion(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	svc := New(action, nil, nil, nil, nil)
+
+	namespace := "docker.io/library"
+	moduleName := "mod-test"
+	moduleVersion := ""
+
+	// Act
+	result := svc.GetLocalModuleImage(namespace, moduleName, moduleVersion)
+
+	// Assert
+	assert.Equal(t, "docker.io/library/mod-test:", result)
+}
+
+func TestGetLocalModuleImage_AllEmpty(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	svc := New(action, nil, nil, nil, nil)
+
+	namespace := ""
+	moduleName := ""
+	moduleVersion := ""
+
+	// Act
+	result := svc.GetLocalModuleImage(namespace, moduleName, moduleVersion)
+
+	// Assert
+	assert.Equal(t, "/:", result)
+}
+
+func TestGetLocalModuleImage_WithHyphenatedModuleName(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	svc := New(action, nil, nil, nil, nil)
+
+	namespace := "registry.example.com"
+	moduleName := "mod-inventory-storage"
+	moduleVersion := "3.4.5"
+
+	// Act
+	result := svc.GetLocalModuleImage(namespace, moduleName, moduleVersion)
+
+	// Assert
+	assert.Equal(t, "registry.example.com/mod-inventory-storage:3.4.5", result)
+}
+
+func TestGetLocalModuleImage_WithSpecialCharacters(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	svc := New(action, nil, nil, nil, nil)
+
+	namespace := "registry.example.com/project/team"
+	moduleName := "mod-test_special"
+	moduleVersion := "1.0.0-beta.1"
+
+	// Act
+	result := svc.GetLocalModuleImage(namespace, moduleName, moduleVersion)
+
+	// Assert
+	assert.Equal(t, "registry.example.com/project/team/mod-test_special:1.0.0-beta.1", result)
+}
+
+func TestGetLocalModuleImage_ShortVersion(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	svc := New(action, nil, nil, nil, nil)
+
+	namespace := "ghcr.io/folio"
+	moduleName := "mod-simple"
+	moduleVersion := "1"
+
+	// Act
+	result := svc.GetLocalModuleImage(namespace, moduleName, moduleVersion)
+
+	// Assert
+	assert.Equal(t, "ghcr.io/folio/mod-simple:1", result)
+}
+
+func TestGetLocalModuleImage_LatestTag(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	svc := New(action, nil, nil, nil, nil)
+
+	namespace := "docker.io/folioorg"
+	moduleName := "mod-latest"
+	moduleVersion := "latest"
+
+	// Act
+	result := svc.GetLocalModuleImage(namespace, moduleName, moduleVersion)
+
+	// Assert
+	assert.Equal(t, "docker.io/folioorg/mod-latest:latest", result)
 }

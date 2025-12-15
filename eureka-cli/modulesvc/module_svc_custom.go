@@ -32,10 +32,18 @@ func (ms *ModuleSvc) UndeployModuleAndSidecarPair(client *client.Client, pair *M
 
 func (ms *ModuleSvc) DeployCustomModule(client *client.Client, pair *ModulePair) error {
 	version := ms.GetModuleImageVersion(*pair.BackendModule, pair.Module)
+
+	var imageName string
+	if pair.Namespace != "" {
+		imageName = ms.GetLocalModuleImage(pair.Namespace, pair.ModuleName, version)
+	} else {
+		imageName = ms.GetModuleImage(pair.Module, version)
+	}
+
 	if err := ms.DeployModule(client, &models.Container{
 		Name: pair.Module.Metadata.Name,
 		Config: &container.Config{
-			Image:        ms.GetModuleImage(version, pair.Module),
+			Image:        imageName,
 			Hostname:     pair.Module.Metadata.Name,
 			Env:          ms.GetModuleEnv(pair.Containers, pair.Module, *pair.BackendModule),
 			ExposedPorts: *pair.BackendModule.ModuleExposedPorts,

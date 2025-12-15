@@ -13,6 +13,7 @@ type ModulePair struct {
 	ModuleName    string
 	ModuleURL     string
 	SidecarURL    string
+	Namespace     string
 	Module        *models.ProxyModule
 	Containers    *models.Containers
 	NetworkConfig *network.NetworkingConfig
@@ -32,7 +33,13 @@ func NewModulePair(a *action.Action, p *action.Param) (*ModulePair, error) {
 		sidecarURL = helpers.ConstructURL(p.SidecarURL, gatewayURL)
 	}
 
-	return &ModulePair{ID: p.ID, ModuleName: p.ModuleName, ModuleURL: moduleURL, SidecarURL: sidecarURL}, nil
+	return &ModulePair{
+		ID:         p.ID,
+		ModuleName: p.ModuleName,
+		ModuleURL:  moduleURL,
+		SidecarURL: sidecarURL,
+		Namespace:  p.Namespace,
+	}, nil
 }
 
 // ClearModuleURL clears the module URL from the intercept module

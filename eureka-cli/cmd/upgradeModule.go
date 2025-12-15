@@ -32,6 +32,7 @@ import (
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/models"
+	"github.com/folio-org/eureka-cli/modulesvc"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -52,24 +53,34 @@ var upgradeModuleCmd = &cobra.Command{
 }
 
 func (run *Run) UpgradeModule() error {
-	var (
-		moduleName       = run.Config.Action.Param.ModuleName
-		newModuleVersion = run.Config.Action.Param.ModuleVersion
-		moduleTargetPath = run.Config.Action.Param.ModuleTargetPath
-	)
-	slog.Info(run.Config.Action.Name, "text", "UPGRADING MODULE", "module", moduleName, "version", newModuleVersion)
 	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.ClientCredentials); err != nil {
 		return err
 	}
 
+	var (
+		moduleName       = run.Config.Action.Param.ModuleName
+		newModuleVersion = run.Config.Action.Param.ModuleVersion
+		modulePath       = run.Config.Action.Param.ModulePath
+		namespace        = run.Config.Action.Param.Namespace
+	)
+	params.ID = fmt.Sprintf("%s-%s", moduleName, newModuleVersion)
+
+	slog.Info(run.Config.Action.Name, "text", "UPGRADING MODULE", "module", moduleName, "version", newModuleVersion)
 	if run.Config.Action.Param.BuildModule {
-		if err := run.buildModuleArtifact(moduleName, newModuleVersion, moduleTargetPath); err != nil {
+		if err := run.buildModuleArtifact(moduleName, newModuleVersion, modulePath); err != nil {
+			return err
+		}
+
+		if err := run.buildModuleImage(namespace, moduleName, newModuleVersion, modulePath); err != nil {
 			return err
 		}
 	}
 
-	newModuleDescriptor, err := run.readModuleDescriptor(moduleName, newModuleVersion, moduleTargetPath)
+	newModuleDescriptor, err := run.readModuleDescriptor(moduleName, newModuleVersion, modulePath)
 	if err != nil {
+		return err
+	}
+	if err := run.deployNewModuleAndSidecarPair(); err != nil {
 		return err
 	}
 
@@ -85,63 +96,72 @@ func (run *Run) UpgradeModule() error {
 
 	var (
 		appName       = app["name"].(string)
-		newAppVersion = appVersion.IncPatch()
-		newAppId      = fmt.Sprintf("%s-%s", appName, newAppVersion)
+		oldAppVersion = appVersion.String()
+		newAppVersion = appVersion.IncPatch().String()
+		newAppID      = fmt.Sprintf("%s-%s", appName, newAppVersion)
 	)
-	newBackendModules, newDiscoveryModules, oldModuleId, err := run.updateBackendModules(moduleName, newModuleVersion, app["modules"].([]any))
-	if err != nil {
-		return err
-	}
-	newFrontendModules := run.updateFrontendModules(app["uiModules"].([]any))
-	newModuleDescriptors := run.updateBackendModuleDescriptors(oldModuleId, app["moduleDescriptors"].([]any), newModuleDescriptor)
-
 	headers, err := helpers.SecureApplicationJSONHeaders(run.Config.Action.KeycloakMasterAccessToken)
 	if err != nil {
 		return err
 	}
-	if err := run.createNewApplication(app, appName, newAppId, newAppVersion.String(), newBackendModules, newFrontendModules, newModuleDescriptors, headers); err != nil {
+
+	newBackendModules, newDiscoveryModules, oldModuleID, err := run.updateBackendModules(moduleName, newModuleVersion, app["modules"].([]any))
+	if err != nil {
+		return err
+	}
+
+	newFrontendModules := run.updateFrontendModules(app["uiModules"].([]any))
+	newModuleDescriptors := run.updateBackendModuleDescriptors(oldModuleID, app["moduleDescriptors"].([]any), newModuleDescriptor)
+	if err := run.createNewApplication(app, appName, newAppID, newAppVersion, newBackendModules, newFrontendModules, newModuleDescriptors, headers); err != nil {
 		return err
 	}
 	if err := run.createNewModuleDiscovery(newDiscoveryModules, headers); err != nil {
+		if downstreamErr := run.cleanupApplicationsOnFailure(appName, headers, err); downstreamErr != nil {
+			return downstreamErr
+		}
 		return err
 	}
-	if err := run.upgradeTenantEntitlement(newAppId, headers); err != nil {
-		return err
-	}
-	if err := run.removeOldApplications(appName, newAppId, headers); err != nil {
+	if err := run.upgradeTenantEntitlement(oldAppVersion, newAppID, headers); err != nil {
+		if downstreamErr := run.cleanupApplicationsOnFailure(appName, headers, err); downstreamErr != nil {
+			return downstreamErr
+		}
 		return err
 	}
 
-	return nil
+	return run.removeApplications(appName, newAppID, headers)
 }
 
-func (run *Run) buildModuleArtifact(moduleName, newModuleVersion, moduleTargetPath string) error {
-	if run.Config.Action.Param.BuildModule {
-		slog.Info(run.Config.Action.Name, "text", "BUILDING MODULE ARTIFACT", "module", moduleName, "version", newModuleVersion)
-
-		slog.Info(run.Config.Action.Name, "text", "Cleaning target directory")
-		if err := run.Config.ExecSvc.ExecFromDir(exec.Command("mvn", "clean", "-DskipTests"), moduleTargetPath); err != nil {
-			return err
-		}
-
-		slog.Info(run.Config.Action.Name, "text", "Setting new artifact version", "version", newModuleVersion)
-		if err := run.Config.ExecSvc.ExecFromDir(exec.Command("mvn", "versions:set", fmt.Sprintf("-DnewVersion=%s", newModuleVersion)), moduleTargetPath); err != nil {
-			return err
-		}
-
-		slog.Info(run.Config.Action.Name, "text", "Packaging the new artifact")
-		if err := run.Config.ExecSvc.ExecFromDir(exec.Command("mvn", "package", "-DskipTests"), moduleTargetPath); err != nil {
-			return err
-		}
+func (run *Run) buildModuleArtifact(moduleName, newModuleVersion, modulePath string) error {
+	slog.Info(run.Config.Action.Name, "text", "BUILDING MODULE ARTIFACT", "module", moduleName)
+	slog.Info(run.Config.Action.Name, "text", "Cleaning target directory", "module", moduleName, "path", modulePath)
+	if err := run.Config.ExecSvc.ExecFromDir(exec.Command("mvn", "clean", "-DskipTests"), modulePath); err != nil {
+		return err
 	}
 
-	return nil
+	slog.Info(run.Config.Action.Name, "text", "Setting new artifact version", "module", moduleName)
+	if err := run.Config.ExecSvc.ExecFromDir(exec.Command("mvn", "versions:set", fmt.Sprintf("-DnewVersion=%s", newModuleVersion)), modulePath); err != nil {
+		return err
+	}
+	slog.Info(run.Config.Action.Name, "text", "Packaging new artifact", "module", moduleName)
+
+	return run.Config.ExecSvc.ExecFromDir(exec.Command("mvn", "package", "-DskipTests"), modulePath)
 }
 
-func (run *Run) readModuleDescriptor(moduleName, newModuleVersion, moduleTargetPath string) (newModuleDescriptor map[string]any, err error) {
-	slog.Info(run.Config.Action.Name, "text", "READING NEW MODULE DESCRIPTOR", "module", moduleName, "path", moduleTargetPath)
-	localPath := filepath.Join(moduleTargetPath, "target", "ModuleDescriptor.json")
-	if err := helpers.ReadJSONFromFile(localPath, &newModuleDescriptor); err != nil {
+func (run *Run) buildModuleImage(namespace, moduleName, newModuleVersion, modulePath string) error {
+	imageName := fmt.Sprintf("%s/%s:%s", namespace, moduleName, newModuleVersion)
+	slog.Info(run.Config.Action.Name, "text", "BUILDING MODULE IMAGE", "module", moduleName, "image", imageName)
+	return run.Config.ExecSvc.ExecFromDir(exec.Command("docker", "build", "--tag", imageName,
+		"--file", "./Dockerfile",
+		"--progress", "plain",
+		"--no-cache",
+		".",
+	), modulePath)
+}
+
+func (run *Run) readModuleDescriptor(moduleName, newModuleVersion, modulePath string) (newModuleDescriptor map[string]any, err error) {
+	slog.Info(run.Config.Action.Name, "text", "READING NEW MODULE DESCRIPTOR", "module", moduleName, "path", modulePath)
+	descriptorPath := filepath.Join(modulePath, "target", "ModuleDescriptor.json")
+	if err := helpers.ReadJSONFromFile(descriptorPath, &newModuleDescriptor); err != nil {
 		return nil, err
 	}
 	if len(newModuleDescriptor) == 0 {
@@ -161,12 +181,12 @@ func (run *Run) getLatestApplication() (map[string]any, error) {
 	return app, nil
 }
 
-func (run *Run) updateBackendModules(moduleName, newModuleVersion string, modules []any) (newBackendModules []map[string]any, newDiscoveryModules []map[string]string, oldModuleId string, err error) {
+func (run *Run) updateBackendModules(moduleName, newModuleVersion string, modules []any) (newBackendModules []map[string]any, newDiscoveryModules []map[string]string, oldModuleID string, err error) {
 	for _, value := range modules {
 		entry := value.(map[string]any)
 
 		if entry["name"] == moduleName {
-			oldModuleId = entry["id"].(string)
+			oldModuleID = entry["id"].(string)
 			moduleID := fmt.Sprintf("%s-%s", moduleName, newModuleVersion)
 			entry = map[string]any{
 				"id":      moduleID,
@@ -202,7 +222,7 @@ func (run *Run) updateBackendModules(moduleName, newModuleVersion string, module
 		newBackendModules = append(newBackendModules, entry)
 	}
 
-	return newBackendModules, newDiscoveryModules, oldModuleId, nil
+	return newBackendModules, newDiscoveryModules, oldModuleID, nil
 }
 
 func (run *Run) updateFrontendModules(modules []any) (newFrontendModules []map[string]any) {
@@ -218,10 +238,10 @@ func (run *Run) updateFrontendModules(modules []any) (newFrontendModules []map[s
 	return newFrontendModules
 }
 
-func (run *Run) updateBackendModuleDescriptors(oldModuleId string, moduleDescriptors []any, newModuleVersion map[string]any) (newModuleDescriptors []any) {
+func (run *Run) updateBackendModuleDescriptors(oldModuleID string, moduleDescriptors []any, newModuleVersion map[string]any) (newModuleDescriptors []any) {
 	for _, value := range moduleDescriptors {
 		entry := value.(map[string]any)
-		if entry["id"] == oldModuleId {
+		if entry["id"] == oldModuleID {
 			continue
 		}
 
@@ -231,10 +251,46 @@ func (run *Run) updateBackendModuleDescriptors(oldModuleId string, moduleDescrip
 	return append(newModuleDescriptors, newModuleVersion)
 }
 
-func (run *Run) createNewApplication(app map[string]any, appName, newAppId, newAppVersion string, newBackendModules, newFrontendModules []map[string]any, newModuleDescriptors []any, headers map[string]string) error {
+func (run *Run) deployNewModuleAndSidecarPair() error {
+	slog.Info(run.Config.Action.Name, "text", "DEPLOYING NEW MODULE AND SIDECAR PAIR", "module", params.ModuleName, "id", params.ID)
+	backendModules, err := run.Config.ModuleProps.ReadBackendModules(false, false)
+	if err != nil {
+		return err
+	}
+
+	installURLs := run.Config.Action.GetCombinedInstallURLs()
+	modules, err := run.Config.RegistrySvc.GetModules(installURLs, true, false)
+	if err != nil {
+		return err
+	}
+	run.Config.RegistrySvc.ExtractModuleMetadata(modules)
+
+	client, err := run.Config.DockerClient.Create()
+	if err != nil {
+		return err
+	}
+	defer run.Config.DockerClient.Close(client)
+	if err := run.setVaultRootTokenIntoContext(client); err != nil {
+		return err
+	}
+
+	pair, err := modulesvc.NewModulePair(run.Config.Action, run.Config.Action.Param)
+	if err != nil {
+		return err
+	}
+
+	pair.Containers = &models.Containers{
+		Modules:        modules,
+		BackendModules: backendModules,
+		IsManagement:   false,
+	}
+	return run.Config.UpgradeModuleSvc.DeployModuleAndSidecarPair(client, pair)
+}
+
+func (run *Run) createNewApplication(app map[string]any, appName, newAppID, newAppVersion string, newBackendModules, newFrontendModules []map[string]any, newModuleDescriptors []any, headers map[string]string) error {
 	slog.Info(run.Config.Action.Name, "text", "CREATING NEW APPLICATION", "name", appName, "version", newAppVersion)
 	payload, err := json.Marshal(map[string]any{
-		"id":                  newAppId,
+		"id":                  newAppID,
 		"name":                appName,
 		"version":             newAppVersion,
 		"description":         "Default",
@@ -276,8 +332,8 @@ func (run *Run) createNewModuleDiscovery(newDiscoveryModules []map[string]string
 	return nil
 }
 
-func (run *Run) upgradeTenantEntitlement(newAppId string, headers map[string]string) error {
-	slog.Info(run.Config.Action.Name, "text", "UPGRADING TENANT ENTITLEMENT", "id", newAppId)
+func (run *Run) upgradeTenantEntitlement(oldAppID, newAppID string, headers map[string]string) error {
+	slog.Info(run.Config.Action.Name, "text", "UPGRADING TENANT ENTITLEMENT", "from", oldAppID, "to", newAppID)
 	tenantParameters, err := run.Config.TenantSvc.GetEntitlementTenantParameters(constant.NoneConsortium)
 	if err != nil {
 		return err
@@ -298,7 +354,7 @@ func (run *Run) upgradeTenantEntitlement(newAppId string, headers map[string]str
 
 		payload, err := json.Marshal(map[string]any{
 			"tenantId":     entry["id"],
-			"applications": []string{newAppId},
+			"applications": []string{newAppID},
 		})
 		if err != nil {
 			return err
@@ -314,8 +370,35 @@ func (run *Run) upgradeTenantEntitlement(newAppId string, headers map[string]str
 	return nil
 }
 
-func (run *Run) removeOldApplications(appName, newAppId string, headers map[string]string) error {
-	slog.Info(run.Config.Action.Name, "text", "REMOVING OLD APPLICATIONS", "name", appName)
+func (run *Run) cleanupApplicationsOnFailure(appName string, headers map[string]string, upstreamErr error) error {
+	tenants, err := run.Config.ManagementSvc.GetTenants(constant.NoneConsortium, constant.Default)
+	if err != nil {
+		return errors.Wrap(upstreamErr, "failed to cleanup apps on failure - cannot retrieve tenants")
+	}
+
+	for _, value := range tenants {
+		entry := value.(map[string]any)
+		tenantName := entry["name"].(string)
+		if !helpers.HasTenant(tenantName, run.Config.Action.ConfigTenants) {
+			continue
+		}
+
+		entitlements, err := run.Config.ManagementSvc.GetTenantEntitlements(tenantName, false)
+		if err != nil {
+			return errors.Wrap(upstreamErr, "failed to cleanup apps on failure - cannot retrieve tenant entitlements")
+		}
+		entitlement := entitlements.Entitlements[0]
+
+		if err := run.removeApplications(appName, entitlement.ApplicationID, headers); err != nil {
+			return errors.Wrapf(err, "failed to cleanup apps on failure (%s app id is ignored)", entitlement.ApplicationID)
+		}
+	}
+
+	return nil
+}
+
+func (run *Run) removeApplications(appName, ignoreAppID string, headers map[string]string) error {
+	slog.Info(run.Config.Action.Name, "text", "REMOVING APPLICATIONS", "name", appName)
 	apps, err := run.Config.ManagementSvc.GetApplications()
 	if err != nil {
 		return err
@@ -323,7 +406,7 @@ func (run *Run) removeOldApplications(appName, newAppId string, headers map[stri
 
 	for _, entry := range apps.ApplicationDescriptors {
 		id := entry["id"]
-		if id == newAppId {
+		if id == ignoreAppID {
 			continue
 		}
 		requestURL := run.Config.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/applications/%s", id))
@@ -342,7 +425,8 @@ func init() {
 	rootCmd.AddCommand(upgradeModuleCmd)
 	upgradeModuleCmd.PersistentFlags().StringVarP(&params.ModuleName, action.ModuleName.Long, action.ModuleName.Short, "", action.ModuleName.Description)
 	upgradeModuleCmd.PersistentFlags().StringVarP(&params.ModuleVersion, action.ModuleVersion.Long, action.ModuleVersion.Short, "", action.ModuleVersion.Description)
-	upgradeModuleCmd.PersistentFlags().StringVarP(&params.ModuleTargetPath, action.ModuleTargetPath.Long, action.ModuleTargetPath.Short, "", action.ModuleTargetPath.Description)
+	upgradeModuleCmd.PersistentFlags().StringVarP(&params.ModulePath, action.ModulePath.Long, action.ModulePath.Short, "", action.ModulePath.Description)
+	upgradeModuleCmd.PersistentFlags().StringVarP(&params.Namespace, action.Namespace.Long, action.Namespace.Short, constant.LocalNamespace, action.Namespace.Description)
 	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.BuildModule, action.BuildModule.Long, action.BuildModule.Short, false, action.BuildModule.Description)
 
 	if err := upgradeModuleCmd.MarkPersistentFlagRequired(action.ModuleName.Long); err != nil {

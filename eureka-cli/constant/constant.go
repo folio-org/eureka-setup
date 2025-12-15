@@ -85,9 +85,10 @@ const (
 	FolioKeycloakBranch = "master"
 	StripesBranch       = "snapshot"
 
-	// Docker Hub registries
-	SnapshotRegistry = "folioci"
-	ReleaseRegistry  = "folioorg"
+	// Docker Hub & local namespaces
+	SnapshotNamespace = "folioci"
+	ReleaseNamespace  = "folioorg"
+	LocalNamespace    = "foliolocal"
 
 	// AWS ECR env var name
 	ECRRepositoryEnv = "AWS_ECR_FOLIO_REPO"

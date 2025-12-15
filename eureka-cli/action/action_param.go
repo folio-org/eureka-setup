@@ -18,7 +18,7 @@ type Param struct {
 	ModuleName          string
 	ModuleType          string
 	ModuleURL           string
-	ModuleTargetPath    string
+	ModulePath          string
 	ModuleVersion       string
 	Namespace           string
 	OnlyRequired        bool
@@ -71,7 +71,7 @@ var (
 	ModuleName          = Flag{"moduleName", "n", "Module name, e.g. mod-orders"}
 	ModuleType          = Flag{"moduleType", "y", "Module type, e.g. management"}
 	ModuleURL           = Flag{"moduleUrl", "m", "Module URL, e.g. http://host.docker.internal:36002 or 36002 (if -g is used)"}
-	ModuleTargetPath    = Flag{"moduleTargetPath", "", "Module target path, e.g. the path of your module in IntelliJ"}
+	ModulePath          = Flag{"modulePath", "", "Module path, e.g. the path of your module in IntelliJ"}
 	ModuleVersion       = Flag{"moduleVersion", "", "Module version, e.g. 13.1.0-SNAPSHOT.1093"}
 	Namespace           = Flag{"namespace", "", "DockerHub namespace"}
 	OnlyRequired        = Flag{"onlyRequired", "q", "Use only required system containers"}

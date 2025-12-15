@@ -12,8 +12,24 @@ import (
 
 // ManagementTenantEntitlementManager defines the interface for tenant entitlement management operations
 type ManagementTenantEntitlementManager interface {
+	GetTenantEntitlements(tenantName string, includeModules bool) (models.TenantEntitlementResponse, error)
 	CreateTenantEntitlement(consortiumName string, tenantType constant.TenantType) error
 	RemoveTenantEntitlements(consortiumName string, tenantType constant.TenantType, purgeSchemas bool) error
+}
+
+func (ms *ManagementSvc) GetTenantEntitlements(tenantName string, includeModules bool) (models.TenantEntitlementResponse, error) {
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/entitlements?tenant=%s&includeModules=%t", tenantName, includeModules))
+	headers, err := helpers.SecureOkapiApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return models.TenantEntitlementResponse{}, err
+	}
+
+	var response models.TenantEntitlementResponse
+	if err := ms.HTTPClient.GetReturnStruct(requestURL, headers, &response); err != nil {
+		return models.TenantEntitlementResponse{}, err
+	}
+
+	return response, nil
 }
 
 func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantType constant.TenantType) error {

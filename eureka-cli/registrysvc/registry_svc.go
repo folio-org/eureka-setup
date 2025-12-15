@@ -47,9 +47,9 @@ func (rs *RegistrySvc) GetNamespace(version string) string {
 		return ecrNamespace
 	}
 	if strings.Contains(version, "SNAPSHOT") {
-		return constant.SnapshotRegistry
+		return constant.SnapshotNamespace
 	} else {
-		return constant.ReleaseRegistry
+		return constant.ReleaseNamespace
 	}
 }
 
