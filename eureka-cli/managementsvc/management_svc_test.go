@@ -551,10 +551,15 @@ func TestGetModuleDiscovery_Success(t *testing.T) {
 
 	mockHTTP.On("GetReturnStruct",
 		mock.MatchedBy(func(url string) bool {
-			return strings.Contains(url, "/modules/discovery") && strings.Contains(url, "name=="+moduleName)
+			// The URL contains query-escaped characters: %28 = (, %29 = )
+			return strings.Contains(url, "/modules/discovery") &&
+				strings.Contains(url, "query=") &&
+				strings.Contains(url, "name")
 		}),
-		mock.Anything,
-		mock.Anything).
+		mock.MatchedBy(func(headers map[string]string) bool {
+			return headers["Authorization"] == "Bearer test-token" && headers["Content-Type"] == "application/json"
+		}),
+		mock.AnythingOfType("*models.ModuleDiscoveryResponse")).
 		Run(func(args mock.Arguments) {
 			target := args.Get(2).(*models.ModuleDiscoveryResponse)
 			target.Discovery = []models.ModuleDiscovery{
