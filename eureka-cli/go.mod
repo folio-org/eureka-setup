@@ -4,7 +4,7 @@ go 1.25.3
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.4
-	github.com/aws/aws-sdk-go-v2/service/ecr v1.54.3
+	github.com/aws/aws-sdk-go-v2/service/ecr v1.54.4
 	github.com/containerd/errdefs v1.0.0
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/go-connections v0.6.0
@@ -16,8 +16,8 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/mod v0.30.0
-	golang.org/x/text v0.31.0
+	golang.org/x/mod v0.31.0
+	golang.org/x/text v0.32.0
 )
 
 require (
