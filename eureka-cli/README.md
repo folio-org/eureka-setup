@@ -92,7 +92,7 @@ mkdir -p ./bin
 env GOOS=windows GOARCH=amd64 go build -o ./bin/ .
 ```
 
-> For more details, check out the [BUILD.md](docs/BUILD.md) to build a platform-specific binary
+> For more details, check out the [Build Binary Guide](docs/BUILD_BINARY_GUIDE.md) to build a platform-specific binary
 
 ### (Optional) Install binary
 
@@ -833,6 +833,6 @@ ERROR: unable to select packages:
 ## Additional Resources
 
 - **[Module Development Guide](docs/MODULE_DEVELOPMENT_GUIDE.md)** - Comprehensive guide for using `interceptModule` and `upgradeModule` commands with workflows, examples, and troubleshooting
-- **[Build Guide](docs/BUILD.md)** - Instructions for building platform-specific binaries
-- **[CLI Development Setup](docs/CLI_DEVELOPMENT_SETUP.md)** - VSCode debugging and live compilation setup for CLI development
-- **[AWS CLI Guide](docs/AWS_CLI.md)** - Using AWS ECR as container registry
+- **[Build Binary Guide](docs/BUILD_BINARY_GUIDE.md)** - Instructions for building platform-specific binaries
+- **[CLI Development Setup Guide](docs/CLI_DEVELOPMENT_SETUP_GUIDE.md)** - Live compilation and VSCode debugging setup for CLI development
+- **[AWS CLI Setup Guide](docs/AWS_CLI_SETUP_GUIDE.md)** - Using AWS ECR as container registry

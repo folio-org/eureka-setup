@@ -1,4 +1,4 @@
-# Build guide
+# Build Binary Guide
 
 ## Purpose
 

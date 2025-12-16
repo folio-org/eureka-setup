@@ -8,22 +8,25 @@
   - [Overview](#overview)
   - [interceptModule Command](#interceptmodule-command)
     - [Purpose of interceptModule](#purpose-of-interceptmodule)
-    - [How It Works](#how-it-works)
+    - [interceptModule Prerequisites](#interceptmodule-prerequisites)
+    - [How interceptModule Works](#how-interceptmodule-works)
       - [1. Intercept Mode (default)](#1-intercept-mode-default)
       - [2. Restore Mode (`--restore` flag)](#2-restore-mode---restore-flag)
-    - [Usage Examples](#usage-examples)
+    - [interceptModule Common Parameters](#interceptmodule-common-parameters)
+    - [interceptModule Usage Examples](#interceptmodule-usage-examples)
       - [Enable Interception with Custom URLs](#enable-interception-with-custom-urls)
       - [Enable Interception with Default Gateway](#enable-interception-with-default-gateway)
       - [Intercept with Different Profile](#intercept-with-different-profile)
       - [Restore Default Containers](#restore-default-containers)
       - [Restore with Custom Namespace](#restore-with-custom-namespace)
-    - [Command Flow Diagram](#command-flow-diagram)
-    - [Common Scenarios](#common-scenarios)
+    - [interceptModule Command Flow Diagram](#interceptmodule-command-flow-diagram)
+    - [interceptModule Common Scenarios](#interceptmodule-common-scenarios)
       - [Scenario 1: Debug a Single Module](#scenario-1-debug-a-single-module)
       - [Scenario 2: Intercept Multiple Modules](#scenario-2-intercept-multiple-modules)
       - [Scenario 3: Intercept After Upgrade](#scenario-3-intercept-after-upgrade)
   - [upgradeModule Command](#upgrademodule-command)
     - [Purpose of upgradeModule](#purpose-of-upgrademodule)
+    - [upgradeModule Prerequisites](#upgrademodule-prerequisites)
     - [How upgradeModule Works](#how-upgrademodule-works)
       - [Phase 1: Authentication \& Context Setup](#phase-1-authentication--context-setup)
       - [Phase 2: Module Build (if custom namespace)](#phase-2-module-build-if-custom-namespace)
@@ -32,14 +35,15 @@
       - [Phase 5: Module Discovery Update](#phase-5-module-discovery-update)
       - [Phase 6: Tenant Entitlement Upgrade](#phase-6-tenant-entitlement-upgrade)
       - [Phase 7: Cleanup](#phase-7-cleanup)
+    - [upgradeModule Common Parameters](#upgrademodule-common-parameters)
     - [upgradeModule Usage Examples](#upgrademodule-usage-examples)
       - [Upgrade to Next SNAPSHOT Version](#upgrade-to-next-snapshot-version)
       - [Upgrade with Specific Profile](#upgrade-with-specific-profile)
       - [Downgrade to Existing Version](#downgrade-to-existing-version)
       - [Upgrade with Custom Namespace](#upgrade-with-custom-namespace)
       - [Skip Specific Steps](#skip-specific-steps)
-    - [upgradeModule Flow Diagram](#upgrademodule-flow-diagram)
-    - [upgradeModule Scenarios](#upgrademodule-scenarios)
+    - [upgradeModule Command Flow Diagram](#upgrademodule-command-flow-diagram)
+    - [upgradeModule Common Scenarios](#upgrademodule-common-scenarios)
       - [Scenario 1: Upgrade to Test Local Changes](#scenario-1-upgrade-to-test-local-changes)
       - [Scenario 2: Downgrade to Previous Version](#scenario-2-downgrade-to-previous-version)
       - [Scenario 3: Upgrade Without Rebuilding](#scenario-3-upgrade-without-rebuilding)
@@ -56,6 +60,7 @@
     - [Issue: Cannot restore after intercept](#issue-cannot-restore-after-intercept)
     - [Issue: Port conflicts](#issue-port-conflicts)
     - [Issue: Namespace confusion](#issue-namespace-confusion)
+    - [Issue: CLI command behavior is unexpected](#issue-cli-command-behavior-is-unexpected)
 
 ## Purpose
 
@@ -81,7 +86,17 @@ The `interceptModule` command allows you to intercept traffic destined for a dep
 - **Hot-reloading** support for rapid iteration
 - **Multiple module interception** by running multiple local instances
 
-### How It Works
+### interceptModule Prerequisites
+
+Before using `interceptModule`, ensure:
+
+- Eureka environment is running with the target module deployed
+- IntelliJ is configured with the module's run configuration
+- Module listening on a specific port (e.g., 36002)
+- Environment variables in IntelliJ match the deployed environment (DB_HOST, KAFKA_HOST, etc.)
+- Network access to `host.docker.internal` (or custom gateway)
+
+### How interceptModule Works
 
 The command operates in two modes:
 
@@ -98,7 +113,21 @@ The command operates in two modes:
 - Redeploys the default module and sidecar containers from the registry
 - Restores Kong's module discovery to use the default routing
 
-### Usage Examples
+### interceptModule Common Parameters
+
+| Parameter          | Shorthand | Required | Description                                              |
+|--------------------|-----------|----------|----------------------------------------------------------|
+| `--moduleName`     | `-n`      | Yes      | Name of the module to intercept                          |
+| `--moduleUrl`      | `-m`      | Yes*     | URL or port for your IntelliJ instance                   |
+| `--sidecarUrl`     | `-s`      | Yes*     | URL or port for the sidecar                              |
+| `--defaultGateway` | `-g`      | No       | Use `host.docker.internal` as gateway (ports only)       |
+| `--restore`        | `-r`      | No       | Restore default containers from registry                 |
+| `--namespace`      |           | No       | Docker namespace for restored image (default: registry)  |
+| `--profile`        | `-p`      | No       | Profile to use (combined, import, etc.)                  |
+
+*Required unless using `--restore` flag
+
+### interceptModule Usage Examples
 
 #### Enable Interception with Custom URLs
 
@@ -149,7 +178,7 @@ eureka-cli interceptModule \
   --namespace foliolocal
 ```
 
-### Command Flow Diagram
+### interceptModule Command Flow Diagram
 
 ![interceptModule Sequence Diagram](../images/uml/cli_intercept_module.png)
 
@@ -163,7 +192,7 @@ eureka-cli interceptModule \
    - **Restore Mode**: Redeploys default module and sidecar from registry
    - **Intercept Mode**: Deploys custom sidecar that forwards to IntelliJ
 
-### Common Scenarios
+### interceptModule Common Scenarios
 
 #### Scenario 1: Debug a Single Module
 
@@ -198,6 +227,17 @@ The `upgradeModule` command automates the process of upgrading (or downgrading) 
 - **Application updates** with version tracking
 - **Module discovery updates** in Kong
 - **Tenant entitlement upgrades** across all tenants
+
+### upgradeModule Prerequisites
+
+Before using `upgradeModule`, ensure:
+
+- Maven is installed and available in PATH (`mvn --version`)
+- Docker is running and accessible
+- Module source code is available locally
+- `pom.xml` exists in the module path
+- Eureka environment is running
+- Sufficient disk space for building artifacts and images
 
 ### How upgradeModule Works
 
@@ -240,6 +280,22 @@ The command follows a multi-phase workflow:
 #### Phase 7: Cleanup
 
 - Removes old application versions (keeps only the new one)
+
+### upgradeModule Common Parameters
+
+| Parameter                   | Shorthand | Required | Description                                      |
+|-----------------------------|-----------|----------|--------------------------------------------------|
+| `--moduleName`              | `-n`      | Yes      | Name of the module to upgrade                    |
+| `--modulePath`              |           | Yes      | Local path to module source code                 |
+| `--moduleVersion`           |           | No       | Specific version (default: auto-increment)       |
+| `--namespace`               |           | No       | Docker namespace (default: `foliolocal`)         |
+| `--profile`                 | `-p`      | No       | Profile to use (combined, import, etc.)          |
+| `--skipModuleArtifact`      |           | No       | Skip Maven build (use existing JAR)              |
+| `--skipModuleImage`         |           | No       | Skip Docker image build                          |
+| `--skipModuleDeployment`    |           | No       | Skip container deployment                        |
+| `--skipApplication`         |           | No       | Skip application version update                  |
+| `--skipModuleDiscovery`     |           | No       | Skip Kong module discovery update                |
+| `--skipTenantEntitlement`   |           | No       | Skip tenant entitlement upgrade                  |
 
 ### upgradeModule Usage Examples
 
@@ -315,7 +371,7 @@ eureka-cli upgradeModule \
   --skipTenantEntitlement
 ```
 
-### upgradeModule Flow Diagram
+### upgradeModule Command Flow Diagram
 
 ![upgradeModule Sequence Diagram](../images/uml/cli_upgrade_module.png)
 
@@ -329,7 +385,7 @@ eureka-cli upgradeModule \
 6. **Tenant Entitlement Upgrade**: Upgrades all tenant entitlements with rollback on failure
 7. **Cleanup Old Applications**: Removes old versions (keeps new one)
 
-### upgradeModule Scenarios
+### upgradeModule Common Scenarios
 
 #### Scenario 1: Upgrade to Test Local Changes
 
@@ -467,5 +523,13 @@ eureka-cli interceptModule -n mod-orders -r --namespace foliolocal
 - `folioci`: SNAPSHOT versions from Docker Hub
 - `folioorg`: Released versions from Docker Hub
 - Always specify namespace when downgrading: `--namespace folioci`
+
+### Issue: CLI command behavior is unexpected
+
+If you need to debug the Eureka CLI itself to understand its behavior, you can use the Go delve debugger in VSCode. See the **Enable Debugger in VSCode** section in the [CLI Development Setup Guide](CLI_DEVELOPMENT_SETUP_GUIDE.md) for setup instructions. Use the provided debug templates:
+
+- **"Eureka CLI interceptModule"** for debugging `interceptModule` command
+- **"Eureka CLI upgradeModule (upgrade)"** for debugging `upgradeModule` using the upgrade workflow
+- **"Eureka CLI upgradeModule (downgrade)"** for debugging `upgradeModule` using the downgrade workflow
 
 For more help, check the main [README.md](../README.md) or open an issue on GitHub.
