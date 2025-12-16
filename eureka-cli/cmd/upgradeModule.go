@@ -183,7 +183,7 @@ func (run *Run) setNewModuleVersionAndIDIntoContext() error {
 
 func (run *Run) buildModuleArtifact(moduleName, newModuleVersion, modulePath string) error {
 	slog.Info(run.Config.Action.Name, "text", "BUILDING MODULE ARTIFACT", "module", moduleName, "version", newModuleVersion)
-	slog.Info(run.Config.Action.Name, "text", "Cleaning target directory", "module", moduleName, "version", newModuleVersion, "path", modulePath)
+	slog.Info(run.Config.Action.Name, "text", "Cleaning target directory", "module", moduleName, "path", modulePath)
 	if err := run.Config.ExecSvc.ExecFromDir(exec.Command("mvn", "clean", "-DskipTests"), modulePath); err != nil {
 		return err
 	}

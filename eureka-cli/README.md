@@ -25,6 +25,9 @@
       - [Deploy the search application](#deploy-the-search-application)
       - [Deploy the edge application](#deploy-the-edge-application)
     - [Undeploy child applications](#undeploy-child-applications)
+    - [Intercept a module](#intercept-a-module)
+    - [Create a port proxy](#create-a-port-proxy)
+    - [Upgrade a module](#upgrade-a-module)
     - [Other commands](#other-commands)
   - [Using a custom folio-module-sidecar](#using-a-custom-folio-module-sidecar)
   - [Using a native folio-module-sidecar](#using-a-native-folio-module-sidecar)
@@ -133,40 +136,50 @@ Available flags:
 
 **Command-specific flags:**
 
-| Long                    | Short | Description                                      | Command(s)                             |
-|-------------------------|-------|------------------------------------------------- |----------------------------------------|
-| `--all`                 | `-a`  | All modules for all profiles                     | listModules                            |
-| `--apps`                |       | Application names                                | purgeTenants                           |
-| `--defaultGateway`      | `-g`  | Use default gateway in URLs                      | interceptModule                        |
-| `--enableEcsRequests`   |       | Enable ECS requests                              | deployUi, buildAndPushUi               |
-| `--gatewayHostname`     |       | Gateway Hostname                                 | createPortProxy                        |
-| `--gatewayURL`          |       | Gateway URL                                      | purgeTenants                           |
-| `--id`                  | `-i`  | Module ID (e.g. mod-orders:13.1.0-SNAPSHOT.1021) | listModuleVersions                     |
-| `--ids`                 |       | Tenant ids                                       | purgeTenants                           |
-| `--length`              | `-l`  | Salt length for edge API key                     | getEdgeApiKey                          |
-| `--moduleName`          | `-n`  | Module name (e.g. mod-orders)                    | interceptModule, listModules,          |
-|                         |       |                                                  | listModuleVersions                     |
-|                         |       |                                                  | undeployModule, updateModuleDiscovery  |
-| `--moduleType`          | `-y`  | Filter by module type                            | listModules                            |
-| `--moduleUrl`           | `-m`  | Module URL                                       | interceptModule                        |
-| `--namespace`           |       | DockerHub namespace                              | buildAndPushUi                         |
-| `--platformCompleteURL` |       | Platform Complete UI URL                         | buildAndPushUi                         |
-| `--privatePort`         |       | Private port                                     | updateModuleDiscovery                  |
-| `--purgeSchemas`        |       | Purge PostgreSQL schemas on uninstallation       | removeTenantEntitlements,              |
-|                         |       |                                                  | undeployApplication                    |
-| `--removeApplication`   |       | Remove application from the DB                   | undeployApplication                    |
-| `--restore`             | `-r`  | Restore module & sidecar                         | interceptModule, updateModuleDiscovery |
-| `--sidecarUrl`          | `-s`  | Sidecar URL                                      | interceptModule, updateModuleDiscovery |
-| `--singleTenant`        |       | Use for Single Tenant workflow                   | deployUi, buildAndPushUi               |
-| `--skipCapabilitySets`  |       | Skip refreshing capability sets                  | undeployApplication                    |
-| `--skipRegistry`        |       | Skip retrieving latest registry module versions  | interceptModules, deployApplication,   |
-|                         |       |                                                  | deployManagement, deployModules        |
-| `--tenant`              | `-t`  | Tenant name                                      | getKeycloakAccessToken, getEdgeApiKey, |
-|                         |       |                                                  | buildAndPushUi                         |
-| `--updateCloned`        | `-u`  | Update Git cloned projects                       | buildSystem, deployApplication,        |
-|                         |       |                                                  | deployUi, buildAndPushUi               |
-| `--user`                | `-x`  | User for edge API key generation                 | getEdgeApiKey                          |
-| `--versions`            | `-v`  | Number of versions to display                    | listModuleVersions                     |
+| Long                      | Short | Description                                               | Command(s)                             |
+|---------------------------|-------|-----------------------------------------------------------|----------------------------------------|
+| `--all`                   | `-a`  | All modules for all profiles                              | listModules                            |
+| `--apps`                  |       | Application names                                         | purgeTenants                           |
+| `--defaultGateway`        | `-g`  | Use default gateway in URLs                               | interceptModule                        |
+| `--enableEcsRequests`     |       | Enable ECS requests                                       | deployUi, buildAndPushUi               |
+| `--gatewayHostname`       |       | Gateway Hostname                                          | createPortProxy                        |
+| `--gatewayURL`            |       | Gateway URL                                               | purgeTenants                           |
+| `--id`                    | `-i`  | Module ID (e.g. mod-orders:13.1.0-SNAPSHOT.1021)          | listModuleVersions                     |
+| `--ids`                   |       | Tenant ids                                                | purgeTenants                           |
+| `--length`                | `-l`  | Salt length for edge API key                              | getEdgeApiKey                          |
+| `--moduleName`            | `-n`  | Module name (e.g. mod-orders)                             | interceptModule, listModules,          |
+|                           |       |                                                           | listModuleVersions,                    |
+|                           |       |                                                           | undeployModule, updateModuleDiscovery, |
+|                           |       |                                                           | upgradeModule                          |
+| `--modulePath`            |       | Module path (e.g. path to module in IntelliJ)             | upgradeModule                          |
+| `--moduleType`            | `-y`  | Filter by module type                                     | listModules                            |
+| `--moduleUrl`             | `-m`  | Module URL                                                | interceptModule                        |
+| `--moduleVersion`         |       | Module version (e.g. 13.1.0-SNAPSHOT.1093)                | upgradeModule                          |
+| `--namespace`             |       | DockerHub namespace                                       | buildAndPushUi, upgradeModule          |
+| `--platformCompleteURL`   |       | Platform Complete UI URL                                  | buildAndPushUi                         |
+| `--privatePort`           |       | Private port                                              | updateModuleDiscovery                  |
+| `--purgeSchemas`          |       | Purge PostgreSQL schemas on uninstallation                | removeTenantEntitlements,              |
+|                           |       |                                                           | undeployApplication                    |
+| `--removeApplication`     |       | Remove application from the DB                            | undeployApplication                    |
+| `--restore`               | `-r`  | Restore module & sidecar                                  | interceptModule, updateModuleDiscovery |
+| `--sidecarUrl`            | `-s`  | Sidecar URL                                               | interceptModule, updateModuleDiscovery |
+| `--singleTenant`          |       | Use for Single Tenant workflow                            | deployUi, buildAndPushUi               |
+| `--skipApplication`       |       | Skip application operations                               | upgradeModule                          |
+| `--skipCapabilitySets`    |       | Skip refreshing capability sets                           | undeployApplication                    |
+| `--skipModuleArtifact`    |       | Skip building module artifact (jar and module descriptor) | upgradeModule                          |
+| `--skipModuleDeployment`  |       | Skip module & sidecar deployment                          | upgradeModule                          |
+| `--skipModuleDiscovery`   |       | Skip module discovery update                              | upgradeModule                          |
+| `--skipModuleImage`       |       | Skip building module Docker image                         | upgradeModule                          |
+| `--skipRegistry`          |       | Skip retrieving latest registry module versions           | interceptModule, deployApplication,    |
+|                           |       |                                                           | deployManagement, deployModules        |
+| `--skipTenantEntitlement` |       | Skip tenant entitlement operations                        | upgradeModule                          |
+| `--tenant`                | `-t`  | Tenant name                                               | getKeycloakAccessToken, getEdgeApiKey, |
+|                           |       |                                                           | buildAndPushUi                         |
+| `--tokenType`             |       | Token type                                                | getKeycloakAccessToken                 |
+| `--updateCloned`          | `-u`  | Update Git cloned projects                                | buildSystem, deployApplication,        |
+|                           |       |                                                           | deployUi, buildAndPushUi               |
+| `--user`                  | `-x`  | User for edge API key generation                          | getEdgeApiKey                          |
+| `--versions`              | `-v`  | Number of versions to display                             | listModuleVersions                     |
 
 ```bash
 eureka-cli -c ./config.combined.yaml deployApplication
@@ -339,6 +352,88 @@ eureka-cli -p {{profile}} undeployApplication
 
 > Replace `{{app}}` or `{{profile}}` with either of the supported child profiles: _export_, _search_ or _edge_
 
+### Intercept a module
+
+The Intercept command allows rerouting traffic from a Kong service to a custom sidecar before reaching your local instance started in IntelliJ
+
+- Start your local module instance in IntelliJ with correct environment variables and JVM flags
+
+![CLI Intercept Module](images/cli_intercept_module_1.png)
+
+- Enable interception to instance in Intellij by deploying a custom sidecar
+
+```bash
+# With custom module and sidecar URLs
+eureka-cli interceptModule -n mod-orders -m http://host.docker.internal:36002 -s http://host.docker.internal:37002
+
+# With default module and sidecar URLs (i.e. only with ports)
+eureka-cli interceptModule -n mod-orders -gm 36002 -s 37002
+```
+
+![CLI Intercept Module](images/cli_intercept_module_2.png)
+
+- Create and open a new order in the Orders app
+
+![CLI Intercept Module](images/cli_intercept_module_3.png)
+
+- Check the logs of the instance started in IntelliJ; it should now be receiving traffic from the custom sidecar
+
+![CLI Intercept Module](images/cli_intercept_module_4.png)
+
+- Disable interception by redeploying the default containers of both the module and the sidecar into the environment
+
+```bash
+eureka-cli interceptModule -n mod-orders -r
+```
+
+![CLI Intercept Module](images/cli_intercept_module_5.png)
+
+To intercept multiple modules, make sure to use the right set of environment variables, JVM flags and instance ports for each target module
+
+### Create a port proxy
+
+- Create a port proxy (Windows only), to route traffic to a specific deployed sidecar container. This command helps resolving some HTTP client issues in some modules when intercepted by the _interceptModule_ command
+
+```bash
+# Route the traffic from mod-inventorys-storage:8082 on the host network to host.docker.internal:37002 deployed as a container
+# both the gateway hostname, i.e. host.docker.internal as well as the sidecar internal port 8082 can be overridden by the command
+eureka-cli createPortProxy -n mod-inventory-storage -s 37002
+```
+
+> This command assumes that the host, e.g. `mod-inventory-storage` is added to `/etc/hosts` beforehand, because on some corporate machines scripted addition of hosts can be banned by group policies
+
+### Upgrade a module
+
+The upgrade command opens up the possibility to either upgrade or downgrade a particular module to a specific SNAPHOT or other versions, including the released ones.
+
+- To upgrade a module, pass the module name together with the path to the cloned repository, which we will be use to build the artifact before making the container image
+
+```bash
+# Here we upgrade mod-orders from 13.1.0-SNAPSHOT.1093 to 13.1.0-SNAPSHOT.1094
+eureka-cli -p combined-native upgradeModule -n mod-orders --modulePath ~/Folio/folio-modules/mod-orders
+```
+
+> The version is automatically resolved and incremented; image will be built with _foliolocal_ namespace
+
+![CLI Intercept Module](images/cli_upgrade_module_1.png)
+
+- If you want to downgrade back to an already prebuilt version (i.e. those that were downloaded from the Docker Hub or AWS ECR), set the desired version together with the correct namespace (e.g. _folioci_)
+
+```bash
+# Here we downgrade mod-orders from 13.1.0-SNAPSHOT.1094 back to 13.1.0-SNAPSHOT.1093
+eureka-cli -p combined-native upgradeModule -n mod-orders --moduleVersion 13.1.0-SNAPSHOT.1093 --namespace folioci --modulePath ~/Folio/folio-modules/mod-orders
+```
+
+> We set namespace to folioci in order to use the existing Docker Hub image
+
+![CLI Intercept Module](images/cli_upgrade_module_2.png)
+
+In both case the application patch version will be incremented up, as this does not have any functional reason for the CLI to rollback.
+
+- The upgrade command also has other flags that can be passed in order to skip a certain step in the process.
+
+![CLI Intercept Module](images/cli_upgrade_module_3.png)
+
 ### Other commands
 
 The CLI includes several useful commands to enhance developer productivity. Here are the most important ones that can be used independently.
@@ -419,51 +514,6 @@ eureka-cli checkPorts
 ![CLI Check Ports](images/cli_check_ports.png)
 
 > The CLI also exposes an internal port 5005 for all modules and sidecars that can be used for remote debugging in IntelliJ
-
-- Intercept command allows rerouting traffic from a Kong service to a custom sidecar before reaching your local instance in IntelliJ
-- Start your local module instance in IntelliJ with correct environment variables and JVM flags
-
-![CLI Intercept Module](images/cli_intercept_module_1.png)
-
-- Enable interception to instance in Intellij by deploying a custom sidecar
-
-```bash
-# With custom module and sidecar URLs
-eureka-cli interceptModule -n mod-orders -m http://host.docker.internal:36002 -s http://host.docker.internal:37002
-
-# With default module and sidecar URLs (i.e. only with ports)
-eureka-cli interceptModule -n mod-orders -gm 36002 -s 37002
-```
-
-![CLI Intercept Module](images/cli_intercept_module_2.png)
-
-- Create and open a new order in the Orders app
-
-![CLI Intercept Module](images/cli_intercept_module_3.png)
-
-- Check the logs of the instance started in IntelliJ; it should now be receiving traffic from the custom sidecar
-
-![CLI Intercept Module](images/cli_intercept_module_4.png)
-
-- Disable interception by redeploying the default containers of both the module and the sidecar into the environment
-
-```bash
-eureka-cli interceptModule -n mod-orders -r
-```
-
-![CLI Intercept Module](images/cli_intercept_module_5.png)
-
-To intercept multiple modules, make sure to use the right set of environment variables, JVM flags and instance ports for each target module
-
-- Create a port proxy (Windows only), to route traffic to a specific deployed sidecar container. This command helps resolving some HTTP client issues in some modules when intercepted by the _interceptModule_ command
-
-```bash
-# Route the traffic from mod-inventorys-storage:8082 on the host network to host.docker.internal:37002 deployed as a container
-# both the gateway hostname, i.e. host.docker.internal as well as the sidecar internal port 8082 can be overridden by the command
-eureka-cli createPortProxy -n mod-inventory-storage -s 37002
-```
-
-> This command assumes that the host, e.g. `mod-inventory-storage` is added to `/etc/hosts` beforehand, because on some corporate machines scripted addition of hosts can be banned by group policies
 
 ## Using a custom folio-module-sidecar
 

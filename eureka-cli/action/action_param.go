@@ -87,7 +87,7 @@ var (
 	Restore               = Flag{"restore", "r", "Restore module & sidecar"}
 	SidecarURL            = Flag{"sidecarUrl", "s", "Sidecar URL e.g. http://host.docker.internal:37002 or 37002 (if -g is used)"}
 	SingleTenant          = Flag{"singleTenant", "", "Use for Single Tenant workflow"}
-	SkipApplication       = Flag{"skipApplication", "", "Skip application deployment"}
+	SkipApplication       = Flag{"skipApplication", "", "Skip application operations"}
 	SkipModuleArtifact    = Flag{"skipModuleArtifact", "", "Skip building module artifact, i.e. the jar and its module descriptor"}
 	SkipModuleImage       = Flag{"skipModuleImage", "", "Skip building module image, i.e. the Docker image from a prebuilt jar artifact"}
 	SkipCapabilitySets    = Flag{"skipCapabilitySets", "", "Skip refreshing capability sets"}
