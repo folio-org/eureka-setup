@@ -12,9 +12,6 @@
   - [Prerequisites](#prerequisites)
   - [Monitor system components](#monitor-system-components)
   - [Architecture](#architecture)
-    - [Core Components](#core-components)
-    - [Key Architectural Patterns](#key-architectural-patterns)
-    - [Development Workflow Integration](#development-workflow-integration)
   - [Commands](#commands)
     - [Build the binary](#build-the-binary)
     - [(Optional) Install binary](#optional-install-binary)
@@ -81,32 +78,11 @@ Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc
 
 ## Architecture
 
-Eureka CLI is built on a modular architecture that orchestrates containerized FOLIO components through several key layers:
+The CLI is organized into layers: **actions** handle commands, **services** talk to external systems (Keycloak, Kong, Docker, Vault), and **run configs** manage profile-specific settings.
 
-### Core Components
+Commands like `interceptModule` and `upgradeModule` coordinate these layers to streamline local development — you can reroute traffic to your _local IntelliJ instance_ for live debugging, or build and deploy new module versions _in one go_. No more switching between terminals or remembering multi-step procedures.
 
-- **Action Layer**: Defines commands and their parameters, managing state and context throughout execution
-- **Service Layer**: Abstracts interactions with external systems (Keycloak, Kong, Docker, Vault, registries)
-- **Run Config**: Central configuration management that binds actions to services and handles profile-specific settings
-- **Module Services**: Specialized handlers for module deployment, interception, and lifecycle management
-
-### Key Architectural Patterns
-
-- **Profile-based Configuration**: Supports multiple deployment profiles (combined, ecs, import, etc.) with shared and profile-specific settings
-- **Service Abstraction**: Clean separation between business logic and external system interactions
-- **Context Propagation**: Authentication tokens and configuration context flow through the entire command execution pipeline
-- **Health-based Deployment**: Automated health checks ensure modules are ready before proceeding with dependent operations
-
-### Development Workflow Integration
-
-The CLI provides two powerful commands for module development workflows:
-
-- **`interceptModule`**: Redirects Kong traffic to local IntelliJ instances for live debugging without rebuilding containers
-- **`upgradeModule`**: Automates the full cycle of building, deploying, and upgrading module versions with Maven and Docker integration
-
-These commands leverage the architecture's service layer to coordinate complex multi-step operations including Maven builds, Docker image creation, module discovery updates, and tenant entitlement upgrades.
-
-For detailed workflows, examples, and best practices for module development, see the [Module Development Guide](docs/MODULE_DEVELOPMENT_GUIDE.md).
+For detailed workflows and examples, check out the [Module Development Guide](docs/MODULE_DEVELOPMENT_GUIDE.md).
 
 ## Commands
 
@@ -859,5 +835,5 @@ ERROR: unable to select packages:
 
 - **[Module Development Guide](docs/MODULE_DEVELOPMENT_GUIDE.md)** - Comprehensive guide for using `interceptModule` and `upgradeModule` commands with workflows, examples, and troubleshooting
 - **[Build Guide](docs/BUILD.md)** - Instructions for building platform-specific binaries
-- **[Development Guide](docs/DEVELOPMENT.md)** - Developer documentation for contributing to the CLI
+- **[CLI Development Setup](docs/CLI_DEVELOPMENT_SETUP.md)** - VSCode debugging and live compilation setup for CLI development
 - **[AWS CLI Guide](docs/AWS_CLI.md)** - Using AWS ECR as container registry
