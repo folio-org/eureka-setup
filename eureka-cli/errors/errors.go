@@ -271,3 +271,21 @@ func RegisterFlagCompletionFailed(err error) error {
 func MarkFlagRequiredFailed(flag FlagReader, err error) error {
 	return fmt.Errorf("failed to mark %s flag as required: %w", flag.GetName(), err)
 }
+
+// ==================== Version Errors ====================
+
+func VersionEmpty() error {
+	return fmt.Errorf("%w: version cannot be empty", ErrInvalidInput)
+}
+
+func NotSnapshotVersion(version string) error {
+	return fmt.Errorf("%w: %s is not a SNAPSHOT version with build number", ErrInvalidInput, version)
+}
+
+func InvalidSnapshotFormat(version string) error {
+	return fmt.Errorf("%w: %s has invalid SNAPSHOT version format", ErrInvalidInput, version)
+}
+
+func InvalidBuildNumber(version string, err error) error {
+	return fmt.Errorf("%w: invalid build number in version %s: %w", ErrInvalidInput, version, err)
+}

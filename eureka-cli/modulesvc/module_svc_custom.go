@@ -34,7 +34,7 @@ func (ms *ModuleSvc) DeployCustomModule(client *client.Client, pair *ModulePair)
 	version := ms.GetModuleImageVersion(*pair.BackendModule, pair.Module)
 
 	var imageName string
-	if pair.Namespace != "" {
+	if pair.Namespace != "" && !helpers.IsFolioNamespace(pair.Namespace) {
 		imageName = ms.GetLocalModuleImage(pair.Namespace, pair.ModuleName, version)
 	} else {
 		imageName = ms.GetModuleImage(pair.Module, version)

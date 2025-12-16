@@ -3,47 +3,47 @@ package action
 // Param is a central container of all parameters
 // passed to the program by the user from the shell instance
 type Param struct {
-	All                     bool
-	ApplicationNames        []string
-	BuildImages             bool
-	ConfigFile              string
-	DefaultGateway          bool
-	EnableDebug             bool
-	EnableECSRequests       bool
-	GatewayHostname         string
-	GatewayURL              string
-	ID                      string
-	Length                  int
-	ModuleName              string
-	ModulePath              string
-	ModuleType              string
-	ModuleURL               string
-	ModuleVersion           string
-	Namespace               string
-	OnlyRequired            bool
-	OverwriteFiles          bool
-	PlatformCompleteURL     string
-	PrivatePort             int
-	Profile                 string
-	PurgeSchemas            bool
-	RemoveApplication       bool
-	Restore                 bool
-	SidecarURL              string
-	SingleTenant            bool
-	SkipApplication         bool
-	SkipBuildModuleArtifact bool
-	SkipBuildModuleImage    bool
-	SkipCapabilitySets      bool
-	SkipModuleDeployment    bool
-	SkipModuleDiscovery     bool
-	SkipRegistry            bool
-	SkipTenantEntitlement   bool
-	Tenant                  string
-	TenantIDs               []string
-	TokenType               string
-	UpdateCloned            bool
-	User                    string
-	Versions                int
+	All                   bool
+	ApplicationNames      []string
+	BuildImages           bool
+	ConfigFile            string
+	DefaultGateway        bool
+	EnableDebug           bool
+	EnableECSRequests     bool
+	GatewayHostname       string
+	GatewayURL            string
+	ID                    string
+	Length                int
+	ModuleName            string
+	ModulePath            string
+	ModuleType            string
+	ModuleURL             string
+	ModuleVersion         string
+	Namespace             string
+	OnlyRequired          bool
+	OverwriteFiles        bool
+	PlatformCompleteURL   string
+	PrivatePort           int
+	Profile               string
+	PurgeSchemas          bool
+	RemoveApplication     bool
+	Restore               bool
+	SidecarURL            string
+	SingleTenant          bool
+	SkipApplication       bool
+	SkipModuleArtifact    bool
+	SkipModuleImage       bool
+	SkipCapabilitySets    bool
+	SkipModuleDeployment  bool
+	SkipModuleDiscovery   bool
+	SkipRegistry          bool
+	SkipTenantEntitlement bool
+	Tenant                string
+	TenantIDs             []string
+	TokenType             string
+	UpdateCloned          bool
+	User                  string
+	Versions              int
 }
 
 // Flag holds the metadata for a CLI flag
@@ -60,45 +60,45 @@ func (f Flag) GetName() string {
 
 // Flag definitions
 var (
-	All                     = Flag{"all", "a", "All modules for all profiles"}
-	ApplicationNames        = Flag{"apps", "", "Application names"}
-	BuildImages             = Flag{"buildImages", "b", "Build Docker images"}
-	ConfigFile              = Flag{"configFile", "c", "Use a specific config file"}
-	DefaultGateway          = Flag{"defaultGateway", "g", "Use default gateway in URLs, .e.g. http://host.docker.internal:{{port}} will be set automatically"}
-	EnableDebug             = Flag{"enableDebug", "d", "Enable debug"}
-	EnableECSRequests       = Flag{"enableEcsRequests", "", "Enable ECS requests"}
-	GatewayHostname         = Flag{"gatewayHostname", "", "Gateway hostname"}
-	GatewayURL              = Flag{"gatewayURL", "", "Gateway URL"}
-	ID                      = Flag{"id", "i", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021"}
-	Length                  = Flag{"length", "l", "Salt length"}
-	ModuleName              = Flag{"moduleName", "n", "Module name, e.g. mod-orders"}
-	ModulePath              = Flag{"modulePath", "", "Module path, e.g. the path of your module in IntelliJ"}
-	ModuleType              = Flag{"moduleType", "y", "Module type, e.g. management"}
-	ModuleURL               = Flag{"moduleUrl", "m", "Module URL, e.g. http://host.docker.internal:36002 or 36002 (if -g is used)"}
-	ModuleVersion           = Flag{"moduleVersion", "", "Module version, e.g. 13.1.0-SNAPSHOT.1093"}
-	Namespace               = Flag{"namespace", "", "DockerHub namespace"}
-	OnlyRequired            = Flag{"onlyRequired", "q", "Use only required system containers"}
-	OverwriteFiles          = Flag{"overwriteFiles", "o", "Overwrite files in %s home directory"}
-	PlatformCompleteURL     = Flag{"platformCompleteURL", "", "Platform Complete UI url"}
-	PrivatePort             = Flag{"privatePort", "", "Private port e.g. 8081"}
-	Profile                 = Flag{"profile", "p", "Use a specific profile, options: %s"}
-	PurgeSchemas            = Flag{"purgeSchemas", "", "Purge schemas in PostgreSQL on uninstallation"}
-	RemoveApplication       = Flag{"removeApplication", "", "Remove application from the DB"}
-	Restore                 = Flag{"restore", "r", "Restore module & sidecar"}
-	SidecarURL              = Flag{"sidecarUrl", "s", "Sidecar URL e.g. http://host.docker.internal:37002 or 37002 (if -g is used)"}
-	SingleTenant            = Flag{"singleTenant", "", "Use for Single Tenant workflow"}
-	SkipApplication         = Flag{"skipApplication", "", "Skip application deployment"}
-	SkipBuildModuleArtifact = Flag{"skipBuildModuleArtifact", "", "Skip building module artifact, i.e. the jar and its module descriptor"}
-	SkipBuildModuleImage    = Flag{"skipBuildModuleImage", "", "Skip building module image, i.e. the Docker image from a prebuilt jar artifact"}
-	SkipCapabilitySets      = Flag{"skipCapabilitySets", "", "Skip refreshing capability sets"}
-	SkipModuleDeployment    = Flag{"skipModuleDeployment", "", "Skip module deployment"}
-	SkipModuleDiscovery     = Flag{"skipModuleDiscovery", "", "Skip module discovery update"}
-	SkipRegistry            = Flag{"skipRegistry", "", "Skip retrieving module registry versions"}
-	SkipTenantEntitlement   = Flag{"skipTenantEntitlement", "", "Skip tenant entitlement operations"}
-	Tenant                  = Flag{"tenant", "t", "Tenant"}
-	TenantIDs               = Flag{"ids", "", "Tenant ids"}
-	TokenType               = Flag{"tokenType", "", "Token type"}
-	UpdateCloned            = Flag{"updateCloned", "u", "Update Git cloned projects"}
-	User                    = Flag{"user", "x", "User"}
-	Versions                = Flag{"versions", "v", "Number of versions, e.g. 5"}
+	All                   = Flag{"all", "a", "All modules for all profiles"}
+	ApplicationNames      = Flag{"apps", "", "Application names"}
+	BuildImages           = Flag{"buildImages", "b", "Build Docker images"}
+	ConfigFile            = Flag{"configFile", "c", "Use a specific config file"}
+	DefaultGateway        = Flag{"defaultGateway", "g", "Use default gateway in URLs, .e.g. http://host.docker.internal:{{port}} will be set automatically"}
+	EnableDebug           = Flag{"enableDebug", "d", "Enable debug"}
+	EnableECSRequests     = Flag{"enableEcsRequests", "", "Enable ECS requests"}
+	GatewayHostname       = Flag{"gatewayHostname", "", "Gateway hostname"}
+	GatewayURL            = Flag{"gatewayURL", "", "Gateway URL"}
+	ID                    = Flag{"id", "i", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021"}
+	Length                = Flag{"length", "l", "Salt length"}
+	ModuleName            = Flag{"moduleName", "n", "Module name, e.g. mod-orders"}
+	ModulePath            = Flag{"modulePath", "", "Module path, e.g. the path of your module in IntelliJ"}
+	ModuleType            = Flag{"moduleType", "y", "Module type, e.g. management"}
+	ModuleURL             = Flag{"moduleUrl", "m", "Module URL, e.g. http://host.docker.internal:36002 or 36002 (if -g is used)"}
+	ModuleVersion         = Flag{"moduleVersion", "", "Module version, e.g. 13.1.0-SNAPSHOT.1093"}
+	Namespace             = Flag{"namespace", "", "DockerHub namespace"}
+	OnlyRequired          = Flag{"onlyRequired", "q", "Use only required system containers"}
+	OverwriteFiles        = Flag{"overwriteFiles", "o", "Overwrite files in %s home directory"}
+	PlatformCompleteURL   = Flag{"platformCompleteURL", "", "Platform Complete UI url"}
+	PrivatePort           = Flag{"privatePort", "", "Private port e.g. 8081"}
+	Profile               = Flag{"profile", "p", "Use a specific profile, options: %s"}
+	PurgeSchemas          = Flag{"purgeSchemas", "", "Purge schemas in PostgreSQL on uninstallation"}
+	RemoveApplication     = Flag{"removeApplication", "", "Remove application from the DB"}
+	Restore               = Flag{"restore", "r", "Restore module & sidecar"}
+	SidecarURL            = Flag{"sidecarUrl", "s", "Sidecar URL e.g. http://host.docker.internal:37002 or 37002 (if -g is used)"}
+	SingleTenant          = Flag{"singleTenant", "", "Use for Single Tenant workflow"}
+	SkipApplication       = Flag{"skipApplication", "", "Skip application deployment"}
+	SkipModuleArtifact    = Flag{"skipModuleArtifact", "", "Skip building module artifact, i.e. the jar and its module descriptor"}
+	SkipModuleImage       = Flag{"skipModuleImage", "", "Skip building module image, i.e. the Docker image from a prebuilt jar artifact"}
+	SkipCapabilitySets    = Flag{"skipCapabilitySets", "", "Skip refreshing capability sets"}
+	SkipModuleDeployment  = Flag{"skipModuleDeployment", "", "Skip module & sidecar deployment"}
+	SkipModuleDiscovery   = Flag{"skipModuleDiscovery", "", "Skip module discovery update"}
+	SkipRegistry          = Flag{"skipRegistry", "", "Skip retrieving module registry versions"}
+	SkipTenantEntitlement = Flag{"skipTenantEntitlement", "", "Skip tenant entitlement operations"}
+	Tenant                = Flag{"tenant", "t", "Tenant"}
+	TenantIDs             = Flag{"ids", "", "Tenant ids"}
+	TokenType             = Flag{"tokenType", "", "Token type"}
+	UpdateCloned          = Flag{"updateCloned", "u", "Update Git cloned projects"}
+	User                  = Flag{"user", "x", "User"}
+	Versions              = Flag{"versions", "v", "Number of versions, e.g. 5"}
 )

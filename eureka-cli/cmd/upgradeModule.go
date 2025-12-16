@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -41,7 +42,7 @@ import (
 var upgradeModuleCmd = &cobra.Command{
 	Use:   "upgradeModule",
 	Short: "Upgrade module",
-	Long:  `Upgrade a single module for the current profile.`,
+	Long:  `Upgrade a single backend module in the current profile.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		run, err := New(action.UpgradeModule)
 		if err != nil {
@@ -56,32 +57,43 @@ func (run *Run) UpgradeModule() error {
 	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.ClientCredentials); err != nil {
 		return err
 	}
-
-	var (
-		moduleName       = run.Config.Action.Param.ModuleName
-		newModuleVersion = run.Config.Action.Param.ModuleVersion
-		modulePath       = run.Config.Action.Param.ModulePath
-		namespace        = run.Config.Action.Param.Namespace
-	)
-	params.ID = fmt.Sprintf("%s-%s", moduleName, newModuleVersion)
-
-	slog.Info(run.Config.Action.Name, "text", "UPGRADING MODULE", "module", moduleName, "version", newModuleVersion)
-	if !run.Config.Action.Param.SkipBuildModuleArtifact {
-		if err := run.buildModuleArtifact(moduleName, newModuleVersion, modulePath); err != nil {
-			return err
-		}
-	}
-	if !run.Config.Action.Param.SkipBuildModuleImage {
-		if err := run.buildModuleImage(namespace, moduleName, newModuleVersion, modulePath); err != nil {
-			return err
-		}
-	}
-
-	newModuleDescriptor, err := run.readModuleDescriptor(moduleName, newModuleVersion, modulePath)
-	if err != nil {
+	if err := run.setModuleDiscoveryDataIntoContext(); err != nil {
 		return err
 	}
-	if !run.Config.Action.Param.SkipModuleDeployment {
+	if err := run.setNewModuleVersionAndIDIntoContext(); err != nil {
+		return err
+	}
+
+	var (
+		moduleName       = params.ModuleName
+		newModuleVersion = params.ModuleVersion
+		modulePath       = params.ModulePath
+		namespace        = params.Namespace
+		shouldBuild      = !helpers.IsFolioNamespace(params.Namespace)
+	)
+	slog.Info(run.Config.Action.Name, "text", "UPGRADING MODULE", "module", moduleName, "version", newModuleVersion, "build", shouldBuild)
+	if shouldBuild {
+		if !params.SkipModuleArtifact {
+			if err := run.buildModuleArtifact(moduleName, newModuleVersion, modulePath); err != nil {
+				return err
+			}
+		}
+		if !params.SkipModuleImage {
+			if err := run.buildModuleImage(namespace, moduleName, newModuleVersion, modulePath); err != nil {
+				return err
+			}
+		}
+	}
+
+	var newModuleDescriptor map[string]any
+	if shouldBuild {
+		readModuleDescriptor, err := run.readModuleDescriptor(moduleName, newModuleVersion, modulePath)
+		if err != nil {
+			return err
+		}
+		newModuleDescriptor = readModuleDescriptor
+	}
+	if !params.SkipModuleDeployment {
 		if err := run.deployNewModuleAndSidecarPair(); err != nil {
 			return err
 		}
@@ -100,6 +112,8 @@ func (run *Run) UpgradeModule() error {
 	var (
 		appName       = app["name"].(string)
 		oldAppVersion = appVersion.String()
+
+		// App version will always increment up no matter if the module if upgraded or downgraded
 		newAppVersion = appVersion.IncPatch().String()
 		newAppID      = fmt.Sprintf("%s-%s", appName, newAppVersion)
 	)
@@ -108,19 +122,22 @@ func (run *Run) UpgradeModule() error {
 		return err
 	}
 
-	newBackendModules, newDiscoveryModules, oldModuleID, err := run.updateBackendModules(moduleName, newModuleVersion, app["modules"].([]any))
+	newBackendModules, newDiscoveryModules, oldModuleID, err := run.updateBackendModules(moduleName, newModuleVersion, shouldBuild, app["modules"].([]any))
 	if err != nil {
 		return err
 	}
+	newFrontendModules := run.updateFrontendModules(shouldBuild, app["uiModules"].([]any))
 
-	newFrontendModules := run.updateFrontendModules(app["uiModules"].([]any))
-	newModuleDescriptors := run.updateBackendModuleDescriptors(oldModuleID, app["moduleDescriptors"].([]any), newModuleDescriptor)
-	if !run.Config.Action.Param.SkipApplication {
-		if err := run.createNewApplication(app, appName, newAppID, newAppVersion, newBackendModules, newFrontendModules, newModuleDescriptors, headers); err != nil {
+	var newModuleDescriptors []any
+	if shouldBuild {
+		newModuleDescriptors = run.updateBackendModuleDescriptors(moduleName, oldModuleID, newModuleDescriptor, app["moduleDescriptors"].([]any))
+	}
+	if !params.SkipApplication {
+		if err := run.createNewApplication(app, appName, newAppID, newAppVersion, newBackendModules, newFrontendModules, shouldBuild, newModuleDescriptors, headers); err != nil {
 			return err
 		}
 	}
-	if !run.Config.Action.Param.SkipModuleDiscovery {
+	if !params.SkipModuleDiscovery {
 		if err := run.createNewModuleDiscovery(newDiscoveryModules, headers); err != nil {
 			if downstreamErr := run.cleanupApplicationsOnFailure(appName, headers, err); downstreamErr != nil {
 				return downstreamErr
@@ -128,7 +145,7 @@ func (run *Run) UpgradeModule() error {
 			return err
 		}
 	}
-	if !run.Config.Action.Param.SkipTenantEntitlement {
+	if !params.SkipTenantEntitlement {
 		if err := run.upgradeTenantEntitlement(oldAppVersion, newAppID, headers); err != nil {
 			if downstreamErr := run.cleanupApplicationsOnFailure(appName, headers, err); downstreamErr != nil {
 				return downstreamErr
@@ -140,18 +157,42 @@ func (run *Run) UpgradeModule() error {
 	return run.removeApplications(appName, newAppID, headers)
 }
 
+func (run *Run) setNewModuleVersionAndIDIntoContext() error {
+	slog.Info(run.Config.Action.Name, "text", "SETTING NEW MODULE VERSION AND ID", "module", params.ModuleName)
+	slog.Info(run.Config.Action.Name, "text", "Old id", "id", params.ID)
+	if params.ModuleVersion == "" {
+		oldModuleVersion, err := semver.NewVersion(helpers.GetModuleVersionFromID(params.ID))
+		if err != nil {
+			return err
+		}
+		if helpers.IsSnapshot(oldModuleVersion.String()) {
+			params.ModuleVersion, err = helpers.IncrementSnapshotVersion(oldModuleVersion.String())
+			if err != nil {
+				return err
+			}
+		} else {
+			params.ModuleVersion = oldModuleVersion.IncPatch().String()
+		}
+	}
+	params.ID = fmt.Sprintf("%s-%s", params.ModuleName, params.ModuleVersion)
+
+	slog.Info(run.Config.Action.Name, "text", "New id", "newId", params.ID)
+
+	return nil
+}
+
 func (run *Run) buildModuleArtifact(moduleName, newModuleVersion, modulePath string) error {
-	slog.Info(run.Config.Action.Name, "text", "BUILDING MODULE ARTIFACT", "module", moduleName)
-	slog.Info(run.Config.Action.Name, "text", "Cleaning target directory", "module", moduleName, "path", modulePath)
+	slog.Info(run.Config.Action.Name, "text", "BUILDING MODULE ARTIFACT", "module", moduleName, "version", newModuleVersion)
+	slog.Info(run.Config.Action.Name, "text", "Cleaning target directory", "module", moduleName, "version", newModuleVersion, "path", modulePath)
 	if err := run.Config.ExecSvc.ExecFromDir(exec.Command("mvn", "clean", "-DskipTests"), modulePath); err != nil {
 		return err
 	}
 
-	slog.Info(run.Config.Action.Name, "text", "Setting new artifact version", "module", moduleName)
+	slog.Info(run.Config.Action.Name, "text", "Setting new artifact version", "module", moduleName, "version", newModuleVersion)
 	if err := run.Config.ExecSvc.ExecFromDir(exec.Command("mvn", "versions:set", fmt.Sprintf("-DnewVersion=%s", newModuleVersion)), modulePath); err != nil {
 		return err
 	}
-	slog.Info(run.Config.Action.Name, "text", "Packaging new artifact", "module", moduleName)
+	slog.Info(run.Config.Action.Name, "text", "Packaging new artifact", "module", moduleName, "version", newModuleVersion)
 
 	return run.Config.ExecSvc.ExecFromDir(exec.Command("mvn", "package", "-DskipTests"), modulePath)
 }
@@ -169,7 +210,7 @@ func (run *Run) buildModuleImage(namespace, moduleName, newModuleVersion, module
 
 func (run *Run) readModuleDescriptor(moduleName, newModuleVersion, modulePath string) (newModuleDescriptor map[string]any, err error) {
 	slog.Info(run.Config.Action.Name, "text", "READING NEW MODULE DESCRIPTOR", "module", moduleName, "path", modulePath)
-	descriptorPath := filepath.Join(modulePath, "target", "ModuleDescriptor.json")
+	descriptorPath := filepath.Join(modulePath, "target", constant.ModuleDescriptor)
 	if err := helpers.ReadJSONFromFile(descriptorPath, &newModuleDescriptor); err != nil {
 		return nil, err
 	}
@@ -190,17 +231,34 @@ func (run *Run) getLatestApplication() (map[string]any, error) {
 	return app, nil
 }
 
-func (run *Run) updateBackendModules(moduleName, newModuleVersion string, modules []any) (newBackendModules []map[string]any, newDiscoveryModules []map[string]string, oldModuleID string, err error) {
+func (run *Run) updateBackendModules(moduleName, newModuleVersion string, shouldBuild bool, modules []any) ([]map[string]any, []map[string]string, string, error) {
+	var (
+		newBackendModules   []map[string]any
+		newDiscoveryModules []map[string]string
+		oldModuleID         string
+	)
+	if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
+		fmt.Printf("\nDUMPING backend module entries\n")
+	}
 	for _, value := range modules {
 		entry := value.(map[string]any)
-
 		if entry["name"] == moduleName {
 			oldModuleID = entry["id"].(string)
 			moduleID := fmt.Sprintf("%s-%s", moduleName, newModuleVersion)
-			entry = map[string]any{
-				"id":      moduleID,
-				"name":    moduleName,
-				"version": newModuleVersion,
+			if shouldBuild {
+				entry = map[string]any{
+					"id":      moduleID,
+					"name":    moduleName,
+					"version": newModuleVersion,
+				}
+			} else {
+				moduleDescriptorURL := fmt.Sprintf("https://folio-registry.dev.folio.org/_/proxy/modules/%s", moduleID)
+				entry = map[string]any{
+					"id":      moduleID,
+					"name":    moduleName,
+					"version": newModuleVersion,
+					"url":     moduleDescriptorURL,
+				}
 			}
 
 			privatePort, err := strconv.Atoi(constant.PrivateServerPort)
@@ -222,11 +280,10 @@ func (run *Run) updateBackendModules(moduleName, newModuleVersion string, module
 				"location": sidecarURL,
 			})
 		} else {
-			entry = map[string]any{
-				"id":      entry["id"],
-				"name":    entry["name"],
-				"version": entry["version"],
-			}
+			entry = run.getDefaultModuleEntry(shouldBuild, entry)
+		}
+		if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
+			fmt.Println("backend module entry =", entry)
 		}
 		newBackendModules = append(newBackendModules, entry)
 	}
@@ -234,30 +291,59 @@ func (run *Run) updateBackendModules(moduleName, newModuleVersion string, module
 	return newBackendModules, newDiscoveryModules, oldModuleID, nil
 }
 
-func (run *Run) updateFrontendModules(modules []any) (newFrontendModules []map[string]any) {
+func (run *Run) updateFrontendModules(shouldBuild bool, modules []any) (newFrontendModules []map[string]any) {
+	if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
+		fmt.Printf("\nDUMPING frontend module entries\n")
+	}
 	for _, value := range modules {
-		entry := value.(map[string]any)
-		newFrontendModules = append(newFrontendModules, map[string]any{
-			"id":      entry["id"],
-			"name":    entry["name"],
-			"version": entry["version"],
-		})
+		entry := run.getDefaultModuleEntry(shouldBuild, value.(map[string]any))
+		if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
+			fmt.Println("frontend module entry =", entry)
+		}
+		newFrontendModules = append(newFrontendModules, entry)
 	}
 
 	return newFrontendModules
 }
 
-func (run *Run) updateBackendModuleDescriptors(oldModuleID string, moduleDescriptors []any, newModuleVersion map[string]any) (newModuleDescriptors []any) {
+func (run *Run) getDefaultModuleEntry(shouldBuild bool, entry map[string]any) map[string]any {
+	var (
+		moduleID      = entry["id"]
+		moduleName    = entry["name"]
+		moduleVersion = entry["version"]
+	)
+	if shouldBuild {
+		return map[string]any{
+			"id":      moduleID,
+			"name":    moduleName,
+			"version": moduleVersion,
+		}
+	} else {
+		moduleDescriptorURL := fmt.Sprintf("https://folio-registry.dev.folio.org/_/proxy/modules/%s", moduleID)
+		return map[string]any{
+			"id":      moduleID,
+			"name":    moduleName,
+			"version": moduleVersion,
+			"url":     moduleDescriptorURL,
+		}
+	}
+}
+
+func (run *Run) updateBackendModuleDescriptors(moduleName, oldModuleID string, newModuleDescriptor map[string]any, moduleDescriptors []any) []any {
+	var newModuleDescriptors []any
 	for _, value := range moduleDescriptors {
 		entry := value.(map[string]any)
 		if entry["id"] == oldModuleID {
 			continue
 		}
-
 		newModuleDescriptors = append(newModuleDescriptors, value)
 	}
+	if len(newModuleDescriptors) > 0 {
+		slog.Info(run.Config.Action.Name, "text", "Added new module descriptor", "module", moduleName)
+		newModuleDescriptors = append(newModuleDescriptors, newModuleDescriptor)
+	}
 
-	return append(newModuleDescriptors, newModuleVersion)
+	return newModuleDescriptors
 }
 
 func (run *Run) deployNewModuleAndSidecarPair() error {
@@ -296,8 +382,17 @@ func (run *Run) deployNewModuleAndSidecarPair() error {
 	return run.Config.UpgradeModuleSvc.DeployModuleAndSidecarPair(client, pair)
 }
 
-func (run *Run) createNewApplication(app map[string]any, appName, newAppID, newAppVersion string, newBackendModules, newFrontendModules []map[string]any, newModuleDescriptors []any, headers map[string]string) error {
+func (run *Run) createNewApplication(app map[string]any, appName, newAppID, newAppVersion string, newBackendModules, newFrontendModules []map[string]any, shouldBuild bool, newModuleDescriptors []any, headers map[string]string) error {
 	slog.Info(run.Config.Action.Name, "text", "CREATING NEW APPLICATION", "name", appName, "version", newAppVersion)
+
+	var (
+		backendModuleDescriptors  []any
+		frontendModuleDescriptors []any
+	)
+	if shouldBuild {
+		backendModuleDescriptors = newModuleDescriptors
+		frontendModuleDescriptors = app["uiModuleDescriptors"].([]any)
+	}
 	payload, err := json.Marshal(map[string]any{
 		"id":                  newAppID,
 		"name":                appName,
@@ -306,8 +401,8 @@ func (run *Run) createNewApplication(app map[string]any, appName, newAppID, newA
 		"dependencies":        app["dependencies"],
 		"modules":             newBackendModules,
 		"uiModules":           newFrontendModules,
-		"moduleDescriptors":   newModuleDescriptors,
-		"uiModuleDescriptors": app["uiModuleDescriptors"],
+		"moduleDescriptors":   backendModuleDescriptors,
+		"uiModuleDescriptors": frontendModuleDescriptors,
 	})
 	if err != nil {
 		return err
@@ -342,6 +437,7 @@ func (run *Run) createNewModuleDiscovery(newDiscoveryModules []map[string]string
 }
 
 func (run *Run) upgradeTenantEntitlement(oldAppID, newAppID string, headers map[string]string) error {
+	// TODO Add consortium support
 	slog.Info(run.Config.Action.Name, "text", "UPGRADING TENANT ENTITLEMENT", "from", oldAppID, "to", newAppID)
 	tenantParameters, err := run.Config.TenantSvc.GetEntitlementTenantParameters(constant.NoneConsortium)
 	if err != nil {
@@ -380,6 +476,7 @@ func (run *Run) upgradeTenantEntitlement(oldAppID, newAppID string, headers map[
 }
 
 func (run *Run) cleanupApplicationsOnFailure(appName string, headers map[string]string, upstreamErr error) error {
+	// TODO Add consortium support
 	tenants, err := run.Config.ManagementSvc.GetTenants(constant.NoneConsortium, constant.Default)
 	if err != nil {
 		return errors.Wrap(upstreamErr, "failed to cleanup apps on failure - cannot retrieve tenants")
@@ -436,8 +533,8 @@ func init() {
 	upgradeModuleCmd.PersistentFlags().StringVarP(&params.ModuleVersion, action.ModuleVersion.Long, action.ModuleVersion.Short, "", action.ModuleVersion.Description)
 	upgradeModuleCmd.PersistentFlags().StringVarP(&params.ModulePath, action.ModulePath.Long, action.ModulePath.Short, "", action.ModulePath.Description)
 	upgradeModuleCmd.PersistentFlags().StringVarP(&params.Namespace, action.Namespace.Long, action.Namespace.Short, constant.LocalNamespace, action.Namespace.Description)
-	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipBuildModuleArtifact, action.SkipBuildModuleArtifact.Long, action.SkipBuildModuleArtifact.Short, false, action.SkipBuildModuleArtifact.Description)
-	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipBuildModuleImage, action.SkipBuildModuleImage.Long, action.SkipBuildModuleImage.Short, false, action.SkipBuildModuleImage.Description)
+	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipModuleArtifact, action.SkipModuleArtifact.Long, action.SkipModuleArtifact.Short, false, action.SkipModuleArtifact.Description)
+	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipModuleImage, action.SkipModuleImage.Long, action.SkipModuleImage.Short, false, action.SkipModuleImage.Description)
 	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipModuleDeployment, action.SkipModuleDeployment.Long, action.SkipModuleDeployment.Short, false, action.SkipModuleDeployment.Description)
 	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipApplication, action.SkipApplication.Long, action.SkipApplication.Short, false, action.SkipApplication.Description)
 	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipModuleDiscovery, action.SkipModuleDiscovery.Long, action.SkipModuleDiscovery.Short, false, action.SkipModuleDiscovery.Description)
@@ -447,8 +544,8 @@ func init() {
 		slog.Error(errors.MarkFlagRequiredFailed(action.ModuleName, err).Error())
 		os.Exit(1)
 	}
-	if err := upgradeModuleCmd.MarkPersistentFlagRequired(action.ModuleVersion.Long); err != nil {
-		slog.Error(errors.MarkFlagRequiredFailed(action.ModuleVersion, err).Error())
+	if err := upgradeModuleCmd.MarkPersistentFlagRequired(action.ModulePath.Long); err != nil {
+		slog.Error(errors.MarkFlagRequiredFailed(action.ModulePath, err).Error())
 		os.Exit(1)
 	}
 

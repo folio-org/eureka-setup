@@ -1,9 +1,13 @@
 package helpers
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/errors"
 )
 
 func StripModuleVersion(name string) string {
@@ -43,4 +47,35 @@ func IsVersionGreater(version1, version2 string) bool {
 	}
 
 	return semVer1.GreaterThan(semVer2)
+}
+
+func IncrementSnapshotVersion(version string) (string, error) {
+	if version == "" {
+		return "", errors.VersionEmpty()
+	}
+	if !IsSnapshot(version) {
+		return "", errors.NotSnapshotVersion(version)
+	}
+
+	parts := strings.Split(version, "-SNAPSHOT.")
+	if len(parts) != 2 {
+		return "", errors.InvalidSnapshotFormat(version)
+	}
+	baseVersion := parts[0]
+	buildNum := parts[1]
+
+	num, err := strconv.Atoi(buildNum)
+	if err != nil {
+		return "", errors.InvalidBuildNumber(version, err)
+	}
+
+	return fmt.Sprintf("%s-SNAPSHOT.%d", baseVersion, num+1), nil
+}
+
+func IsSnapshot(version string) bool {
+	return strings.Contains(version, "-SNAPSHOT.")
+}
+
+func IsFolioNamespace(namespace string) bool {
+	return namespace == constant.SnapshotNamespace || namespace == constant.ReleaseNamespace
 }

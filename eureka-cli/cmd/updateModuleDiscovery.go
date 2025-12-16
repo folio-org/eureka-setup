@@ -50,8 +50,8 @@ func (run *Run) UpdateModuleDiscovery() error {
 	if err := run.setModuleDiscoveryDataIntoContext(); err != nil {
 		return err
 	}
-
 	slog.Info(run.Config.Action.Name, "text", "UPDATING MODULE DISCOVERY", "module", params.ModuleName, "id", params.ID)
+
 	return run.Config.ManagementSvc.UpdateModuleDiscovery(params.ID, params.Restore, params.PrivatePort, params.SidecarURL)
 }
 

@@ -90,6 +90,9 @@ const (
 	ReleaseNamespace  = "folioorg"
 	LocalNamespace    = "foliolocal"
 
+	// Module descriptor file name
+	ModuleDescriptor = "ModuleDescriptor.json"
+
 	// AWS ECR env var name
 	ECRRepositoryEnv = "AWS_ECR_FOLIO_REPO"
 

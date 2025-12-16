@@ -907,6 +907,70 @@ func TestMarkFlagRequiredFailed(t *testing.T) {
 	})
 }
 
+// ==================== Version Errors Tests ====================
+
+func TestVersionEmpty(t *testing.T) {
+	t.Run("TestVersionEmpty_Success", func(t *testing.T) {
+		// Act
+		result := apperrors.VersionEmpty()
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "version cannot be empty")
+		assert.True(t, errors.Is(result, apperrors.ErrInvalidInput))
+	})
+}
+
+func TestNotSnapshotVersion(t *testing.T) {
+	t.Run("TestNotSnapshotVersion_Success", func(t *testing.T) {
+		// Arrange
+		version := "1.0.0"
+
+		// Act
+		result := apperrors.NotSnapshotVersion(version)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "1.0.0")
+		assert.Contains(t, result.Error(), "not a SNAPSHOT version with build number")
+		assert.True(t, errors.Is(result, apperrors.ErrInvalidInput))
+	})
+}
+
+func TestInvalidSnapshotFormat(t *testing.T) {
+	t.Run("TestInvalidSnapshotFormat_Success", func(t *testing.T) {
+		// Arrange
+		version := "1.0.0-SNAPSHOT"
+
+		// Act
+		result := apperrors.InvalidSnapshotFormat(version)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "1.0.0-SNAPSHOT")
+		assert.Contains(t, result.Error(), "invalid SNAPSHOT version format")
+		assert.True(t, errors.Is(result, apperrors.ErrInvalidInput))
+	})
+}
+
+func TestInvalidBuildNumber(t *testing.T) {
+	t.Run("TestInvalidBuildNumber_Success", func(t *testing.T) {
+		// Arrange
+		version := "1.0.0-SNAPSHOT.abc"
+		baseErr := errors.New("parse error")
+
+		// Act
+		result := apperrors.InvalidBuildNumber(version, baseErr)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "1.0.0-SNAPSHOT.abc")
+		assert.Contains(t, result.Error(), "invalid build number")
+		assert.True(t, errors.Is(result, apperrors.ErrInvalidInput))
+		assert.True(t, errors.Is(result, baseErr))
+	})
+}
+
 // flagAdapter is a simple adapter to implement the Flag interface for testing
 type flagAdapter struct {
 	name string
