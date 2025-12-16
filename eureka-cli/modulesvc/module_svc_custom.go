@@ -41,7 +41,7 @@ func (ms *ModuleSvc) DeployCustomModule(client *client.Client, pair *ModulePair)
 	}
 	slog.Info(ms.Action.Name, "text", "Using module image", "image", imageName)
 
-	if err := ms.DeployModule(client, &models.Container{
+	return ms.DeployModule(client, &models.Container{
 		Name: pair.Module.Metadata.Name,
 		Config: &container.Config{
 			Image:        imageName,
@@ -58,11 +58,7 @@ func (ms *ModuleSvc) DeployCustomModule(client *client.Client, pair *ModulePair)
 		NetworkConfig: helpers.GetModuleNetworkConfig(),
 		Platform:      helpers.GetPlatform(),
 		PullImage:     pair.BackendModule.LocalDescriptorPath == "",
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 func (ms *ModuleSvc) DeployCustomSidecar(client *client.Client, pair *ModulePair) error {
@@ -71,7 +67,7 @@ func (ms *ModuleSvc) DeployCustomSidecar(client *client.Client, pair *ModulePair
 		return err
 	}
 
-	if err := ms.DeployModule(client, &models.Container{
+	return ms.DeployModule(client, &models.Container{
 		Name: pair.Module.Metadata.SidecarName,
 		Config: &container.Config{
 			Image:        image,
@@ -87,11 +83,7 @@ func (ms *ModuleSvc) DeployCustomSidecar(client *client.Client, pair *ModulePair
 		NetworkConfig: helpers.GetModuleNetworkConfig(),
 		Platform:      helpers.GetPlatform(),
 		PullImage:     pullImage,
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 func (ms *ModuleSvc) CheckModuleAndSidecarReadiness(pair *ModulePair) error {
