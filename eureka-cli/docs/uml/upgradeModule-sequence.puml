@@ -1,0 +1,186 @@
+@startuml upgradeModule Sequence Diagram
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 150
+
+title Eureka CLI - upgradeModule Command Flow
+
+actor Developer
+participant "CLI" as CLI
+participant "Run" as Run
+participant "Keycloak" as Keycloak
+participant "ManagementSvc" as Mgmt
+participant "Maven" as Maven
+participant "Docker" as Docker
+participant "ModuleSvc" as ModSvc
+participant "RegistrySvc" as Registry
+participant "HTTPClient" as HTTP
+participant "Kong Gateway" as Kong
+
+Developer -> CLI: eureka-cli upgradeModule\n--moduleName mod-orders\n--modulePath /path/to/module
+
+activate CLI
+CLI -> Run: New(action.UpgradeModule)
+activate Run
+
+== Authentication & Context Setup ==
+Run -> Run: setKeycloakMasterAccessTokenIntoContext()
+Run -> Keycloak: POST /realms/master/protocol/openid-connect/token
+Keycloak --> Run: Access Token
+note right: Get Keycloak master access token\nusing client credentials
+
+Run -> Run: setModuleDiscoveryDataIntoContext()
+Run -> Kong: GET /modules/discovery
+Kong --> Run: Module Discovery Data
+note right: Retrieve current module\ndiscovery information
+
+Run -> Run: setNewModuleVersionAndIDIntoContext()
+note right: Determine new version:\n- If SNAPSHOT: increment build number\n- If release: increment patch version
+Run --> Run: New Module ID & Version
+
+Run -> Run: setDefaultNamespaceIntoContext()
+note right: Set namespace to foliolocal\nif not specified by user
+
+== Module Build Phase (if shouldBuild) ==
+alt shouldBuild (custom namespace)
+    
+    opt !skipModuleArtifact
+        Run -> Run: buildModuleArtifact()
+        Run -> Maven: mvn clean -DskipTests
+        Maven --> Run: Clean Complete
+        
+        Run -> Maven: mvn versions:set\n-DnewVersion=<newVersion>
+        Maven --> Run: Version Updated
+        
+        Run -> Maven: mvn package -DskipTests
+        Maven --> Run: JAR + ModuleDescriptor.json
+        note right: Build JAR artifact and\ngenerate module descriptor
+    end
+    
+    opt !skipModuleImage
+        Run -> Run: buildModuleImage()
+        Run -> Docker: docker build\n--tag <namespace>/<module>:<version>
+        Docker --> Run: Image Built
+        note right: Build Docker image\nfrom the JAR artifact
+    end
+    
+    Run -> Run: readModuleDescriptor()
+    note right: Read ModuleDescriptor.json\nfrom target/ directory
+    
+end
+
+== Module Deployment Phase ==
+opt !skipModuleDeployment
+    Run -> Run: deployNewModuleAndSidecarPair()
+    
+    Run -> ModSvc: ReadBackendModules()
+    ModSvc --> Run: Backend Module Config
+    
+    Run -> Registry: GetModules(installURLs)
+    Registry --> Run: Module Metadata
+    
+    Run -> Docker: Create Docker Client
+    Docker --> Run: Docker Client
+    
+    Run -> ModSvc: NewModulePair()
+    ModSvc --> Run: Module Pair
+    
+    Run -> ModSvc: DeployModuleAndSidecarPair()
+    ModSvc -> Docker: Deploy Module Container
+    Docker --> ModSvc: Module Running
+    ModSvc -> Docker: Deploy Sidecar Container
+    Docker --> ModSvc: Sidecar Running
+    ModSvc --> Run: Deployment Complete
+    note right: Deploy new module version\nand its sidecar
+end
+
+== Application Update Phase ==
+Run -> Run: getLatestApplication()
+Run -> Mgmt: GetLatestApplication()
+Mgmt -> Kong: GET /applications?query=cql.allRecords=1\nsortBy name/sort.descending\nlimit=1
+Kong --> Mgmt: Latest Application
+Mgmt --> Run: Application Data
+note right: Retrieve the latest\napplication version
+
+Run -> Run: updateBackendModules()
+note right: Update backend module list:\n- Replace old module ID with new\n- Add module descriptor URL if registry\n- Build discovery module entries
+
+Run -> Run: updateFrontendModules()
+note right: Preserve frontend modules\nwith proper formatting
+
+alt shouldBuild
+    Run -> Run: updateBackendModuleDescriptors()
+    note right: Replace old module descriptor\nwith new one from build
+end
+
+opt !skipApplication
+    Run -> Run: createNewApplication()
+    Run -> HTTP: POST /applications?check=true
+    HTTP -> Kong: Create New Application\n(incremented version)
+    Kong --> HTTP: Application Created
+    HTTP --> Run: Application Response
+    note right: Create new application version\nwith updated module configuration
+end
+
+== Module Discovery Update ==
+opt !skipModuleDiscovery
+    Run -> Run: createNewModuleDiscovery()
+    Run -> HTTP: POST /modules/discovery
+    HTTP -> Kong: Update Module Discovery
+    Kong --> HTTP: Discovery Updated
+    HTTP --> Run: Discovery Response
+    note right: Update module discovery\nwith new module location
+    
+    alt Discovery Failed
+        Run -> Run: cleanupApplicationsOnFailure()
+        Run -> Mgmt: GetTenants()
+        Mgmt --> Run: Tenant List
+        loop for each tenant
+            Run -> Mgmt: GetTenantEntitlements()
+            Mgmt --> Run: Current Entitlement
+            Run -> Run: removeApplications()
+        end
+        note right: Rollback: Remove newly\ncreated applications
+    end
+end
+
+== Tenant Entitlement Upgrade ==
+opt !skipTenantEntitlement
+    Run -> Run: upgradeTenantEntitlement()
+    Run -> Mgmt: GetTenants()
+    Mgmt --> Run: Tenant List
+    
+    loop for each tenant
+        Run -> HTTP: PUT /entitlements?async=false
+        HTTP -> Kong: Upgrade Tenant Entitlement\nto New Application
+        Kong --> HTTP: Entitlement Upgraded
+        HTTP --> Run: Flow ID
+        note right: Upgrade tenant entitlement\nto new application version
+    end
+    
+    alt Entitlement Failed
+        Run -> Run: cleanupApplicationsOnFailure()
+        note right: Rollback on failure
+    end
+end
+
+== Cleanup Old Applications ==
+Run -> Run: removeApplications()
+Run -> Mgmt: GetApplications()
+Mgmt --> Run: All Applications
+
+loop for each old application (except new)
+    Run -> HTTP: DELETE /applications/<id>
+    HTTP -> Kong: Delete Old Application
+    Kong --> HTTP: Application Deleted
+    HTTP --> Run: Deleted
+end
+note right: Remove old application versions\n(keep only the new one)
+
+Run --> CLI: Success
+deactivate Run
+CLI --> Developer: ✅ Module Upgraded Successfully
+deactivate CLI
+
+@enduml

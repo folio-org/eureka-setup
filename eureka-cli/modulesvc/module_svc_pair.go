@@ -11,6 +11,7 @@ import (
 type ModulePair struct {
 	ID            string
 	ModuleName    string
+	ModuleVersion string
 	ModuleURL     string
 	SidecarURL    string
 	Namespace     string
@@ -33,12 +34,14 @@ func NewModulePair(a *action.Action, p *action.Param) (*ModulePair, error) {
 		sidecarURL = helpers.ConstructURL(p.SidecarURL, gatewayURL)
 	}
 
+	moduleVersion := helpers.GetModuleVersionFromID(p.ID)
 	return &ModulePair{
-		ID:         p.ID,
-		ModuleName: p.ModuleName,
-		ModuleURL:  moduleURL,
-		SidecarURL: sidecarURL,
-		Namespace:  p.Namespace,
+		ID:            p.ID,
+		ModuleName:    p.ModuleName,
+		ModuleVersion: moduleVersion,
+		ModuleURL:     moduleURL,
+		SidecarURL:    sidecarURL,
+		Namespace:     p.Namespace,
 	}, nil
 }
 

@@ -37,6 +37,7 @@ func (is *InterceptModuleSvc) prepareModuleAndSidecarPairNetwork(pair *modulesvc
 	}
 
 	pair.BackendModule, pair.Module = is.ModuleSvc.GetBackendModule(pair.Containers, pair.ModuleName)
+	pair.BackendModule.ModuleVersion = &pair.ModuleVersion
 	pair.BackendModule.ModuleExposedServerPort = ports[0]
 	pair.BackendModule.ModuleExposedDebugPort = ports[1]
 	pair.BackendModule.SidecarExposedServerPort = ports[2]
@@ -47,6 +48,7 @@ func (is *InterceptModuleSvc) prepareModuleAndSidecarPairNetwork(pair *modulesvc
 	if err := is.updateModuleDiscovery(pair); err != nil {
 		return err
 	}
+	pair.Module.Metadata.Version = pair.BackendModule.ModuleVersion
 
 	return nil
 }

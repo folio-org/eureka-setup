@@ -63,6 +63,7 @@ func (run *Run) UpgradeModule() error {
 	if err := run.setNewModuleVersionAndIDIntoContext(); err != nil {
 		return err
 	}
+	run.setDefaultNamespaceIntoContext()
 
 	var (
 		moduleName       = params.ModuleName
@@ -179,6 +180,12 @@ func (run *Run) setNewModuleVersionAndIDIntoContext() error {
 	slog.Info(run.Config.Action.Name, "text", "New id", "newId", params.ID)
 
 	return nil
+}
+
+func (run *Run) setDefaultNamespaceIntoContext() {
+	if params.Namespace == "" {
+		params.Namespace = constant.LocalNamespace
+	}
 }
 
 func (run *Run) buildModuleArtifact(moduleName, newModuleVersion, modulePath string) error {
@@ -532,7 +539,7 @@ func init() {
 	upgradeModuleCmd.PersistentFlags().StringVarP(&params.ModuleName, action.ModuleName.Long, action.ModuleName.Short, "", action.ModuleName.Description)
 	upgradeModuleCmd.PersistentFlags().StringVarP(&params.ModuleVersion, action.ModuleVersion.Long, action.ModuleVersion.Short, "", action.ModuleVersion.Description)
 	upgradeModuleCmd.PersistentFlags().StringVarP(&params.ModulePath, action.ModulePath.Long, action.ModulePath.Short, "", action.ModulePath.Description)
-	upgradeModuleCmd.PersistentFlags().StringVarP(&params.Namespace, action.Namespace.Long, action.Namespace.Short, constant.LocalNamespace, action.Namespace.Description)
+	upgradeModuleCmd.PersistentFlags().StringVarP(&params.Namespace, action.Namespace.Long, action.Namespace.Short, "", action.Namespace.Description)
 	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipModuleArtifact, action.SkipModuleArtifact.Long, action.SkipModuleArtifact.Short, false, action.SkipModuleArtifact.Description)
 	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipModuleImage, action.SkipModuleImage.Long, action.SkipModuleImage.Short, false, action.SkipModuleImage.Description)
 	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipModuleDeployment, action.SkipModuleDeployment.Long, action.SkipModuleDeployment.Short, false, action.SkipModuleDeployment.Description)

@@ -273,6 +273,12 @@ func (ms *ManagementSvc) GetModuleDiscovery(name string) (models.ModuleDiscovery
 }
 
 func (ms *ManagementSvc) UpdateModuleDiscovery(id string, restore bool, privatePort int, sidecarURL string) error {
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/modules/%s/discovery", id))
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return err
+	}
+
 	name := helpers.GetModuleNameFromID(id)
 	if sidecarURL == "" || restore {
 		if strings.HasPrefix(name, "edge") {
@@ -289,11 +295,6 @@ func (ms *ManagementSvc) UpdateModuleDiscovery(id string, restore bool, privateP
 		"version":  version,
 		"location": sidecarURL,
 	})
-	if err != nil {
-		return err
-	}
-	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/modules/%s/discovery", id))
-	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
 	if err != nil {
 		return err
 	}

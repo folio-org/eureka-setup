@@ -1,12 +1,20 @@
 # Eureka CLI
 
+## Purpose
+
+- A CLI to orchestrate the deployment of a local Eureka-based development environment
+
 ## Table of Contents
 
 - [Eureka CLI](#eureka-cli)
-  - [Table of Contents](#table-of-contents)
   - [Purpose](#purpose)
+  - [Table of Contents](#table-of-contents)
   - [Prerequisites](#prerequisites)
   - [Monitor system components](#monitor-system-components)
+  - [Architecture](#architecture)
+    - [Core Components](#core-components)
+    - [Key Architectural Patterns](#key-architectural-patterns)
+    - [Development Workflow Integration](#development-workflow-integration)
   - [Commands](#commands)
     - [Build the binary](#build-the-binary)
     - [(Optional) Install binary](#optional-install-binary)
@@ -39,10 +47,7 @@
   - [Troubleshooting](#troubleshooting)
     - [General](#general)
     - [Command-based](#command-based)
-
-## Purpose
-
-- A CLI to orchestrate the deployment of a local Eureka-based development environment
+  - [Additional Resources](#additional-resources)
 
 ## Prerequisites
 
@@ -73,6 +78,35 @@ Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc
 - [Kong](http://localhost:8002) Admin GUI: No auth
 - [MinIO](http://localhost:9001) Console: minioadmin/minioadmin
 - [Kibana](http://localhost:15601) UI: No auth
+
+## Architecture
+
+Eureka CLI is built on a modular architecture that orchestrates containerized FOLIO components through several key layers:
+
+### Core Components
+
+- **Action Layer**: Defines commands and their parameters, managing state and context throughout execution
+- **Service Layer**: Abstracts interactions with external systems (Keycloak, Kong, Docker, Vault, registries)
+- **Run Config**: Central configuration management that binds actions to services and handles profile-specific settings
+- **Module Services**: Specialized handlers for module deployment, interception, and lifecycle management
+
+### Key Architectural Patterns
+
+- **Profile-based Configuration**: Supports multiple deployment profiles (combined, ecs, import, etc.) with shared and profile-specific settings
+- **Service Abstraction**: Clean separation between business logic and external system interactions
+- **Context Propagation**: Authentication tokens and configuration context flow through the entire command execution pipeline
+- **Health-based Deployment**: Automated health checks ensure modules are ready before proceeding with dependent operations
+
+### Development Workflow Integration
+
+The CLI provides two powerful commands for module development workflows:
+
+- **`interceptModule`**: Redirects Kong traffic to local IntelliJ instances for live debugging without rebuilding containers
+- **`upgradeModule`**: Automates the full cycle of building, deploying, and upgrading module versions with Maven and Docker integration
+
+These commands leverage the architecture's service layer to coordinate complex multi-step operations including Maven builds, Docker image creation, module discovery updates, and tenant entitlement upgrades.
+
+For detailed workflows, examples, and best practices for module development, see the [Module Development Guide](docs/MODULE_DEVELOPMENT_GUIDE.md).
 
 ## Commands
 
@@ -368,6 +402,9 @@ eureka-cli interceptModule -n mod-orders -m http://host.docker.internal:36002 -s
 
 # With default module and sidecar URLs (i.e. only with ports)
 eureka-cli interceptModule -n mod-orders -gm 36002 -s 37002
+
+# With a different profile, e.g. using the import profile
+eureka-cli -p import interceptModule -n mod-orders -gm 36002 -s 37002
 ```
 
 ![CLI Intercept Module](images/cli_intercept_module_2.png)
@@ -384,6 +421,12 @@ eureka-cli interceptModule -n mod-orders -gm 36002 -s 37002
 
 ```bash
 eureka-cli interceptModule -n mod-orders -r
+
+# With a different profile, e.g. using the import profiles
+eureka-cli -p import interceptModule -n mod-orders -r
+
+# Restore using the locally built module image, saved with foliolocal namespace
+eureka-cli interceptModule -n mod-orders -r --namespace foliolocal
 ```
 
 ![CLI Intercept Module](images/cli_intercept_module_5.png)
@@ -406,7 +449,7 @@ eureka-cli createPortProxy -n mod-inventory-storage -s 37002
 
 ### Upgrade a module
 
-The upgrade command opens up the possibility to either upgrade or downgrade a particular module to a specific SNAPHOT or other versions, including the released ones.
+The upgrade command opens up the possibility to either upgrade or downgrade a particular module to a specific SNAPHOT or other versions, including the released ones. In order for it to work, we need to have the Maven CLI configured globally (see how to [install](https://maven.apache.org/install.html) and [configure](https://maven.apache.org/configure.html) Maven for your OS).
 
 - To upgrade a module, pass the module name together with the path to the cloned repository, which we will be use to build the artifact before making the container image
 
@@ -809,3 +852,12 @@ ERROR: unable to select packages:
 ```
 
 - Update your local CLI git repository and rebuild the binary, our Dockefiles in the `misc` folder no longer dependent on pinned and non-deterministic package versions of Alpine Linux
+
+---
+
+## Additional Resources
+
+- **[Module Development Guide](docs/MODULE_DEVELOPMENT_GUIDE.md)** - Comprehensive guide for using `interceptModule` and `upgradeModule` commands with workflows, examples, and troubleshooting
+- **[Build Guide](docs/BUILD.md)** - Instructions for building platform-specific binaries
+- **[Development Guide](docs/DEVELOPMENT.md)** - Developer documentation for contributing to the CLI
+- **[AWS CLI Guide](docs/AWS_CLI.md)** - Using AWS ECR as container registry

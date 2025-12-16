@@ -2,11 +2,9 @@
 
 ## Purpose
 
-- Development commands to aid with Live Compilation and debugging in VSCode
+- CLI development commands to aid with Live Compilation and debugging in VSCode
 
-## Commands
-
-### Enable Live Compilation
+## Enable Live Compilation
 
 - Open a new shell terminal
 - `cd` into `eureka-setup/eureka-cli`
@@ -17,7 +15,7 @@
 
 - See `.air.toml` for more settings on live compilation
 
-### Enable Debugger in VSCode to analyze Eureka CLI commands
+## Enable Debugger in VSCode to analyze Eureka CLI commands
 
 - Go to _Run And Debug_ in the VSCode
 - Click on _create a launch.json file_

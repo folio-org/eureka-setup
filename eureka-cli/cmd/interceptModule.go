@@ -97,6 +97,7 @@ func init() {
 	interceptModuleCmd.PersistentFlags().StringVarP(&params.ModuleName, action.ModuleName.Long, action.ModuleName.Short, "", action.ModuleName.Description)
 	interceptModuleCmd.PersistentFlags().StringVarP(&params.ModuleURL, action.ModuleURL.Long, action.ModuleURL.Short, "", action.ModuleURL.Description)
 	interceptModuleCmd.PersistentFlags().StringVarP(&params.SidecarURL, action.SidecarURL.Long, action.SidecarURL.Short, "", action.SidecarURL.Description)
+	interceptModuleCmd.PersistentFlags().StringVarP(&params.Namespace, action.Namespace.Long, action.Namespace.Short, "", action.Namespace.Description)
 	interceptModuleCmd.PersistentFlags().BoolVarP(&params.Restore, action.Restore.Long, action.Restore.Short, false, action.Restore.Description)
 	interceptModuleCmd.PersistentFlags().BoolVarP(&params.DefaultGateway, action.DefaultGateway.Long, action.DefaultGateway.Short, false, action.DefaultGateway.Description)
 	interceptModuleCmd.PersistentFlags().BoolVarP(&params.SkipRegistry, action.SkipRegistry.Long, action.SkipRegistry.Short, false, action.SkipRegistry.Description)

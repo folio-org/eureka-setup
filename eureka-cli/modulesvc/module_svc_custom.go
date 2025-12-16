@@ -39,6 +39,7 @@ func (ms *ModuleSvc) DeployCustomModule(client *client.Client, pair *ModulePair)
 	} else {
 		imageName = ms.GetModuleImage(pair.Module, version)
 	}
+	slog.Info(ms.Action.Name, "text", "Using module image", "image", imageName)
 
 	if err := ms.DeployModule(client, &models.Container{
 		Name: pair.Module.Metadata.Name,

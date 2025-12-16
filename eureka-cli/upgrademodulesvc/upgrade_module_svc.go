@@ -35,7 +35,6 @@ func (um *UpgradeModuleSvc) DeployModuleAndSidecarPair(client *client.Client, pa
 	}
 
 	slog.Info(um.Action.Name, "text", "DEPLOYING DEFAULT MODULE AND SIDECAR PAIR")
-	pair.Module.Metadata.Version = &um.Action.Param.ModuleVersion
 	if err := um.ModuleSvc.DeployCustomModule(client, pair); err != nil {
 		return err
 	}
@@ -54,7 +53,7 @@ func (um *UpgradeModuleSvc) prepareModuleAndSidecarPairNetwork(pair *modulesvc.M
 	}
 
 	pair.BackendModule, pair.Module = um.ModuleSvc.GetBackendModule(pair.Containers, pair.ModuleName)
-	pair.BackendModule.ModuleVersion = &um.Action.Param.ModuleVersion
+	pair.BackendModule.ModuleVersion = &pair.ModuleVersion
 	pair.BackendModule.ModuleExposedServerPort = ports[0]
 	pair.BackendModule.ModuleExposedDebugPort = ports[1]
 	pair.BackendModule.SidecarExposedServerPort = ports[2]
@@ -62,6 +61,8 @@ func (um *UpgradeModuleSvc) prepareModuleAndSidecarPairNetwork(pair *modulesvc.M
 
 	pair.BackendModule.ModulePortBindings = helpers.CreatePortBindings(ports[0], ports[1], pair.BackendModule.PrivatePort)
 	pair.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(ports[2], ports[3], pair.BackendModule.PrivatePort)
+
+	pair.Module.Metadata.Version = pair.BackendModule.ModuleVersion
 
 	return nil
 }
