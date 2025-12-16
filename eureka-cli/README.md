@@ -1,17 +1,13 @@
 # Eureka CLI
 
-## Purpose
-
-- A CLI to orchestrate the deployment of a local Eureka-based development environment
-
 ## Table of Contents
 
 - [Eureka CLI](#eureka-cli)
-  - [Purpose](#purpose)
   - [Table of Contents](#table-of-contents)
+  - [Purpose](#purpose)
+  - [Architecture](#architecture)
   - [Prerequisites](#prerequisites)
   - [Monitor system components](#monitor-system-components)
-  - [Architecture](#architecture)
   - [Commands](#commands)
     - [Build the binary](#build-the-binary)
     - [(Optional) Install binary](#optional-install-binary)
@@ -46,6 +42,17 @@
     - [Command-based](#command-based)
   - [Additional Resources](#additional-resources)
 
+## Purpose
+
+- A CLI to orchestrate the deployment of a local Eureka-based development environment
+
+## Architecture
+
+- The CLI is organized into layers: **actions** handle commands, **services** talk to external systems (Keycloak, Kong, Docker, Vault), and **run configs** manage profile-specific settings.
+- Commands like `interceptModule` and `upgradeModule` coordinate these layers to streamline local development — you can reroute traffic to your _local IntelliJ instance_ for live debugging, or build and deploy new module versions _in one go_. No more switching between terminals or remembering multi-step procedures.
+
+> For detailed workflows and examples, check out the [Module Development Guide](docs/MODULE_DEVELOPMENT_GUIDE.md).
+
 ## Prerequisites
 
 Install dependencies
@@ -76,14 +83,6 @@ Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc
 - [MinIO](http://localhost:9001) Console: minioadmin/minioadmin
 - [Kibana](http://localhost:15601) UI: No auth
 
-## Architecture
-
-The CLI is organized into layers: **actions** handle commands, **services** talk to external systems (Keycloak, Kong, Docker, Vault), and **run configs** manage profile-specific settings.
-
-Commands like `interceptModule` and `upgradeModule` coordinate these layers to streamline local development — you can reroute traffic to your _local IntelliJ instance_ for live debugging, or build and deploy new module versions _in one go_. No more switching between terminals or remembering multi-step procedures.
-
-For detailed workflows and examples, check out the [Module Development Guide](docs/MODULE_DEVELOPMENT_GUIDE.md).
-
 ## Commands
 
 ### Build the binary
@@ -93,7 +92,7 @@ mkdir -p ./bin
 env GOOS=windows GOARCH=amd64 go build -o ./bin/ .
 ```
 
-> See docs/BUILD.md to build a platform-specific binary
+> For more details, check out the [BUILD.md](docs/BUILD.md) to build a platform-specific binary
 
 ### (Optional) Install binary
 

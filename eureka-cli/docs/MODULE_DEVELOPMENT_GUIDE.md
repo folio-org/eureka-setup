@@ -1,14 +1,10 @@
 # Module Development Guide
 
-## Purpose
-
-- This guide explains how to use Eureka CLI's `interceptModule` and `upgradeModule` commands for local module development and testing workflows.
-
 ## Table of Contents
 
 - [Module Development Guide](#module-development-guide)
-  - [Purpose](#purpose)
   - [Table of Contents](#table-of-contents)
+  - [Purpose](#purpose)
   - [Overview](#overview)
   - [interceptModule Command](#interceptmodule-command)
     - [Purpose of interceptModule](#purpose-of-interceptmodule)
@@ -60,6 +56,10 @@
     - [Issue: Cannot restore after intercept](#issue-cannot-restore-after-intercept)
     - [Issue: Port conflicts](#issue-port-conflicts)
     - [Issue: Namespace confusion](#issue-namespace-confusion)
+
+## Purpose
+
+- This guide explains how to use Eureka CLI's `interceptModule` and `upgradeModule` commands for local module development and testing workflows.
 
 ## Overview
 
