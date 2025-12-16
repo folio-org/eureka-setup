@@ -114,7 +114,7 @@ func (run *Run) UpgradeModule() error {
 		appName       = app["name"].(string)
 		oldAppVersion = appVersion.String()
 
-		// App version will always increment up no matter if the module if upgraded or downgraded
+		// App version will always increment up no matter if the module is upgraded or downgraded
 		newAppVersion = appVersion.IncPatch().String()
 		newAppID      = fmt.Sprintf("%s-%s", appName, newAppVersion)
 	)
