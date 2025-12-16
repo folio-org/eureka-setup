@@ -392,15 +392,17 @@ To intercept multiple modules, make sure to use the right set of environment var
 
 ### Create a port proxy
 
-- Create a port proxy (Windows only), to route traffic to a specific deployed sidecar container. This command helps resolving some HTTP client issues in some modules when intercepted by the _interceptModule_ command
+Create a port proxy (Windows only), to route traffic to a specific deployed sidecar container. This command helps resolving some HTTP client issues in some modules when intercepted by the _interceptModule_ command.
+
+- To create a proxy between your instance deployed in IntelliJ and some sidecar in the environment, pass the module name to which the sidecar is associated with (e.g. _mod-inventory-storage_), and the external port number of the HTTP server on the sidecar
 
 ```bash
-# Route the traffic from mod-inventorys-storage:8082 on the host network to host.docker.internal:37002 deployed as a container
+# Route the traffic from mod-inventory-storage-sc.eureka:8082 on the host network to host.docker.internal:37002 deployed as a container
 # both the gateway hostname, i.e. host.docker.internal as well as the sidecar internal port 8082 can be overridden by the command
 eureka-cli createPortProxy -n mod-inventory-storage -s 37002
 ```
 
-> This command assumes that the host, e.g. `mod-inventory-storage` is added to `/etc/hosts` beforehand, because on some corporate machines scripted addition of hosts can be banned by group policies
+> This command assumes that the host, e.g. `mod-inventory-storage-sc.eureka` is added to `/etc/hosts` beforehand, because on some corporate machines scripted addition of hosts can be banned by group policies
 
 ### Upgrade a module
 
