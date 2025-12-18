@@ -368,7 +368,7 @@ func TestRemoveTenantEntitlements_HeaderCreationError(t *testing.T) {
 	mockHTTP.AssertNotCalled(t, "GetRetryReturnStruct")
 }
 
-func TestCreateApplications_HeaderCreationError(t *testing.T) {
+func TestCreateApplication_HeaderCreationError(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -393,7 +393,7 @@ func TestCreateApplications_HeaderCreationError(t *testing.T) {
 	}
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.Error(t, err)
@@ -1404,7 +1404,7 @@ func TestRemoveTenantEntitlements_DeleteError(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_MinimalSuccess(t *testing.T) {
+func TestCreateApplication_MinimalSuccess(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -1482,14 +1482,14 @@ func TestCreateApplications_MinimalSuccess(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_WithFrontendModule(t *testing.T) {
+func TestCreateApplication_WithFrontendModule(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -1547,14 +1547,14 @@ func TestCreateApplications_WithFrontendModule(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_SkipsManagementModule(t *testing.T) {
+func TestCreateApplication_SkipsManagementModule(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -1614,14 +1614,14 @@ func TestCreateApplications_SkipsManagementModule(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_HTTPError(t *testing.T) {
+func TestCreateApplication_HTTPError(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -1654,7 +1654,7 @@ func TestCreateApplications_HTTPError(t *testing.T) {
 		Return(expectedError)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.Error(t, err)
@@ -1662,7 +1662,7 @@ func TestCreateApplications_HTTPError(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_WithModuleVersionOverride(t *testing.T) {
+func TestCreateApplication_WithModuleVersionOverride(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -1742,14 +1742,14 @@ func TestCreateApplications_WithModuleVersionOverride(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_WithFetchDescriptorsFromRemote(t *testing.T) {
+func TestCreateApplication_WithFetchDescriptorsFromRemote(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -1842,14 +1842,14 @@ func TestCreateApplications_WithFetchDescriptorsFromRemote(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_FetchDescriptorError(t *testing.T) {
+func TestCreateApplication_FetchDescriptorError(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -1896,7 +1896,7 @@ func TestCreateApplications_FetchDescriptorError(t *testing.T) {
 		Return(expectedError)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.Error(t, err)
@@ -1904,7 +1904,7 @@ func TestCreateApplications_FetchDescriptorError(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_WithDependencies(t *testing.T) {
+func TestCreateApplication_WithDependencies(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -1953,7 +1953,7 @@ func TestCreateApplications_WithDependencies(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)
@@ -2052,7 +2052,7 @@ func TestGetTenantType_MissingCentralTenantField(t *testing.T) {
 	assert.Equal(t, "test-consortium-member", result)
 }
 
-func TestCreateApplications_SkipsModuleNotInConfig(t *testing.T) {
+func TestCreateApplication_SkipsModuleNotInConfig(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -2109,14 +2109,14 @@ func TestCreateApplications_SkipsModuleNotInConfig(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_SkipsModuleWithDeployFalse(t *testing.T) {
+func TestCreateApplication_SkipsModuleWithDeployFalse(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -2176,14 +2176,14 @@ func TestCreateApplications_SkipsModuleWithDeployFalse(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_WithEurekaModules(t *testing.T) {
+func TestCreateApplication_WithEurekaModules(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -2256,14 +2256,14 @@ func TestCreateApplications_WithEurekaModules(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_DiscoveryPostError(t *testing.T) {
+func TestCreateApplication_DiscoveryPostError(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -2328,7 +2328,7 @@ func TestCreateApplications_DiscoveryPostError(t *testing.T) {
 		Return(expectedError)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.Error(t, err)
@@ -2336,7 +2336,7 @@ func TestCreateApplications_DiscoveryPostError(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_WithModuleURLs(t *testing.T) {
+func TestCreateApplication_WithModuleURLs(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -2416,14 +2416,14 @@ func TestCreateApplications_WithModuleURLs(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_FrontendModuleWithFetchDescriptors(t *testing.T) {
+func TestCreateApplication_FrontendModuleWithFetchDescriptors(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -2500,14 +2500,14 @@ func TestCreateApplications_FrontendModuleWithFetchDescriptors(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_FrontendModuleWithURL(t *testing.T) {
+func TestCreateApplication_FrontendModuleWithURL(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -2572,14 +2572,14 @@ func TestCreateApplications_FrontendModuleWithURL(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_FrontendVersionOverride(t *testing.T) {
+func TestCreateApplication_FrontendVersionOverride(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -2644,14 +2644,14 @@ func TestCreateApplications_FrontendVersionOverride(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_MixedBackendAndFrontend(t *testing.T) {
+func TestCreateApplication_MixedBackendAndFrontend(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -2743,14 +2743,14 @@ func TestCreateApplications_MixedBackendAndFrontend(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_BothModulesBackendVersionOverride(t *testing.T) {
+func TestCreateApplication_BothModulesBackendVersionOverride(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -2838,14 +2838,14 @@ func TestCreateApplications_BothModulesBackendVersionOverride(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_BothModulesFrontendVersionOverride(t *testing.T) {
+func TestCreateApplication_BothModulesFrontendVersionOverride(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -2934,14 +2934,14 @@ func TestCreateApplications_BothModulesFrontendVersionOverride(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplications_BothModulesBothVersionOverrides(t *testing.T) {
+func TestCreateApplication_BothModulesBothVersionOverrides(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -3031,7 +3031,7 @@ func TestCreateApplications_BothModulesBothVersionOverrides(t *testing.T) {
 		Return(nil)
 
 	// Act
-	err := svc.CreateApplications(extract)
+	err := svc.CreateApplication(extract)
 
 	// Assert
 	assert.NoError(t, err)

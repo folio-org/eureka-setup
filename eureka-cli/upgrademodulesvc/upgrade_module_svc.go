@@ -5,25 +5,36 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-cli/execsvc"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/managementsvc"
 	"github.com/folio-org/eureka-cli/modulesvc"
 )
 
+// UpgradeModuleProcessor defines the interface combining all operations needed to upgrade a module
 type UpgradeModuleProcessor interface {
+	UpgradeModuleVersionManager
+	UpgradeModuleBuildManager
+	UpgradeModuleApplicationBuilder
+	UpgradeModuleDeploymentManager
+}
+
+// UpgradeModuleDeploymentManager defines the interface for deploying upgraded modules and their sidecars
+type UpgradeModuleDeploymentManager interface {
 	DeployModuleAndSidecarPair(client *client.Client, pair *modulesvc.ModulePair) error
 }
 
-// UpgradeModuleSvc provides functionality for intercepting and redirecting module traffic
+// UpgradeModuleSvc defines the service for upgrading or downgrading modules
 type UpgradeModuleSvc struct {
 	Action        *action.Action
+	ExecSvc       execsvc.CommandRunner
 	ModuleSvc     modulesvc.ModuleProcessor
 	ManagementSvc managementsvc.ManagementProcessor
 }
 
 // New creates a new UpgradeModuleSvc instance
-func New(action *action.Action, ModuleSvc modulesvc.ModuleProcessor, managementSvc managementsvc.ManagementProcessor) *UpgradeModuleSvc {
-	return &UpgradeModuleSvc{Action: action, ModuleSvc: ModuleSvc, ManagementSvc: managementSvc}
+func New(action *action.Action, execSvc execsvc.CommandRunner, ModuleSvc modulesvc.ModuleProcessor, managementSvc managementsvc.ManagementProcessor) *UpgradeModuleSvc {
+	return &UpgradeModuleSvc{Action: action, ExecSvc: execSvc, ModuleSvc: ModuleSvc, ManagementSvc: managementSvc}
 }
 
 func (um *UpgradeModuleSvc) DeployModuleAndSidecarPair(client *client.Client, pair *modulesvc.ModulePair) error {

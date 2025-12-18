@@ -112,7 +112,7 @@ func (run *Run) DeployModules() error {
 		return err
 	}
 
-	return run.Config.ManagementSvc.CreateApplications(&models.RegistryExtract{
+	return run.Config.ManagementSvc.CreateApplication(&models.RegistryExtract{
 		RegistryURLs:      run.Config.Action.GetCombinedRegistryURLs(),
 		Modules:           modules,
 		BackendModules:    backendModules,

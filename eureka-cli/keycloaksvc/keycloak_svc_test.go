@@ -78,8 +78,13 @@ func (m *MockManagementSvc) GetLatestApplication() (map[string]any, error) {
 	return args.Get(0).(map[string]any), args.Error(1)
 }
 
-func (m *MockManagementSvc) CreateApplications(extract *models.RegistryExtract) error {
+func (m *MockManagementSvc) CreateApplication(extract *models.RegistryExtract) error {
 	args := m.Called(extract)
+	return args.Error(0)
+}
+
+func (m *MockManagementSvc) CreateNewApplication(r *models.ApplicationUpgradeRequest) error {
+	args := m.Called(r)
 	return args.Error(0)
 }
 
@@ -88,9 +93,19 @@ func (m *MockManagementSvc) RemoveApplication(applicationID string) error {
 	return args.Error(0)
 }
 
+func (m *MockManagementSvc) RemoveApplications(applicationName, ignoreAppID string) error {
+	args := m.Called(applicationName, ignoreAppID)
+	return args.Error(0)
+}
+
 func (m *MockManagementSvc) GetModuleDiscovery(name string) (models.ModuleDiscoveryResponse, error) {
 	args := m.Called(name)
 	return args.Get(0).(models.ModuleDiscoveryResponse), args.Error(1)
+}
+
+func (m *MockManagementSvc) CreateNewModuleDiscovery(newDiscoveryModules []map[string]string) error {
+	args := m.Called(newDiscoveryModules)
+	return args.Error(0)
 }
 
 func (m *MockManagementSvc) UpdateModuleDiscovery(id string, restore bool, privatePort int, sidecarURL string) error {
@@ -105,6 +120,11 @@ func (m *MockManagementSvc) GetTenantEntitlements(tenantName string, includeModu
 
 func (m *MockManagementSvc) CreateTenantEntitlement(consortiumName string, tenantType constant.TenantType) error {
 	args := m.Called(consortiumName, tenantType)
+	return args.Error(0)
+}
+
+func (m *MockManagementSvc) UpgradeTenantEntitlement(consortiumName string, tenantType constant.TenantType, newApplicationID string) error {
+	args := m.Called(consortiumName, tenantType, newApplicationID)
 	return args.Error(0)
 }
 

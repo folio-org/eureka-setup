@@ -31,10 +31,7 @@ type DockerClient struct {
 
 // New creates a new DockerClient instance
 func New(action *action.Action, execSvc execsvc.CommandRunner) *DockerClient {
-	return &DockerClient{
-		Action:  action,
-		ExecSvc: execSvc,
-	}
+	return &DockerClient{Action: action, ExecSvc: execSvc}
 }
 
 func (dc *DockerClient) Create() (*client.Client, error) {

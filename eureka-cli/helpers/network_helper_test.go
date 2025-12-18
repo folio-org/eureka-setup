@@ -225,3 +225,75 @@ func TestApplicationFormURLEncodedHeaders_NoInputs(t *testing.T) {
 	assert.Len(t, result, 1)
 	assert.Equal(t, "application/x-www-form-urlencoded", result["Content-Type"])
 }
+
+func TestGetSidecarURL_EdgeModule(t *testing.T) {
+	// Arrange
+	moduleName := "edge-oai-pmh"
+	privatePort := 8081
+
+	// Act
+	result := helpers.GetSidecarURL(moduleName, privatePort)
+
+	// Assert
+	assert.Equal(t, "http://edge-oai-pmh.eureka:8081", result)
+}
+
+func TestGetSidecarURL_EdgeModuleWithDifferentPort(t *testing.T) {
+	// Arrange
+	moduleName := "edge-orders"
+	privatePort := 9000
+
+	// Act
+	result := helpers.GetSidecarURL(moduleName, privatePort)
+
+	// Assert
+	assert.Equal(t, "http://edge-orders.eureka:9000", result)
+}
+
+func TestGetSidecarURL_NonEdgeModule(t *testing.T) {
+	// Arrange
+	moduleName := "mod-inventory"
+	privatePort := 8081
+
+	// Act
+	result := helpers.GetSidecarURL(moduleName, privatePort)
+
+	// Assert
+	assert.Equal(t, "http://mod-inventory-sc.eureka:8081", result)
+}
+
+func TestGetSidecarURL_NonEdgeModuleWithDifferentPort(t *testing.T) {
+	// Arrange
+	moduleName := "mod-users"
+	privatePort := 9090
+
+	// Act
+	result := helpers.GetSidecarURL(moduleName, privatePort)
+
+	// Assert
+	assert.Equal(t, "http://mod-users-sc.eureka:9090", result)
+}
+
+func TestGetSidecarURL_EmptyModuleName(t *testing.T) {
+	// Arrange
+	moduleName := ""
+	privatePort := 8081
+
+	// Act
+	result := helpers.GetSidecarURL(moduleName, privatePort)
+
+	// Assert
+	assert.Equal(t, "http://-sc.eureka:8081", result)
+}
+
+func TestGetSidecarURL_ModuleNameStartingWithEdgeButNotFullWord(t *testing.T) {
+	// Arrange
+	moduleName := "edges-test"
+	privatePort := 8081
+
+	// Act
+	result := helpers.GetSidecarURL(moduleName, privatePort)
+
+	// Assert
+	assert.Equal(t, "http://edges-test.eureka:8081", result)
+}

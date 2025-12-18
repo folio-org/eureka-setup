@@ -56,6 +56,7 @@ func (ms *ManagementSvc) CreateTenants() error {
 	if err != nil {
 		return err
 	}
+
 	for tenantName, properties := range ms.Action.ConfigTenants {
 		entry := properties.(map[string]any)
 		payload, err := json.Marshal(map[string]string{
@@ -100,6 +101,7 @@ func (ms *ManagementSvc) RemoveTenants(consortiumName string, tenantType constan
 	if err != nil {
 		return err
 	}
+
 	for _, value := range tenants {
 		entry := value.(map[string]any)
 		tenantName := entry["name"].(string)

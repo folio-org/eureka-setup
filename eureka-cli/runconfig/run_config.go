@@ -111,7 +111,7 @@ func New(action *action.Action, logger *slog.Logger) (*RunConfig, error) {
 			UISvc:              uisvc.New(action, execSvc, gitclient, dockerClient, tenantSvc),
 			SearchSvc:          searchsvc.New(action, httpClient),
 			InterceptModuleSvc: interceptmodulesvc.New(action, moduleSvc, managementSvc),
-			UpgradeModuleSvc:   upgrademodulesvc.New(action, moduleSvc, managementSvc),
+			UpgradeModuleSvc:   upgrademodulesvc.New(action, execSvc, moduleSvc, managementSvc),
 		},
 	}, nil
 }

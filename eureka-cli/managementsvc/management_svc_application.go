@@ -27,13 +27,16 @@ type ManagementProcessor interface {
 type ManagementApplicationManager interface {
 	GetApplications() (models.ApplicationsResponse, error)
 	GetLatestApplication() (map[string]any, error)
-	CreateApplications(extract *models.RegistryExtract) error
+	CreateApplication(extract *models.RegistryExtract) error
+	CreateNewApplication(r *models.ApplicationUpgradeRequest) error
 	RemoveApplication(applicationID string) error
+	RemoveApplications(applicationName, ignoreApplicationID string) error
 	GetModuleDiscovery(name string) (models.ModuleDiscoveryResponse, error)
+	CreateNewModuleDiscovery(newDiscoveryModules []map[string]string) error
 	UpdateModuleDiscovery(id string, restore bool, privatePort int, sidecarURL string) error
 }
 
-// ManagementSvc provides functionality for management operations including applications and tenants
+// ManagementSvc defines the service for management operations including applications and tenants
 type ManagementSvc struct {
 	Action     *action.Action
 	HTTPClient httpclient.HTTPClientRunner
@@ -75,7 +78,7 @@ func (ms *ManagementSvc) GetLatestApplication() (map[string]any, error) {
 	return decodedResponse.ApplicationDescriptors[0], nil
 }
 
-func (ms *ManagementSvc) CreateApplications(extract *models.RegistryExtract) error {
+func (ms *ManagementSvc) CreateApplication(extract *models.RegistryExtract) error {
 	var (
 		backendModules            []map[string]string
 		frontendModules           []map[string]string
@@ -232,6 +235,47 @@ func (ms *ManagementSvc) FetchModuleDescriptor(extract *models.RegistryExtract, 
 	return nil
 }
 
+// TODO Add tests
+func (ms *ManagementSvc) CreateNewApplication(r *models.ApplicationUpgradeRequest) error {
+	slog.Info(ms.Action.Name, "text", "CREATING NEW APPLICATION", "name", r.ApplicationName, "version", r.NewApplicationVersion)
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, "/applications?check=true")
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return err
+	}
+
+	var (
+		backendModuleDescriptors  []any
+		frontendModuleDescriptors []any
+	)
+	if r.ShouldBuild {
+		backendModuleDescriptors = r.NewBackendModuleDescriptors
+		frontendModuleDescriptors = r.NewFrontendModuleDescriptors
+	}
+	payload, err := json.Marshal(map[string]any{
+		"id":                  r.NewApplicationID,
+		"name":                r.ApplicationName,
+		"version":             r.NewApplicationVersion,
+		"description":         "Default",
+		"dependencies":        r.NewDependencies,
+		"modules":             r.NewBackendModules,
+		"uiModules":           r.NewFrontendModules,
+		"moduleDescriptors":   backendModuleDescriptors,
+		"uiModuleDescriptors": frontendModuleDescriptors,
+	})
+	if err != nil {
+		return err
+	}
+
+	var appResponse models.ApplicationDescriptor
+	if err := ms.HTTPClient.PostReturnStruct(requestURL, payload, headers, &appResponse); err != nil {
+		return err
+	}
+	slog.Info(ms.Action.Name, "text", "Created application", "id", appResponse.ID, "backendModules", len(r.NewBackendModules), "frontendModules", len(r.NewFrontendModules))
+
+	return nil
+}
+
 func (ms *ManagementSvc) RemoveApplication(applicationID string) error {
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/applications/%s", applicationID))
 	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
@@ -239,11 +283,41 @@ func (ms *ManagementSvc) RemoveApplication(applicationID string) error {
 		return err
 	}
 
+	// TODO Fix the return value
 	var decodedResponse models.ApplicationDescriptor
 	if err := ms.HTTPClient.DeleteReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return err
 	}
 	slog.Info(ms.Action.Name, "text", "Removed application", "id", decodedResponse.ID)
+
+	return nil
+}
+
+// TODO Add tests
+func (ms *ManagementSvc) RemoveApplications(applicationName, ignoreAppID string) error {
+	apps, err := ms.GetApplications()
+	if err != nil {
+		return err
+	}
+
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range apps.ApplicationDescriptors {
+		id := entry["id"]
+		if id == ignoreAppID {
+			continue
+		}
+		requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/applications/%s", id))
+
+		var decodedResponse models.ApplicationDescriptor
+		if err := ms.HTTPClient.DeleteReturnStruct(requestURL, headers, &decodedResponse); err != nil {
+			return err
+		}
+		slog.Info(ms.Action.Name, "text", "Removed application", "id", id)
+	}
 
 	return nil
 }
@@ -272,6 +346,30 @@ func (ms *ManagementSvc) GetModuleDiscovery(name string) (models.ModuleDiscovery
 	return decodedResponse, nil
 }
 
+// TODO Add tests
+func (ms *ManagementSvc) CreateNewModuleDiscovery(newDiscoveryModules []map[string]string) error {
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, "/modules/discovery")
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return err
+	}
+
+	payload, err := json.Marshal(map[string]any{
+		"discovery": newDiscoveryModules,
+	})
+	if err != nil {
+		return err
+	}
+
+	var discoveryResponse models.ModuleDiscoveryResponse
+	if err := ms.HTTPClient.PostReturnStruct(requestURL, payload, headers, &discoveryResponse); err != nil {
+		return err
+	}
+	slog.Info(ms.Action.Name, "text", "Created module discovery", "count", len(newDiscoveryModules), "totalRecords", discoveryResponse.TotalRecords)
+
+	return nil
+}
+
 func (ms *ManagementSvc) UpdateModuleDiscovery(id string, restore bool, privatePort int, sidecarURL string) error {
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/modules/%s/discovery", id))
 	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
@@ -281,11 +379,7 @@ func (ms *ManagementSvc) UpdateModuleDiscovery(id string, restore bool, privateP
 
 	name := helpers.GetModuleNameFromID(id)
 	if sidecarURL == "" || restore {
-		if strings.HasPrefix(name, "edge") {
-			sidecarURL = fmt.Sprintf("http://%s.eureka:%d", name, privatePort)
-		} else {
-			sidecarURL = fmt.Sprintf("http://%s-sc.eureka:%d", name, privatePort)
-		}
+		sidecarURL = helpers.GetSidecarURL(name, privatePort)
 	}
 
 	version := helpers.GetModuleVersionFromID(id)
@@ -299,11 +393,12 @@ func (ms *ManagementSvc) UpdateModuleDiscovery(id string, restore bool, privateP
 		return err
 	}
 
+	// TODO Fix the return value
 	var moduleDiscovery models.ModuleDiscovery
 	if err := ms.HTTPClient.PutReturnStruct(requestURL, payload, headers, &moduleDiscovery); err != nil {
 		return err
 	}
-	slog.Info(ms.Action.Name, "text", "Updated module discovery", "module", moduleDiscovery.Name, "location", moduleDiscovery.Location)
+	slog.Info(ms.Action.Name, "text", "Updated module discovery", "module", name, "location", sidecarURL)
 
 	return nil
 }

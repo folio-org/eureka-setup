@@ -91,3 +91,14 @@ func ApplicationFormURLEncodedHeaders() map[string]string {
 		constant.ContentTypeHeader: constant.ApplicationFormURLEncoded,
 	}
 }
+
+// ==================== Sidecar URL ====================
+
+// GetSidecarURL constructs the sidecar URL based on module name and port
+func GetSidecarURL(moduleName string, privatePort int) string {
+	if strings.HasPrefix(moduleName, "edge") {
+		return fmt.Sprintf("http://%s.eureka:%d", moduleName, privatePort)
+	}
+
+	return fmt.Sprintf("http://%s-sc.eureka:%d", moduleName, privatePort)
+}

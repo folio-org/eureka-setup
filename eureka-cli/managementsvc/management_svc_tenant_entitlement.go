@@ -14,6 +14,7 @@ import (
 type ManagementTenantEntitlementManager interface {
 	GetTenantEntitlements(tenantName string, includeModules bool) (models.TenantEntitlementResponse, error)
 	CreateTenantEntitlement(consortiumName string, tenantType constant.TenantType) error
+	UpgradeTenantEntitlement(consortiumName string, tenantType constant.TenantType, newApplicationID string) error
 	RemoveTenantEntitlements(consortiumName string, tenantType constant.TenantType, purgeSchemas bool) error
 }
 
@@ -69,6 +70,49 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 			return err
 		}
 		slog.Info(ms.Action.Name, "text", "Created tenant entitlement", "tenant", tenantName, "flowId", decodedResponse.FlowID)
+	}
+
+	return nil
+}
+
+// TODO Add tests
+func (ms *ManagementSvc) UpgradeTenantEntitlement(consortiumName string, tenantType constant.TenantType, newApplicationID string) error {
+	tenantParameters, err := ms.TenantSvc.GetEntitlementTenantParameters(consortiumName)
+	if err != nil {
+		return err
+	}
+
+	tenants, err := ms.GetTenants(constant.NoneConsortium, tenantType)
+	if err != nil {
+		return nil
+	}
+
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/entitlements?async=false&tenantParameters=%s", tenantParameters))
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return nil
+	}
+
+	for _, value := range tenants {
+		entry := value.(map[string]any)
+		tenantName := entry["name"].(string)
+		if !helpers.HasTenant(tenantName, ms.Action.ConfigTenants) {
+			continue
+		}
+
+		payload, err := json.Marshal(map[string]any{
+			"tenantId":     entry["id"],
+			"applications": []string{newApplicationID},
+		})
+		if err != nil {
+			return err
+		}
+
+		var decodedResponse models.TenantEntitlementResponse
+		if err := ms.HTTPClient.PutReturnStruct(requestURL, payload, headers, &decodedResponse); err != nil {
+			return err
+		}
+		slog.Info(ms.Action.Name, "text", "Upgraded tenant entitlement", "tenant", tenantName, "flowId", decodedResponse.FlowID)
 	}
 
 	return nil

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"sort"
 
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/helpers"
@@ -47,7 +48,14 @@ func (ks *KeycloakSvc) GetUsers(tenantName string) ([]any, error) {
 }
 
 func (ks *KeycloakSvc) CreateUsers(configTenant string) error {
-	for username, value := range ks.Action.ConfigUsers {
+	usernames := make([]string, 0, len(ks.Action.ConfigUsers))
+	for username := range ks.Action.ConfigUsers {
+		usernames = append(usernames, username)
+	}
+	sort.Strings(usernames)
+
+	for _, username := range usernames {
+		value := ks.Action.ConfigUsers[username]
 		entry := value.(map[string]any)
 		tenantName := entry["tenant"].(string)
 		if configTenant != tenantName {
@@ -65,8 +73,10 @@ func (ks *KeycloakSvc) CreateUsers(configTenant string) error {
 		}
 
 		userRoles := entry["roles"].([]any)
-		if err := ks.attachUserRoles(tenantName, userID, username, userRoles); err != nil {
-			return nil
+		if len(userRoles) > 0 {
+			if err := ks.attachUserRoles(tenantName, userID, username, userRoles); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -81,7 +91,7 @@ func (ks *KeycloakSvc) createUser(tenantName string, username string, entry map[
 		"personal": map[string]any{
 			"firstName":              entry["first-name"].(string),
 			"lastName":               entry["last-name"].(string),
-			"email":                  fmt.Sprintf("%s-%s", tenantName, username),
+			"email":                  fmt.Sprintf("%s_%s@test.org", tenantName, username),
 			"preferredContactTypeId": "002",
 		},
 	})
@@ -173,6 +183,7 @@ func (ks *KeycloakSvc) RemoveUsers(tenantName string) error {
 	if err != nil {
 		return err
 	}
+
 	for _, value := range users {
 		entry := value.(map[string]any)
 		username := entry["username"].(string)
