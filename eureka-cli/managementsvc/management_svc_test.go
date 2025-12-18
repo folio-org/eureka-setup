@@ -491,18 +491,11 @@ func TestRemoveApplication_Success(t *testing.T) {
 
 	applicationID := "app-123"
 
-	mockHTTP.On("DeleteReturnStruct",
+	mockHTTP.On("Delete",
 		mock.MatchedBy(func(url string) bool {
 			return assert.Contains(t, url, "/applications/"+applicationID)
 		}),
-		mock.Anything,
-		mock.AnythingOfType("*models.ApplicationDescriptor")).
-		Run(func(args mock.Arguments) {
-			resp := args.Get(2).(*models.ApplicationDescriptor)
-			resp.ID = applicationID
-			resp.Name = "Test App"
-			resp.Version = "1.0.0"
-		}).
+		mock.Anything).
 		Return(nil)
 
 	// Act
@@ -524,10 +517,9 @@ func TestRemoveApplication_HTTPError(t *testing.T) {
 	applicationID := "app-123"
 	expectedError := errors.New("delete failed")
 
-	mockHTTP.On("DeleteReturnStruct",
+	mockHTTP.On("Delete",
 		mock.Anything,
-		mock.Anything,
-		mock.AnythingOfType("*models.ApplicationDescriptor")).
+		mock.Anything).
 		Return(expectedError)
 
 	// Act
@@ -616,7 +608,7 @@ func TestUpdateModuleDiscovery_Success(t *testing.T) {
 	moduleID := "mod-test-1.0.0"
 	sidecarURL := "http://custom-url:8080"
 
-	mockHTTP.On("PutReturnStruct",
+	mockHTTP.On("PutReturnNoContent",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/modules/"+moduleID+"/discovery")
 		}),
@@ -625,15 +617,7 @@ func TestUpdateModuleDiscovery_Success(t *testing.T) {
 			_ = json.Unmarshal(payload, &data)
 			return data["id"] == moduleID && data["location"] == sidecarURL
 		}),
-		mock.Anything,
-		mock.AnythingOfType("*models.ModuleDiscovery")).
-		Run(func(args mock.Arguments) {
-			resp := args.Get(3).(*models.ModuleDiscovery)
-			resp.ID = moduleID
-			resp.Name = "mod-test"
-			resp.Version = "1.0.0"
-			resp.Location = sidecarURL
-		}).
+		mock.Anything).
 		Return(nil)
 
 	// Act
@@ -655,7 +639,7 @@ func TestUpdateModuleDiscovery_RestoreURL(t *testing.T) {
 	moduleID := "mod-test-1.0.0"
 	privatePort := 8080
 
-	mockHTTP.On("PutReturnStruct",
+	mockHTTP.On("PutReturnNoContent",
 		mock.Anything,
 		mock.MatchedBy(func(payload []byte) bool {
 			var data map[string]any
@@ -663,15 +647,7 @@ func TestUpdateModuleDiscovery_RestoreURL(t *testing.T) {
 			expectedURL := "http://mod-test-sc.eureka:8080"
 			return data["location"] == expectedURL
 		}),
-		mock.Anything,
-		mock.AnythingOfType("*models.ModuleDiscovery")).
-		Run(func(args mock.Arguments) {
-			resp := args.Get(3).(*models.ModuleDiscovery)
-			resp.ID = moduleID
-			resp.Name = "mod-test"
-			resp.Version = "1.0.0"
-			resp.Location = "http://mod-test-sc.eureka:8080"
-		}).
+		mock.Anything).
 		Return(nil)
 
 	// Act
@@ -693,11 +669,10 @@ func TestUpdateModuleDiscovery_HTTPError(t *testing.T) {
 	moduleID := "mod-test-1.0.0"
 	expectedError := errors.New("HTTP PUT failed")
 
-	mockHTTP.On("PutReturnStruct",
+	mockHTTP.On("PutReturnNoContent",
 		mock.Anything,
 		mock.Anything,
-		mock.Anything,
-		mock.AnythingOfType("*models.ModuleDiscovery")).
+		mock.Anything).
 		Return(expectedError)
 
 	// Act
@@ -1061,7 +1036,7 @@ func TestUpdateModuleDiscovery_EdgeModule(t *testing.T) {
 	moduleID := "edge-test-1.0.0"
 	privatePort := 8080
 
-	mockHTTP.On("PutReturnStruct",
+	mockHTTP.On("PutReturnNoContent",
 		mock.Anything,
 		mock.MatchedBy(func(payload []byte) bool {
 			var data map[string]any
@@ -1070,15 +1045,7 @@ func TestUpdateModuleDiscovery_EdgeModule(t *testing.T) {
 			expectedURL := "http://edge-test.eureka:8080"
 			return data["location"] == expectedURL
 		}),
-		mock.Anything,
-		mock.AnythingOfType("*models.ModuleDiscovery")).
-		Run(func(args mock.Arguments) {
-			resp := args.Get(3).(*models.ModuleDiscovery)
-			resp.ID = moduleID
-			resp.Name = "edge-test"
-			resp.Version = "1.0.0"
-			resp.Location = "http://edge-test.eureka:8080"
-		}).
+		mock.Anything).
 		Return(nil)
 
 	// Act
@@ -3490,5 +3457,451 @@ func TestGetLatestApplication_MultipleVersions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "test-app-2.0.0", result["id"])
 	assert.Equal(t, "2.0.0", result["version"])
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestUpgradeTenantEntitlement_Success(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = "test-token"
+	action.ConfigTenants = map[string]any{"tenant1": map[string]any{"name": "tenant1"}}
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	mockTenantSvc.On("GetEntitlementTenantParameters", "consortium1").Return("param1=value1", nil)
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool { return strings.Contains(url, "/tenants") }),
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.TenantsResponse)
+			target.Tenants = []models.Tenant{{ID: "tenant-id-1", Name: "tenant1"}}
+		}).
+		Return(nil)
+
+	mockHTTP.On("PutReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/entitlements") && strings.Contains(url, "async=false") && strings.Contains(url, "tenantParameters=param1")
+		}),
+		mock.Anything,
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(3).(*models.TenantEntitlementResponse)
+			target.FlowID = "flow-123"
+		}).
+		Return(nil)
+
+	// Act
+	err := svc.UpgradeTenantEntitlement("consortium1", constant.Member, "new-app-id")
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertExpectations(t)
+	mockTenantSvc.AssertExpectations(t)
+}
+
+func TestUpgradeTenantEntitlement_TenantParametersError(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	expectedError := errors.New("failed to get parameters")
+	mockTenantSvc.On("GetEntitlementTenantParameters", "consortium1").Return("", expectedError)
+
+	// Act
+	err := svc.UpgradeTenantEntitlement("consortium1", constant.Member, "new-app-id")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockHTTP.AssertNotCalled(t, "GetRetryReturnStruct")
+	mockTenantSvc.AssertExpectations(t)
+}
+
+func TestUpgradeTenantEntitlement_HTTPError(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = "test-token"
+	action.ConfigTenants = map[string]any{"tenant1": map[string]any{}}
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	mockTenantSvc.On("GetEntitlementTenantParameters", "consortium1").Return("params", nil)
+
+	mockHTTP.On("GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.TenantsResponse)
+			target.Tenants = []models.Tenant{{ID: "tenant-id-1", Name: "tenant1"}}
+		}).
+		Return(nil)
+
+	expectedError := errors.New("HTTP error")
+	mockHTTP.On("PutReturnStruct", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(expectedError)
+
+	// Act
+	err := svc.UpgradeTenantEntitlement("consortium1", constant.Member, "new-app-id")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockHTTP.AssertExpectations(t)
+	mockTenantSvc.AssertExpectations(t)
+}
+
+func TestCreateNewApplication_Success(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = "test-token"
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	request := &models.ApplicationUpgradeRequest{
+		ApplicationName:       "test-app",
+		NewApplicationID:      "test-app-2.0.0",
+		NewApplicationVersion: "2.0.0",
+		NewDependencies:       map[string]any{"dep1": "1.0.0"},
+		NewBackendModules:     []map[string]any{{"id": "mod-1", "name": "module1"}},
+		NewFrontendModules:    []map[string]any{{"id": "mod-ui-1", "name": "module-ui"}},
+		ShouldBuild:           false,
+	}
+
+	mockHTTP.On("PostReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications") && strings.Contains(url, "check=true")
+		}),
+		mock.Anything,
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(3).(*models.ApplicationDescriptor)
+			target.ID = "test-app-2.0.0"
+		}).
+		Return(nil)
+
+	// Act
+	err := svc.CreateNewApplication(request)
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestCreateNewApplication_WithBuild(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = "test-token"
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	request := &models.ApplicationUpgradeRequest{
+		ApplicationName:              "test-app",
+		NewApplicationID:             "test-app-2.0.0",
+		NewApplicationVersion:        "2.0.0",
+		NewBackendModules:            []map[string]any{{"id": "mod-1"}},
+		NewFrontendModules:           []map[string]any{{"id": "mod-ui-1"}},
+		NewBackendModuleDescriptors:  []any{map[string]any{"id": "desc-1"}},
+		NewFrontendModuleDescriptors: []any{map[string]any{"id": "desc-ui-1"}},
+		ShouldBuild:                  true,
+	}
+
+	mockHTTP.On("PostReturnStruct", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(3).(*models.ApplicationDescriptor)
+			target.ID = "test-app-2.0.0"
+
+			// Verify payload includes descriptors
+			payloadBytes := args.Get(1).([]byte)
+			var payload map[string]any
+			json.Unmarshal(payloadBytes, &payload)
+			assert.NotEmpty(t, payload["moduleDescriptors"])
+			assert.NotEmpty(t, payload["uiModuleDescriptors"])
+		}).
+		Return(nil)
+
+	// Act
+	err := svc.CreateNewApplication(request)
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestCreateNewApplication_HeaderError(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = ""
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	request := &models.ApplicationUpgradeRequest{
+		ApplicationName:       "test-app",
+		NewApplicationID:      "test-app-2.0.0",
+		NewApplicationVersion: "2.0.0",
+	}
+
+	// Act
+	err := svc.CreateNewApplication(request)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "access token")
+	mockHTTP.AssertNotCalled(t, "PostReturnStruct")
+}
+
+func TestCreateNewApplication_HTTPError(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = "test-token"
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	request := &models.ApplicationUpgradeRequest{
+		ApplicationName:       "test-app",
+		NewApplicationID:      "test-app-2.0.0",
+		NewApplicationVersion: "2.0.0",
+		NewBackendModules:     []map[string]any{{"id": "mod-1"}},
+	}
+
+	expectedError := errors.New("HTTP request failed")
+	mockHTTP.On("PostReturnStruct", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(expectedError)
+
+	// Act
+	err := svc.CreateNewApplication(request)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestRemoveApplications_Success(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = "test-token"
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	mockHTTP.On("GetReturnStruct",
+		mock.MatchedBy(func(url string) bool { return strings.Contains(url, "/applications") }),
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.ApplicationsResponse)
+			target.ApplicationDescriptors = []map[string]any{
+				{"id": "app-1", "name": "test-app"},
+				{"id": "app-2", "name": "test-app"},
+				{"id": "ignore-app", "name": "test-app"},
+			}
+		}).
+		Return(nil)
+
+	mockHTTP.On("Delete",
+		mock.MatchedBy(func(url string) bool { return strings.Contains(url, "/applications/app-1") }),
+		mock.Anything).
+		Return(nil)
+
+	mockHTTP.On("Delete",
+		mock.MatchedBy(func(url string) bool { return strings.Contains(url, "/applications/app-2") }),
+		mock.Anything).
+		Return(nil)
+
+	// Act
+	err := svc.RemoveApplications("test-app", "ignore-app")
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertExpectations(t)
+	mockHTTP.AssertNotCalled(t, "Delete", mock.MatchedBy(func(url string) bool {
+		return strings.Contains(url, "/applications/ignore-app")
+	}), mock.Anything, mock.Anything)
+}
+
+func TestRemoveApplications_GetApplicationsError(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = "test-token"
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	expectedError := errors.New("failed to get applications")
+	mockHTTP.On("GetReturnStruct", mock.Anything, mock.Anything, mock.Anything).
+		Return(expectedError)
+
+	// Act
+	err := svc.RemoveApplications("test-app", "ignore-app")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockHTTP.AssertNotCalled(t, "Delete")
+}
+
+func TestRemoveApplications_HeaderError(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = "test-token"
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	mockHTTP.On("GetReturnStruct", mock.Anything, mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.ApplicationsResponse)
+			target.ApplicationDescriptors = []map[string]any{{"id": "app-1"}}
+		}).
+		Return(nil)
+
+	// Act - set token to empty after GetApplications succeeds
+	action.KeycloakMasterAccessToken = ""
+	err := svc.RemoveApplications("test-app", "ignore-app")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "access token")
+	mockHTTP.AssertNotCalled(t, "Delete")
+}
+
+func TestRemoveApplications_DeleteError(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = "test-token"
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	mockHTTP.On("GetReturnStruct", mock.Anything, mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.ApplicationsResponse)
+			target.ApplicationDescriptors = []map[string]any{{"id": "app-1", "name": "test-app"}}
+		}).
+		Return(nil)
+
+	expectedError := errors.New("delete failed")
+	mockHTTP.On("Delete", mock.Anything, mock.Anything).
+		Return(expectedError)
+
+	// Act
+	err := svc.RemoveApplications("test-app", "ignore-app")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestCreateNewModuleDiscovery_Success(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = "test-token"
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	discoveryModules := []map[string]string{
+		{"id": "mod-1-1.0.0", "name": "mod-1", "version": "1.0.0", "location": "http://mod-1:8080"},
+		{"id": "mod-2-2.0.0", "name": "mod-2", "version": "2.0.0", "location": "http://mod-2:8081"},
+	}
+
+	mockHTTP.On("PostReturnStruct",
+		mock.MatchedBy(func(url string) bool { return strings.Contains(url, "/modules/discovery") }),
+		mock.Anything,
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(3).(*models.ModuleDiscoveryResponse)
+			target.TotalRecords = 2
+			target.Discovery = []models.ModuleDiscovery{
+				{ID: "mod-1-1.0.0", Name: "mod-1", Version: "1.0.0", Location: "http://mod-1:8080"},
+				{ID: "mod-2-2.0.0", Name: "mod-2", Version: "2.0.0", Location: "http://mod-2:8081"},
+			}
+		}).
+		Return(nil)
+
+	// Act
+	err := svc.CreateNewModuleDiscovery(discoveryModules)
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestCreateNewModuleDiscovery_EmptyModules(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = "test-token"
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	discoveryModules := []map[string]string{}
+
+	mockHTTP.On("PostReturnStruct", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(3).(*models.ModuleDiscoveryResponse)
+			target.TotalRecords = 0
+		}).
+		Return(nil)
+
+	// Act
+	err := svc.CreateNewModuleDiscovery(discoveryModules)
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestCreateNewModuleDiscovery_HeaderError(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = ""
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	discoveryModules := []map[string]string{{"id": "mod-1"}}
+
+	// Act
+	err := svc.CreateNewModuleDiscovery(discoveryModules)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "access token")
+	mockHTTP.AssertNotCalled(t, "PostReturnStruct")
+}
+
+func TestCreateNewModuleDiscovery_HTTPError(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = "test-token"
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	discoveryModules := []map[string]string{{"id": "mod-1", "name": "mod-1"}}
+	expectedError := errors.New("HTTP request failed")
+
+	mockHTTP.On("PostReturnStruct", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(expectedError)
+
+	// Act
+	err := svc.CreateNewModuleDiscovery(discoveryModules)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
 	mockHTTP.AssertExpectations(t)
 }

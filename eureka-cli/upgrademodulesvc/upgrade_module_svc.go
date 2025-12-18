@@ -11,6 +11,7 @@ import (
 	"github.com/folio-org/eureka-cli/modulesvc"
 )
 
+// TODO Add testcontainers tests
 // UpgradeModuleProcessor defines the interface combining all operations needed to upgrade a module
 type UpgradeModuleProcessor interface {
 	UpgradeModuleVersionManager

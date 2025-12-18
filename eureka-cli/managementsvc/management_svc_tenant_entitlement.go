@@ -75,7 +75,6 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 	return nil
 }
 
-// TODO Add tests
 func (ms *ManagementSvc) UpgradeTenantEntitlement(consortiumName string, tenantType constant.TenantType, newApplicationID string) error {
 	tenantParameters, err := ms.TenantSvc.GetEntitlementTenantParameters(consortiumName)
 	if err != nil {

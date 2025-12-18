@@ -93,7 +93,7 @@ users:
     password: admin
     first-name: University
     last-name: Admin
-    roles: ["university_admin_role"]
+    roles: ["university_admin_role", "university_user_role"]
   # User Group 1
   university1_user1:
     consortium: ecs

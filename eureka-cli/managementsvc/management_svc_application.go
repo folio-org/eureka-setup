@@ -235,7 +235,6 @@ func (ms *ManagementSvc) FetchModuleDescriptor(extract *models.RegistryExtract, 
 	return nil
 }
 
-// TODO Add tests
 func (ms *ManagementSvc) CreateNewApplication(r *models.ApplicationUpgradeRequest) error {
 	slog.Info(ms.Action.Name, "text", "CREATING NEW APPLICATION", "name", r.ApplicationName, "version", r.NewApplicationVersion)
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, "/applications?check=true")
@@ -283,17 +282,14 @@ func (ms *ManagementSvc) RemoveApplication(applicationID string) error {
 		return err
 	}
 
-	// TODO Fix the return value
-	var decodedResponse models.ApplicationDescriptor
-	if err := ms.HTTPClient.DeleteReturnStruct(requestURL, headers, &decodedResponse); err != nil {
+	if err := ms.HTTPClient.Delete(requestURL, headers); err != nil {
 		return err
 	}
-	slog.Info(ms.Action.Name, "text", "Removed application", "id", decodedResponse.ID)
+	slog.Info(ms.Action.Name, "text", "Removed application", "id", applicationID)
 
 	return nil
 }
 
-// TODO Add tests
 func (ms *ManagementSvc) RemoveApplications(applicationName, ignoreAppID string) error {
 	apps, err := ms.GetApplications()
 	if err != nil {
@@ -312,8 +308,7 @@ func (ms *ManagementSvc) RemoveApplications(applicationName, ignoreAppID string)
 		}
 		requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/applications/%s", id))
 
-		var decodedResponse models.ApplicationDescriptor
-		if err := ms.HTTPClient.DeleteReturnStruct(requestURL, headers, &decodedResponse); err != nil {
+		if err := ms.HTTPClient.Delete(requestURL, headers); err != nil {
 			return err
 		}
 		slog.Info(ms.Action.Name, "text", "Removed application", "id", id)
@@ -346,7 +341,6 @@ func (ms *ManagementSvc) GetModuleDiscovery(name string) (models.ModuleDiscovery
 	return decodedResponse, nil
 }
 
-// TODO Add tests
 func (ms *ManagementSvc) CreateNewModuleDiscovery(newDiscoveryModules []map[string]string) error {
 	requestURL := ms.Action.GetRequestURL(constant.KongPort, "/modules/discovery")
 	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
@@ -393,9 +387,7 @@ func (ms *ManagementSvc) UpdateModuleDiscovery(id string, restore bool, privateP
 		return err
 	}
 
-	// TODO Fix the return value
-	var moduleDiscovery models.ModuleDiscovery
-	if err := ms.HTTPClient.PutReturnStruct(requestURL, payload, headers, &moduleDiscovery); err != nil {
+	if err := ms.HTTPClient.PutReturnNoContent(requestURL, payload, headers); err != nil {
 		return err
 	}
 	slog.Info(ms.Action.Name, "text", "Updated module discovery", "module", name, "location", sidecarURL)

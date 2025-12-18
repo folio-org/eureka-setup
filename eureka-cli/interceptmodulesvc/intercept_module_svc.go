@@ -9,6 +9,7 @@ import (
 	"github.com/folio-org/eureka-cli/modulesvc"
 )
 
+// TODO Add testcontainers tests
 // InterceptModuleProcessor defines the interface for module interception operations
 type InterceptModuleProcessor interface {
 	DeployDefaultModuleAndSidecarPair(client *client.Client, pair *modulesvc.ModulePair) error
