@@ -3621,7 +3621,7 @@ func TestCreateNewApplication_WithBuild(t *testing.T) {
 			// Verify payload includes descriptors
 			payloadBytes := args.Get(1).([]byte)
 			var payload map[string]any
-			json.Unmarshal(payloadBytes, &payload)
+			_ = json.Unmarshal(payloadBytes, &payload)
 			assert.NotEmpty(t, payload["moduleDescriptors"])
 			assert.NotEmpty(t, payload["uiModuleDescriptors"])
 		}).
