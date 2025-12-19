@@ -822,7 +822,7 @@ func TestCloneUpdateRepositories_Success(t *testing.T) {
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.BuildSystem)
 	mockGitClient := &testhelpers.MockGitClient{}
-	run.Config.Infrastructure.GitClient = mockGitClient
+	run.Config.GitClient = mockGitClient
 
 	mockGitClient.On("KongRepository").Return(&gitrepository.GitRepository{}, nil)
 	mockGitClient.On("KeycloakRepository").Return(&gitrepository.GitRepository{}, nil)
@@ -840,7 +840,7 @@ func TestCloneUpdateRepositories_KongRepoError(t *testing.T) {
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.BuildSystem)
 	mockGitClient := &testhelpers.MockGitClient{}
-	run.Config.Infrastructure.GitClient = mockGitClient
+	run.Config.GitClient = mockGitClient
 
 	expectedError := assert.AnError
 	mockGitClient.On("KongRepository").Return(nil, expectedError)
@@ -858,7 +858,7 @@ func TestCloneUpdateRepositories_KeycloakRepoError(t *testing.T) {
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.BuildSystem)
 	mockGitClient := &testhelpers.MockGitClient{}
-	run.Config.Infrastructure.GitClient = mockGitClient
+	run.Config.GitClient = mockGitClient
 
 	expectedError := assert.AnError
 	mockGitClient.On("KongRepository").Return(&gitrepository.GitRepository{}, nil)
@@ -877,7 +877,7 @@ func TestBuildSystem_Success(t *testing.T) {
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.BuildSystem)
 	mockExecSvc := &MockExecSvc{}
-	run.Config.Infrastructure.ExecSvc = mockExecSvc
+	run.Config.ExecSvc = mockExecSvc
 
 	mockExecSvc.On("ExecFromDir", mock.Anything, mock.Anything).Return(nil)
 
@@ -893,7 +893,7 @@ func TestBuildSystem_Error(t *testing.T) {
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.BuildSystem)
 	mockExecSvc := &MockExecSvc{}
-	run.Config.Infrastructure.ExecSvc = mockExecSvc
+	run.Config.ExecSvc = mockExecSvc
 
 	expectedError := assert.AnError
 	mockExecSvc.On("ExecFromDir", mock.Anything, mock.Anything).Return(expectedError)
@@ -914,8 +914,8 @@ func TestBuildAndPushUi_Success(t *testing.T) {
 	run, _, _, _, mockDocker, _ := newTestRun(action.BuildAndPushUi)
 	mockTenantSvc := &testhelpers.MockTenantSvc{}
 	mockUISvc := &MockUISvc{}
-	run.Config.Services.TenantSvc = mockTenantSvc
-	run.Config.Services.UISvc = mockUISvc
+	run.Config.TenantSvc = mockTenantSvc
+	run.Config.UISvc = mockUISvc
 
 	mockTenantSvc.On("SetConfigTenantParams", mock.Anything).Return(nil)
 	mockUISvc.On("CloneAndUpdateRepository", mock.Anything).Return("/tmp/output", nil)
@@ -936,7 +936,7 @@ func TestBuildAndPushUi_SetConfigError(t *testing.T) {
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.BuildAndPushUi)
 	mockTenantSvc := &testhelpers.MockTenantSvc{}
-	run.Config.Services.TenantSvc = mockTenantSvc
+	run.Config.TenantSvc = mockTenantSvc
 
 	expectedError := assert.AnError
 	mockTenantSvc.On("SetConfigTenantParams", mock.Anything).Return(expectedError)
@@ -955,8 +955,8 @@ func TestBuildAndPushUi_CloneError(t *testing.T) {
 	run, _, _, _, _, _ := newTestRun(action.BuildAndPushUi)
 	mockTenantSvc := &testhelpers.MockTenantSvc{}
 	mockUISvc := &MockUISvc{}
-	run.Config.Services.TenantSvc = mockTenantSvc
-	run.Config.Services.UISvc = mockUISvc
+	run.Config.TenantSvc = mockTenantSvc
+	run.Config.UISvc = mockUISvc
 
 	expectedError := assert.AnError
 	mockTenantSvc.On("SetConfigTenantParams", mock.Anything).Return(nil)
@@ -977,8 +977,8 @@ func TestBuildAndPushUi_BuildImageError(t *testing.T) {
 	run, _, _, _, _, _ := newTestRun(action.BuildAndPushUi)
 	mockTenantSvc := &testhelpers.MockTenantSvc{}
 	mockUISvc := &MockUISvc{}
-	run.Config.Services.TenantSvc = mockTenantSvc
-	run.Config.Services.UISvc = mockUISvc
+	run.Config.TenantSvc = mockTenantSvc
+	run.Config.UISvc = mockUISvc
 
 	expectedError := assert.AnError
 	mockTenantSvc.On("SetConfigTenantParams", mock.Anything).Return(nil)
@@ -1000,8 +1000,8 @@ func TestBuildAndPushUi_PushImageError(t *testing.T) {
 	run, _, _, _, mockDocker, _ := newTestRun(action.BuildAndPushUi)
 	mockTenantSvc := &testhelpers.MockTenantSvc{}
 	mockUISvc := &MockUISvc{}
-	run.Config.Services.TenantSvc = mockTenantSvc
-	run.Config.Services.UISvc = mockUISvc
+	run.Config.TenantSvc = mockTenantSvc
+	run.Config.UISvc = mockUISvc
 
 	expectedError := assert.AnError
 	mockTenantSvc.On("SetConfigTenantParams", mock.Anything).Return(nil)
@@ -1029,7 +1029,7 @@ func TestReindexIndices_Success(t *testing.T) {
 
 	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.ReindexIndices)
 	mockSearchSvc := &MockSearchSvc{}
-	run.Config.Services.SearchSvc = mockSearchSvc
+	run.Config.SearchSvc = mockSearchSvc
 	run.Config.Action.ConfigConsortiums = map[string]any{
 		"test-consortium": map[string]any{
 			"name": "test-consortium",
@@ -1063,7 +1063,7 @@ func TestReindexIndices_InventoryError(t *testing.T) {
 
 	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.ReindexIndices)
 	mockSearchSvc := &MockSearchSvc{}
-	run.Config.Services.SearchSvc = mockSearchSvc
+	run.Config.SearchSvc = mockSearchSvc
 	run.Config.Action.ConfigConsortiums = map[string]any{
 		"test-consortium": map[string]any{
 			"name": "test-consortium",
@@ -1098,7 +1098,7 @@ func TestReindexIndices_InstanceError(t *testing.T) {
 
 	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.ReindexIndices)
 	mockSearchSvc := &MockSearchSvc{}
-	run.Config.Services.SearchSvc = mockSearchSvc
+	run.Config.SearchSvc = mockSearchSvc
 	run.Config.Action.ConfigConsortiums = map[string]any{
 		"test-consortium": map[string]any{
 			"name": "test-consortium",
