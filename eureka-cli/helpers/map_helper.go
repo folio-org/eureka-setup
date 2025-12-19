@@ -172,3 +172,33 @@ func GetMap(entry map[string]any, key string) map[string]any {
 
 	return value
 }
+
+// TODO Add tests
+func GetMapOrDefault(entry map[string]any, key string, defaultValue map[string]any) map[string]any {
+	rawValue, exists := entry[key]
+	if !exists || rawValue == nil {
+		return defaultValue
+	}
+
+	value, ok := rawValue.(map[string]any)
+	if !ok {
+		return defaultValue
+	}
+
+	return value
+}
+
+// TODO Add tests
+func GetAnySlice(entry map[string]any, key string) []any {
+	rawValue, exists := entry[key]
+	if !exists || rawValue == nil {
+		return []any{}
+	}
+
+	value, ok := rawValue.([]any)
+	if !ok {
+		return []any{}
+	}
+
+	return value
+}

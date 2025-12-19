@@ -85,14 +85,14 @@ func (run *Run) TenantPartition(consortiumName string, tenantType constant.Tenan
 
 	for _, value := range tenants {
 		entry := value.(map[string]any)
-		configTenant := entry["name"].(string)
+		configTenant := helpers.GetString(entry, "name")
 		if !helpers.HasTenant(configTenant, run.Config.Action.ConfigTenants) {
 			continue
 		}
 		if err := run.setKeycloakAccessTokenIntoContext(configTenant); err != nil {
 			return err
 		}
-		configDescription := entry["description"].(string)
+		configDescription := helpers.GetString(entry, "description")
 		if err = fn(configTenant, configDescription); err != nil {
 			return err
 		}

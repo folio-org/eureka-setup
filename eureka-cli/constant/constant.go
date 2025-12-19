@@ -85,11 +85,6 @@ const (
 	FolioKeycloakBranch = "master"
 	StripesBranch       = "snapshot"
 
-	// Docker Hub & local namespaces
-	SnapshotNamespace = "folioci"
-	ReleaseNamespace  = "folioorg"
-	LocalNamespace    = "foliolocal"
-
 	// Module descriptor file name
 	ModuleDescriptor = "ModuleDescriptor.json"
 
@@ -267,6 +262,19 @@ const (
 
 func GetTokenTypes() []string {
 	return []string{DefaultToken, MasterCustomToken, MasterAdminCLIToken}
+}
+
+// ====================Docker Hub & local namespaces ====================
+
+const (
+	SnapshotNamespace = "folioci"
+	ReleaseNamespace  = "folioorg"
+	LocalNamespace    = "foliolocal"
+)
+
+// TODO Add tests
+func GetNamespaces() []string {
+	return []string{SnapshotNamespace, ReleaseNamespace, LocalNamespace}
 }
 
 // ==================== Required Containers ====================

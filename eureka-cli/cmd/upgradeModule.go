@@ -43,13 +43,11 @@ var upgradeModuleCmd = &cobra.Command{
 			return err
 		}
 
-		return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
-			return run.UpgradeModule(consortiumName, tenantType)
-		})
+		return run.UpgradeModule()
 	},
 }
 
-func (run *Run) UpgradeModule(consortiumName string, tenantType constant.TenantType) error {
+func (run *Run) UpgradeModule() error {
 	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.ClientCredentials); err != nil {
 		return err
 	}
@@ -100,22 +98,22 @@ func (run *Run) UpgradeModule(consortiumName string, tenantType constant.TenantT
 	if err != nil {
 		return err
 	}
-
-	oldBackendModules := app["modules"].([]any)
+	oldBackendModules := helpers.GetAnySlice(app, "modules")
 	newBackendModules, newDiscoveryModules, oldModuleID, err := run.Config.UpgradeModuleSvc.UpdateBackendModules(moduleName, newModuleVersion, shouldBuild, oldBackendModules)
 	if err != nil {
 		return err
 	}
-	oldFrontendModules := app["uiModules"].([]any)
+
+	oldFrontendModules := helpers.GetAnySlice(app, "uiModules")
 	newFrontendModules := run.Config.UpgradeModuleSvc.UpdateFrontendModules(shouldBuild, oldFrontendModules)
 
 	var newBackendModuleDescriptors []any
 	if shouldBuild {
-		oldBackendModuleDescriptors := app["moduleDescriptors"].([]any)
+		oldBackendModuleDescriptors := helpers.GetAnySlice(app, "moduleDescriptors")
 		newBackendModuleDescriptors = run.Config.UpgradeModuleSvc.UpdateBackendModuleDescriptors(moduleName, oldModuleID, newModuleDescriptor, oldBackendModuleDescriptors)
 	}
 
-	oldAppVersion := app["version"].(string)
+	oldAppVersion := helpers.GetString(app, "version")
 	appVersion, err := semver.NewVersion(oldAppVersion)
 	if err != nil {
 		return err
@@ -123,12 +121,12 @@ func (run *Run) UpgradeModule(consortiumName string, tenantType constant.TenantT
 	newAppVersion := appVersion.IncPatch().String()
 
 	var (
-		appName  = app["name"].(string)
+		appName  = helpers.GetString(app, "name")
 		newAppID = fmt.Sprintf("%s-%s", appName, newAppVersion)
 	)
 	if !params.SkipApplication {
-		newDependencies := app["dependencies"].(map[string]any)
-		newFrontendModuleDescriptors := app["uiModuleDescriptors"].([]any)
+		newDependencies := helpers.GetMapOrDefault(app, "dependencies", nil)
+		newFrontendModuleDescriptors := helpers.GetAnySlice(app, "uiModuleDescriptors")
 		if err := run.Config.ManagementSvc.CreateNewApplication(&models.ApplicationUpgradeRequest{
 			ApplicationName:              appName,
 			NewApplicationID:             newAppID,
@@ -145,7 +143,7 @@ func (run *Run) UpgradeModule(consortiumName string, tenantType constant.TenantT
 	}
 	if !params.SkipModuleDiscovery {
 		if err := run.Config.ManagementSvc.CreateNewModuleDiscovery(newDiscoveryModules); err != nil {
-			if downstreamErr := run.cleanupApplicationsOnFailure(consortiumName, tenantType, appName, err); downstreamErr != nil {
+			if downstreamErr := run.cleanupApplicationsOnFailure(constant.NoneConsortium, constant.All, appName, err); downstreamErr != nil {
 				return downstreamErr
 			}
 
@@ -153,9 +151,9 @@ func (run *Run) UpgradeModule(consortiumName string, tenantType constant.TenantT
 		}
 	}
 	if !params.SkipTenantEntitlement {
-		slog.Info(run.Config.Action.Name, "text", "UPGRADING TENANT ENTITLEMENT", "consortium", consortiumName, "from", oldAppVersion, "to", newAppVersion)
-		if err := run.Config.ManagementSvc.UpgradeTenantEntitlement(consortiumName, tenantType, newAppID); err != nil {
-			if downstreamErr := run.cleanupApplicationsOnFailure(consortiumName, tenantType, appName, err); downstreamErr != nil {
+		slog.Info(run.Config.Action.Name, "text", "UPGRADING TENANT ENTITLEMENT", "from", oldAppVersion, "to", newAppVersion)
+		if err := run.Config.ManagementSvc.UpgradeTenantEntitlement(constant.NoneConsortium, constant.All, newAppID); err != nil {
+			if downstreamErr := run.cleanupApplicationsOnFailure(constant.NoneConsortium, constant.All, appName, err); downstreamErr != nil {
 				return downstreamErr
 			}
 
@@ -211,7 +209,7 @@ func (run *Run) cleanupApplicationsOnFailure(consortiumName string, tenantType c
 
 	for _, value := range tenants {
 		entry := value.(map[string]any)
-		tenantName := entry["name"].(string)
+		tenantName := helpers.GetString(entry, "name")
 		if !helpers.HasTenant(tenantName, run.Config.Action.ConfigTenants) {
 			continue
 		}
@@ -255,6 +253,12 @@ func init() {
 
 	if err := upgradeModuleCmd.RegisterFlagCompletionFunc(action.ModuleName.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
+	}); err != nil {
+		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
+		os.Exit(1)
+	}
+	if err := upgradeModuleCmd.RegisterFlagCompletionFunc(action.Namespace.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return constant.GetNamespaces(), cobra.ShellCompDirectiveNoFileComp
 	}); err != nil {
 		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
 		os.Exit(1)

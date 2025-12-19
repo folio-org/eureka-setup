@@ -29,7 +29,8 @@ func (cs *ConsortiumSvc) GetSortedConsortiumTenants(consortiumName string) model
 			continue
 		}
 
-		isCentral := cs.getSortableIsCentral(properties.(map[string]any))
+		entry := properties.(map[string]any)
+		isCentral := cs.getSortableIsCentral(entry)
 		consortiumTenants = append(consortiumTenants, &models.SortedConsortiumTenant{
 			Name:      tenantName,
 			IsCentral: isCentral,

@@ -94,7 +94,7 @@ jobs:
     name: Go Test
     runs-on: ubuntu-latest
     env:
-      EXCLUDE_PATTERN: '/(cmd|field|execsvc|interceptmodulesvc|upgrademodulesvc)$|/internal/|eureka-cli$'
+      EXCLUDE_PATTERN: '/(cmd|interceptmodulesvc|upgrademodulesvc)$|/internal/|eureka-cli$'
     steps:
       - name: Checkout code
         uses: actions/checkout@v6

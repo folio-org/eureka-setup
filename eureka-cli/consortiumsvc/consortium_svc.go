@@ -66,8 +66,12 @@ func (cs *ConsortiumSvc) GetConsortiumByName(centralTenant string, consortiumNam
 
 func (cs *ConsortiumSvc) GetConsortiumCentralTenant(consortiumName string) string {
 	for tenantName, properties := range cs.Action.ConfigTenants {
-		if properties == nil || !cs.isValidConsortium(consortiumName, properties) ||
-			cs.getSortableIsCentral(properties.(map[string]any)) == 0 {
+		if properties == nil || !cs.isValidConsortium(consortiumName, properties) {
+			continue
+		}
+
+		entry := properties.(map[string]any)
+		if cs.getSortableIsCentral(entry) == 0 {
 			continue
 		}
 
@@ -91,8 +95,8 @@ func (cs *ConsortiumSvc) GetConsortiumUsers(consortiumName string) map[string]an
 
 func (cs *ConsortiumSvc) GetAdminUsername(centralTenant string, consortiumUsers map[string]any) string {
 	for username, properties := range consortiumUsers {
-		tenant := properties.(map[string]any)[field.UsersTenantEntry]
-		if tenant != nil && tenant.(string) == centralTenant {
+		entry := properties.(map[string]any)
+		if helpers.GetString(entry, field.UsersTenantEntry) == centralTenant {
 			return username
 		}
 	}
@@ -109,7 +113,8 @@ func (cs *ConsortiumSvc) getSortableIsCentral(entry map[string]any) int {
 }
 
 func (cs *ConsortiumSvc) isValidConsortium(consortiumName string, properties any) bool {
-	return properties.(map[string]any)[field.TenantsConsortiumEntry] == consortiumName
+	entry := properties.(map[string]any)
+	return helpers.GetString(entry, field.TenantsConsortiumEntry) == consortiumName
 }
 
 func (cs *ConsortiumSvc) CreateConsortium(centralTenant string, consortiumName string) (string, error) {
@@ -118,7 +123,8 @@ func (cs *ConsortiumSvc) CreateConsortium(centralTenant string, consortiumName s
 		return "", err
 	}
 	if existingConsortium != nil {
-		consortiumID := existingConsortium.(map[string]any)["id"].(string)
+		entry := existingConsortium.(map[string]any)
+		consortiumID := helpers.GetString(entry, "id")
 		slog.Info(cs.Action.Name, "text", "Consortium is already created", "consortium", consortiumName)
 		return consortiumID, nil
 	}

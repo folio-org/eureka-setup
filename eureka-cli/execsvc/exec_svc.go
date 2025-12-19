@@ -8,7 +8,6 @@ import (
 	"github.com/folio-org/eureka-cli/action"
 )
 
-// TODO Add testcontainers tests
 // CommandRunner defines the interface for executing system commands
 type CommandRunner interface {
 	Exec(cmd *exec.Cmd) error

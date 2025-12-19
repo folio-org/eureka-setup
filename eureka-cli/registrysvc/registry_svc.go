@@ -82,7 +82,7 @@ func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, useRemote, 
 					continue
 				}
 				decodedResponse = append(decodedResponse, &models.ProxyModule{
-					ID:     fmt.Sprintf("%s-%s", name, entry[field.ModuleVersionEntry].(string)),
+					ID:     fmt.Sprintf("%s-%s", name, helpers.GetString(entry, field.ModuleVersionEntry)),
 					Action: "enable",
 				})
 			}

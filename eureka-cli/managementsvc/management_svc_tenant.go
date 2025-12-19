@@ -104,12 +104,12 @@ func (ms *ManagementSvc) RemoveTenants(consortiumName string, tenantType constan
 
 	for _, value := range tenants {
 		entry := value.(map[string]any)
-		tenantName := entry["name"].(string)
+		tenantName := helpers.GetString(entry, "name")
 		if !helpers.HasTenant(tenantName, ms.Action.ConfigTenants) {
 			continue
 		}
 
-		requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/tenants/%s?purgeKafkaTopics=true", entry["id"].(string)))
+		requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/tenants/%s?purgeKafkaTopics=true", helpers.GetString(entry, "id")))
 		if err := ms.HTTPClient.Delete(requestURL, headers); err != nil {
 			return err
 		}

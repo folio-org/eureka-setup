@@ -52,13 +52,13 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 
 	for _, value := range tenants {
 		entry := value.(map[string]any)
-		tenantName := entry["name"].(string)
+		tenantName := helpers.GetString(entry, "name")
 		if !helpers.HasTenant(tenantName, ms.Action.ConfigTenants) {
 			continue
 		}
 
 		payload, err := json.Marshal(map[string]any{
-			"tenantId":     entry["id"].(string),
+			"tenantId":     helpers.GetString(entry, "id"),
 			"applications": []string{ms.Action.ConfigApplicationID},
 		})
 		if err != nil {
@@ -81,7 +81,7 @@ func (ms *ManagementSvc) UpgradeTenantEntitlement(consortiumName string, tenantT
 		return err
 	}
 
-	tenants, err := ms.GetTenants(constant.NoneConsortium, tenantType)
+	tenants, err := ms.GetTenants(consortiumName, tenantType)
 	if err != nil {
 		return nil
 	}
@@ -94,13 +94,13 @@ func (ms *ManagementSvc) UpgradeTenantEntitlement(consortiumName string, tenantT
 
 	for _, value := range tenants {
 		entry := value.(map[string]any)
-		tenantName := entry["name"].(string)
+		tenantName := helpers.GetString(entry, "name")
 		if !helpers.HasTenant(tenantName, ms.Action.ConfigTenants) {
 			continue
 		}
 
 		payload, err := json.Marshal(map[string]any{
-			"tenantId":     entry["id"],
+			"tenantId":     helpers.GetString(entry, "id"),
 			"applications": []string{newApplicationID},
 		})
 		if err != nil {
@@ -131,11 +131,11 @@ func (ms *ManagementSvc) RemoveTenantEntitlements(consortiumName string, tenantT
 
 	for _, value := range tenants {
 		entry := value.(map[string]any)
-		tenantName := entry["name"].(string)
+		tenantName := helpers.GetString(entry, "name")
 		if !helpers.HasTenant(tenantName, ms.Action.ConfigTenants) {
 			continue
 		}
-		tenantID := entry["id"].(string)
+		tenantID := helpers.GetString(entry, "id")
 
 		payload, err := json.Marshal(map[string]any{
 			"tenantId":     tenantID,

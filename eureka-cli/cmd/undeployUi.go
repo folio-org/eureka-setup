@@ -21,6 +21,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -56,7 +57,8 @@ func (run *Run) UndeployUI() error {
 	}
 
 	for _, value := range tenants {
-		pattern := fmt.Sprintf(constant.SingleUiContainerPattern, value.(map[string]any)["name"].(string))
+		entry := value.(map[string]any)
+		pattern := fmt.Sprintf(constant.SingleUiContainerPattern, helpers.GetString(entry, "name"))
 		if err := run.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern); err != nil {
 			return err
 		}

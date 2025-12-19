@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/helpers"
 )
 
 // UpgradeModuleApplicationBuilder defines the interface for updating application configurations during the module upgrade
@@ -28,8 +29,8 @@ func (um *UpgradeModuleSvc) UpdateBackendModules(moduleName, newModuleVersion st
 	}
 	for _, value := range modules {
 		entry := value.(map[string]any)
-		if entry["name"] == moduleName {
-			oldModuleID = entry["id"].(string)
+		if helpers.GetString(entry, "name") == moduleName {
+			oldModuleID = helpers.GetString(entry, "id")
 			moduleID := fmt.Sprintf("%s-%s", moduleName, newModuleVersion)
 			if shouldBuild {
 				entry = map[string]any{
@@ -94,9 +95,9 @@ func (um *UpgradeModuleSvc) UpdateFrontendModules(shouldBuild bool, modules []an
 
 func (um *UpgradeModuleSvc) getDefaultModuleEntry(shouldBuild bool, entry map[string]any) map[string]any {
 	var (
-		moduleID      = entry["id"]
-		moduleName    = entry["name"]
-		moduleVersion = entry["version"]
+		moduleID      = helpers.GetString(entry, "id")
+		moduleName    = helpers.GetString(entry, "name")
+		moduleVersion = helpers.GetString(entry, "version")
 	)
 	if shouldBuild {
 		return map[string]any{
@@ -119,7 +120,7 @@ func (um *UpgradeModuleSvc) UpdateBackendModuleDescriptors(moduleName, oldModule
 	var newModuleDescriptors []any
 	for _, value := range moduleDescriptors {
 		entry := value.(map[string]any)
-		if entry["id"] == oldModuleID {
+		if helpers.GetString(entry, "id") == oldModuleID {
 			continue
 		}
 		newModuleDescriptors = append(newModuleDescriptors, value)
