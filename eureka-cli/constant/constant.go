@@ -204,16 +204,6 @@ const (
 	ErrNoActiveMembers  = "Consumer group 'folio-mod-roles-keycloak-capability-group' has no active members."
 	ErrRebalancing      = "Consumer group 'folio-mod-roles-keycloak-capability-group' is rebalancing."
 	ErrTimeoutException = "TimeoutException"
-
-	// Profile names
-	CombinedProfile       = "combined"
-	CombinedNativeProfile = "combined-native"
-	ExportProfile         = "export"
-	SearchProfile         = "search"
-	EdgeProfile           = "edge"
-	ECSProfile            = "ecs"
-	ECSSingleProfile      = "ecs-single"
-	ImportProfile         = "import"
 )
 
 // ==================== Container Types ====================
@@ -293,6 +283,18 @@ func GetInitialRequiredContainers() []string {
 
 // ==================== Profiles ====================
 
+const (
+	CombinedProfile       = "combined"
+	CombinedNativeProfile = "combined-native"
+	ExportProfile         = "export"
+	SearchProfile         = "search"
+	EdgeProfile           = "edge"
+	ECSProfile            = "ecs"
+	ECSSingleProfile      = "ecs-single"
+	ECSMigrationProfile   = "ecs-migration"
+	ImportProfile         = "import"
+)
+
 func GetProfiles() []string {
 	return []string{
 		CombinedProfile,
@@ -302,6 +304,7 @@ func GetProfiles() []string {
 		EdgeProfile,
 		ECSProfile,
 		ECSSingleProfile,
+		ECSMigrationProfile,
 		ImportProfile,
 	}
 }

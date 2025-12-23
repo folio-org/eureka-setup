@@ -1,0 +1,976 @@
+profile:
+  name: ecs
+application:
+  name: app-ecs
+  version: 1.0.0
+  fetch-descriptors: false
+  port-start: 30000
+  port-end: 30999
+registry:
+  url: https://folio-registry.dev.folio.org
+install:
+  folio: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
+  eureka: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
+namespaces:
+  platform-complete-ui: bkadirkhodjaev
+environment:
+  # PostgreSQL
+  DB_HOST: postgres.eureka
+  DB_PORT: 5432
+  DB_DATABASE: folio
+  DB_USERNAME: folio_rw
+  DB_PASSWORD: supersecret
+  DB_CHARSET: UTF-8
+  DB_QUERYTIMEOUT: 60000
+  DB_MAXPOOLSIZE: 4
+  # Kafka
+  ENV: folio
+  KAFKA_HOST: kafka.eureka
+  KAFKA_PORT: 9092
+  KAFKA_PRODUCER_TENANT_COLLECTION: ALL
+  # Kong
+  KONG_ADMIN_URL: http://kong.eureka:8001
+  KONG_INTEGRATION_ENABLED: "true"
+  # Keycloak
+  KC_URL: http://keycloak.eureka:8080
+  KC_CONFIG_TTL: 3600s
+  KC_ADMIN_CLIENT_ID: folio-backend-admin-client
+  KC_ADMIN_CLIENT_SECRET: supersecret
+  KC_ADMIN_USERNAME: admin
+  KC_ADMIN_PASSWORD: admin
+  KC_IMPORT_ENABLED: "true"
+  KC_INTEGRATION_ENABLED: "true"
+  KC_LOGIN_CLIENT_SUFFIX: -application
+  KC_SERVICE_CLIENT_ID: sidecar-module-access-client
+  KC_URI_VALIDATION_ENABLED: "false"
+  SECURITY_ENABLED: "true"
+  OKAPI_INTEGRATION_ENABLED: "false"
+  WEB_CLIENT_TLS_VERIFY_HOSTNAME: "false"
+  # Java
+  JAVA_OPTIONS: >-
+    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 
+    -XX:MaxRAMPercentage=80.0 -Xms128m -Xmx400m 
+    -Djdk.internal.httpclient.disableHostnameVerification=true
+consortiums:
+  ecs:
+    create-consortium: true
+    enable-central-ordering: true
+tenants:
+  ecs:
+    consortium: ecs
+    deploy-ui: true
+    single-tenant: false
+    enable-ecs-request: false
+    central-tenant: true
+    platform-complete-url: http://localhost:3000
+  university:
+    consortium: ecs
+roles:
+  ecs_admin_role:
+    consortium: ecs 
+    tenant: ecs
+    capability-sets: ["all"]
+  university_admin_role:
+    consortium: ecs
+    tenant: university
+    capability-sets: ["all"]
+  university_user_role:
+    consortium: ecs
+    tenant: university
+    capability-sets: []
+users:
+  # Admin Group
+  ecs_admin0:
+    consortium: ecs 
+    tenant: ecs
+    password: admin
+    first-name: ECS 
+    last-name: Admin
+    roles: ["ecs_admin_role"]
+  university_admin0:
+    consortium: ecs
+    tenant: university
+    password: admin
+    first-name: University
+    last-name: Admin
+    roles: ["university_admin_role", "university_user_role"]
+  # User Group 1
+  university01_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University1
+    last-name: User1
+    roles: []
+    permissions: ["perms.all"]
+  university01_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University1
+    last-name: User2
+    roles: []
+  university01_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University1
+    last-name: User3
+    roles: []
+  # User Group 2
+  university02_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University2
+    last-name: User1
+    roles: []
+  university02_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University2
+    last-name: User2
+    roles: []
+  university02_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University2
+    last-name: User3
+    roles: []
+  # User Group 3
+  university03_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University3
+    last-name: User1
+    roles: []
+  university03_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University3
+    last-name: User2
+    roles: []
+  university03_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University3
+    last-name: User3
+    roles: []
+  # User Group 4
+  university04_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University4
+    last-name: User1
+    roles: []
+  university04_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University4
+    last-name: User2
+    roles: []
+  university04_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University4
+    last-name: User3
+    roles: []
+  # User Group 5
+  university05_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University5
+    last-name: User1
+    roles: []
+  university05_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University5
+    last-name: User2
+    roles: []
+  university05_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University5
+    last-name: User3
+    roles: []
+  # User Group 6
+  university06_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University6
+    last-name: User1
+    roles: []
+  university06_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University6
+    last-name: User2
+    roles: []
+  university06_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University6
+    last-name: User3
+    roles: []
+  # User Group 7
+  university07_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University7
+    last-name: User1
+    roles: []
+  university07_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University7
+    last-name: User2
+    roles: []
+  university07_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University7
+    last-name: User3
+    roles: []
+  # User Group 8
+  university08_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University8
+    last-name: User1
+    roles: []
+  university08_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University8
+    last-name: User2
+    roles: []
+  university08_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University8
+    last-name: User3
+    roles: []
+  # User Group 9
+  university09_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University9
+    last-name: User1
+    roles: []
+  university09_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University9
+    last-name: User2
+    roles: []
+  university09_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University9
+    last-name: User3
+    roles: []
+  # User Group 10
+  university10_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University10
+    last-name: User1
+    roles: []
+  university10_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University10
+    last-name: User2
+    roles: []
+  university10_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University10
+    last-name: User3
+    roles: []
+  # User Group 11
+  university11_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University11
+    last-name: User1
+    roles: []
+  university11_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University11
+    last-name: User2
+    roles: []
+  university11_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University11
+    last-name: User3
+    roles: []
+  # User Group 12
+  university12_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University12
+    last-name: User1
+    roles: []
+  university12_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University12
+    last-name: User2
+    roles: []
+  university12_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University12
+    last-name: User3
+    roles: []
+  # User Group 13
+  university13_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University13
+    last-name: User1
+    roles: []
+  university13_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University13
+    last-name: User2
+    roles: []
+  university13_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University13
+    last-name: User3
+    roles: []
+  # User Group 14
+  university14_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University14
+    last-name: User1
+    roles: []
+  university14_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University14
+    last-name: User2
+    roles: []
+  university14_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University14
+    last-name: User3
+    roles: []
+  # User Group 15
+  university15_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University15
+    last-name: User1
+    roles: []
+  university15_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University15
+    last-name: User2
+    roles: []
+  university15_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University15
+    last-name: User3
+    roles: []
+  # User Group 16
+  university16_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University16
+    last-name: User1
+    roles: []
+  university16_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University16
+    last-name: User2
+    roles: []
+  university16_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University16
+    last-name: User3
+    roles: []
+  # User Group 17
+  university17_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University17
+    last-name: User1
+    roles: []
+  university17_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University17
+    last-name: User2
+    roles: []
+  university17_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University17
+    last-name: User3
+    roles: []
+  # User Group 18
+  university18_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University18
+    last-name: User1
+    roles: []
+  university18_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University18
+    last-name: User2
+    roles: []
+  university18_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University18
+    last-name: User3
+    roles: []
+  # User Group 19
+  university19_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University19
+    last-name: User1
+    roles: []
+  university19_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University19
+    last-name: User2
+    roles: []
+  university19_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University19
+    last-name: User3
+    roles: []
+  # User Group 20
+  university20_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University20
+    last-name: User1
+    roles: []
+  university20_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University20
+    last-name: User2
+    roles: []
+  university20_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University20
+    last-name: User3
+    roles: []
+  # User Group 21
+  university21_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University21
+    last-name: User1
+    roles: []
+  university21_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University21
+    last-name: User2
+    roles: []
+  university21_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University21
+    last-name: User3
+    roles: []
+  # User Group 22
+  university22_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University22
+    last-name: User1
+    roles: []
+  university22_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University22
+    last-name: User2
+    roles: []
+  university22_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University22
+    last-name: User3
+    roles: []
+  # User Group 23
+  university23_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University23
+    last-name: User1
+    roles: []
+  university23_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University23
+    last-name: User2
+    roles: []
+  university23_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University23
+    last-name: User3
+    roles: []
+  # User Group 24
+  university24_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University24
+    last-name: User1
+    roles: []
+  university24_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University24
+    last-name: User2
+    roles: []
+  university24_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University24
+    last-name: User3
+    roles: []
+  # User Group 25
+  university25_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University25
+    last-name: User1
+    roles: []
+  university25_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University25
+    last-name: User2
+    roles: []
+  university25_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University25
+    last-name: User3
+    roles: []
+  # User Group 26
+  university26_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University26
+    last-name: User1
+    roles: []
+  university26_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University26
+    last-name: User2
+    roles: []
+  university26_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University26
+    last-name: User3
+    roles: []
+  # User Group 27
+  university27_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University27
+    last-name: User1
+    roles: []
+  university27_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University27
+    last-name: User2
+    roles: []
+  university27_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University27
+    last-name: User3
+    roles: []
+  # User Group 28
+  university28_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University28
+    last-name: User1
+    roles: []
+  university28_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University28
+    last-name: User2
+    roles: []
+  university28_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University28
+    last-name: User3
+    roles: []
+  # User Group 29
+  university29_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University29
+    last-name: User1
+    roles: []
+  university29_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University29
+    last-name: User2
+    roles: []
+  university29_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University29
+    last-name: User3
+    roles: []
+  # User Group 30
+  university30_user1:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University30
+    last-name: User1
+    roles: []
+  university30_user2:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University30
+    last-name: User2
+    roles: []
+  university30_user3:
+    consortium: ecs
+    tenant: university
+    password: user
+    first-name: University30
+    last-name: User3
+    roles: []
+sidecar-module:
+  # Must build locally for your OS and CPU
+  image: folio-module-sidecar-native
+  version: latest
+  custom-namespace: true
+  native-binary-cmd: [
+    "./application", "-Dquarkus.http.host=0.0.0.0", "-Dquarkus.log.category.'org.apache.kafka'.level=INFO"
+  ]
+  environment:
+    # Kafka
+    ENV: folio
+    KAFKA_HOST: kafka.eureka
+    KAFKA_PORT: 9092
+    # Keycloak
+    MOD_USERS_KEYCLOAK_URL: http://mod-users-keycloak-sc.eureka:8081
+    # Management
+    TM_CLIENT_URL: http://mgr-tenants.eureka:8081
+    AM_CLIENT_URL: http://mgr-applications.eureka:8081
+    TE_CLIENT_URL: http://mgr-tenant-entitlements.eureka:8081
+    # Sidecar
+    SIDECAR: "true"
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS: "true"
+    SIDECAR_FORWARD_UNKNOWN_REQUESTS_DESTINATION: http://kong.eureka:8000
+    QUARKUS_HTTP_PORT: 8081
+    QUARKUS_REST_CLIENT_READ_TIMEOUT: 180000
+    QUARKUS_REST_CLIENT_CONNECT_TIMEOUT: 180000
+    QUARKUS_REST_CLIENT_SEND_TIMEOUT: 180000
+    QUARKUS_HTTP_LIMITS_MAX_INITIAL_LINE_LENGTH: 8192
+    SC_LOG_LEVEL: INFO
+    ROOT_LOG_LEVEL: INFO
+    REQUEST_TIMEOUT: 604800000
+    ALLOW_CROSS_TENANT_REQUESTS: "true"
+  resources:
+    cpus: 1
+    memory-reservation: 20
+    memory: 80
+backend-modules:
+  mgr-applications:
+    port: 9901
+    use-vault: true
+    environment:
+      MODULE_URL: http://mgr-applications.eureka:8081
+      TE_URL: http://mgr-tenant-entitlements.eureka:8081
+      VALIDATION_MODE: none
+      ROUTEMANAGEMENT_ENABLE: "true"
+      FOLIO_CLIENT_CONNECT_TIMEOUT: 600s
+      FOLIO_CLIENT_READ_TIMEOUT: 600s
+      KONG_CONNECT_TIMEOUT: "941241418"
+      KONG_READ_TIMEOUT: "941241418"
+      KONG_WRITE_TIMEOUT: "941241418"
+    resources:
+      cpus: 2
+  mgr-tenants:
+    port: 9902
+    use-vault: true
+    environment:
+      MODULE_URL: http://mgr-tenants.eureka:8081
+      FOLIO_CLIENT_CONNECT_TIMEOUT: 600s
+      FOLIO_CLIENT_READ_TIMEOUT: 600s
+      KONG_CONNECT_TIMEOUT: "941241418"
+      KONG_READ_TIMEOUT: "941241418"
+      KONG_WRITE_TIMEOUT: "941241418"
+    resources:
+      cpus: 2
+  mgr-tenant-entitlements:
+    port: 9903
+    use-vault: true
+    environment:
+      MODULE_URL: http://mgr-tenant-entitlements.eureka:8081
+      MT_CLIENT_URL: http://mgr-tenants.eureka:8081
+      AM_CLIENT_URL: http://mgr-applications.eureka:8081
+      VALIDATION_INTERFACE_INTEGRITY_ENTITLEMENT_ENABLED: "false"
+      VALIDATION_INTERFACE_INTEGRITY_UPGRADE_ENABLED: "false"
+      ROUTEMANAGEMENT_ENABLE: "false"
+      FOLIO_CLIENT_CONNECT_TIMEOUT: 600s
+      FOLIO_CLIENT_READ_TIMEOUT: 600s
+      KONG_CONNECT_TIMEOUT: "941241418"
+      KONG_READ_TIMEOUT: "941241418"
+      KONG_WRITE_TIMEOUT: "941241418"
+      FLOW_ENGINE_THREADS_NUM: "4"
+      FLOW_ENGINE_MODULE_INSTALLER_THREADS: "4"
+      RETRIES_MODULE_MAX: "10"
+      KAFKA_ENTITLEMENT_TOPIC_PARTITIONS: "1"
+      KAFKA_SCHEDULED_JOB_TOPIC_PARTITIONS: "1"
+      KAFKA_CAPABILITY_TOPIC_PARTITIONS: "1"
+      KAFKA_SYS_USER_TOPIC_PARTITIONS: "1"
+      KAFKA_PRODUCER_TENANT_COLLECTION: "true"
+      FLOW_ENGINE_PRINT_FLOW_RESULTS: "true"
+    resources:
+      cpus: 4
+  mod-users-keycloak:
+    use-vault: true
+    use-okapi-url: true
+    disable-system-user: true
+    port: 9904
+    environment:
+      SINGLE_TENANT_UX: "true"
+      INCLUDE_ONLY_VISIBLE_PERMISSIONS: "false"
+      KAFKA_SYS_USER_TOPIC_RETRY_DELAY: 1s
+      KAFKA_SYS_USER_TOPIC_RETRY_ATTEMPTS: "9223372036854775807"
+      KAFKA_SYS_USER_CAPABILITIES_RETRY_DELAY: 5s
+      KAFKA_SYS_USER_CAPABILITIES_RETRY_ATTEMPTS: "100"
+    resources:
+      cpus: 4
+      memory: 900
+  mod-login-keycloak:
+    use-vault: true
+    port: 9905
+    environment:
+      X_OKAPI_TOKEN_HEADER_ENABLED: "false"
+      LOGIN_COOKIE_SAMESITE: "NONE"
+      KC_ADMIN_TOKEN_TTL: 895s
+  mod-roles-keycloak:
+    use-vault: true
+    disable-system-user: true
+    port: 9906
+    environment:
+      CAPABILITY_TOPIC_RETRY_DELAY: 1s
+      CAPABILITY_TOPIC_RETRY_ATTEMPTS: "9223372036854775807"
+    resources:
+      cpus: 4
+  mod-scheduler:
+    use-vault: true
+    use-okapi-url: true
+    disable-system-user: true
+    port: 9907
+    resources:
+      cpus: 4
+  mod-consortia-keycloak:
+    use-vault: true
+    use-okapi-url: true
+    disable-system-user: true
+    port: 9908
+    environment:
+      SINGLE_TENANT_UX: "true"
+      KC_IDENTITY_PROVIDER_BASE_URL: http://keycloak.eureka:8080
+  mod-okapi-facade:
+    environment:
+      TENANT_APPS_TTL: 600s
+      AM_TLS_ENABLED: "false"
+      TM_TLS_ENABLED: "false"
+      TE_TLS_ENABLED: "false"
+      AM_CLIENT_URL: http://mgr-applications.eureka:8081
+      MT_CLIENT_URL: http://mgr-tenants.eureka:8081
+      TE_URL: http://mgr-tenant-entitlements.eureka:8081
+  mod-permissions:
+  mod-configuration:
+  mod-users:
+  mod-roles:
+  mod-password-validator:
+  mod-settings:
+  mod-notes:
+  mod-tags:
+  mod-inventory-storage:
+  mod-inventory:
+    private-port: 9403
+  mod-organizations-storage:
+  mod-organizations:
+  mod-invoice-storage:
+  mod-invoice:
+  mod-orders-storage:
+  mod-orders:
+  mod-finance:
+  mod-finance-storage:
+    use-vault: true
+  mod-audit:
+  mod-pubsub:
+    disable-system-user: true
+  mod-circulation-storage:
+  mod-circulation:
+    private-port: 9801
+  mod-template-engine:
+  mod-feesfines:
+  mod-search:
+    use-okapi-url: true
+    disable-system-user: true
+    environment:
+      ELASTICSEARCH_SERVER: "true"
+      ELASTICSEARCH_URL: http://elasticsearch.eureka:9200
+      ELASTICSEARCH_HOST: elasticsearch.eureka
+      ELASTICSEARCH_PORT: 9200
+  mod-fqm-manager:
+    deploy-module: false
+    environment:
+      IS_EUREKA: "true"
+      QUERY_RETENTION_DURATION: "3h"
+      TASK_EXECUTION_POOL_MAXSIZE: "10"
+frontend-modules:
+  folio_stripes-core:
+  folio_developer:
+  folio_notes:
+  folio_tags:
+  folio_stripes-smart-components:
+  folio_users:
+  folio_tenant-settings:
+  folio_organizations:
+  folio_inventory:
+  folio_invoice:
+  folio_orders:
+  folio_finance:
+  folio_receiving:
+  folio_claims:
+  folio_servicepoints:
+  folio_acquisition-units:
+  folio_requests:
+  folio_plugin-find-instance:
+  folio_plugin-find-organization:
+  folio_plugin-find-po-line:
+  folio_plugin-find-user:
+  folio_plugin-find-authority:
+custom-frontend-modules:
+  folio_authorization-roles:
+    version: 2.1.1099000000000223
+  folio_authorization-policies:
+    version: 2.0.1099000000000111
+  folio_plugin-select-application:
+    version: 2.0.1099000000000124
+  folio_consortia-settings:
+    version: 3.0.1099000000000154

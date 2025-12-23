@@ -294,6 +294,7 @@ func (m *MockModuleSvc) GetVaultRootToken(client *client.Client) (string, error)
 }
 
 func (m *MockModuleSvc) CheckModuleReadiness(wg *sync.WaitGroup, errCh chan<- error, moduleName string, port int) {
+	defer wg.Done()
 	m.Called(wg, errCh, moduleName, port)
 }
 
@@ -389,6 +390,21 @@ func (m *MockModuleSvc) DeployCustomSidecar(cli *client.Client, pair *modulesvc.
 
 func (m *MockModuleSvc) CheckModuleAndSidecarReadiness(pair *modulesvc.ModulePair) error {
 	args := m.Called(pair)
+	return args.Error(0)
+}
+
+// MockInterceptModuleSvc is a mock for interceptmodulesvc.InterceptModuleProcessor
+type MockInterceptModuleSvc struct {
+	mock.Mock
+}
+
+func (m *MockInterceptModuleSvc) DeployDefaultModuleAndSidecarPair(cli *client.Client, pair *modulesvc.ModulePair) error {
+	args := m.Called(cli, pair)
+	return args.Error(0)
+}
+
+func (m *MockInterceptModuleSvc) DeployCustomSidecarForInterception(cli *client.Client, pair *modulesvc.ModulePair) error {
+	args := m.Called(cli, pair)
 	return args.Error(0)
 }
 
@@ -503,13 +519,71 @@ func (m *MockSearchSvc) ReindexInstanceRecords(tenantName string) error {
 	return args.Error(0)
 }
 
+// MockKafkaSvc is a mock for kafkasvc.KafkaProcessor
+type MockKafkaSvc struct {
+	mock.Mock
+}
+
+func (m *MockKafkaSvc) CheckBrokerReadiness() error {
+	args := m.Called()
+	return args.Error(0)
+}
+
+func (m *MockKafkaSvc) PollConsumerGroup(tenantName string) error {
+	args := m.Called(tenantName)
+	return args.Error(0)
+}
+
+type MockModuleProps struct {
+	mock.Mock
+}
+
+func (m *MockModuleProps) ReadBackendModules(checkIntegrity, skipFrontendCompatibility bool) (map[string]models.BackendModule, error) {
+	args := m.Called(checkIntegrity, skipFrontendCompatibility)
+	return args.Get(0).(map[string]models.BackendModule), args.Error(1)
+}
+
+func (m *MockModuleProps) ReadFrontendModules(checkIntegrity bool) (map[string]models.FrontendModule, error) {
+	args := m.Called(checkIntegrity)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(map[string]models.FrontendModule), args.Error(1)
+}
+
+type MockRegistrySvc struct {
+	mock.Mock
+}
+
+func (m *MockRegistrySvc) GetNamespace(version string) string {
+	args := m.Called(version)
+	return args.String(0)
+}
+
+func (m *MockRegistrySvc) GetModules(installJSONURLs map[string]string, useRemote, verbose bool) (*models.ProxyModulesByRegistry, error) {
+	args := m.Called(installJSONURLs, useRemote, verbose)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.ProxyModulesByRegistry), args.Error(1)
+}
+
+func (m *MockRegistrySvc) ExtractModuleMetadata(modules *models.ProxyModulesByRegistry) {
+	m.Called(modules)
+}
+
+func (m *MockRegistrySvc) GetAuthorizationToken() (string, error) {
+	args := m.Called()
+	return args.String(0), args.Error(1)
+}
+
 // ==================== CreateTenants Tests ====================
 
 func TestCreateTenants_Success(t *testing.T) {
 	// Arrange
 	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.CreateTenants)
 
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
 	mockManagement.On("CreateTenants").Return(nil)
 
 	// Act
@@ -526,7 +600,7 @@ func TestCreateTenants_GetTokenError(t *testing.T) {
 	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.CreateTenants)
 
 	expectedError := assert.AnError
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", expectedError)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", expectedError)
 
 	// Act
 	err := run.CreateTenants()
@@ -543,7 +617,7 @@ func TestCreateTenants_CreateTenantsError(t *testing.T) {
 	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.CreateTenants)
 
 	expectedError := assert.AnError
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
 	mockManagement.On("CreateTenants").Return(expectedError)
 
 	// Act
@@ -562,7 +636,7 @@ func TestRemoveTenants_Success(t *testing.T) {
 	// Arrange
 	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.RemoveTenants)
 
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
 	mockManagement.On("RemoveTenants", mock.Anything, mock.Anything).Return(nil)
 
 	// Act
@@ -579,7 +653,7 @@ func TestRemoveTenants_GetTokenError(t *testing.T) {
 	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.RemoveTenants)
 
 	expectedError := assert.AnError
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", expectedError)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", expectedError)
 
 	// Act
 	err := run.RemoveTenants(constant.NoneConsortium, constant.Default)
@@ -596,7 +670,7 @@ func TestRemoveTenants_RemoveTenantsError(t *testing.T) {
 	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.RemoveTenants)
 
 	expectedError := assert.AnError
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
 	mockManagement.On("RemoveTenants", mock.Anything, mock.Anything).Return(expectedError)
 
 	// Act
@@ -615,12 +689,14 @@ func TestCreateUsers_Success(t *testing.T) {
 	// Arrange
 	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.CreateUsers)
 
+	expectedTenant := map[string]any{"name": "test-tenant", "description": "nop-default"}
+
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
 	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
-		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
-	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+		Return([]any{expectedTenant}, nil)
+	mockKeycloak.On("GetAccessToken", "test-tenant").Return("", nil)
 	mockKeycloak.On("CreateUsers", "test-tenant").Return(nil)
 
 	// Act
@@ -629,7 +705,7 @@ func TestCreateUsers_Success(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 	mockDocker.AssertExpectations(t)
-	// mockVault not used in these tests
+	mockModule.AssertExpectations(t)
 	mockKeycloak.AssertExpectations(t)
 	mockManagement.AssertExpectations(t)
 }
@@ -639,10 +715,61 @@ func TestCreateUsers_GetTenantsError(t *testing.T) {
 	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.CreateUsers)
 
 	expectedError := assert.AnError
+
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", nil)
-	mockManagement.On("GetTenants", mock.Anything, mock.Anything).Return(nil, expectedError)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return(nil, expectedError)
+
+	// Act
+	err := run.CreateUsers(constant.NoneConsortium, constant.Default)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockKeycloak.AssertNotCalled(t, "CreateUsers")
+	mockKeycloak.AssertNotCalled(t, "GetAccessToken")
+}
+
+func TestCreateUsers_CreateUsersError(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.CreateUsers)
+
+	expectedError := assert.AnError
+	expectedTenant := map[string]any{"name": "test-tenant", "description": "nop-default"}
+
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{expectedTenant}, nil)
+	mockKeycloak.On("GetAccessToken", "test-tenant").Return("", nil)
+	mockKeycloak.On("CreateUsers", "test-tenant").Return(expectedError)
+
+	// Act
+	err := run.CreateUsers(constant.NoneConsortium, constant.Default)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockKeycloak.AssertExpectations(t)
+	mockManagement.AssertExpectations(t)
+}
+
+func TestCreateUsers_GetAccessTokenError(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.CreateUsers)
+
+	expectedError := assert.AnError
+	expectedTenant := map[string]any{"name": "test-tenant", "description": "nop-default"}
+
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{expectedTenant}, nil)
+	mockKeycloak.On("GetAccessToken", "test-tenant").Return("", expectedError)
 
 	// Act
 	err := run.CreateUsers(constant.NoneConsortium, constant.Default)
@@ -653,28 +780,6 @@ func TestCreateUsers_GetTenantsError(t *testing.T) {
 	mockKeycloak.AssertNotCalled(t, "CreateUsers")
 }
 
-func TestCreateUsers_CreateUsersError(t *testing.T) {
-	// Arrange
-	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.CreateUsers)
-
-	expectedError := assert.AnError
-	mockDocker.On("Create").Return(nil, nil)
-	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", nil)
-	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
-		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
-	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
-	mockKeycloak.On("CreateUsers", "test-tenant").Return(expectedError)
-
-	// Act
-	err := run.CreateUsers(constant.NoneConsortium, constant.Default)
-
-	// Assert
-	assert.Error(t, err)
-	assert.Equal(t, expectedError, err)
-	mockKeycloak.AssertExpectations(t)
-}
-
 // ==================== RemoveUsers Tests ====================
 
 func TestRemoveUsers_Success(t *testing.T) {
@@ -683,7 +788,7 @@ func TestRemoveUsers_Success(t *testing.T) {
 
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
 	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
 		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
 	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
@@ -707,7 +812,7 @@ func TestRemoveUsers_RemoveUsersError(t *testing.T) {
 	expectedError := assert.AnError
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
 	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
 		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
 	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
@@ -730,7 +835,7 @@ func TestCreateRoles_Success(t *testing.T) {
 
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
 	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
 		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
 	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
@@ -754,7 +859,7 @@ func TestCreateRoles_CreateRolesError(t *testing.T) {
 	expectedError := assert.AnError
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
 	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
 		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
 	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
@@ -777,7 +882,7 @@ func TestRemoveRoles_Success(t *testing.T) {
 
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
 	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
 		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
 	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
@@ -801,7 +906,7 @@ func TestRemoveRoles_RemoveRolesError(t *testing.T) {
 	expectedError := assert.AnError
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
 	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
 		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
 	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
@@ -1041,7 +1146,7 @@ func TestReindexIndices_Success(t *testing.T) {
 
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
 	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
 		Return([]any{map[string]any{"name": "test-consortium-central", "description": "test-consortium-central"}}, nil)
 	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
@@ -1076,7 +1181,7 @@ func TestReindexIndices_InventoryError(t *testing.T) {
 	expectedError := assert.AnError
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
 	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
 		Return([]any{map[string]any{"name": "test-consortium-central", "description": "test-consortium-central"}}, nil)
 	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
@@ -1089,6 +1194,904 @@ func TestReindexIndices_InventoryError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, expectedError, err)
 	mockSearchSvc.AssertExpectations(t)
+}
+
+// ==================== DeployUi Tests ====================
+
+func TestDeployUi_Success(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.DeployUi)
+	mockTenantSvc := &testhelpers.MockTenantSvc{}
+	mockUISvc := &MockUISvc{}
+	run.Config.TenantSvc = mockTenantSvc
+	run.Config.UISvc = mockUISvc
+	run.Config.Action.ConfigTenants = map[string]any{
+		"test-tenant": map[string]any{
+			"deploy-ui": true,
+		},
+	}
+	params.PlatformCompleteURL = "http://localhost:3000"
+
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
+	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockTenantSvc.On("SetConfigTenantParams", "test-tenant").Return(nil)
+	mockUISvc.On("PrepareImage", "test-tenant").Return("test-image", nil)
+	mockUISvc.On("DeployContainer", "test-tenant", "test-image", 3000).Return(nil)
+
+	// Act
+	err := run.DeployUi(constant.NoneConsortium, constant.Default)
+
+	// Assert
+	assert.NoError(t, err)
+	mockTenantSvc.AssertExpectations(t)
+	mockUISvc.AssertExpectations(t)
+}
+
+func TestDeployUi_SetConfigError(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.DeployUi)
+	mockTenantSvc := &testhelpers.MockTenantSvc{}
+	run.Config.TenantSvc = mockTenantSvc
+	run.Config.Action.ConfigTenants = map[string]any{
+		"test-tenant": map[string]any{
+			"deploy-ui": true,
+		},
+	}
+
+	expectedError := assert.AnError
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
+	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockTenantSvc.On("SetConfigTenantParams", "test-tenant").Return(expectedError)
+
+	// Act
+	err := run.DeployUi(constant.NoneConsortium, constant.Default)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockTenantSvc.AssertExpectations(t)
+}
+
+func TestDeployUi_PrepareImageError(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.DeployUi)
+	mockTenantSvc := &testhelpers.MockTenantSvc{}
+	mockUISvc := &MockUISvc{}
+	run.Config.TenantSvc = mockTenantSvc
+	run.Config.UISvc = mockUISvc
+	run.Config.Action.ConfigTenants = map[string]any{
+		"test-tenant": map[string]any{
+			"deploy-ui": true,
+		},
+	}
+
+	expectedError := assert.AnError
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
+	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockTenantSvc.On("SetConfigTenantParams", "test-tenant").Return(nil)
+	mockUISvc.On("PrepareImage", "test-tenant").Return("", expectedError)
+
+	// Act
+	err := run.DeployUi(constant.NoneConsortium, constant.Default)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockUISvc.AssertExpectations(t)
+}
+
+// ==================== ListModules Tests ====================
+
+func TestListModules_Success(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.ListModules)
+	mockExecSvc := &MockExecSvc{}
+	run.Config.ExecSvc = mockExecSvc
+	params.ModuleName = "test-module"
+	params.ModuleType = ""
+	params.All = false
+
+	mockExecSvc.On("Exec", mock.Anything).Return(nil)
+
+	// Act
+	err := run.ListModules()
+
+	// Assert
+	assert.NoError(t, err)
+	mockExecSvc.AssertExpectations(t)
+}
+
+func TestListModules_ExecError(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.ListModules)
+	mockExecSvc := &MockExecSvc{}
+	run.Config.ExecSvc = mockExecSvc
+	params.All = true
+
+	expectedError := assert.AnError
+	mockExecSvc.On("Exec", mock.Anything).Return(expectedError)
+
+	// Act
+	err := run.ListModules()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockExecSvc.AssertExpectations(t)
+}
+
+func TestCreateFilter_All(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.ListModules)
+
+	// Act
+	result := run.createFilter("", "", true)
+
+	// Assert
+	assert.Equal(t, constant.AllContainerPattern, result)
+}
+
+func TestCreateFilter_SingleModule(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.ListModules)
+	run.Config.Action.ConfigProfileName = "test-profile"
+
+	// Act
+	result := run.createFilter("test-module", "", false)
+
+	// Assert
+	assert.Contains(t, result, "test-profile")
+	assert.Contains(t, result, "test-module")
+}
+
+// ==================== CheckPorts Tests ====================
+
+func TestCheckPorts_Success(t *testing.T) {
+	// Arrange
+	run, _, _, _, mockDocker, mockModule := newTestRun(action.CheckPorts)
+	mockExecSvc := &MockExecSvc{}
+	run.Config.ExecSvc = mockExecSvc
+
+	mockExecSvc.On("ExecFromDir", mock.Anything, mock.Anything).Return(nil)
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetDeployedModules", mock.Anything, mock.Anything).Return([]container.Summary{}, nil)
+	mockDocker.On("Close", mock.Anything).Return(nil)
+
+	// Act
+	err := run.CheckPorts()
+
+	// Assert
+	assert.NoError(t, err)
+	mockExecSvc.AssertExpectations(t)
+}
+
+func TestCheckPorts_ExecError(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.CheckPorts)
+	mockExecSvc := &MockExecSvc{}
+	run.Config.ExecSvc = mockExecSvc
+
+	expectedError := assert.AnError
+	mockExecSvc.On("ExecFromDir", mock.Anything, mock.Anything).Return(expectedError)
+
+	// Act
+	err := run.CheckPorts()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockExecSvc.AssertExpectations(t)
+}
+
+// ==================== UpdateModuleDiscovery Tests ====================
+
+func TestUpdateModuleDiscovery_Success(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.UpdateModuleDiscovery)
+	params.ModuleName = "test-module"
+	params.Restore = false
+	params.PrivatePort = 8080
+
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetModuleDiscovery", "test-module").Return(models.ModuleDiscoveryResponse{
+		Discovery: []models.ModuleDiscovery{
+			{ID: "module-id-123", Name: "test-module"},
+		},
+	}, nil)
+	mockManagement.On("UpdateModuleDiscovery", "module-id-123", false, 8080, mock.Anything).Return(nil)
+
+	// Act
+	err := run.UpdateModuleDiscovery()
+
+	// Assert
+	assert.NoError(t, err)
+	mockManagement.AssertExpectations(t)
+}
+
+func TestUpdateModuleDiscovery_GetModuleError(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.UpdateModuleDiscovery)
+	params.ModuleName = "test-module"
+
+	expectedError := assert.AnError
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetModuleDiscovery", "test-module").Return(models.ModuleDiscoveryResponse{}, expectedError)
+
+	// Act
+	err := run.UpdateModuleDiscovery()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockManagement.AssertExpectations(t)
+}
+
+func TestUpdateModuleDiscovery_UpdateError(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.UpdateModuleDiscovery)
+	params.ModuleName = "test-module"
+	params.Restore = true
+
+	expectedError := assert.AnError
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetModuleDiscovery", "test-module").Return(models.ModuleDiscoveryResponse{
+		Discovery: []models.ModuleDiscovery{
+			{ID: "module-id-123", Name: "test-module"},
+		},
+	}, nil)
+	mockManagement.On("UpdateModuleDiscovery", "module-id-123", true, mock.Anything, mock.Anything).Return(expectedError)
+
+	// Act
+	err := run.UpdateModuleDiscovery()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockManagement.AssertExpectations(t)
+}
+
+// ==================== DeployModule Tests ====================
+
+func TestDeployModule_Success(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.DeployModule)
+
+	// Act
+	err := run.DeployModule()
+
+	// Assert
+	assert.NoError(t, err)
+}
+
+// ==================== UndeployModule Tests ====================
+
+func TestUndeployModule_Success(t *testing.T) {
+	// Arrange
+	run, _, _, _, mockDocker, mockModule := newTestRun(action.UndeployModule)
+	params.ModuleName = "test-module"
+
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("UndeployModuleByNamePattern", mock.Anything, mock.Anything).Return(nil)
+	mockDocker.On("Close", mock.Anything).Return(nil)
+
+	// Act
+	err := run.UndeployModule()
+
+	// Assert
+	assert.NoError(t, err)
+	mockModule.AssertExpectations(t)
+}
+
+func TestUndeployModule_UndeployError(t *testing.T) {
+	// Arrange
+	run, _, _, _, mockDocker, mockModule := newTestRun(action.UndeployModule)
+	params.ModuleName = "test-module"
+
+	expectedError := assert.AnError
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("UndeployModuleByNamePattern", mock.Anything, mock.Anything).Return(expectedError)
+	mockDocker.On("Close", mock.Anything).Return(nil)
+
+	// Act
+	err := run.UndeployModule()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockModule.AssertExpectations(t)
+}
+
+// ==================== ListSystem Tests ====================
+
+func TestListSystem_Success(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.ListSystem)
+	mockExecSvc := &MockExecSvc{}
+	run.Config.ExecSvc = mockExecSvc
+
+	mockExecSvc.On("Exec", mock.Anything).Return(nil)
+
+	// Act
+	err := run.ListSystem()
+
+	// Assert
+	assert.NoError(t, err)
+	mockExecSvc.AssertExpectations(t)
+}
+
+func TestListSystem_ExecError(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.ListSystem)
+	mockExecSvc := &MockExecSvc{}
+	run.Config.ExecSvc = mockExecSvc
+
+	expectedError := assert.AnError
+	mockExecSvc.On("Exec", mock.Anything).Return(expectedError)
+
+	// Act
+	err := run.ListSystem()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockExecSvc.AssertExpectations(t)
+}
+
+// ==================== ListModuleVersions Tests ====================
+
+func TestListModuleVersions_WithID(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.ListModuleVersions)
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	run.Config.HTTPClient = mockHTTP
+	params.ID = "test-module-1.0.0"
+
+	mockHTTP.On("GetReturnRawBytes", mock.Anything, mock.Anything).Return([]byte(`{"id":"test-module-1.0.0"}`), nil)
+
+	// Act
+	err := run.ListModuleVersions()
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestListModuleVersions_WithModuleName(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.ListModuleVersions)
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	run.Config.HTTPClient = mockHTTP
+	params.ID = ""
+	params.ModuleName = "test-module"
+	params.Versions = 10
+
+	mockHTTP.On("GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(2).(*models.ProxyModulesResponse)
+			*resp = models.ProxyModulesResponse{
+				{ID: "test-module-1.0.0"},
+				{ID: "test-module-0.9.0"},
+			}
+		}).Return(nil)
+
+	// Act
+	err := run.ListModuleVersions()
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertExpectations(t)
+}
+
+// ==================== AttachCapabilitySets Tests ====================
+
+func TestAttachCapabilitySets_Success(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.AttachCapabilitySets)
+	mockKafkaSvc := &MockKafkaSvc{}
+	run.Config.KafkaSvc = mockKafkaSvc
+
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
+	mockKeycloak.On("UpdateRealmAccessTokenSettings", mock.Anything, mock.Anything).Return(nil)
+	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockKafkaSvc.On("PollConsumerGroup", mock.Anything).Return(nil)
+	mockKeycloak.On("AttachCapabilitySetsToRoles", "test-tenant").Return(nil)
+
+	// Act
+	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0)
+
+	// Assert
+	assert.NoError(t, err)
+	mockKeycloak.AssertExpectations(t)
+	mockKafkaSvc.AssertExpectations(t)
+}
+
+func TestAttachCapabilitySets_GetMasterTokenError(t *testing.T) {
+	// Arrange
+	run, _, mockKeycloak, _, _, _ := newTestRun(action.AttachCapabilitySets)
+
+	expectedError := assert.AnError
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", expectedError)
+
+	// Act
+	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockKeycloak.AssertExpectations(t)
+}
+
+func TestAttachCapabilitySets_UpdateRealmError(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.AttachCapabilitySets)
+
+	expectedError := assert.AnError
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
+	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("UpdateRealmAccessTokenSettings", mock.Anything, mock.Anything).Return(expectedError)
+
+	// Act
+	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockKeycloak.AssertExpectations(t)
+}
+
+func TestAttachCapabilitySets_AttachError(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.AttachCapabilitySets)
+	mockKafkaSvc := &MockKafkaSvc{}
+	run.Config.KafkaSvc = mockKafkaSvc
+
+	expectedError := assert.AnError
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
+	mockKeycloak.On("UpdateRealmAccessTokenSettings", mock.Anything, mock.Anything).Return(nil)
+	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockKafkaSvc.On("PollConsumerGroup", mock.Anything).Return(nil)
+	mockKeycloak.On("AttachCapabilitySetsToRoles", "test-tenant").Return(expectedError)
+
+	// Act
+	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockKeycloak.AssertExpectations(t)
+}
+
+// ==================== DetachCapabilitySets Tests ====================
+
+func TestDetachCapabilitySets_Success(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.DetachCapabilitySets)
+
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
+	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("DetachCapabilitySetsFromRoles", "test-tenant").Return(nil)
+
+	// Act
+	err := run.DetachCapabilitySets(constant.NoneConsortium, constant.Default)
+
+	// Assert
+	assert.NoError(t, err)
+	mockKeycloak.AssertExpectations(t)
+}
+
+func TestDetachCapabilitySets_DetachError(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.DetachCapabilitySets)
+
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
+	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("DetachCapabilitySetsFromRoles", "test-tenant").Return(assert.AnError)
+
+	// Act
+	err := run.DetachCapabilitySets(constant.NoneConsortium, constant.Default)
+
+	// Assert - function continues despite error
+	assert.NoError(t, err)
+	mockKeycloak.AssertExpectations(t)
+}
+
+// ==================== UpdateKeycloakPublicClients Tests ====================
+
+func TestUpdateKeycloakPublicClients_Success(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.UpdateKeycloakPublicClients)
+	mockTenantSvc := &testhelpers.MockTenantSvc{}
+	run.Config.TenantSvc = mockTenantSvc
+	run.Config.Action.ConfigTenants = map[string]any{
+		"test-tenant": map[string]any{
+			"deploy-ui": true,
+		},
+	}
+
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
+	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockTenantSvc.On("SetConfigTenantParams", "test-tenant").Return(nil)
+	mockKeycloak.On("UpdatePublicClientSettings", "test-tenant", mock.Anything).Return(nil)
+
+	// Act
+	err := run.UpdateKeycloakPublicClients(constant.NoneConsortium, constant.Default)
+
+	// Assert
+	assert.NoError(t, err)
+	mockKeycloak.AssertExpectations(t)
+	mockTenantSvc.AssertExpectations(t)
+}
+
+func TestUpdateKeycloakPublicClients_SetConfigError(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.UpdateKeycloakPublicClients)
+	mockTenantSvc := &testhelpers.MockTenantSvc{}
+	run.Config.TenantSvc = mockTenantSvc
+	run.Config.Action.ConfigTenants = map[string]any{
+		"test-tenant": map[string]any{
+			"deploy-ui": true,
+		},
+	}
+
+	expectedError := assert.AnError
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
+	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockTenantSvc.On("SetConfigTenantParams", "test-tenant").Return(expectedError)
+
+	// Act
+	err := run.UpdateKeycloakPublicClients(constant.NoneConsortium, constant.Default)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockTenantSvc.AssertExpectations(t)
+}
+
+func TestUpdateKeycloakPublicClients_UpdateClientError(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.UpdateKeycloakPublicClients)
+	mockTenantSvc := &testhelpers.MockTenantSvc{}
+	run.Config.TenantSvc = mockTenantSvc
+	run.Config.Action.ConfigTenants = map[string]any{
+		"test-tenant": map[string]any{
+			"deploy-ui": true,
+		},
+	}
+
+	expectedError := assert.AnError
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
+	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockTenantSvc.On("SetConfigTenantParams", "test-tenant").Return(nil)
+	mockKeycloak.On("UpdatePublicClientSettings", "test-tenant", mock.Anything).Return(expectedError)
+
+	// Act
+	err := run.UpdateKeycloakPublicClients(constant.NoneConsortium, constant.Default)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockKeycloak.AssertExpectations(t)
+}
+
+// ==================== GetVaultRootToken Tests ====================
+
+func TestGetVaultRootToken_Success(t *testing.T) {
+	// Arrange
+	run, _, _, _, mockDocker, mockModule := newTestRun(action.GetVaultRootToken)
+
+	expectedToken := "root-token-123"
+	mockDocker.On("Create").Return(nil, nil)
+	mockDocker.On("Close", mock.Anything).Return()
+	mockModule.On("GetVaultRootToken", mock.Anything).Return(expectedToken, nil)
+
+	// Act
+	err := run.GetVaultRootToken()
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, expectedToken, run.Config.Action.VaultRootToken)
+	mockDocker.AssertExpectations(t)
+	mockModule.AssertExpectations(t)
+}
+
+func TestGetVaultRootToken_CreateClientError(t *testing.T) {
+	// Arrange
+	run, _, _, _, mockDocker, _ := newTestRun(action.GetVaultRootToken)
+
+	expectedError := assert.AnError
+	mockDocker.On("Create").Return(nil, expectedError)
+
+	// Act
+	err := run.GetVaultRootToken()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockDocker.AssertExpectations(t)
+}
+
+func TestGetVaultRootToken_GetTokenError(t *testing.T) {
+	// Arrange
+	run, _, _, _, mockDocker, mockModule := newTestRun(action.GetVaultRootToken)
+
+	expectedError := assert.AnError
+	mockDocker.On("Create").Return(nil, nil)
+	mockDocker.On("Close", mock.Anything).Return()
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", expectedError)
+
+	// Act
+	err := run.GetVaultRootToken()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockDocker.AssertExpectations(t)
+	mockModule.AssertExpectations(t)
+}
+
+// ==================== GetKeycloakAccessToken Tests ====================
+
+func TestGetKeycloakAccessToken_MasterCustomToken(t *testing.T) {
+	// Arrange
+	run, _, mockKeycloak, _, _, _ := newTestRun(action.GetKeycloakAccessToken)
+
+	expectedToken := "master-custom-token"
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return(expectedToken, nil)
+
+	// Act
+	token, err := run.GetKeycloakAccessToken(constant.MasterCustomToken, "")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, expectedToken, token)
+	mockKeycloak.AssertExpectations(t)
+}
+
+func TestGetKeycloakAccessToken_MasterAdminCLIToken(t *testing.T) {
+	// Arrange
+	run, _, mockKeycloak, _, _, _ := newTestRun(action.GetKeycloakAccessToken)
+
+	expectedToken := "master-admin-token"
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return(expectedToken, nil)
+
+	// Act
+	token, err := run.GetKeycloakAccessToken(constant.MasterAdminCLIToken, "")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, expectedToken, token)
+	mockKeycloak.AssertExpectations(t)
+}
+
+func TestGetKeycloakAccessToken_TenantToken(t *testing.T) {
+	// Arrange
+	run, _, mockKeycloak, _, _, _ := newTestRun(action.GetKeycloakAccessToken)
+
+	expectedToken := "tenant-token"
+	run.Config.Action.KeycloakAccessToken = expectedToken
+	mockKeycloak.On("GetAccessToken", "test-tenant").Return(expectedToken, nil)
+
+	// Act
+	token, err := run.GetKeycloakAccessToken("tenant", "test-tenant")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, expectedToken, token)
+	mockKeycloak.AssertExpectations(t)
+}
+
+func TestGetKeycloakAccessToken_TenantTokenMissingTenant(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.GetKeycloakAccessToken)
+
+	// Act
+	_, err := run.GetKeycloakAccessToken("tenant", "")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "tenant")
+}
+
+func TestGetKeycloakAccessToken_GetAccessTokenError(t *testing.T) {
+	// Arrange
+	run, _, mockKeycloak, _, _, _ := newTestRun(action.GetKeycloakAccessToken)
+
+	expectedError := assert.AnError
+	mockKeycloak.On("GetAccessToken", "test-tenant").Return("", expectedError)
+
+	// Act
+	_, err := run.GetKeycloakAccessToken("tenant", "test-tenant")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockKeycloak.AssertExpectations(t)
+}
+
+// ==================== GetEdgeApiKey Tests ====================
+
+func TestGetEdgeApiKey_Success(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.GetEdgeApiKey)
+	params.Length = 32
+	params.Tenant = "test-tenant"
+	params.User = "test-user"
+
+	// Act
+	err := run.GetEdgeApiKey()
+
+	// Assert
+	assert.NoError(t, err)
+}
+
+func TestGetRandomString_Success(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.GetEdgeApiKey)
+
+	// Act
+	result, err := run.getRandomString(16)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Len(t, result, 16)
+}
+
+func TestGetRandomString_ZeroLength(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.GetEdgeApiKey)
+
+	// Act
+	result, err := run.getRandomString(0)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Len(t, result, 0)
+}
+
+// ==================== CreateTenantEntitlements Tests ====================
+
+func TestCreateTenantEntitlements_Success(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.CreateTenantEntitlements)
+
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("CreateTenantEntitlement", mock.Anything, mock.Anything).Return(nil)
+
+	// Act
+	err := run.CreateTenantEntitlements(constant.NoneConsortium, constant.Default)
+
+	// Assert
+	assert.NoError(t, err)
+	mockKeycloak.AssertExpectations(t)
+	mockManagement.AssertExpectations(t)
+}
+
+func TestCreateTenantEntitlements_GetMasterTokenError(t *testing.T) {
+	// Arrange
+	run, _, mockKeycloak, _, _, _ := newTestRun(action.CreateTenantEntitlements)
+
+	expectedError := assert.AnError
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", expectedError)
+
+	// Act
+	err := run.CreateTenantEntitlements(constant.NoneConsortium, constant.Default)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockKeycloak.AssertExpectations(t)
+}
+
+func TestCreateTenantEntitlements_CreateError(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.CreateTenantEntitlements)
+
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("CreateTenantEntitlement", mock.Anything, mock.Anything).Return(assert.AnError)
+
+	// Act
+	err := run.CreateTenantEntitlements(constant.NoneConsortium, constant.Default)
+
+	// Assert - function returns nil despite error
+	assert.NoError(t, err)
+	mockKeycloak.AssertExpectations(t)
+	mockManagement.AssertExpectations(t)
+}
+
+// ==================== RemoveTenantEntitlements Tests ====================
+
+func TestRemoveTenantEntitlements_Success(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.RemoveTenantEntitlements)
+
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("RemoveTenantEntitlements", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	// Act
+	err := run.RemoveTenantEntitlements(constant.NoneConsortium, constant.Default)
+
+	// Assert
+	assert.NoError(t, err)
+	mockKeycloak.AssertExpectations(t)
+	mockManagement.AssertExpectations(t)
+}
+
+func TestRemoveTenantEntitlements_GetMasterTokenError(t *testing.T) {
+	// Arrange
+	run, _, mockKeycloak, _, _, _ := newTestRun(action.RemoveTenantEntitlements)
+
+	expectedError := assert.AnError
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", expectedError)
+
+	// Act
+	err := run.RemoveTenantEntitlements(constant.NoneConsortium, constant.Default)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockKeycloak.AssertExpectations(t)
+}
+
+func TestRemoveTenantEntitlements_RemoveError(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.RemoveTenantEntitlements)
+
+	expectedError := assert.AnError
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("RemoveTenantEntitlements", mock.Anything, mock.Anything, mock.Anything).Return(expectedError)
+
+	// Act
+	err := run.RemoveTenantEntitlements(constant.NoneConsortium, constant.Default)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	mockKeycloak.AssertExpectations(t)
+	mockManagement.AssertExpectations(t)
 }
 
 func TestReindexIndices_InstanceError(t *testing.T) {
@@ -1111,7 +2114,7 @@ func TestReindexIndices_InstanceError(t *testing.T) {
 	expectedError := assert.AnError
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
-	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
 	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
 		Return([]any{map[string]any{"name": "test-consortium-central", "description": "test-consortium-central"}}, nil)
 	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
@@ -1125,4 +2128,276 @@ func TestReindexIndices_InstanceError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, expectedError, err)
 	mockSearchSvc.AssertExpectations(t)
+}
+
+// ==================== UndeployUI Tests ====================
+
+func TestUndeployUI_Success(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.UndeployUi)
+
+	mockDocker.On("Create").Return(nil, nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant"}}, nil)
+	mockModule.On("UndeployModuleByNamePattern", mock.Anything, mock.Anything).Return(nil)
+	mockDocker.On("Close", mock.Anything).Return(nil)
+
+	// Act
+	err := run.UndeployUI()
+
+	// Assert
+	assert.NoError(t, err)
+	mockModule.AssertExpectations(t)
+}
+
+func TestUndeployUI_UndeployError(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.UndeployUi)
+
+	expectedError := assert.AnError
+	mockDocker.On("Create").Return(nil, nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant"}}, nil)
+	mockModule.On("UndeployModuleByNamePattern", mock.Anything, mock.Anything).Return(expectedError)
+	mockDocker.On("Close", mock.Anything).Return(nil)
+
+	// Act
+	err := run.UndeployUI()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+}
+
+// ==================== UndeploySystem Tests ====================
+
+func TestUndeploySystem_Success(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.UndeploySystem)
+	mockExecSvc := &MockExecSvc{}
+	run.Config.ExecSvc = mockExecSvc
+
+	mockExecSvc.On("Exec", mock.Anything).Return(nil)
+
+	// Act
+	err := run.UndeploySystem()
+
+	// Assert
+	assert.NoError(t, err)
+	mockExecSvc.AssertExpectations(t)
+}
+
+func TestUndeploySystem_ExecError(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.UndeploySystem)
+	mockExecSvc := &MockExecSvc{}
+	run.Config.ExecSvc = mockExecSvc
+
+	expectedError := assert.AnError
+	mockExecSvc.On("Exec", mock.Anything).Return(expectedError)
+
+	// Act
+	err := run.UndeploySystem()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+}
+
+// ==================== UndeployModules Tests ====================
+
+func TestUndeployModules_WithoutRemoveApplication(t *testing.T) {
+	// Arrange
+	run, _, _, _, mockDocker, mockModule := newTestRun(action.UndeployModules)
+
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("UndeployModuleByNamePattern", mock.Anything, mock.Anything).Return(nil)
+	mockDocker.On("Close", mock.Anything).Return(nil)
+
+	// Act
+	err := run.UndeployModules(false)
+
+	// Assert
+	assert.NoError(t, err)
+	mockModule.AssertExpectations(t)
+}
+
+func TestUndeployModules_WithRemoveApplication(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.UndeployModules)
+
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("RemoveApplication", mock.Anything).Return(nil)
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("UndeployModuleByNamePattern", mock.Anything, mock.Anything).Return(nil)
+	mockDocker.On("Close", mock.Anything).Return(nil)
+
+	// Act
+	err := run.UndeployModules(true)
+
+	// Assert
+	assert.NoError(t, err)
+	mockManagement.AssertExpectations(t)
+}
+
+func TestUndeployModules_UndeployError(t *testing.T) {
+	// Arrange
+	run, _, _, _, mockDocker, mockModule := newTestRun(action.UndeployModules)
+
+	expectedError := assert.AnError
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("UndeployModuleByNamePattern", mock.Anything, mock.Anything).Return(expectedError)
+	mockDocker.On("Close", mock.Anything).Return(nil)
+
+	// Act
+	err := run.UndeployModules(false)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+}
+
+// ==================== DeployModules Tests ====================
+
+func TestDeployModules_Success(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.DeployModules)
+	mockModuleProps := &MockModuleProps{}
+	mockRegistrySvc := &MockRegistrySvc{}
+	run.Config.ModuleProps = mockModuleProps
+	run.Config.RegistrySvc = mockRegistrySvc
+
+	mockModuleProps.On("ReadBackendModules", false, true).Return(map[string]models.BackendModule{}, nil)
+	mockModuleProps.On("ReadFrontendModules", true).Return(map[string]models.FrontendModule{}, nil)
+	mockRegistrySvc.On("GetModules", mock.Anything, true, true).Return(&models.ProxyModulesByRegistry{}, nil)
+	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockModule.On("GetSidecarImage", mock.Anything).Return("test-sidecar:latest", false, nil)
+	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{"test-module": 8080}, nil)
+	mockModule.On("CheckModuleReadiness", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return()
+	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("access-token", nil)
+	mockManagement.On("CreateApplication", mock.Anything).Return(nil)
+	mockDocker.On("Close", mock.Anything).Return(nil)
+
+	// Act
+	err := run.DeployModules()
+
+	// Assert
+	assert.NoError(t, err)
+}
+
+// ==================== DeploySystem Tests ====================
+
+func TestDeploySystem_Success(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.DeploySystem)
+	mockGitClient := &testhelpers.MockGitClient{}
+	mockExecSvc := &MockExecSvc{}
+	run.Config.GitClient = mockGitClient
+	run.Config.ExecSvc = mockExecSvc
+	params.BuildImages = false
+
+	mockGitClient.On("KongRepository").Return(&gitrepository.GitRepository{}, nil)
+	mockGitClient.On("KeycloakRepository").Return(&gitrepository.GitRepository{}, nil)
+	mockGitClient.On("Clone", mock.Anything).Return(nil)
+	mockExecSvc.On("ExecFromDir", mock.Anything, mock.Anything).Return(nil)
+
+	// Act
+	err := run.DeploySystem()
+
+	// Assert
+	assert.NoError(t, err)
+	mockExecSvc.AssertExpectations(t)
+}
+
+func TestDeploySystem_ExecError(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.DeploySystem)
+	mockGitClient := &testhelpers.MockGitClient{}
+	mockExecSvc := &MockExecSvc{}
+	run.Config.GitClient = mockGitClient
+	run.Config.ExecSvc = mockExecSvc
+	params.BuildImages = false
+
+	expectedError := assert.AnError
+	mockGitClient.On("KongRepository").Return(&gitrepository.GitRepository{}, nil)
+	mockGitClient.On("KeycloakRepository").Return(&gitrepository.GitRepository{}, nil)
+	mockGitClient.On("Clone", mock.Anything).Return(nil)
+	mockExecSvc.On("ExecFromDir", mock.Anything, mock.Anything).Return(expectedError)
+
+	// Act
+	err := run.DeploySystem()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+}
+
+// ==================== InterceptModule Tests ====================
+
+func TestInterceptModule_Success(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.InterceptModule)
+	mockModuleProps := &MockModuleProps{}
+	mockRegistrySvc := &MockRegistrySvc{}
+	mockInterceptSvc := &MockInterceptModuleSvc{}
+	run.Config.ModuleProps = mockModuleProps
+	run.Config.RegistrySvc = mockRegistrySvc
+	run.Config.InterceptModuleSvc = mockInterceptSvc
+	params.ModuleName = "test-module"
+	params.Restore = false
+
+	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("access-token", nil)
+	mockManagement.On("GetModuleDiscovery", "test-module").Return(models.ModuleDiscoveryResponse{
+		Discovery: []models.ModuleDiscovery{{ID: "module-id-123", Name: "test-module"}},
+	}, nil)
+	mockModuleProps.On("ReadBackendModules", false, false).Return(map[string]models.BackendModule{}, nil)
+	mockRegistrySvc.On("GetModules", mock.Anything, true, false).Return(&models.ProxyModulesByRegistry{}, nil)
+	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockInterceptSvc.On("DeployCustomSidecarForInterception", mock.Anything, mock.Anything).Return(nil)
+	mockDocker.On("Close", mock.Anything).Return(nil)
+
+	// Act
+	err := run.InterceptModule()
+
+	// Assert
+	assert.NoError(t, err)
+}
+
+func TestInterceptModule_InterceptError(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.InterceptModule)
+	mockModuleProps := &MockModuleProps{}
+	mockRegistrySvc := &MockRegistrySvc{}
+	mockInterceptSvc := &MockInterceptModuleSvc{}
+	run.Config.ModuleProps = mockModuleProps
+	run.Config.RegistrySvc = mockRegistrySvc
+	run.Config.InterceptModuleSvc = mockInterceptSvc
+	params.ModuleName = "test-module"
+	params.Restore = false
+
+	expectedError := assert.AnError
+	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("access-token", nil)
+	mockManagement.On("GetModuleDiscovery", "test-module").Return(models.ModuleDiscoveryResponse{
+		Discovery: []models.ModuleDiscovery{{ID: "module-id-123", Name: "test-module"}},
+	}, nil)
+	mockModuleProps.On("ReadBackendModules", false, false).Return(map[string]models.BackendModule{}, nil)
+	mockRegistrySvc.On("GetModules", mock.Anything, true, false).Return(&models.ProxyModulesByRegistry{}, nil)
+	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockInterceptSvc.On("DeployCustomSidecarForInterception", mock.Anything, mock.Anything).Return(expectedError)
+	mockDocker.On("Close", mock.Anything).Return(nil)
+
+	// Act
+	err := run.InterceptModule()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
 }

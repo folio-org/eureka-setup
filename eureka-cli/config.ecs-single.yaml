@@ -79,7 +79,6 @@ roles:
     tenant: university
     capability-sets: []
 users:
-  # Admin Group
   ecs_admin:
     consortium: ecs 
     tenant: ecs
@@ -94,49 +93,12 @@ users:
     first-name: University
     last-name: Admin
     roles: ["university_admin_role", "university_user_role"]
-  # User Group 1
-  university1_user1:
+  university_user:
     consortium: ecs
     tenant: university
     password: user
-    first-name: University1
-    last-name: User1
-    roles: []
-  university1_user2:
-    consortium: ecs
-    tenant: university
-    password: user
-    first-name: University1
-    last-name: User2
-    roles: []
-  university1_user3:
-    consortium: ecs
-    tenant: university
-    password: user
-    first-name: University1
-    last-name: User3
-    roles: []
-  # User Group 2
-  university2_user1:
-    consortium: ecs
-    tenant: university
-    password: user
-    first-name: University2
-    last-name: User1
-    roles: []
-  university2_user2:
-    consortium: ecs
-    tenant: university
-    password: user
-    first-name: University2
-    last-name: User2
-    roles: []
-  university2_user3:
-    consortium: ecs
-    tenant: university
-    password: user
-    first-name: University2
-    last-name: User3
+    first-name: University
+    last-name: User
     roles: []
 sidecar-module:
   # Must build locally for your OS and CPU

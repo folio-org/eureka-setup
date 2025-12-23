@@ -152,7 +152,7 @@ func (ks *KeycloakSvc) attachUserRoles(tenantName, userID, username string, user
 
 		roleID := helpers.GetString(role, "id")
 		if roleID == "" {
-			slog.Warn(ks.Action.Name, "text", "Roles are not found", "role", helpers.GetString(role, "name"))
+			slog.Warn(ks.Action.Name, "text", "Roles are not found", "username", username, "role", helpers.GetString(role, "name"))
 			continue
 		}
 		roleIDs = append(roleIDs, roleID)

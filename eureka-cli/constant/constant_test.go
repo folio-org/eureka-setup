@@ -99,7 +99,7 @@ func TestGetProfiles(t *testing.T) {
 	profiles := GetProfiles()
 
 	// Assert
-	assert.Len(t, profiles, 8)
+	assert.Len(t, profiles, 9)
 	assert.Contains(t, profiles, CombinedProfile)
 	assert.Contains(t, profiles, CombinedNativeProfile)
 	assert.Contains(t, profiles, ExportProfile)
@@ -107,6 +107,7 @@ func TestGetProfiles(t *testing.T) {
 	assert.Contains(t, profiles, EdgeProfile)
 	assert.Contains(t, profiles, ECSProfile)
 	assert.Contains(t, profiles, ECSSingleProfile)
+	assert.Contains(t, profiles, ECSMigrationProfile)
 	assert.Contains(t, profiles, ImportProfile)
 }
 
@@ -122,7 +123,8 @@ func TestGetProfiles_OrderPreserved(t *testing.T) {
 	assert.Equal(t, EdgeProfile, profiles[4])
 	assert.Equal(t, ECSProfile, profiles[5])
 	assert.Equal(t, ECSSingleProfile, profiles[6])
-	assert.Equal(t, ImportProfile, profiles[7])
+	assert.Equal(t, ECSMigrationProfile, profiles[7])
+	assert.Equal(t, ImportProfile, profiles[8])
 }
 
 // ==================== GetDefaultProfile Tests ====================
