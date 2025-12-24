@@ -178,7 +178,7 @@ func TestValidateModulePath_PathIsFile(t *testing.T) {
 	// Create a temporary file
 	file, err := os.Create(tempFile)
 	assert.NoError(t, err)
-	file.Close()
+	assert.NoError(t, file.Close())
 
 	// Act
 	err = run.validateModulePath(tempFile)
