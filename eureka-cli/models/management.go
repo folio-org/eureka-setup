@@ -81,6 +81,19 @@ type ApplicationsResponse struct {
 	TotalRecords           int              `json:"totalRecords"`
 }
 
+// ApplicationUpgradeRequest represents the payload necessary for the upgrading of the running application
+type ApplicationUpgradeRequest struct {
+	ApplicationName              string
+	NewApplicationID             string
+	NewApplicationVersion        string
+	NewDependencies              map[string]any
+	NewBackendModules            []map[string]any
+	NewFrontendModules           []map[string]any
+	NewBackendModuleDescriptors  []any
+	NewFrontendModuleDescriptors []any
+	ShouldBuild                  bool
+}
+
 // ModuleDiscoveryRequest represents the payload for registering module discovery information
 type ModuleDiscoveryRequest struct {
 	Discovery []ModuleDiscovery `json:"discovery"`

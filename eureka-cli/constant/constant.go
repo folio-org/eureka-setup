@@ -85,9 +85,8 @@ const (
 	FolioKeycloakBranch = "master"
 	StripesBranch       = "snapshot"
 
-	// Docker Hub registries
-	SnapshotRegistry = "folioci"
-	ReleaseRegistry  = "folioorg"
+	// Module descriptor file name
+	ModuleDescriptor = "ModuleDescriptor.json"
 
 	// AWS ECR env var name
 	ECRRepositoryEnv = "AWS_ECR_FOLIO_REPO"
@@ -205,19 +204,10 @@ const (
 	ErrNoActiveMembers  = "Consumer group 'folio-mod-roles-keycloak-capability-group' has no active members."
 	ErrRebalancing      = "Consumer group 'folio-mod-roles-keycloak-capability-group' is rebalancing."
 	ErrTimeoutException = "TimeoutException"
-
-	// Profile names
-	CombinedProfile       = "combined"
-	CombinedNativeProfile = "combined-native"
-	ExportProfile         = "export"
-	SearchProfile         = "search"
-	EdgeProfile           = "edge"
-	ECSProfile            = "ecs"
-	ECSSingleProfile      = "ecs-single"
-	ImportProfile         = "import"
 )
 
-// Container types
+// ==================== Container Types ====================
+
 const (
 	Management = "management"
 	Module     = "module"
@@ -228,7 +218,8 @@ func GetContainerTypes() []string {
 	return []string{Module, Sidecar, Management}
 }
 
-// Tenant types
+// ==================== Tenant Types ====================
+
 type TenantType string
 
 const (
@@ -242,13 +233,16 @@ func GetTenantTypes() []TenantType {
 	return []TenantType{Central, Member}
 }
 
-// Keycloak Grant types
+// ==================== Keycloak Grant Types ====================
+
 type KeycloakGrantType string
 
 const (
 	ClientCredentials = "client_credentials"
 	Password          = "password"
 )
+
+// ==================== Token Types ====================
 
 const (
 	DefaultToken        string = "tenant"
@@ -259,6 +253,21 @@ const (
 func GetTokenTypes() []string {
 	return []string{DefaultToken, MasterCustomToken, MasterAdminCLIToken}
 }
+
+// ====================Docker Hub & local namespaces ====================
+
+const (
+	SnapshotNamespace = "folioci"
+	ReleaseNamespace  = "folioorg"
+	LocalNamespace    = "foliolocal"
+)
+
+// TODO Add tests
+func GetNamespaces() []string {
+	return []string{SnapshotNamespace, ReleaseNamespace, LocalNamespace}
+}
+
+// ==================== Required Containers ====================
 
 func GetInitialRequiredContainers() []string {
 	return []string{
@@ -272,6 +281,20 @@ func GetInitialRequiredContainers() []string {
 	}
 }
 
+// ==================== Profiles ====================
+
+const (
+	CombinedProfile       = "combined"
+	CombinedNativeProfile = "combined-native"
+	ExportProfile         = "export"
+	SearchProfile         = "search"
+	EdgeProfile           = "edge"
+	ECSProfile            = "ecs"
+	ECSSingleProfile      = "ecs-single"
+	ECSMigrationProfile   = "ecs-migration"
+	ImportProfile         = "import"
+)
+
 func GetProfiles() []string {
 	return []string{
 		CombinedProfile,
@@ -281,6 +304,7 @@ func GetProfiles() []string {
 		EdgeProfile,
 		ECSProfile,
 		ECSSingleProfile,
+		ECSMigrationProfile,
 		ImportProfile,
 	}
 }

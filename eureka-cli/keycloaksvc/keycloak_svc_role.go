@@ -68,7 +68,7 @@ func (ks *KeycloakSvc) CreateRoles(configTenant string) error {
 	requestURL := ks.Action.GetRequestURL(constant.KongPort, "/roles")
 	for role, value := range ks.Action.ConfigRoles {
 		entry := value.(map[string]any)
-		tenantName := entry["tenant"].(string)
+		tenantName := helpers.GetString(entry, "tenant")
 		if configTenant != tenantName {
 			continue
 		}
@@ -107,12 +107,12 @@ func (ks *KeycloakSvc) RemoveRoles(tenantName string) error {
 
 	for _, value := range roles {
 		entry := value.(map[string]any)
-		roleName := ks.Action.Caser.String(entry["name"].(string))
+		roleName := ks.Action.Caser.String(helpers.GetString(entry, "name"))
 		if ks.Action.ConfigRoles[roleName] == nil {
 			continue
 		}
 
-		requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/roles/%s", entry["id"].(string)))
+		requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/roles/%s", helpers.GetString(entry, "id")))
 		if err := ks.HTTPClient.Delete(requestURL, headers); err != nil {
 			return err
 		}

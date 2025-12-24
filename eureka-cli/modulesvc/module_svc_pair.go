@@ -1,4 +1,4 @@
-package interceptmodulesvc
+package modulesvc
 
 import (
 	"github.com/docker/docker/api/types/network"
@@ -11,8 +11,10 @@ import (
 type ModulePair struct {
 	ID            string
 	ModuleName    string
+	ModuleVersion string
 	ModuleURL     string
 	SidecarURL    string
+	Namespace     string
 	Module        *models.ProxyModule
 	Containers    *models.Containers
 	NetworkConfig *network.NetworkingConfig
@@ -32,15 +34,23 @@ func NewModulePair(a *action.Action, p *action.Param) (*ModulePair, error) {
 		sidecarURL = helpers.ConstructURL(p.SidecarURL, gatewayURL)
 	}
 
-	return &ModulePair{ID: p.ID, ModuleName: p.ModuleName, ModuleURL: moduleURL, SidecarURL: sidecarURL}, nil
+	moduleVersion := helpers.GetModuleVersionFromID(p.ID)
+	return &ModulePair{
+		ID:            p.ID,
+		ModuleName:    p.ModuleName,
+		ModuleVersion: moduleVersion,
+		ModuleURL:     moduleURL,
+		SidecarURL:    sidecarURL,
+		Namespace:     p.Namespace,
+	}, nil
 }
 
 // ClearModuleURL clears the module URL from the intercept module
-func (mp *ModulePair) clearModuleURL() {
+func (mp *ModulePair) ClearModuleURL() {
 	mp.ModuleURL = ""
 }
 
 // ClearSidecarURL clears the sidecar URL from the intercept module
-func (mp *ModulePair) clearSidecarURL() {
+func (mp *ModulePair) ClearSidecarURL() {
 	mp.SidecarURL = ""
 }

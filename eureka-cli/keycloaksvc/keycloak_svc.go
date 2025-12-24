@@ -61,9 +61,9 @@ func (ks *KeycloakSvc) GetAccessToken(tenantName string) (string, error) {
 	}
 
 	clientID := action.GetConfigEnv("KC_SERVICE_CLIENT_ID", ks.Action.ConfigGlobalEnv)
-	clientSecret := secrets[clientID].(string)
+	clientSecret := helpers.GetString(secrets, clientID)
 	systemUser := fmt.Sprintf("%s-system-user", tenantName)
-	systemUserPassword := secrets[systemUser].(string)
+	systemUserPassword := helpers.GetString(secrets, systemUser)
 
 	formData := url.Values{}
 	formData.Set("grant_type", constant.Password)
@@ -83,7 +83,7 @@ func (ks *KeycloakSvc) GetAccessToken(tenantName string) (string, error) {
 		return "", errors.AccessTokenNotFound(requestURL)
 	}
 
-	return tokenData["access_token"].(string), nil
+	return helpers.GetString(tokenData, "access_token"), nil
 }
 
 func (ks *KeycloakSvc) GetMasterAccessToken(grantType constant.KeycloakGrantType) (string, error) {
@@ -93,6 +93,7 @@ func (ks *KeycloakSvc) GetMasterAccessToken(grantType constant.KeycloakGrantType
 		formData.Set("grant_type", constant.ClientCredentials)
 		formData.Set("client_id", action.GetConfigEnv("KC_ADMIN_CLIENT_ID", ks.Action.ConfigGlobalEnv))
 		formData.Set("client_secret", action.GetConfigEnv("KC_ADMIN_CLIENT_SECRET", ks.Action.ConfigGlobalEnv))
+		formData.Set("scope", "email openid")
 	case constant.Password:
 		formData.Set("grant_type", constant.Password)
 		formData.Set("client_id", constant.KeycloakAdminClient)
@@ -110,7 +111,7 @@ func (ks *KeycloakSvc) GetMasterAccessToken(grantType constant.KeycloakGrantType
 		return "", errors.AccessTokenNotFound(requestURL)
 	}
 
-	return tokenData["access_token"].(string), nil
+	return helpers.GetString(tokenData, "access_token"), nil
 }
 
 func (ks *KeycloakSvc) UpdateRealmAccessTokenSettings(tenantName string, lifespan int) error {

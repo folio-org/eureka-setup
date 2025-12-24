@@ -110,7 +110,7 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 			if err := ms.DeployModule(client, &models.Container{
 				Name: module.Metadata.Name,
 				Config: &container.Config{
-					Image:        ms.GetModuleImage(version, module),
+					Image:        ms.GetModuleImage(module, version),
 					Hostname:     module.Metadata.Name,
 					Env:          ms.GetModuleEnv(containers, module, backendModule),
 					ExposedPorts: *backendModule.ModuleExposedPorts,
@@ -174,7 +174,7 @@ func (ms *ModuleSvc) deploySidecarAsync(wg *sync.WaitGroup, errCh chan<- error, 
 			Hostname:     r.Module.Metadata.SidecarName,
 			Env:          ms.GetSidecarEnv(r.Containers, r.Module, r.BackendModule, "", ""),
 			ExposedPorts: *r.BackendModule.SidecarExposedPorts,
-			Cmd:          helpers.GetConfigSidecarCmd(ms.Action.ConfigSidecarNativeBinaryCmd),
+			Cmd:          helpers.GetConfigSidecarCmd(ms.Action.ConfigSidecarModuleNativeBinaryCmd),
 		},
 		HostConfig: &container.HostConfig{
 			PortBindings:  *r.BackendModule.SidecarPortBindings,
@@ -228,7 +228,7 @@ func (ms *ModuleSvc) getContainerName(container *models.Container) string {
 		return fmt.Sprintf("eureka-%s", container.Name)
 	}
 
-	return fmt.Sprintf("eureka-%s-%s", ms.Action.ConfigProfile, container.Name)
+	return fmt.Sprintf("eureka-%s-%s", ms.Action.ConfigProfileName, container.Name)
 }
 
 func (ms *ModuleSvc) UndeployModuleByNamePattern(client *client.Client, pattern string) error {

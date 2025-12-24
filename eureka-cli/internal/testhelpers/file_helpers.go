@@ -60,3 +60,30 @@ func CreateJSONFileInDir(t *testing.T, dir string, filename string, data any) st
 
 	return filePath
 }
+
+// CreateFileInDir creates a file with the given name and content in the specified directory
+func CreateFileInDir(t *testing.T, dir string, filename string, content string) string {
+	t.Helper()
+
+	filePath := filepath.Join(dir, filename)
+
+	err := os.WriteFile(filePath, []byte(content), 0600)
+	if err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+
+	return dir
+}
+
+// ReadFileContent reads and returns the content of a file in the specified directory
+func ReadFileContent(t *testing.T, dir string, filename string) string {
+	t.Helper()
+
+	filePath := filepath.Join(dir, filename)
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatalf("failed to read file: %v", err)
+	}
+
+	return string(content)
+}

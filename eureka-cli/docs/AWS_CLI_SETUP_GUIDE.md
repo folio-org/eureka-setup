@@ -1,4 +1,4 @@
-# AWS CLI guide
+# AWS CLI Setup Guide
 
 ## Purpose
 

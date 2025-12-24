@@ -94,7 +94,7 @@ jobs:
     name: Go Test
     runs-on: ubuntu-latest
     env:
-      EXCLUDE_PATTERN: '/(cmd|constant|field|models|execsvc|interceptmodulesvc)$|/internal/|eureka-cli$'
+      EXCLUDE_PATTERN: '/(cmd|interceptmodulesvc|upgrademodulesvc)$|/internal/|eureka-cli$'
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -110,7 +110,6 @@ jobs:
       - name: Run tests with coverage
         working-directory: ./eureka-cli
         run: |
-          echo "Running tests for testable packages (excluding infrastructure)..."
           go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -parallel 10 -coverprofile=coverage.out -covermode=atomic
 
       - name: Upload coverage reports to Codecov
@@ -121,7 +120,7 @@ jobs:
           files: ./eureka-cli/coverage.out
           flags: unit-tests
           name: codecov-umbrella
-          fail_ci_if_error: false
+          fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
 
@@ -172,4 +171,4 @@ jobs:
         shell: bash
         run: |
           ./eureka-cli${{ runner.os == 'Windows' && '.exe' || '' }} help -d
-          echo "CLI ran successfully"
+

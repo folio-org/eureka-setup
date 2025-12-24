@@ -190,6 +190,12 @@ func KongAdminAPIFailed(statusCode int, status string) error {
 	return fmt.Errorf("kong admin API failed: %d %s", statusCode, status)
 }
 
+// ==================== Application Errors ====================
+
+func ApplicationNotFound(applicationName string) error {
+	return fmt.Errorf("%w: failed to find the latest application for %s profile", ErrNotFound, applicationName)
+}
+
 // ==================== Module Errors ====================
 
 func ModulesNotDeployed(expectedModules int) error {
@@ -226,6 +232,22 @@ func ImageKeyNotSet(imageName, fieldName string) error {
 
 func ModuleDiscoveryNotFound(moduleName string) error {
 	return fmt.Errorf("%w: module discovery %s in application", ErrNotFound, moduleName)
+}
+
+func ModuleDescriptorNotFound(moduleName, moduleVersion, descriptorPath string) error {
+	return fmt.Errorf("%w: module descriptor for %s-%s at path %s", ErrNotFound, moduleName, moduleVersion, descriptorPath)
+}
+
+func ModulePathNotFound(modulePath string) error {
+	return fmt.Errorf("module path does not exist: %s", modulePath)
+}
+
+func ModulePathAccessFailed(modulePath string, err error) error {
+	return fmt.Errorf("failed to access module path %s: %w", modulePath, err)
+}
+
+func ModulePathNotDirectory(modulePath string) error {
+	return fmt.Errorf("module path is not a directory: %s", modulePath)
 }
 
 // ==================== Tenant Errors ====================
@@ -266,4 +288,22 @@ func RegisterFlagCompletionFailed(err error) error {
 
 func MarkFlagRequiredFailed(flag FlagReader, err error) error {
 	return fmt.Errorf("failed to mark %s flag as required: %w", flag.GetName(), err)
+}
+
+// ==================== Version Errors ====================
+
+func VersionEmpty() error {
+	return fmt.Errorf("%w: version cannot be empty", ErrInvalidInput)
+}
+
+func NotSnapshotVersion(version string) error {
+	return fmt.Errorf("%w: %s is not a SNAPSHOT version with build number", ErrInvalidInput, version)
+}
+
+func InvalidSnapshotFormat(version string) error {
+	return fmt.Errorf("%w: %s has invalid SNAPSHOT version format", ErrInvalidInput, version)
+}
+
+func InvalidBuildNumber(version string, err error) error {
+	return fmt.Errorf("%w: invalid build number in version %s: %w", ErrInvalidInput, version, err)
 }

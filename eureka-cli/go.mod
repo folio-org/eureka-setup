@@ -3,6 +3,7 @@ module github.com/folio-org/eureka-cli
 go 1.25.3
 
 require (
+	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/aws/aws-sdk-go-v2/config v1.32.6
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.55.0
 	github.com/containerd/errdefs v1.0.0
@@ -16,7 +17,6 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/mod v0.31.0
 	golang.org/x/text v0.32.0
 )
 

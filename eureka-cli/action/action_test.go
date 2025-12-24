@@ -113,10 +113,10 @@ func TestNewGeneric_AllViperFields(t *testing.T) {
 		assert.Equal(t, "full-app", result.ConfigApplicationName)
 		assert.Equal(t, "3.0.0", result.ConfigApplicationVersion)
 		assert.Equal(t, "full-app-3.0.0", result.ConfigApplicationID)
-		assert.Equal(t, "production", result.ConfigProfile)
+		assert.Equal(t, "production", result.ConfigProfileName)
 		assert.Equal(t, "https://registry.test.com", result.ConfigRegistryURL)
-		assert.Equal(t, "folio-registry-url", result.ConfigFolioRegistry)
-		assert.Equal(t, "eureka-registry-url", result.ConfigEurekaRegistry)
+		assert.Equal(t, "folio-registry-url", result.ConfigInstallFolio)
+		assert.Equal(t, "eureka-registry-url", result.ConfigInstallEureka)
 		assert.True(t, result.ConfigApplicationFetchDescriptors)
 		assert.Equal(t, 8000, result.ConfigApplicationPortStart)
 		assert.Equal(t, 9000, result.ConfigApplicationPortEnd)
@@ -128,7 +128,7 @@ func TestNewGeneric_AllViperFields(t *testing.T) {
 		assert.NotNil(t, result.ConfigApplicationDependencies)
 		assert.NotNil(t, result.ConfigGlobalEnv)
 		assert.NotNil(t, result.ConfigSidecarModule)
-		assert.NotNil(t, result.ConfigSidecarResources)
+		assert.NotNil(t, result.ConfigSidecarModuleResources)
 		assert.NotNil(t, result.ConfigBackendModules)
 		assert.NotNil(t, result.ConfigFrontendModules)
 		assert.NotNil(t, result.ConfigCustomFrontendModules)
@@ -474,12 +474,12 @@ func TestGetCombinedInstallJsonURLs(t *testing.T) {
 	t.Run("TestGetCombinedInstallJsonURLs_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
-			ConfigFolioRegistry:  "https://folio.registry.com/install.json",
-			ConfigEurekaRegistry: "https://eureka.registry.com/install.json",
+			ConfigInstallFolio:  "https://folio.registry.com/install.json",
+			ConfigInstallEureka: "https://eureka.registry.com/install.json",
 		}
 
 		// Act
-		result := act.GetCombinedInstallJsonURLs()
+		result := act.GetCombinedInstallURLs()
 
 		// Assert
 		assert.Len(t, result, 2)
@@ -492,11 +492,11 @@ func TestGetEurekaInstallJsonURLs(t *testing.T) {
 	t.Run("TestGetEurekaInstallJsonURLs_Success", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
-			ConfigEurekaRegistry: "https://eureka.registry.com/install.json",
+			ConfigInstallEureka: "https://eureka.registry.com/install.json",
 		}
 
 		// Act
-		result := act.GetEurekaInstallJsonURLs()
+		result := act.GetEurekaInstallURLs()
 
 		// Assert
 		assert.Len(t, result, 1)
@@ -600,5 +600,99 @@ func TestGetKafkaTopicConfigTenant(t *testing.T) {
 		assert.Equal(t, "central", result1)
 		assert.Equal(t, "central", result2)
 		assert.Equal(t, "central", result3)
+	})
+}
+
+// ==================== GetSidecarModuleCmd Tests ====================
+
+func TestGetSidecarModuleCmd(t *testing.T) {
+	t.Run("TestGetSidecarModuleCmd_WithNativeBinaryCmd", func(t *testing.T) {
+		// Arrange
+		viper.Reset()
+		vc := testhelpers.SetupViperForTest(map[string]any{
+			field.SidecarModuleNativeBinaryCmd: []string{"./app", "-flag1", "-flag2"},
+		})
+		defer vc.Reset()
+
+		// Act
+		result := action.GetSidecarModuleCmd()
+
+		// Assert
+		assert.NotNil(t, result)
+		assert.Len(t, result, 3)
+		assert.Equal(t, "./app", result[0])
+		assert.Equal(t, "-flag1", result[1])
+		assert.Equal(t, "-flag2", result[2])
+	})
+
+	t.Run("TestGetSidecarModuleCmd_WithCmd_FallbackCompatibility", func(t *testing.T) {
+		// Arrange - test fallback to old "cmd" field when native-binary-cmd is not set
+		viper.Reset()
+		vc := testhelpers.SetupViperForTest(map[string]any{
+			field.SidecarModuleCmd: []string{"java", "-jar", "app.jar"},
+		})
+		defer vc.Reset()
+
+		// Act
+		result := action.GetSidecarModuleCmd()
+
+		// Assert
+		assert.NotNil(t, result)
+		assert.Len(t, result, 3)
+		assert.Equal(t, "java", result[0])
+		assert.Equal(t, "-jar", result[1])
+		assert.Equal(t, "app.jar", result[2])
+	})
+
+	t.Run("TestGetSidecarModuleCmd_NativeBinaryCmdTakesPrecedence", func(t *testing.T) {
+		// Arrange - test that native-binary-cmd takes precedence over cmd
+		viper.Reset()
+		vc := testhelpers.SetupViperForTest(map[string]any{
+			field.SidecarModuleNativeBinaryCmd: []string{"./native-app"},
+			field.SidecarModuleCmd:             []string{"java", "-jar", "app.jar"},
+		})
+		defer vc.Reset()
+
+		// Act
+		result := action.GetSidecarModuleCmd()
+
+		// Assert
+		assert.NotNil(t, result)
+		assert.Len(t, result, 1)
+		assert.Equal(t, "./native-app", result[0], "native-binary-cmd should take precedence over cmd")
+	})
+
+	t.Run("TestGetSidecarModuleCmd_EmptyWhenNeitherSet", func(t *testing.T) {
+		// Arrange
+		viper.Reset()
+		defer viper.Reset()
+
+		// Act
+		result := action.GetSidecarModuleCmd()
+
+		// Assert
+		if result == nil {
+			result = []string{}
+		}
+		assert.Empty(t, result)
+	})
+
+	t.Run("TestGetSidecarModuleCmd_EmptyNativeBinaryCmd", func(t *testing.T) {
+		// Arrange - empty native-binary-cmd should fallback to cmd
+		viper.Reset()
+		vc := testhelpers.SetupViperForTest(map[string]any{
+			field.SidecarModuleNativeBinaryCmd: []string{},
+			field.SidecarModuleCmd:             []string{"fallback", "command"},
+		})
+		defer vc.Reset()
+
+		// Act
+		result := action.GetSidecarModuleCmd()
+
+		// Assert
+		assert.NotNil(t, result)
+		assert.Len(t, result, 2)
+		assert.Equal(t, "fallback", result[0])
+		assert.Equal(t, "command", result[1])
 	})
 }

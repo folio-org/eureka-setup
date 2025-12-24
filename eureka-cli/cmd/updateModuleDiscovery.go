@@ -50,8 +50,8 @@ func (run *Run) UpdateModuleDiscovery() error {
 	if err := run.setModuleDiscoveryDataIntoContext(); err != nil {
 		return err
 	}
-
 	slog.Info(run.Config.Action.Name, "text", "UPDATING MODULE DISCOVERY", "module", params.ModuleName, "id", params.ID)
+
 	return run.Config.ManagementSvc.UpdateModuleDiscovery(params.ID, params.Restore, params.PrivatePort, params.SidecarURL)
 }
 
@@ -71,15 +71,10 @@ func (run *Run) setModuleDiscoveryDataIntoContext() error {
 func init() {
 	rootCmd.AddCommand(updateModuleDiscoveryCmd)
 	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&params.ModuleName, action.ModuleName.Long, action.ModuleName.Short, "", action.ModuleName.Description)
-	if err := updateModuleDiscoveryCmd.RegisterFlagCompletionFunc(action.ModuleName.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
-	}); err != nil {
-		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
-		os.Exit(1)
-	}
 	updateModuleDiscoveryCmd.PersistentFlags().StringVarP(&params.SidecarURL, action.SidecarURL.Long, action.SidecarURL.Short, "", action.SidecarURL.Description)
 	updateModuleDiscoveryCmd.PersistentFlags().IntVarP(&params.PrivatePort, action.PrivatePort.Long, action.PrivatePort.Short, 8081, action.PrivatePort.Description)
 	updateModuleDiscoveryCmd.PersistentFlags().BoolVarP(&params.Restore, action.Restore.Long, action.Restore.Short, false, action.Restore.Description)
+
 	if err := updateModuleDiscoveryCmd.MarkPersistentFlagRequired(action.ModuleName.Long); err != nil {
 		slog.Error(errors.MarkFlagRequiredFailed(action.ModuleName, err).Error())
 		os.Exit(1)
@@ -90,6 +85,13 @@ func init() {
 	}
 	if err := updateModuleDiscoveryCmd.MarkPersistentFlagRequired(action.PrivatePort.Long); err != nil {
 		slog.Error(errors.MarkFlagRequiredFailed(action.PrivatePort, err).Error())
+		os.Exit(1)
+	}
+
+	if err := updateModuleDiscoveryCmd.RegisterFlagCompletionFunc(action.ModuleName.Long, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return helpers.GetBackendModuleNames(viper.GetStringMap(field.BackendModules)), cobra.ShellCompDirectiveNoFileComp
+	}); err != nil {
+		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
 		os.Exit(1)
 	}
 }

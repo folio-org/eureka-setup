@@ -243,6 +243,8 @@ assert.ErrorIs(t, err, expectedErrorType)
 assert.Len(t, collection, expectedLength)
 assert.Contains(t, collection, element)
 assert.ElementsMatch(t, expected, actual) // Order-independent
+assert.Empty(t, collection)
+assert.NotEmpty(t, collection)
 
 // Use require for critical assertions (stops test on failure)
 require.NoError(t, err)
@@ -272,6 +274,10 @@ require.NotNil(t, obj)
 ✅ Verify mock expectations (mockHTTP.AssertExpectations(t))
 ✅ Keep tests independent (no shared state)
 ✅ Test edge cases and boundary conditions
+✅ Test with empty strings and nil values where applicable
+✅ Test URL query parameter formatting and escaping
+✅ Remove TODO comments from source code once tests are written
+✅ Run tests after writing them to verify they pass
 
 #### DON'T
 
@@ -282,6 +288,8 @@ require.NotNil(t, obj)
 ❌ Don't write flaky tests
 ❌ Don't test implementation details (test behavior)
 ❌ Don't copy-paste test code (use helpers)
+❌ Don't forget to test error paths (header errors, HTTP errors)
+❌ Don't leave duplicate test names in the file
 
 ### 10. Service-Specific Testing Guidelines
 
@@ -314,6 +322,21 @@ require.NotNil(t, obj)
   - Application deployment
   - Module descriptor handling
   - Batch operations
+  - Tenant entitlement operations (create, remove, retrieve)
+  - Application version retrieval (latest version queries)
+  - Module discovery operations
+
+#### ModuleSvc Testing
+
+- **Focus**: Module provisioning and image management
+- **Mocks**: HTTPClient, RegistrySvc, ModuleEnv, DockerClient
+- **Key scenarios**:
+  - Module image formatting (standard, custom, local)
+  - Sidecar image resolution
+  - Environment variable configuration
+  - Module readiness checks
+  - Version resolution logic
+  - Edge cases with empty/special characters in parameters
 
 #### HTTPClient Testing
 
@@ -389,6 +412,8 @@ go tool cover -html=coverage.out
 2. KeycloakSvc - authentication and user management
 3. ManagementSvc - tenant and application operations
 4. RegistrySvc - module registry operations
+5. ModuleSvc - module provisioning and image management
+6. TenantSvc - tenant parameters and configuration
 
 #### Phase 3: Integration Tests (Priority: LOW)
 

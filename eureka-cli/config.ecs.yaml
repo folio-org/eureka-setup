@@ -107,37 +107,37 @@ users:
     consortium: ecs 
     tenant: ecs
     password: admin
-    last-name: John
-    first-name: Doe
+    first-name: ECS1 
+    last-name: Admin
     roles: ["ecs_admin_role"]
   university_admin:
     consortium: ecs
     tenant: university
     password: admin
-    last-name: John
-    first-name: Doe
+    first-name: University1
+    last-name: Admin
     roles: ["university_admin_role"]
   college_admin:
     consortium: ecs
     tenant: college
     password: admin
-    last-name: John
-    first-name: Doe
+    first-name: College1
+    last-name: Admin
     roles: ["college_admin_role"]
   # Secondary Cluster
   ecs_admin2:
     consortium: ecs2 
     tenant: ecs2
     password: admin
-    last-name: John
-    first-name: Doe
+    first-name: ECS2
+    last-name: Admin
     roles: ["ecs_admin_role2"]
   university_admin2:
     consortium: ecs2 
     tenant: university2
     password: admin
-    last-name: John
-    first-name: Doe
+    first-name: University2
+    last-name: Admin
     roles: ["university_admin_role2"]
 sidecar-module:
   # Must build locally for your OS and CPU
@@ -250,7 +250,7 @@ backend-modules:
     environment:
       X_OKAPI_TOKEN_HEADER_ENABLED: "false"
       LOGIN_COOKIE_SAMESITE: "NONE"
-      KC_ADMIN_TOKEN_TTL: 295s
+      KC_ADMIN_TOKEN_TTL: 895s
   mod-roles-keycloak:
     use-vault: true
     disable-system-user: true

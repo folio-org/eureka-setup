@@ -79,7 +79,7 @@ func (run *Run) getDeployedModules() ([]container.Summary, error) {
 
 	filters := filters.NewArgs(filters.KeyValuePair{
 		Key:   "name",
-		Value: fmt.Sprintf(constant.ProfileContainerPattern, run.Config.Action.ConfigProfile),
+		Value: fmt.Sprintf(constant.ProfileContainerPattern, run.Config.Action.ConfigProfileName),
 	})
 	containers, err := run.Config.ModuleSvc.GetDeployedModules(client, filters)
 	if err != nil {

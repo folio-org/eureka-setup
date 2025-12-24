@@ -28,15 +28,6 @@ func GetBool(entry map[string]any, key string) bool {
 	return value
 }
 
-func GetAnyOrDefault(entry map[string]any, key string, defaultValue any) any {
-	rawValue, exists := entry[key]
-	if !exists || rawValue == nil {
-		return defaultValue
-	}
-
-	return rawValue
-}
-
 func GetStringOrDefault(entry map[string]any, key string, defaultValue string) string {
 	rawValue, exists := entry[key]
 	if !exists || rawValue == nil {
@@ -103,4 +94,111 @@ func SetString(entry map[string]any, key string, value *string) {
 		return
 	}
 	*value = newValue
+}
+
+func GetInt(entry map[string]any, key string) int {
+	rawValue, exists := entry[key]
+	if !exists || rawValue == nil {
+		return 0
+	}
+
+	value, ok := rawValue.(int)
+	if !ok {
+		return 0
+	}
+
+	return value
+}
+
+func GetIntPtr(entry map[string]any, key string) *int {
+	rawValue, exists := entry[key]
+	if !exists || rawValue == nil {
+		return nil
+	}
+
+	value, ok := rawValue.(int)
+	if !ok {
+		return nil
+	}
+
+	return IntPtr(value)
+}
+
+func GetBoolPtr(entry map[string]any, key string) *bool {
+	rawValue, exists := entry[key]
+	if !exists || rawValue == nil {
+		return nil
+	}
+
+	value, ok := rawValue.(bool)
+	if !ok {
+		return nil
+	}
+
+	return BoolPtr(value)
+}
+
+func GetStringSlice(entry map[string]any, key string) []string {
+	rawValue, exists := entry[key]
+	if !exists || rawValue == nil {
+		return []string{}
+	}
+
+	anySlice, ok := rawValue.([]any)
+	if !ok {
+		return []string{}
+	}
+
+	result := make([]string, 0, len(anySlice))
+	for _, item := range anySlice {
+		if str, ok := item.(string); ok {
+			result = append(result, str)
+		}
+	}
+
+	return result
+}
+
+func GetMap(entry map[string]any, key string) map[string]any {
+	rawValue, exists := entry[key]
+	if !exists || rawValue == nil {
+		return make(map[string]any)
+	}
+
+	value, ok := rawValue.(map[string]any)
+	if !ok {
+		return make(map[string]any)
+	}
+
+	return value
+}
+
+// TODO Add tests
+func GetMapOrDefault(entry map[string]any, key string, defaultValue map[string]any) map[string]any {
+	rawValue, exists := entry[key]
+	if !exists || rawValue == nil {
+		return defaultValue
+	}
+
+	value, ok := rawValue.(map[string]any)
+	if !ok {
+		return defaultValue
+	}
+
+	return value
+}
+
+// TODO Add tests
+func GetAnySlice(entry map[string]any, key string) []any {
+	rawValue, exists := entry[key]
+	if !exists || rawValue == nil {
+		return []any{}
+	}
+
+	value, ok := rawValue.([]any)
+	if !ok {
+		return []any{}
+	}
+
+	return value
 }

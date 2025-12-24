@@ -65,14 +65,14 @@ users:
   diku_admin:
     tenant: diku
     password: admin
-    last-name: John
-    first-name: Doe
+    first-name: DIKU
+    last-name: Admin
     roles: ["diku_admin_role", "diku_user_role"]
   diku_user:
     tenant: diku
     password: user
-    last-name: Jane
-    first-name: Doe
+    first-name: DIKU
+    last-name: User
     roles: ["diku_user_role"]
 sidecar-module:
   # Must build locally for your OS and CPU
@@ -185,7 +185,7 @@ backend-modules:
     environment:
       X_OKAPI_TOKEN_HEADER_ENABLED: "false"
       LOGIN_COOKIE_SAMESITE: "NONE"
-      KC_ADMIN_TOKEN_TTL: 295s
+      KC_ADMIN_TOKEN_TTL: 895s
   mod-roles-keycloak:
     use-vault: true
     disable-system-user: true

@@ -23,6 +23,11 @@ Mock implementations of key interfaces:
 
 - **MockHTTPClient**: Mock for `httpclient.HTTPClientRunner` interface
 - **MockAction**: Mock for `action.Action` struct
+- **MockCommandExecutor**: Mock for `execsvc.CommandRunner` interface
+- **MockRegistrySvc**: Mock for `registrysvc.RegistryProcessor` interface
+- **MockModuleEnv**: Mock for `moduleenv.ModuleEnvProcessor` interface
+- **MockDockerClient**: Mock for `dockerclient.DockerClientRunner` interface
+- **MockTenantSvc**: Mock for `tenantsvc.TenantProcessor` interface
 - Additional mocks can be added as needed
 
 ### 3. `doc.go`
@@ -121,10 +126,12 @@ func TestSearchSvc_ReindexInventoryRecords(t *testing.T) {
 
 ### Phase 2: Service Layer (Medium Priority)
 
-- SearchSvc
-- KeycloakSvc
-- ManagementSvc
-- RegistrySvc
+- SearchSvc - reindexing operations
+- KeycloakSvc - authentication and user management
+- ManagementSvc - tenant and application operations
+- RegistrySvc - module registry operations
+- ModuleSvc - module provisioning and image management
+- TenantSvc - tenant parameters and configuration
 
 ### Phase 3: Integration Tests (Low Priority)
 
@@ -140,6 +147,10 @@ func TestSearchSvc_ReindexInventoryRecords(t *testing.T) {
 - Test both success and error paths
 - Keep tests independent
 - Use descriptive test names
+- Test edge cases with empty strings and special characters
+- Verify URL parameter formatting and escaping
+- Remove TODO comments once tests are written
+- Run tests immediately after writing them
 
 ❌ **DON'T**:
 
@@ -148,6 +159,8 @@ func TestSearchSvc_ReindexInventoryRecords(t *testing.T) {
 - Use time.Sleep()
 - Ignore test setup errors
 - Write flaky tests
+- Leave duplicate test function names
+- Forget to test error paths (headers, HTTP errors)
 
 ## Running Tests
 

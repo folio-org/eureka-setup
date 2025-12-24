@@ -47,9 +47,9 @@ func (rs *RegistrySvc) GetNamespace(version string) string {
 		return ecrNamespace
 	}
 	if strings.Contains(version, "SNAPSHOT") {
-		return constant.SnapshotRegistry
+		return constant.SnapshotNamespace
 	} else {
-		return constant.ReleaseRegistry
+		return constant.ReleaseNamespace
 	}
 }
 
@@ -82,7 +82,7 @@ func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, useRemote, 
 					continue
 				}
 				decodedResponse = append(decodedResponse, &models.ProxyModule{
-					ID:     fmt.Sprintf("%s-%s", name, entry[field.ModuleVersionEntry].(string)),
+					ID:     fmt.Sprintf("%s-%s", name, helpers.GetString(entry, field.ModuleVersionEntry)),
 					Action: "enable",
 				})
 			}

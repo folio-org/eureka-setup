@@ -56,24 +56,12 @@ func (ms *ManagementSvc) CreateTenants() error {
 	if err != nil {
 		return err
 	}
+
 	for tenantName, properties := range ms.Action.ConfigTenants {
 		entry := properties.(map[string]any)
-		consortiumName := helpers.GetAnyOrDefault(entry, field.TenantsConsortiumEntry, nil)
-
-		var description string
-		if consortiumName == nil {
-			description = fmt.Sprintf("%s-%s", constant.NoneConsortium, constant.Default)
-		} else {
-			tenantType := constant.Member
-			if helpers.GetBool(entry, field.TenantsCentralTenantEntry) {
-				tenantType = constant.Central
-			}
-			description = fmt.Sprintf("%s-%s", consortiumName, tenantType)
-		}
-
 		payload, err := json.Marshal(map[string]string{
 			"name":        tenantName,
-			"description": description,
+			"description": ms.GetTenantType(entry),
 		})
 		if err != nil {
 			return err
@@ -89,6 +77,20 @@ func (ms *ManagementSvc) CreateTenants() error {
 	return nil
 }
 
+func (ms *ManagementSvc) GetTenantType(entry map[string]any) string {
+	consortiumName := helpers.GetString(entry, field.TenantsConsortiumEntry)
+	if consortiumName == "" {
+		return fmt.Sprintf("%s-%s", constant.NoneConsortium, constant.Default)
+	}
+
+	tenantType := constant.Member
+	if helpers.GetBool(entry, field.TenantsCentralTenantEntry) {
+		tenantType = constant.Central
+	}
+
+	return fmt.Sprintf("%s-%s", consortiumName, tenantType)
+}
+
 func (ms *ManagementSvc) RemoveTenants(consortiumName string, tenantType constant.TenantType) error {
 	tenants, err := ms.GetTenants(consortiumName, tenantType)
 	if err != nil {
@@ -99,14 +101,15 @@ func (ms *ManagementSvc) RemoveTenants(consortiumName string, tenantType constan
 	if err != nil {
 		return err
 	}
+
 	for _, value := range tenants {
 		entry := value.(map[string]any)
-		tenantName := entry["name"].(string)
+		tenantName := helpers.GetString(entry, "name")
 		if !helpers.HasTenant(tenantName, ms.Action.ConfigTenants) {
 			continue
 		}
 
-		requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/tenants/%s?purgeKafkaTopics=true", entry["id"].(string)))
+		requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/tenants/%s?purgeKafkaTopics=true", helpers.GetString(entry, "id")))
 		if err := ms.HTTPClient.Delete(requestURL, headers); err != nil {
 			return err
 		}

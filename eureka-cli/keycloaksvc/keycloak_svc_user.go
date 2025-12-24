@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"sort"
 
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/helpers"
@@ -47,9 +48,16 @@ func (ks *KeycloakSvc) GetUsers(tenantName string) ([]any, error) {
 }
 
 func (ks *KeycloakSvc) CreateUsers(configTenant string) error {
-	for username, value := range ks.Action.ConfigUsers {
+	usernames := make([]string, 0, len(ks.Action.ConfigUsers))
+	for username := range ks.Action.ConfigUsers {
+		usernames = append(usernames, username)
+	}
+	sort.Strings(usernames)
+
+	for _, username := range usernames {
+		value := ks.Action.ConfigUsers[username]
 		entry := value.(map[string]any)
-		tenantName := entry["tenant"].(string)
+		tenantName := helpers.GetString(entry, "tenant")
 		if configTenant != tenantName {
 			continue
 		}
@@ -59,14 +67,16 @@ func (ks *KeycloakSvc) CreateUsers(configTenant string) error {
 			return err
 		}
 
-		userID := createdUser["id"].(string)
+		userID := helpers.GetString(createdUser, "id")
 		if err := ks.attachUserPassword(tenantName, userID, username, entry); err != nil {
 			return err
 		}
 
-		userRoles := entry["roles"].([]any)
-		if err := ks.attachUserRoles(tenantName, userID, username, userRoles); err != nil {
-			return nil
+		userRoles := helpers.GetAnySlice(entry, "roles")
+		if len(userRoles) > 0 {
+			if err := ks.attachUserRoles(tenantName, userID, username, userRoles); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -79,9 +89,9 @@ func (ks *KeycloakSvc) createUser(tenantName string, username string, entry map[
 		"active":   true,
 		"type":     "staff",
 		"personal": map[string]any{
-			"firstName":              entry["first-name"].(string),
-			"lastName":               entry["last-name"].(string),
-			"email":                  fmt.Sprintf("%s-%s", tenantName, username),
+			"firstName":              helpers.GetString(entry, "first-name"),
+			"lastName":               helpers.GetString(entry, "last-name"),
+			"email":                  fmt.Sprintf("%s_%s@test.org", tenantName, username),
 			"preferredContactTypeId": "002",
 		},
 	})
@@ -107,7 +117,7 @@ func (ks *KeycloakSvc) attachUserPassword(tenantName, userID, username string, e
 	payload, err := json.Marshal(map[string]any{
 		"userId":   userID,
 		"username": username,
-		"password": entry["password"].(string),
+		"password": helpers.GetString(entry, "password"),
 	})
 	if err != nil {
 		return err
@@ -140,9 +150,9 @@ func (ks *KeycloakSvc) attachUserRoles(tenantName, userID, username string, user
 			return err
 		}
 
-		roleID := role["id"].(string)
+		roleID := helpers.GetString(role, "id")
 		if roleID == "" {
-			slog.Warn(ks.Action.Name, "text", "Roles are not found", "role", role["name"].(string))
+			slog.Warn(ks.Action.Name, "text", "Roles are not found", "username", username, "role", helpers.GetString(role, "name"))
 			continue
 		}
 		roleIDs = append(roleIDs, roleID)
@@ -173,14 +183,15 @@ func (ks *KeycloakSvc) RemoveUsers(tenantName string) error {
 	if err != nil {
 		return err
 	}
+
 	for _, value := range users {
 		entry := value.(map[string]any)
-		username := entry["username"].(string)
+		username := helpers.GetString(entry, "username")
 		if ks.Action.ConfigUsers[username] == nil {
 			continue
 		}
 
-		requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/users-keycloak/users/%s", entry["id"].(string)))
+		requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/users-keycloak/users/%s", helpers.GetString(entry, "id")))
 		if err := ks.HTTPClient.Delete(requestURL, headers); err != nil {
 			return err
 		}

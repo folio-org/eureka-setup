@@ -1,0 +1,147 @@
+@startuml interceptModule Sequence Diagram
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 200
+
+title Eureka CLI - interceptModule Command Flow
+
+actor Developer
+participant "CLI" as CLI
+participant "Run" as Run
+participant "Keycloak" as Keycloak
+participant "Kong Gateway" as Kong
+participant "RegistrySvc" as Registry
+participant "Docker" as Docker
+participant "Vault" as Vault
+participant "InterceptModuleSvc" as InterceptSvc
+participant "ManagementSvc" as Mgmt
+
+Developer -> CLI: eureka-cli interceptModule\n--moduleName mod-orders\n[--moduleURL http://host:8081]\n[--sidecarURL http://host:8082]\n[--namespace foliolocal]\n[--restore]
+
+activate CLI
+CLI -> Run: New(action.InterceptModule)
+activate Run
+
+== Authentication & Context Setup ==
+Run -> Run: setKeycloakMasterAccessTokenIntoContext()
+Run -> Keycloak: POST /realms/master/protocol/openid-connect/token
+Keycloak --> Run: Access Token
+note right: Get Keycloak master access token\nusing client credentials
+
+Run -> Run: setModuleDiscoveryDataIntoContext()
+Run -> Kong: GET /modules/discovery
+Kong --> Run: Module Discovery Data
+note right: Retrieve current module\ndiscovery information
+
+== Module Configuration Retrieval ==
+Run -> Run: ReadBackendModules()
+note right: Read backend module\nconfiguration from config
+
+Run -> Run: GetCombinedInstallURLs()
+note right: Combine registry URLs from\nconfig and action params
+
+Run -> Registry: GetModules(installURLs)
+Registry --> Run: Module Metadata
+note right: Retrieve module metadata\nfrom registries
+
+Run -> Registry: ExtractModuleMetadata()
+note right: Extract and process\nmodule metadata
+
+== Docker & Vault Setup ==
+Run -> Docker: Create Docker Client
+Docker --> Run: Docker Client
+
+Run -> Run: setVaultRootTokenIntoContext()
+Run -> Docker: List Containers (vault)
+Docker --> Run: Vault Container
+Run -> Vault: Exec: vault token create -policy=folio-policy
+Vault --> Run: Root Token
+note right: Get Vault root token from\nrunning Vault container
+
+== Module Pair Setup ==
+Run -> Run: NewModulePair()
+note right: Create module pair object with:\n- ModuleName\n- ModuleURL (if custom)\n- SidecarURL (if custom)\n- Restore flag\n- Attach modules and backend config
+
+== Interception Logic ==
+
+alt restore = true (Restore Default Configuration)
+    
+    Run -> InterceptSvc: DeployDefaultModuleAndSidecarPair()
+    activate InterceptSvc
+    
+    InterceptSvc -> InterceptSvc: Clear Custom URLs
+    note right: Clear custom module/sidecar URLs\nto use default registry images
+    
+    InterceptSvc -> Docker: Undeploy Existing Containers
+    Docker --> InterceptSvc: Containers Removed
+    note right: Stop & remove existing\nmodule and sidecar containers
+    
+    InterceptSvc -> InterceptSvc: Reserve 4 Ports
+    note right: Reserve ports for:\n- Module Server & Debug\n- Sidecar Server & Debug
+    
+    InterceptSvc -> InterceptSvc: Configure Port Bindings
+    note right: Create Docker port bindings\nfor both module and sidecar
+    
+    InterceptSvc -> Mgmt: UpdateModuleDiscovery(restore=true)
+    Mgmt -> Kong: POST /modules/discovery
+    Kong --> Mgmt: Discovery Updated
+    Mgmt --> InterceptSvc: Updated
+    note right: Restore default Kong routing
+    
+    InterceptSvc -> Docker: Deploy Module Container
+    Docker --> InterceptSvc: Module Running
+    note right: Deploy from registry image
+    
+    InterceptSvc -> Docker: Deploy Sidecar Container
+    Docker --> InterceptSvc: Sidecar Running
+    note right: Deploy default sidecar
+    
+    InterceptSvc -> Docker: Check Health
+    Docker --> InterceptSvc: Both Ready
+    note right: Verify containers are healthy
+    
+    InterceptSvc --> Run: Restored
+    deactivate InterceptSvc
+
+else restore = false (Intercept with Custom URLs)
+    
+    Run -> InterceptSvc: DeployCustomSidecarForInterception()
+    activate InterceptSvc
+    
+    InterceptSvc -> Docker: Undeploy Existing Containers
+    Docker --> InterceptSvc: Containers Removed
+    note right: Stop & remove existing\nmodule and sidecar containers
+    
+    InterceptSvc -> InterceptSvc: Extract Ports from URLs
+    note right: Get ports from:\n- moduleURL (where IntelliJ runs)\n- sidecarURL (sidecar endpoint)\n- Reserve debug port
+    
+    InterceptSvc -> InterceptSvc: Configure Port Bindings
+    note right: Create Docker port bindings\nfor sidecar only
+    
+    InterceptSvc -> Mgmt: UpdateModuleDiscovery(restore=false)
+    Mgmt -> Kong: POST /modules/discovery
+    Kong --> Mgmt: Discovery Updated
+    Mgmt --> InterceptSvc: Updated
+    note right: Redirect Kong to custom URLs
+    
+    InterceptSvc -> Docker: Deploy Sidecar Container
+    Docker --> InterceptSvc: Sidecar Running
+    note right: Sidecar forwards traffic\nto IntelliJ module
+    
+    InterceptSvc -> Docker: Check Health
+    Docker --> InterceptSvc: Sidecar Ready
+    note right: Verify sidecar is healthy
+    
+    InterceptSvc --> Run: Configured
+    deactivate InterceptSvc
+    
+    note right of Run: Module running in IntelliJ\nTraffic flow:\nKong → Sidecar → IntelliJ Module
+end
+
+Run --> CLI: Success
+deactivate Run
+CLI --> Developer: ✅ Module Interception Configured
+deactivate CLI
+
+@enduml

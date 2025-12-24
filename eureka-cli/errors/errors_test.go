@@ -590,6 +590,23 @@ func TestKongAdminAPIFailed(t *testing.T) {
 	})
 }
 
+// ==================== Application Errors Tests ====================
+
+func TestApplicationNotFound(t *testing.T) {
+	t.Run("TestApplicationNotFound_Success", func(t *testing.T) {
+		// Arrange
+		applicationName := "platform-complete"
+
+		// Act
+		result := apperrors.ApplicationNotFound(applicationName)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "failed to find the latest application for platform-complete profile")
+		assert.True(t, errors.Is(result, apperrors.ErrNotFound))
+	})
+}
+
 // ==================== Module Errors Tests ====================
 
 func TestModulesNotDeployed(t *testing.T) {
@@ -725,6 +742,68 @@ func TestModuleDiscoveryNotFound(t *testing.T) {
 		assert.Error(t, result)
 		assert.Contains(t, result.Error(), "module discovery mod-inventory in application")
 		assert.True(t, errors.Is(result, apperrors.ErrNotFound))
+	})
+}
+
+func TestModuleDescriptorNotFound(t *testing.T) {
+	t.Run("TestModuleDescriptorNotFound_Success", func(t *testing.T) {
+		// Arrange
+		moduleName := "mod-inventory"
+		moduleVersion := "1.2.3"
+		descriptorPath := "/path/to/target/ModuleDescriptor.json"
+
+		// Act
+		result := apperrors.ModuleDescriptorNotFound(moduleName, moduleVersion, descriptorPath)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "module descriptor for mod-inventory-1.2.3")
+		assert.Contains(t, result.Error(), "/path/to/target/ModuleDescriptor.json")
+		assert.True(t, errors.Is(result, apperrors.ErrNotFound))
+	})
+}
+
+func TestModulePathNotFound(t *testing.T) {
+	t.Run("TestModulePathNotFound_Success", func(t *testing.T) {
+		// Arrange
+		modulePath := "/path/to/module"
+
+		// Act
+		result := apperrors.ModulePathNotFound(modulePath)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "module path does not exist: /path/to/module")
+	})
+}
+
+func TestModulePathAccessFailed(t *testing.T) {
+	t.Run("TestModulePathAccessFailed_Success", func(t *testing.T) {
+		// Arrange
+		modulePath := "/restricted/path"
+		baseErr := errors.New("permission denied")
+
+		// Act
+		result := apperrors.ModulePathAccessFailed(modulePath, baseErr)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "failed to access module path /restricted/path")
+		assert.True(t, errors.Is(result, baseErr))
+	})
+}
+
+func TestModulePathNotDirectory(t *testing.T) {
+	t.Run("TestModulePathNotDirectory_Success", func(t *testing.T) {
+		// Arrange
+		modulePath := "/path/to/file.txt"
+
+		// Act
+		result := apperrors.ModulePathNotDirectory(modulePath)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "module path is not a directory: /path/to/file.txt")
 	})
 }
 
@@ -885,6 +964,70 @@ func TestMarkFlagRequiredFailed(t *testing.T) {
 		assert.Error(t, result)
 		assert.Contains(t, result.Error(), "failed to mark tenant flag as required")
 		assert.Contains(t, result.Error(), "mark required error")
+		assert.True(t, errors.Is(result, baseErr))
+	})
+}
+
+// ==================== Version Errors Tests ====================
+
+func TestVersionEmpty(t *testing.T) {
+	t.Run("TestVersionEmpty_Success", func(t *testing.T) {
+		// Act
+		result := apperrors.VersionEmpty()
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "version cannot be empty")
+		assert.True(t, errors.Is(result, apperrors.ErrInvalidInput))
+	})
+}
+
+func TestNotSnapshotVersion(t *testing.T) {
+	t.Run("TestNotSnapshotVersion_Success", func(t *testing.T) {
+		// Arrange
+		version := "1.0.0"
+
+		// Act
+		result := apperrors.NotSnapshotVersion(version)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "1.0.0")
+		assert.Contains(t, result.Error(), "not a SNAPSHOT version with build number")
+		assert.True(t, errors.Is(result, apperrors.ErrInvalidInput))
+	})
+}
+
+func TestInvalidSnapshotFormat(t *testing.T) {
+	t.Run("TestInvalidSnapshotFormat_Success", func(t *testing.T) {
+		// Arrange
+		version := "1.0.0-SNAPSHOT"
+
+		// Act
+		result := apperrors.InvalidSnapshotFormat(version)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "1.0.0-SNAPSHOT")
+		assert.Contains(t, result.Error(), "invalid SNAPSHOT version format")
+		assert.True(t, errors.Is(result, apperrors.ErrInvalidInput))
+	})
+}
+
+func TestInvalidBuildNumber(t *testing.T) {
+	t.Run("TestInvalidBuildNumber_Success", func(t *testing.T) {
+		// Arrange
+		version := "1.0.0-SNAPSHOT.abc"
+		baseErr := errors.New("parse error")
+
+		// Act
+		result := apperrors.InvalidBuildNumber(version, baseErr)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "1.0.0-SNAPSHOT.abc")
+		assert.Contains(t, result.Error(), "invalid build number")
+		assert.True(t, errors.Is(result, apperrors.ErrInvalidInput))
 		assert.True(t, errors.Is(result, baseErr))
 	})
 }
