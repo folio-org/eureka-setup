@@ -590,6 +590,23 @@ func TestKongAdminAPIFailed(t *testing.T) {
 	})
 }
 
+// ==================== Application Errors Tests ====================
+
+func TestApplicationNotFound(t *testing.T) {
+	t.Run("TestApplicationNotFound_Success", func(t *testing.T) {
+		// Arrange
+		applicationName := "platform-complete"
+
+		// Act
+		result := apperrors.ApplicationNotFound(applicationName)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "failed to find the latest application for platform-complete profile")
+		assert.True(t, errors.Is(result, apperrors.ErrNotFound))
+	})
+}
+
 // ==================== Module Errors Tests ====================
 
 func TestModulesNotDeployed(t *testing.T) {
@@ -743,6 +760,50 @@ func TestModuleDescriptorNotFound(t *testing.T) {
 		assert.Contains(t, result.Error(), "module descriptor for mod-inventory-1.2.3")
 		assert.Contains(t, result.Error(), "/path/to/target/ModuleDescriptor.json")
 		assert.True(t, errors.Is(result, apperrors.ErrNotFound))
+	})
+}
+
+func TestModulePathNotFound(t *testing.T) {
+	t.Run("TestModulePathNotFound_Success", func(t *testing.T) {
+		// Arrange
+		modulePath := "/path/to/module"
+
+		// Act
+		result := apperrors.ModulePathNotFound(modulePath)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "module path does not exist: /path/to/module")
+	})
+}
+
+func TestModulePathAccessFailed(t *testing.T) {
+	t.Run("TestModulePathAccessFailed_Success", func(t *testing.T) {
+		// Arrange
+		modulePath := "/restricted/path"
+		baseErr := errors.New("permission denied")
+
+		// Act
+		result := apperrors.ModulePathAccessFailed(modulePath, baseErr)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "failed to access module path /restricted/path")
+		assert.True(t, errors.Is(result, baseErr))
+	})
+}
+
+func TestModulePathNotDirectory(t *testing.T) {
+	t.Run("TestModulePathNotDirectory_Success", func(t *testing.T) {
+		// Arrange
+		modulePath := "/path/to/file.txt"
+
+		// Act
+		result := apperrors.ModulePathNotDirectory(modulePath)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "module path is not a directory: /path/to/file.txt")
 	})
 }
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/folio-org/eureka-cli/action"
 	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/httpclient"
 	"github.com/folio-org/eureka-cli/models"
@@ -73,6 +74,9 @@ func (ms *ManagementSvc) GetLatestApplication() (map[string]any, error) {
 	var decodedResponse models.ApplicationsResponse
 	if err := ms.HTTPClient.GetReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return nil, err
+	}
+	if len(decodedResponse.ApplicationDescriptors) == 0 {
+		return nil, errors.ApplicationNotFound(ms.Action.ConfigApplicationName)
 	}
 
 	return decodedResponse.ApplicationDescriptors[0], nil

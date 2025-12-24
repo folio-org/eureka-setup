@@ -190,6 +190,12 @@ func KongAdminAPIFailed(statusCode int, status string) error {
 	return fmt.Errorf("kong admin API failed: %d %s", statusCode, status)
 }
 
+// ==================== Application Errors ====================
+
+func ApplicationNotFound(applicationName string) error {
+	return fmt.Errorf("%w: failed to find the latest application for %s profile", ErrNotFound, applicationName)
+}
+
 // ==================== Module Errors ====================
 
 func ModulesNotDeployed(expectedModules int) error {
@@ -230,6 +236,18 @@ func ModuleDiscoveryNotFound(moduleName string) error {
 
 func ModuleDescriptorNotFound(moduleName, moduleVersion, descriptorPath string) error {
 	return fmt.Errorf("%w: module descriptor for %s-%s at path %s", ErrNotFound, moduleName, moduleVersion, descriptorPath)
+}
+
+func ModulePathNotFound(modulePath string) error {
+	return fmt.Errorf("module path does not exist: %s", modulePath)
+}
+
+func ModulePathAccessFailed(modulePath string, err error) error {
+	return fmt.Errorf("failed to access module path %s: %w", modulePath, err)
+}
+
+func ModulePathNotDirectory(modulePath string) error {
+	return fmt.Errorf("module path is not a directory: %s", modulePath)
 }
 
 // ==================== Tenant Errors ====================

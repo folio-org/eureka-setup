@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"os"
 	"testing"
 
 	"github.com/docker/docker/client"
@@ -8,6 +9,7 @@ import (
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/models"
 	"github.com/folio-org/eureka-cli/modulesvc"
+	"github.com/folio-org/eureka-cli/runconfig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -105,6 +107,87 @@ func (m *MockKongSvc) ListAllRoutes() ([]models.KongRoute, error) {
 }
 
 // ==================== UpgradeModule Tests ====================
+
+func TestValidateModulePath_EmptyPath(t *testing.T) {
+	// Arrange
+	run := &Run{
+		Config: &runconfig.RunConfig{
+			Infrastructure: &runconfig.Infrastructure{
+				Action: &action.Action{},
+			},
+		},
+	}
+
+	// Act
+	err := run.validateModulePath("")
+
+	// Assert
+	assert.NoError(t, err)
+}
+
+func TestValidateModulePath_ValidDirectory(t *testing.T) {
+	// Arrange
+	run := &Run{
+		Config: &runconfig.RunConfig{
+			Infrastructure: &runconfig.Infrastructure{
+				Action: &action.Action{},
+			},
+		},
+	}
+	tempDir := t.TempDir()
+
+	// Act
+	err := run.validateModulePath(tempDir)
+
+	// Assert
+	assert.NoError(t, err)
+}
+
+func TestValidateModulePath_PathDoesNotExist(t *testing.T) {
+	// Arrange
+	run := &Run{
+		Config: &runconfig.RunConfig{
+			Infrastructure: &runconfig.Infrastructure{
+				Action: &action.Action{},
+			},
+		},
+	}
+	nonExistentPath := "/path/that/does/not/exist/at/all"
+
+	// Act
+	err := run.validateModulePath(nonExistentPath)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "module path does not exist")
+	assert.Contains(t, err.Error(), nonExistentPath)
+}
+
+func TestValidateModulePath_PathIsFile(t *testing.T) {
+	// Arrange
+	run := &Run{
+		Config: &runconfig.RunConfig{
+			Infrastructure: &runconfig.Infrastructure{
+				Action: &action.Action{},
+			},
+		},
+	}
+	tempDir := t.TempDir()
+	tempFile := tempDir + "/testfile.txt"
+
+	// Create a temporary file
+	file, err := os.Create(tempFile)
+	assert.NoError(t, err)
+	file.Close()
+
+	// Act
+	err = run.validateModulePath(tempFile)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "module path is not a directory")
+	assert.Contains(t, err.Error(), tempFile)
+}
 
 func TestUpgradeModule_Success(t *testing.T) {
 	t.Skip("UpgradeModule requires extensive mocking of build, deployment, and application management flow; tested via integration tests")

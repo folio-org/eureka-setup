@@ -435,7 +435,7 @@ eureka-cli -p combined-native upgradeModule -n mod-orders --modulePath ~/Folio/f
 
 > The version is automatically resolved and incremented; image will be built with _foliolocal_ namespace
 
-![CLI Intercept Module](images/cli_upgrade_module_1.png)
+![CLI Upgrade Module](images/cli_upgrade_module_1.png)
 
 - If you want to downgrade back to an already prebuilt version (i.e. those that were downloaded from the Docker Hub or AWS ECR), set the desired version together with the correct namespace (e.g. _folioci_)
 
@@ -446,13 +446,13 @@ eureka-cli -p combined-native upgradeModule -n mod-orders --moduleVersion 13.1.0
 
 > We set namespace to folioci in order to use the existing Docker Hub image
 
-![CLI Intercept Module](images/cli_upgrade_module_2.png)
+![CLI Upgrade Module](images/cli_upgrade_module_2.png)
 
-In both case the application patch version will be incremented up, as this does not have any functional reason for the CLI to rollback.
+In both case the application patch version will be incremented up, as this does not have any functional reason for the CLI to rollback. Additionally, if the application is associated with multiple tenant entitlements, all of them will be upgraded to the latest version.
 
 - The upgrade command also has other flags that can be passed in order to skip a certain step in the process.
 
-![CLI Intercept Module](images/cli_upgrade_module_3.png)
+![CLI Upgrade Module](images/cli_upgrade_module_3.png)
 
 ### Other commands
 

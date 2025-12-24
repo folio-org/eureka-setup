@@ -66,6 +66,10 @@ func (run *Run) UpgradeModule() error {
 		namespace        = params.Namespace
 		shouldBuild      = !helpers.IsFolioNamespace(params.Namespace)
 	)
+	if err := run.validateModulePath(modulePath); err != nil {
+		return err
+	}
+
 	slog.Info(run.Config.Action.Name, "text", "UPGRADING MODULE", "module", moduleName, "version", newModuleVersion, "build", shouldBuild)
 	if shouldBuild {
 		if !params.SkipModuleArtifact {
@@ -199,6 +203,25 @@ func (run *Run) deployNewModuleAndSidecarPair() error {
 	}
 
 	return run.Config.UpgradeModuleSvc.DeployModuleAndSidecarPair(client, pair)
+}
+
+func (run *Run) validateModulePath(modulePath string) error {
+	if modulePath == "" {
+		return nil
+	}
+
+	info, err := os.Stat(modulePath)
+	if os.IsNotExist(err) {
+		return errors.ModulePathNotFound(modulePath)
+	}
+	if err != nil {
+		return errors.ModulePathAccessFailed(modulePath, err)
+	}
+	if !info.IsDir() {
+		return errors.ModulePathNotDirectory(modulePath)
+	}
+
+	return nil
 }
 
 func (run *Run) cleanupApplicationsOnFailure(consortiumName string, tenantType constant.TenantType, appName string, upstreamErr error) error {
