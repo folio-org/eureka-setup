@@ -56,8 +56,8 @@ func (run *Run) DeployModules() error {
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
-	installURLs := run.Config.Action.GetCombinedInstallURLs()
-	modules, err := run.Config.RegistrySvc.GetModules(installURLs, true, true)
+	installJsonURLs := run.Config.Action.GetCombinedInstallJsonURLs()
+	modules, err := run.Config.RegistrySvc.GetModules(installJsonURLs, true, true)
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,6 @@ func (run *Run) DeployModules() error {
 	}
 
 	return run.Config.ManagementSvc.CreateApplication(&models.RegistryExtract{
-		RegistryURLs:      run.Config.Action.GetCombinedRegistryURLs(),
 		Modules:           modules,
 		BackendModules:    backendModules,
 		FrontendModules:   frontendModules,

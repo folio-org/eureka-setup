@@ -59,8 +59,8 @@ func (run *Run) InterceptModule() error {
 		return err
 	}
 
-	installURLs := run.Config.Action.GetCombinedInstallURLs()
-	modules, err := run.Config.RegistrySvc.GetModules(installURLs, true, false)
+	installJsonURLs := run.Config.Action.GetCombinedInstallJsonURLs()
+	modules, err := run.Config.RegistrySvc.GetModules(installJsonURLs, true, false)
 	if err != nil {
 		return err
 	}

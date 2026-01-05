@@ -49,8 +49,8 @@ func (run *Run) DeployManagement() error {
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
-	installURLs := run.Config.Action.GetEurekaInstallURLs()
-	modules, err := run.Config.RegistrySvc.GetModules(installURLs, true, true)
+	installJsonURLs := run.Config.Action.GetEurekaInstallJsonURLs()
+	modules, err := run.Config.RegistrySvc.GetModules(installJsonURLs, true, true)
 	if err != nil {
 		return err
 	}

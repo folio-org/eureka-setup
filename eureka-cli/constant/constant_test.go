@@ -61,6 +61,40 @@ func TestGetTokenTypes(t *testing.T) {
 	assert.Equal(t, []string{DefaultToken, MasterCustomToken, MasterAdminCLIToken}, types)
 }
 
+// ==================== GetNamespaces Tests ====================
+
+func TestGetNamespaces(t *testing.T) {
+	// Act
+	namespaces := GetNamespaces()
+
+	// Assert
+	assert.Len(t, namespaces, 3)
+	assert.Contains(t, namespaces, SnapshotNamespace)
+	assert.Contains(t, namespaces, ReleaseNamespace)
+	assert.Contains(t, namespaces, LocalNamespace)
+	assert.Equal(t, []string{SnapshotNamespace, ReleaseNamespace, LocalNamespace}, namespaces)
+}
+
+func TestGetNamespaces_OrderPreserved(t *testing.T) {
+	// Act
+	namespaces := GetNamespaces()
+
+	// Assert - Verify order is preserved
+	assert.Equal(t, SnapshotNamespace, namespaces[0])
+	assert.Equal(t, ReleaseNamespace, namespaces[1])
+	assert.Equal(t, LocalNamespace, namespaces[2])
+}
+
+func TestGetNamespaces_ExpectedValues(t *testing.T) {
+	// Act
+	namespaces := GetNamespaces()
+
+	// Assert - Verify actual string values
+	assert.Equal(t, "folioci", namespaces[0])
+	assert.Equal(t, "folioorg", namespaces[1])
+	assert.Equal(t, "foliolocal", namespaces[2])
+}
+
 // ==================== GetInitialRequiredContainers Tests ====================
 
 func TestGetInitialRequiredContainers(t *testing.T) {

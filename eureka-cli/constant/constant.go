@@ -254,7 +254,7 @@ func GetTokenTypes() []string {
 	return []string{DefaultToken, MasterCustomToken, MasterAdminCLIToken}
 }
 
-// ====================Docker Hub & local namespaces ====================
+// ==================== Docker Hub & local namespaces ====================
 
 const (
 	SnapshotNamespace = "folioci"
@@ -262,7 +262,6 @@ const (
 	LocalNamespace    = "foliolocal"
 )
 
-// TODO Add tests
 func GetNamespaces() []string {
 	return []string{SnapshotNamespace, ReleaseNamespace, LocalNamespace}
 }

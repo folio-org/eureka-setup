@@ -121,7 +121,7 @@ func (ms *ManagementSvc) CreateApplication(extract *models.RegistryExtract) erro
 				module.ID = fmt.Sprintf("%s-%s", module.Metadata.Name, *module.Metadata.Version)
 			}
 
-			moduleDescriptorURL := fmt.Sprintf("%s/_/proxy/modules/%s", extract.RegistryURLs[constant.FolioRegistry], module.ID)
+			moduleDescriptorURL := ms.Action.GetModuleURL(module.ID)
 			isLocalBackendModule := existsBackend && backendModule.LocalDescriptorPath != ""
 			isLocalFrontendModule := existsFrontend && frontendModule.LocalDescriptorPath != ""
 			isLocalModule := isLocalBackendModule || isLocalFrontendModule

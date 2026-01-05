@@ -206,7 +206,6 @@ type Event struct {
 
 // RegistryExtract contains extracted information about modules from registries
 type RegistryExtract struct {
-	RegistryURLs      map[string]string
 	Modules           *ProxyModulesByRegistry
 	BackendModules    map[string]BackendModule
 	FrontendModules   map[string]FrontendModule
