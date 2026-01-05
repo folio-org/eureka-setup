@@ -169,28 +169,25 @@ func (a *Action) isPortFree(portStart, portEnd int, port int) bool {
 	return true
 }
 
-// ==================== Install URLs ====================
+// ==================== Install Json URLs ====================
 
-func (a *Action) GetCombinedInstallURLs() map[string]string {
+func (a *Action) GetCombinedInstallJsonURLs() map[string]string {
 	return map[string]string{
 		constant.FolioRegistry:  a.ConfigInstallFolio,
 		constant.EurekaRegistry: a.ConfigInstallEureka,
 	}
 }
 
-func (a *Action) GetEurekaInstallURLs() map[string]string {
+func (a *Action) GetEurekaInstallJsonURLs() map[string]string {
 	return map[string]string{
 		constant.EurekaRegistry: a.ConfigInstallEureka,
 	}
 }
 
-// ==================== Registry URLs  ====================
+// ==================== Module URL  ====================
 
-func (a *Action) GetCombinedRegistryURLs() map[string]string {
-	return map[string]string{
-		constant.FolioRegistry:  a.ConfigRegistryURL,
-		constant.EurekaRegistry: a.ConfigRegistryURL,
-	}
+func (a *Action) GetModuleURL(moduleID string) string {
+	return fmt.Sprintf("%s/_/proxy/modules/%s", a.ConfigRegistryURL, moduleID)
 }
 
 // ==================== Viper ====================

@@ -107,7 +107,6 @@ func (run *Run) UpgradeModule() error {
 	if err != nil {
 		return err
 	}
-
 	oldFrontendModules := helpers.GetAnySlice(app, "uiModules")
 	newFrontendModules := run.Config.UpgradeModuleSvc.UpdateFrontendModules(shouldBuild, oldFrontendModules)
 
@@ -176,8 +175,8 @@ func (run *Run) deployNewModuleAndSidecarPair() error {
 		return err
 	}
 
-	installURLs := run.Config.Action.GetCombinedInstallURLs()
-	modules, err := run.Config.RegistrySvc.GetModules(installURLs, true, false)
+	installJsonURLs := run.Config.Action.GetCombinedInstallJsonURLs()
+	modules, err := run.Config.RegistrySvc.GetModules(installJsonURLs, true, false)
 	if err != nil {
 		return err
 	}

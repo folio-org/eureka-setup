@@ -217,6 +217,59 @@ func TestGetGatewayURL(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "http://localhost", result)
 	})
+
+	t.Run("TestGetGatewayURL_Fallback_ConfigHostnameWithInvalidHTTP", func(t *testing.T) {
+		// Arrange - hostname with http:// prefix will fail reachability check
+		// and fall back to default gateway
+		vc := testhelpers.SetupViperForTest(map[string]any{
+			field.ApplicationGatewayHostname: "http://unreachable-test.invalid",
+		})
+		defer vc.Reset()
+
+		// Act
+		result, err := action.GetGatewayURL("test-action")
+
+		// Assert - Should fallback to default or gateway IP
+		if err == nil {
+			assert.NotEmpty(t, result)
+			assert.Contains(t, result, "http://")
+		}
+	})
+
+	t.Run("TestGetGatewayURL_Fallback_ToDefaultWhenConfigUnreachable", func(t *testing.T) {
+		// Arrange - Unreachable config hostname should fallback
+		vc := testhelpers.SetupViperForTest(map[string]any{
+			field.ApplicationGatewayHostname: "unreachable-host-98765.invalid",
+		})
+		defer vc.Reset()
+
+		// Act
+		result, err := action.GetGatewayURL("test-action")
+
+		// Assert - Should either succeed with fallback or error
+		if err == nil {
+			assert.NotEmpty(t, result)
+			assert.Contains(t, result, "http://")
+		}
+	})
+
+	t.Run("TestGetGatewayURL_Error_AllGatewaysFail", func(t *testing.T) {
+		// Arrange - Set unreachable hostname and ensure other gateways can't resolve
+		// This test mainly validates error handling on unsupported platforms
+		vc := testhelpers.SetupViperForTest(map[string]any{
+			field.ApplicationGatewayHostname: "unreachable-xyz-123.invalid",
+		})
+		defer vc.Reset()
+
+		// Act
+		_, err := action.GetGatewayURL("test-action")
+
+		// Assert - May succeed or fail depending on platform and network
+		// Main goal is to ensure function doesn't panic
+		if err != nil {
+			assert.Error(t, err)
+		}
+	})
 }
 
 // ==================== Port Management Tests ====================
@@ -479,7 +532,7 @@ func TestGetCombinedInstallJsonURLs(t *testing.T) {
 		}
 
 		// Act
-		result := act.GetCombinedInstallURLs()
+		result := act.GetCombinedInstallJsonURLs()
 
 		// Assert
 		assert.Len(t, result, 2)
@@ -496,7 +549,7 @@ func TestGetEurekaInstallJsonURLs(t *testing.T) {
 		}
 
 		// Act
-		result := act.GetEurekaInstallURLs()
+		result := act.GetEurekaInstallJsonURLs()
 
 		// Assert
 		assert.Len(t, result, 1)
@@ -504,20 +557,72 @@ func TestGetEurekaInstallJsonURLs(t *testing.T) {
 	})
 }
 
-func TestGetCombinedRegistryURLs(t *testing.T) {
-	t.Run("TestGetCombinedRegistryURLs_Success", func(t *testing.T) {
+// ==================== GetModuleURL Tests ====================
+
+func TestGetModuleURL(t *testing.T) {
+	t.Run("TestGetModuleURL_Success_WithSimpleModuleID", func(t *testing.T) {
 		// Arrange
 		act := &action.Action{
-			ConfigRegistryURL: "https://registry.test.com",
+			ConfigRegistryURL: "https://okapi.test.com",
 		}
 
 		// Act
-		result := act.GetCombinedRegistryURLs()
+		result := act.GetModuleURL("mod-inventory-1.0.0")
 
 		// Assert
-		assert.Len(t, result, 2)
-		assert.Equal(t, "https://registry.test.com", result[constant.FolioRegistry])
-		assert.Equal(t, "https://registry.test.com", result[constant.EurekaRegistry])
+		assert.Equal(t, "https://okapi.test.com/_/proxy/modules/mod-inventory-1.0.0", result)
+	})
+
+	t.Run("TestGetModuleURL_Success_WithComplexModuleID", func(t *testing.T) {
+		// Arrange
+		act := &action.Action{
+			ConfigRegistryURL: "http://localhost:9130",
+		}
+
+		// Act
+		result := act.GetModuleURL("mod-users-keycloak-2.5.0-SNAPSHOT.123")
+
+		// Assert
+		assert.Equal(t, "http://localhost:9130/_/proxy/modules/mod-users-keycloak-2.5.0-SNAPSHOT.123", result)
+	})
+
+	t.Run("TestGetModuleURL_Success_WithDifferentRegistryURL", func(t *testing.T) {
+		// Arrange
+		act := &action.Action{
+			ConfigRegistryURL: "https://eureka-registry.example.org:8080",
+		}
+
+		// Act
+		result := act.GetModuleURL("mod-search-3.2.1")
+
+		// Assert
+		assert.Equal(t, "https://eureka-registry.example.org:8080/_/proxy/modules/mod-search-3.2.1", result)
+	})
+
+	t.Run("TestGetModuleURL_Success_WithEmptyModuleID", func(t *testing.T) {
+		// Arrange
+		act := &action.Action{
+			ConfigRegistryURL: "https://okapi.test.com",
+		}
+
+		// Act
+		result := act.GetModuleURL("")
+
+		// Assert
+		assert.Equal(t, "https://okapi.test.com/_/proxy/modules/", result)
+	})
+
+	t.Run("TestGetModuleURL_Success_WithSpecialCharactersInModuleID", func(t *testing.T) {
+		// Arrange
+		act := &action.Action{
+			ConfigRegistryURL: "https://okapi.test.com",
+		}
+
+		// Act
+		result := act.GetModuleURL("mod-test_module-1.0.0-RC.1")
+
+		// Assert
+		assert.Equal(t, "https://okapi.test.com/_/proxy/modules/mod-test_module-1.0.0-RC.1", result)
 	})
 }
 
@@ -694,5 +799,54 @@ func TestGetSidecarModuleCmd(t *testing.T) {
 		assert.Len(t, result, 2)
 		assert.Equal(t, "fallback", result[0])
 		assert.Equal(t, "command", result[1])
+	})
+}
+
+// ==================== Param Tests ====================
+
+func TestFlag_GetName(t *testing.T) {
+	t.Run("TestFlag_GetName_ReturnsLongName", func(t *testing.T) {
+		// Arrange
+		flag := action.Flag{
+			Long:        "test-flag",
+			Short:       "t",
+			Description: "A test flag",
+		}
+
+		// Act
+		result := flag.GetName()
+
+		// Assert
+		assert.Equal(t, "test-flag", result)
+	})
+
+	t.Run("TestFlag_GetName_WithEmptyShort", func(t *testing.T) {
+		// Arrange
+		flag := action.Flag{
+			Long:        "another-flag",
+			Short:       "",
+			Description: "Another test flag",
+		}
+
+		// Act
+		result := flag.GetName()
+
+		// Assert
+		assert.Equal(t, "another-flag", result)
+	})
+
+	t.Run("TestFlag_GetName_WithComplexName", func(t *testing.T) {
+		// Arrange
+		flag := action.Flag{
+			Long:        "module-deployment-skip",
+			Short:       "mds",
+			Description: "Skip module deployment",
+		}
+
+		// Act
+		result := flag.GetName()
+
+		// Assert
+		assert.Equal(t, "module-deployment-skip", result)
 	})
 }

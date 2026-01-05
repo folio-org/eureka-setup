@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
-	"strings"
 
 	"github.com/folio-org/eureka-cli/constant"
 	"github.com/folio-org/eureka-cli/helpers"
@@ -39,7 +38,7 @@ func (um *UpgradeModuleSvc) UpdateBackendModules(moduleName, newModuleVersion st
 					"version": newModuleVersion,
 				}
 			} else {
-				moduleDescriptorURL := fmt.Sprintf("https://folio-registry.dev.folio.org/_/proxy/modules/%s", moduleID)
+				moduleDescriptorURL := um.Action.GetModuleURL(moduleID)
 				entry = map[string]any{
 					"id":      moduleID,
 					"name":    moduleName,
@@ -52,13 +51,7 @@ func (um *UpgradeModuleSvc) UpdateBackendModules(moduleName, newModuleVersion st
 			if err != nil {
 				return nil, nil, "", err
 			}
-
-			var sidecarURL string
-			if strings.HasPrefix(moduleName, "edge") {
-				sidecarURL = fmt.Sprintf("http://%s.eureka:%d", moduleName, privatePort)
-			} else {
-				sidecarURL = fmt.Sprintf("http://%s-sc.eureka:%d", moduleName, privatePort)
-			}
+			sidecarURL := helpers.GetSidecarURL(moduleName, privatePort)
 
 			newDiscoveryModules = append(newDiscoveryModules, map[string]string{
 				"id":       moduleID,
@@ -106,7 +99,7 @@ func (um *UpgradeModuleSvc) getDefaultModuleEntry(shouldBuild bool, entry map[st
 			"version": moduleVersion,
 		}
 	} else {
-		moduleDescriptorURL := fmt.Sprintf("https://folio-registry.dev.folio.org/_/proxy/modules/%s", moduleID)
+		moduleDescriptorURL := um.Action.GetModuleURL(moduleID)
 		return map[string]any{
 			"id":      moduleID,
 			"name":    moduleName,

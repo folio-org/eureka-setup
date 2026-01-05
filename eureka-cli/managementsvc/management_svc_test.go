@@ -387,9 +387,6 @@ func TestCreateApplication_HeaderCreationError(t *testing.T) {
 		BackendModules:    map[string]models.BackendModule{},
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	// Act
@@ -1406,9 +1403,6 @@ func TestCreateApplication_MinimalSuccess(t *testing.T) {
 		},
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	mockHTTP.On("PostReturnStruct",
@@ -1488,9 +1482,6 @@ func TestCreateApplication_WithFrontendModule(t *testing.T) {
 			},
 		},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	mockHTTP.On("PostReturnStruct",
@@ -1554,9 +1545,6 @@ func TestCreateApplication_SkipsManagementModule(t *testing.T) {
 		},
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	mockHTTP.On("PostReturnStruct",
@@ -1607,9 +1595,6 @@ func TestCreateApplication_HTTPError(t *testing.T) {
 		BackendModules:    map[string]models.BackendModule{},
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	expectedError := errors.New("HTTP POST failed")
@@ -1665,9 +1650,6 @@ func TestCreateApplication_WithModuleVersionOverride(t *testing.T) {
 		},
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	mockHTTP.On("PostReturnStruct",
@@ -1751,9 +1733,6 @@ func TestCreateApplication_WithFetchDescriptorsFromRemote(t *testing.T) {
 		},
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	descriptorData := map[string]any{
@@ -1850,9 +1829,6 @@ func TestCreateApplication_FetchDescriptorError(t *testing.T) {
 		},
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	expectedError := errors.New("failed to fetch descriptor")
@@ -1894,9 +1870,6 @@ func TestCreateApplication_WithDependencies(t *testing.T) {
 		BackendModules:    map[string]models.BackendModule{},
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	mockHTTP.On("PostReturnStruct",
@@ -2049,9 +2022,6 @@ func TestCreateApplication_SkipsModuleNotInConfig(t *testing.T) {
 		},
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	mockHTTP.On("PostReturnStruct",
@@ -2116,9 +2086,6 @@ func TestCreateApplication_SkipsModuleWithDeployFalse(t *testing.T) {
 		},
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	mockHTTP.On("PostReturnStruct",
@@ -2184,9 +2151,6 @@ func TestCreateApplication_WithEurekaModules(t *testing.T) {
 		},
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	mockHTTP.On("PostReturnStruct",
@@ -2264,9 +2228,6 @@ func TestCreateApplication_DiscoveryPostError(t *testing.T) {
 		},
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	mockHTTP.On("PostReturnStruct",
@@ -2338,9 +2299,6 @@ func TestCreateApplication_WithModuleURLs(t *testing.T) {
 		},
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	mockHTTP.On("PostReturnStruct",
@@ -2423,9 +2381,6 @@ func TestCreateApplication_FrontendModuleWithFetchDescriptors(t *testing.T) {
 			},
 		},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	descriptorData := map[string]any{
@@ -2507,9 +2462,6 @@ func TestCreateApplication_FrontendModuleWithURL(t *testing.T) {
 			},
 		},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	mockHTTP.On("PostReturnStruct",
@@ -2580,9 +2532,6 @@ func TestCreateApplication_FrontendVersionOverride(t *testing.T) {
 			},
 		},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	mockHTTP.On("PostReturnStruct",
@@ -2663,9 +2612,6 @@ func TestCreateApplication_MixedBackendAndFrontend(t *testing.T) {
 			},
 		},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	mockHTTP.On("PostReturnStruct",
@@ -2758,9 +2704,6 @@ func TestCreateApplication_BothModulesBackendVersionOverride(t *testing.T) {
 			},
 		},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	mockHTTP.On("PostReturnStruct",
@@ -2853,9 +2796,6 @@ func TestCreateApplication_BothModulesFrontendVersionOverride(t *testing.T) {
 			},
 		},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	mockHTTP.On("PostReturnStruct",
@@ -2950,9 +2890,6 @@ func TestCreateApplication_BothModulesBothVersionOverrides(t *testing.T) {
 			},
 		},
 		ModuleDescriptors: map[string]any{},
-		RegistryURLs: map[string]string{
-			"folio": "http://registry.folio.org",
-		},
 	}
 
 	mockHTTP.On("PostReturnStruct",
