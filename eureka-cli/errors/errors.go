@@ -74,6 +74,29 @@ func TenantNameBlank() error {
 
 // ==================== HTTP Errors ====================
 
+// HTTPError represents an HTTP request error with status code
+type HTTPError struct {
+	StatusCode int
+	Method     string
+	URL        string
+}
+
+func (e *HTTPError) Error() string {
+	return fmt.Sprintf("request failed with status %d for URL: %s %s", e.StatusCode, e.Method, e.URL)
+}
+
+// Is allows errors.Is to match HTTPError instances with the same status code
+func (e *HTTPError) Is(target error) bool {
+	if t, ok := target.(*HTTPError); ok {
+		return e.StatusCode == t.StatusCode
+	}
+	return false
+}
+
+var (
+	ErrHTTP404NotFound = &HTTPError{StatusCode: http.StatusNotFound}
+)
+
 func PingFailed(url string, err error) error {
 	return fmt.Errorf("failed to ping %s: %w", url, err)
 }
@@ -83,7 +106,11 @@ func PingFailedWithStatus(url string, statusCode int) error {
 }
 
 func RequestFailed(statusCode int, method, url string) error {
-	return fmt.Errorf("request failed with status %d for URL: %s %s", statusCode, method, url)
+	return &HTTPError{
+		StatusCode: statusCode,
+		Method:     method,
+		URL:        url,
+	}
 }
 
 // ==================== Action Errors ====================
