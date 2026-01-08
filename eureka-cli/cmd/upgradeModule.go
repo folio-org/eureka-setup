@@ -164,8 +164,16 @@ func (run *Run) UpgradeModule() error {
 		}
 	}
 	slog.Info(run.Config.Action.Name, "text", "REMOVING APPLICATIONS", "name", appName)
+	if err := run.Config.ManagementSvc.RemoveApplications(appName, newAppID); err != nil {
+		return err
+	}
+	if params.Cleanup {
+		if err := run.Config.UpgradeModuleSvc.CleanModuleArtifact(moduleName, modulePath); err != nil {
+			return err
+		}
+	}
 
-	return run.Config.ManagementSvc.RemoveApplications(appName, newAppID)
+	return nil
 }
 
 func (run *Run) deployNewModuleAndSidecarPair() error {
@@ -257,6 +265,7 @@ func init() {
 	upgradeModuleCmd.PersistentFlags().StringVarP(&params.ModuleVersion, action.ModuleVersion.Long, action.ModuleVersion.Short, "", action.ModuleVersion.Description)
 	upgradeModuleCmd.PersistentFlags().StringVarP(&params.ModulePath, action.ModulePath.Long, action.ModulePath.Short, "", action.ModulePath.Description)
 	upgradeModuleCmd.PersistentFlags().StringVarP(&params.Namespace, action.Namespace.Long, action.Namespace.Short, "", action.Namespace.Description)
+	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.Cleanup, action.Cleanup.Long, action.Cleanup.Short, false, action.Cleanup.Description)
 	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipModuleArtifact, action.SkipModuleArtifact.Long, action.SkipModuleArtifact.Short, false, action.SkipModuleArtifact.Description)
 	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipModuleImage, action.SkipModuleImage.Long, action.SkipModuleImage.Short, false, action.SkipModuleImage.Description)
 	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipModuleDeployment, action.SkipModuleDeployment.Long, action.SkipModuleDeployment.Short, false, action.SkipModuleDeployment.Description)

@@ -2,11 +2,13 @@ package keycloaksvc
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
 
 	"github.com/folio-org/eureka-cli/constant"
+	apperrors "github.com/folio-org/eureka-cli/errors"
 	"github.com/folio-org/eureka-cli/field"
 	"github.com/folio-org/eureka-cli/helpers"
 	"github.com/folio-org/eureka-cli/models"
@@ -197,6 +199,10 @@ func (ks *KeycloakSvc) DetachCapabilitySetsFromRoles(tenantName string) error {
 
 		requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/roles/%s/capability-sets", helpers.GetString(entry, "id")))
 		if err := ks.HTTPClient.Delete(requestURL, headers); err != nil {
+			if errors.Is(err, apperrors.ErrHTTP404NotFound) {
+				slog.Debug(ks.Action.Name, "text", "No capability sets to detach (already detached or not found)", "role", roleName, "tenant", tenantName)
+				continue
+			}
 			return err
 		}
 		slog.Info(ks.Action.Name, "text", "Detached capability sets", "role", roleName, "tenant", tenantName)

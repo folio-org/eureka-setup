@@ -149,6 +149,7 @@ func TestCreateRetryClient_Configuration(t *testing.T) {
 	// Assert
 	if retryClient == nil {
 		t.Fatal("Expected non-nil retry client")
+		return
 	}
 	if retryClient.HTTPClient != customClient {
 		t.Error("Expected custom HTTP client to be set")

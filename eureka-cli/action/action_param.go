@@ -6,6 +6,7 @@ type Param struct {
 	All                   bool
 	ApplicationNames      []string
 	BuildImages           bool
+	Cleanup               bool
 	ConfigFile            string
 	DefaultGateway        bool
 	EnableDebug           bool
@@ -63,6 +64,7 @@ var (
 	All                   = Flag{"all", "a", "All modules for all profiles"}
 	ApplicationNames      = Flag{"apps", "", "Application names"}
 	BuildImages           = Flag{"buildImages", "b", "Build Docker images"}
+	Cleanup               = Flag{"cleanup", "", "Perform a cleanup operation"}
 	ConfigFile            = Flag{"configFile", "c", "Use a specific config file"}
 	DefaultGateway        = Flag{"defaultGateway", "g", "Use default gateway in URLs, .e.g. http://host.docker.internal:{{port}} will be set automatically"}
 	EnableDebug           = Flag{"enableDebug", "d", "Enable debug"}

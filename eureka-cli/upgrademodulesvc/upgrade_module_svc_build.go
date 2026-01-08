@@ -13,6 +13,7 @@ import (
 // UpgradeModuleBuildManager defines the interface for building operations to upgrade a module
 type UpgradeModuleBuildManager interface {
 	BuildModuleArtifact(moduleName, newModuleVersion, modulePath string) error
+	CleanModuleArtifact(moduleName, modulePath string) error
 	BuildModuleImage(namespace, moduleName, newModuleVersion, modulePath string) error
 	ReadModuleDescriptor(moduleName, newModuleVersion, modulePath string) (newModuleDescriptor map[string]any, err error)
 }
@@ -31,6 +32,15 @@ func (um *UpgradeModuleSvc) BuildModuleArtifact(moduleName, newModuleVersion, mo
 	slog.Info(um.Action.Name, "text", "Packaging new artifact", "module", moduleName, "version", newModuleVersion)
 
 	return um.ExecSvc.ExecFromDir(exec.Command("mvn", "package", "-DskipTests"), modulePath)
+}
+
+func (um *UpgradeModuleSvc) CleanModuleArtifact(moduleName, modulePath string) error {
+	slog.Info(um.Action.Name, "text", "CLEANING MODULE ARTIFACT", "module", moduleName)
+	if err := um.ExecSvc.ExecFromDir(exec.Command("mvn", "versions:revert"), modulePath); err != nil {
+		return err
+	}
+
+	return um.ExecSvc.ExecFromDir(exec.Command("mvn", "clean", "package", "-DskipTests"), modulePath)
 }
 
 func (um *UpgradeModuleSvc) BuildModuleImage(namespace, moduleName, newModuleVersion, modulePath string) error {
