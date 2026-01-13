@@ -40,10 +40,10 @@ var deployApplicationCmd = &cobra.Command{
 			return err
 		}
 
-		if len(run.Config.Action.ConfigApplicationDependencies) > 0 {
-			err = run.DeployChildApplication()
+		if params.Cleanup {
+			err = run.DeployApplicationWithCleanup()
 		} else {
-			err = run.DeployApplication()
+			err = run.DeployApplicationWithoutCleanup()
 		}
 		if err != nil {
 			return err
@@ -52,6 +52,28 @@ var deployApplicationCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func (run *Run) DeployApplicationWithCleanup() error {
+	if run.Config.Action.IsChildApp() {
+		if err := run.UndeployChildApplication(); err != nil {
+			return err
+		}
+		return run.DeployChildApplication()
+	}
+	if err := run.UndeployApplication(); err != nil {
+		return err
+	}
+
+	return run.DeployApplication()
+}
+
+func (run *Run) DeployApplicationWithoutCleanup() error {
+	if run.Config.Action.IsChildApp() {
+		return run.DeployChildApplication()
+	}
+
+	return run.DeployApplication()
 }
 
 func (run *Run) DeployApplication() error {
@@ -133,5 +155,6 @@ func init() {
 	deployApplicationCmd.PersistentFlags().BoolVarP(&params.BuildImages, action.BuildImages.Long, action.BuildImages.Short, false, action.BuildImages.Description)
 	deployApplicationCmd.PersistentFlags().BoolVarP(&params.UpdateCloned, action.UpdateCloned.Long, action.UpdateCloned.Short, false, action.UpdateCloned.Description)
 	deployApplicationCmd.PersistentFlags().BoolVarP(&params.OnlyRequired, action.OnlyRequired.Long, action.OnlyRequired.Short, false, action.OnlyRequired.Description)
+	deployApplicationCmd.PersistentFlags().BoolVarP(&params.Cleanup, action.Cleanup.Long, action.Cleanup.Short, false, action.Cleanup.Description)
 	deployApplicationCmd.PersistentFlags().BoolVarP(&params.SkipRegistry, action.SkipRegistry.Long, action.SkipRegistry.Short, false, action.SkipRegistry.Description)
 }

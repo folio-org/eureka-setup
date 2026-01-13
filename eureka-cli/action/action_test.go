@@ -802,6 +802,60 @@ func TestGetSidecarModuleCmd(t *testing.T) {
 	})
 }
 
+// ==================== Application Tests ====================
+
+func TestIsChildApp(t *testing.T) {
+	tests := []struct {
+		name         string
+		dependencies map[string]any
+		expected     bool
+	}{
+		{
+			name: "TestIsChildApp_ReturnsTrueWhenDependenciesExist",
+			dependencies: map[string]any{
+				"dep1": "v1.0.0",
+				"dep2": "v2.0.0",
+			},
+			expected: true,
+		},
+		{
+			name:         "TestIsChildApp_ReturnsFalseWhenDependenciesEmpty",
+			dependencies: map[string]any{},
+			expected:     false,
+		},
+		{
+			name:         "TestIsChildApp_ReturnsFalseWhenDependenciesNil",
+			dependencies: nil,
+			expected:     false,
+		},
+		{
+			name: "TestIsChildApp_ReturnsTrueWithSingleDependency",
+			dependencies: map[string]any{
+				"single-dep": "1.0.0",
+			},
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			vc := testhelpers.SetupViperForTest(map[string]any{
+				field.ApplicationDependencies: tt.dependencies,
+			})
+			defer vc.Reset()
+
+			act := action.New("test", "http://localhost:%s", &action.Param{})
+
+			// Act
+			result := act.IsChildApp()
+
+			// Assert
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 // ==================== Param Tests ====================
 
 func TestFlag_GetName(t *testing.T) {

@@ -39,7 +39,7 @@ var undeployApplicationCmd = &cobra.Command{
 			return err
 		}
 
-		if len(run.Config.Action.ConfigApplicationDependencies) > 0 {
+		if run.Config.Action.IsChildApp() {
 			err = run.UndeployChildApplication()
 		} else {
 			err = run.UndeployApplication()
