@@ -108,6 +108,12 @@ func (a *Action) GetRequestURL(port string, route string) string {
 	return fmt.Sprintf(a.GatewayURLTemplate, port) + route
 }
 
+// ==================== Application ====================
+
+func (a *Action) IsChildApp() bool {
+	return len(a.ConfigApplicationDependencies) > 0
+}
+
 // ==================== Environment ====================
 
 func GetSidecarModuleCmd() []string {

@@ -149,7 +149,7 @@ Available flags:
 |---------------------------|-------|-----------------------------------------------------------|----------------------------------------|
 | `--all`                   | `-a`  | All modules for all profiles                              | listModules                            |
 | `--apps`                  |       | Application names                                         | purgeTenants                           |
-| `--cleanup`               |       | Perform a cleanup operation                               | upgradeModule                          |
+| `--cleanup`               |       | Perform a cleanup operation                               | deployApplication, upgradeModule       |
 | `--defaultGateway`        | `-g`  | Use default gateway in URLs                               | interceptModule                        |
 | `--enableEcsRequests`     |       | Enable ECS requests                                       | deployUi, buildAndPushUi               |
 | `--gatewayHostname`       |       | Gateway Hostname                                          | createPortProxy                        |
