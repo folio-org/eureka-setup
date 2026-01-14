@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 )
 
 // HTTPClientPostManager defines the interface for HTTP POST operations

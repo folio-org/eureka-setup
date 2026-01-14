@@ -3,7 +3,7 @@ package models
 import (
 	"testing"
 
-	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )

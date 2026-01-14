@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/folio-org/eureka-cli/constant"
-	apperrors "github.com/folio-org/eureka-cli/errors"
-	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	apperrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/stretchr/testify/assert"
 )
 

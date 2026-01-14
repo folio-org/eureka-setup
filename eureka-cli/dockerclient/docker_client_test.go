@@ -5,8 +5,8 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/folio-org/eureka-cli/field"
-	"github.com/folio-org/eureka-cli/internal/testhelpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/field"
+	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

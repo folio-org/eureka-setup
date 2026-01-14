@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/internal/testhelpers"
-	"github.com/folio-org/eureka-cli/managementsvc"
-	"github.com/folio-org/eureka-cli/models"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/managementsvc"
+	"github.com/folio-org/eureka-setup/eureka-cli/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

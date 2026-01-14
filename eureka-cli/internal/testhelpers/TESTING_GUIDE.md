@@ -437,9 +437,9 @@ package searchsvc_test
 import (
     "testing"
     
-    "github.com/folio-org/eureka-cli/internal/testhelpers"
-    "github.com/folio-org/eureka-cli/models"
-    "github.com/folio-org/eureka-cli/searchsvc"
+    "github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
+    "github.com/folio-org/eureka-setup/eureka-cli/models"
+    "github.com/folio-org/eureka-setup/eureka-cli/searchsvc"
     "github.com/stretchr/testify/assert"
     "github.com/stretchr/testify/mock"
 )

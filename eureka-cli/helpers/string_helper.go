@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/errors"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/errors"
 )
 
 func StripModuleVersion(name string) string {

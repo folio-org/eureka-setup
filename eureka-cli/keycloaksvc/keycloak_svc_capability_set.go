@@ -7,11 +7,11 @@ import (
 	"log/slog"
 	"slices"
 
-	"github.com/folio-org/eureka-cli/constant"
-	apperrors "github.com/folio-org/eureka-cli/errors"
-	"github.com/folio-org/eureka-cli/field"
-	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/models"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	apperrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
+	"github.com/folio-org/eureka-setup/eureka-cli/field"
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/models"
 )
 
 // KeycloakCapabilitySetManager defines the interface for Keycloak capability set management operations

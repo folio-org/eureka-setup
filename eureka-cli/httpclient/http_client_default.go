@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 )
 
 type LoggingRoundTripper struct {

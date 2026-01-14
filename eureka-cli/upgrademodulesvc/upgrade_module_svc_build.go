@@ -6,8 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 )
 
 // UpgradeModuleBuildManager defines the interface for building operations to upgrade a module
