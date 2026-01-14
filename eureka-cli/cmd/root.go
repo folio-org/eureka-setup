@@ -41,9 +41,10 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "eureka-cli",
-	Short: "Eureka CLI",
-	Long:  `Eureka CLI orchestrates the deployment of a local Eureka-based development environment.`,
+	Use:     "eureka-cli",
+	Short:   "Eureka CLI",
+	Long:    `Eureka CLI orchestrates the deployment of a local Eureka-based development environment.`,
+	Version: fmt.Sprintf("%s (commit: %s, built: %s)", Version, Commit, BuildDate),
 }
 
 func Execute(fs *embed.FS) {

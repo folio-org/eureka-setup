@@ -6,10 +6,10 @@ tmp_dir = "bin"
 
 [build]
   args_bin = []
-  bin = "bin\\eureka-cli.exe"
-  cmd = "env GOOS=windows GOARCH=amd64 go build -o ./bin/ . ; go install" 
+  bin = ""
+  cmd = "bash build.sh"
   delay = 1000
-  entrypoint = ["bin\\eureka-cli.exe"]
+  entrypoint = ["bin\\eureka-cli.exe", "-v"]
   exclude_dir = ["assets", "bin", "vendor", "testdata", "images"]
   exclude_file = []
   exclude_regex = ["_test.go"]

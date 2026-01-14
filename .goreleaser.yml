@@ -6,4 +6,8 @@ builds:
     goarch: [amd64, arm64]
     goarm: ["7"]
     ignore: [{goos: windows, goarch: arm64}, {goos: linux, goarch: arm64}]
-    ldflags: "-s -w"
+    ldflags:
+      - -s -w
+      - -X github.com/folio-org/eureka-cli/cmd.Version={{.Version}}
+      - -X github.com/folio-org/eureka-cli/cmd.Commit={{.ShortCommit}}
+      - -X github.com/folio-org/eureka-cli/cmd.BuildDate={{.Date}}
