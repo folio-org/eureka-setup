@@ -2,9 +2,9 @@ package modulesvc
 
 import (
 	"github.com/docker/docker/api/types/network"
-	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
-	"github.com/folio-org/eureka-setup/eureka-cli/models"
+	"github.com/j011195/eureka-setup/eureka-cli/action"
+	"github.com/j011195/eureka-setup/eureka-cli/helpers"
+	"github.com/j011195/eureka-setup/eureka-cli/models"
 )
 
 // ModulePair represents a module configured for traffic interception and debugging

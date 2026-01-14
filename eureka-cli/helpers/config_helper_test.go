@@ -3,8 +3,8 @@ package helpers_test
 import (
 	"testing"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/field"
-	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
+	"github.com/j011195/eureka-setup/eureka-cli/field"
+	"github.com/j011195/eureka-setup/eureka-cli/helpers"
 	"github.com/stretchr/testify/assert"
 )
 

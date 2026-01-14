@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	apperrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
-	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
+	apperrors "github.com/j011195/eureka-setup/eureka-cli/errors"
+	"github.com/j011195/eureka-setup/eureka-cli/helpers"
 	"github.com/stretchr/testify/assert"
 )
 

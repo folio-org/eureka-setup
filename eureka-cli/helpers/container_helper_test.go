@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/docker/go-connections/nat"
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	"github.com/folio-org/eureka-setup/eureka-cli/field"
-	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
+	"github.com/j011195/eureka-setup/eureka-cli/constant"
+	"github.com/j011195/eureka-setup/eureka-cli/field"
+	"github.com/j011195/eureka-setup/eureka-cli/helpers"
 	"github.com/stretchr/testify/assert"
 )
 

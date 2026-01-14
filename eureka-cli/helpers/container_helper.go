@@ -9,8 +9,8 @@ import (
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/strslice"
 	"github.com/docker/go-connections/nat"
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	"github.com/folio-org/eureka-setup/eureka-cli/field"
+	"github.com/j011195/eureka-setup/eureka-cli/constant"
+	"github.com/j011195/eureka-setup/eureka-cli/field"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 

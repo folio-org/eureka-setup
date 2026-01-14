@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	"github.com/folio-org/eureka-setup/eureka-cli/dockerclient"
-	"github.com/folio-org/eureka-setup/eureka-cli/errors"
-	"github.com/folio-org/eureka-setup/eureka-cli/field"
-	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
-	"github.com/folio-org/eureka-setup/eureka-cli/httpclient"
-	"github.com/folio-org/eureka-setup/eureka-cli/models"
-	"github.com/folio-org/eureka-setup/eureka-cli/moduleenv"
-	"github.com/folio-org/eureka-setup/eureka-cli/registrysvc"
+	"github.com/j011195/eureka-setup/eureka-cli/action"
+	"github.com/j011195/eureka-setup/eureka-cli/constant"
+	"github.com/j011195/eureka-setup/eureka-cli/dockerclient"
+	"github.com/j011195/eureka-setup/eureka-cli/errors"
+	"github.com/j011195/eureka-setup/eureka-cli/field"
+	"github.com/j011195/eureka-setup/eureka-cli/helpers"
+	"github.com/j011195/eureka-setup/eureka-cli/httpclient"
+	"github.com/j011195/eureka-setup/eureka-cli/models"
+	"github.com/j011195/eureka-setup/eureka-cli/moduleenv"
+	"github.com/j011195/eureka-setup/eureka-cli/registrysvc"
 )
 
 // ModuleProcessor defines the composite interface for all module-related operations

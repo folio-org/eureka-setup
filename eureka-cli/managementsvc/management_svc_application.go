@@ -8,13 +8,13 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	"github.com/folio-org/eureka-setup/eureka-cli/errors"
-	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
-	"github.com/folio-org/eureka-setup/eureka-cli/httpclient"
-	"github.com/folio-org/eureka-setup/eureka-cli/models"
-	"github.com/folio-org/eureka-setup/eureka-cli/tenantsvc"
+	"github.com/j011195/eureka-setup/eureka-cli/action"
+	"github.com/j011195/eureka-setup/eureka-cli/constant"
+	"github.com/j011195/eureka-setup/eureka-cli/errors"
+	"github.com/j011195/eureka-setup/eureka-cli/helpers"
+	"github.com/j011195/eureka-setup/eureka-cli/httpclient"
+	"github.com/j011195/eureka-setup/eureka-cli/models"
+	"github.com/j011195/eureka-setup/eureka-cli/tenantsvc"
 )
 
 // ManagementProcessor defines the interface for management service operations

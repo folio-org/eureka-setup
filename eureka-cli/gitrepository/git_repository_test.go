@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/j011195/eureka-setup/eureka-cli/action"
 	"github.com/stretchr/testify/assert"
 )
 

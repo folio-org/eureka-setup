@@ -19,11 +19,11 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	"github.com/folio-org/eureka-setup/eureka-cli/field"
-	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
-	"github.com/folio-org/eureka-setup/eureka-cli/runconfig"
+	"github.com/j011195/eureka-setup/eureka-cli/action"
+	"github.com/j011195/eureka-setup/eureka-cli/constant"
+	"github.com/j011195/eureka-setup/eureka-cli/field"
+	"github.com/j011195/eureka-setup/eureka-cli/helpers"
+	"github.com/j011195/eureka-setup/eureka-cli/runconfig"
 )
 
 // Run is a container that holds the RunConfig instance

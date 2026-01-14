@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/j011195/eureka-setup/eureka-cli/errors"
 )
 
 // HTTPClientPinger defines the interface for HTTP ping operations

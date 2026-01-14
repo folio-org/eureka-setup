@@ -18,7 +18,7 @@ package cmd
 import (
 	"os/exec"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/action"
+	"github.com/j011195/eureka-setup/eureka-cli/action"
 	"github.com/spf13/cobra"
 )
 

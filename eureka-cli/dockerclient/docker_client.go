@@ -7,11 +7,11 @@ import (
 	"os/exec"
 
 	"github.com/docker/docker/client"
-	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	"github.com/folio-org/eureka-setup/eureka-cli/errors"
-	"github.com/folio-org/eureka-setup/eureka-cli/execsvc"
-	"github.com/folio-org/eureka-setup/eureka-cli/field"
+	"github.com/j011195/eureka-setup/eureka-cli/action"
+	"github.com/j011195/eureka-setup/eureka-cli/constant"
+	"github.com/j011195/eureka-setup/eureka-cli/errors"
+	"github.com/j011195/eureka-setup/eureka-cli/execsvc"
+	"github.com/j011195/eureka-setup/eureka-cli/field"
 )
 
 // TODO Add testcontainers tests

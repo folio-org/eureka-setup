@@ -18,7 +18,7 @@ package main
 import (
 	"embed"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/cmd"
+	"github.com/j011195/eureka-setup/eureka-cli/cmd"
 )
 
 var (

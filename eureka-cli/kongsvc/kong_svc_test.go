@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
-	"github.com/folio-org/eureka-setup/eureka-cli/kongsvc"
-	"github.com/folio-org/eureka-setup/eureka-cli/models"
+	"github.com/j011195/eureka-setup/eureka-cli/internal/testhelpers"
+	"github.com/j011195/eureka-setup/eureka-cli/kongsvc"
+	"github.com/j011195/eureka-setup/eureka-cli/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

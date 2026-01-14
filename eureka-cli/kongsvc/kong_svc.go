@@ -6,11 +6,11 @@ import (
 	"slices"
 	"time"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	"github.com/folio-org/eureka-setup/eureka-cli/errors"
-	"github.com/folio-org/eureka-setup/eureka-cli/httpclient"
-	"github.com/folio-org/eureka-setup/eureka-cli/models"
+	"github.com/j011195/eureka-setup/eureka-cli/action"
+	"github.com/j011195/eureka-setup/eureka-cli/constant"
+	"github.com/j011195/eureka-setup/eureka-cli/errors"
+	"github.com/j011195/eureka-setup/eureka-cli/httpclient"
+	"github.com/j011195/eureka-setup/eureka-cli/models"
 )
 
 // KongProcessor defines the interface for Kong service operations

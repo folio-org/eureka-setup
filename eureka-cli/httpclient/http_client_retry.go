@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/j011195/eureka-setup/eureka-cli/constant"
 )
 
 // LoggerAdapter adapts slog.Logger to retryablehttp.LeveledLogger interface

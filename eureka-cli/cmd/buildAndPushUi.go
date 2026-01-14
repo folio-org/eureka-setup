@@ -20,8 +20,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/errors"
+	"github.com/j011195/eureka-setup/eureka-cli/action"
+	"github.com/j011195/eureka-setup/eureka-cli/errors"
 	"github.com/spf13/cobra"
 )
 

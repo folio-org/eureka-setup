@@ -6,8 +6,8 @@ import (
 	"os/exec"
 
 	"github.com/docker/docker/client"
-	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/models"
+	"github.com/j011195/eureka-setup/eureka-cli/action"
+	"github.com/j011195/eureka-setup/eureka-cli/models"
 	"github.com/stretchr/testify/mock"
 )
 

@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
-	"github.com/folio-org/eureka-setup/eureka-cli/models"
-	"github.com/folio-org/eureka-setup/eureka-cli/moduleenv"
+	"github.com/j011195/eureka-setup/eureka-cli/action"
+	"github.com/j011195/eureka-setup/eureka-cli/helpers"
+	"github.com/j011195/eureka-setup/eureka-cli/models"
+	"github.com/j011195/eureka-setup/eureka-cli/moduleenv"
 	"github.com/stretchr/testify/assert"
 )
 

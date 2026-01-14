@@ -9,12 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	apperrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
-	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
-	"github.com/folio-org/eureka-setup/eureka-cli/keycloaksvc"
-	"github.com/folio-org/eureka-setup/eureka-cli/models"
 	vault "github.com/hashicorp/vault-client-go"
+	"github.com/j011195/eureka-setup/eureka-cli/constant"
+	apperrors "github.com/j011195/eureka-setup/eureka-cli/errors"
+	"github.com/j011195/eureka-setup/eureka-cli/internal/testhelpers"
+	"github.com/j011195/eureka-setup/eureka-cli/keycloaksvc"
+	"github.com/j011195/eureka-setup/eureka-cli/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

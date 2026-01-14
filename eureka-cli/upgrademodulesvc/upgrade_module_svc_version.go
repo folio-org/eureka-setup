@@ -5,8 +5,8 @@ import (
 	"log/slog"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
+	"github.com/j011195/eureka-setup/eureka-cli/constant"
+	"github.com/j011195/eureka-setup/eureka-cli/helpers"
 )
 
 // UpgradeModuleVersionManager defines the interface for version-related operations during the module upgrade

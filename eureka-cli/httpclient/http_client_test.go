@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/httpclient"
+	"github.com/j011195/eureka-setup/eureka-cli/action"
+	"github.com/j011195/eureka-setup/eureka-cli/httpclient"
 	"github.com/stretchr/testify/assert"
 )
 

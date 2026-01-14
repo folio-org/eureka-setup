@@ -5,8 +5,8 @@ import (
 	"net"
 	"strings"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	"github.com/folio-org/eureka-setup/eureka-cli/errors"
+	"github.com/j011195/eureka-setup/eureka-cli/constant"
+	"github.com/j011195/eureka-setup/eureka-cli/errors"
 )
 
 // ==================== Hostname ====================

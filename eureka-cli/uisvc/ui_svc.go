@@ -7,14 +7,14 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	"github.com/folio-org/eureka-setup/eureka-cli/dockerclient"
-	"github.com/folio-org/eureka-setup/eureka-cli/execsvc"
-	"github.com/folio-org/eureka-setup/eureka-cli/gitclient"
-	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
-	"github.com/folio-org/eureka-setup/eureka-cli/tenantsvc"
 	"github.com/go-git/go-git/v5"
+	"github.com/j011195/eureka-setup/eureka-cli/action"
+	"github.com/j011195/eureka-setup/eureka-cli/constant"
+	"github.com/j011195/eureka-setup/eureka-cli/dockerclient"
+	"github.com/j011195/eureka-setup/eureka-cli/execsvc"
+	"github.com/j011195/eureka-setup/eureka-cli/gitclient"
+	"github.com/j011195/eureka-setup/eureka-cli/helpers"
+	"github.com/j011195/eureka-setup/eureka-cli/tenantsvc"
 )
 
 // UIProcessor defines the composite interface for all UI-related operations

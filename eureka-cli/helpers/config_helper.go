@@ -3,7 +3,7 @@ package helpers
 import (
 	"slices"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/field"
+	"github.com/j011195/eureka-setup/eureka-cli/field"
 )
 
 func IsModuleEnabled(module string, configBackendModules map[string]any) bool {

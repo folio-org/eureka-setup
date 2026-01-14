@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/execsvc"
-	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
+	"github.com/j011195/eureka-setup/eureka-cli/execsvc"
+	"github.com/j011195/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

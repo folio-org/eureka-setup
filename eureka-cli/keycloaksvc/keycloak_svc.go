@@ -7,14 +7,14 @@ import (
 	"log/slog"
 	"net/url"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	"github.com/folio-org/eureka-setup/eureka-cli/errors"
-	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
-	"github.com/folio-org/eureka-setup/eureka-cli/httpclient"
-	"github.com/folio-org/eureka-setup/eureka-cli/managementsvc"
-	"github.com/folio-org/eureka-setup/eureka-cli/models"
-	"github.com/folio-org/eureka-setup/eureka-cli/vaultclient"
+	"github.com/j011195/eureka-setup/eureka-cli/action"
+	"github.com/j011195/eureka-setup/eureka-cli/constant"
+	"github.com/j011195/eureka-setup/eureka-cli/errors"
+	"github.com/j011195/eureka-setup/eureka-cli/helpers"
+	"github.com/j011195/eureka-setup/eureka-cli/httpclient"
+	"github.com/j011195/eureka-setup/eureka-cli/managementsvc"
+	"github.com/j011195/eureka-setup/eureka-cli/models"
+	"github.com/j011195/eureka-setup/eureka-cli/vaultclient"
 )
 
 // KeycloakProcessor defines the interface for Keycloak service operations

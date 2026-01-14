@@ -64,7 +64,7 @@ import (
   "testing"
   "net/http"
   
-  "github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
+  "github.com/j011195/eureka-setup/eureka-cli/internal/testhelpers"
   "github.com/stretchr/testify/assert"
 )
 
@@ -90,8 +90,8 @@ package searchsvc_test
 import (
   "testing"
   
-  "github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
-  "github.com/folio-org/eureka-setup/eureka-cli/searchsvc"
+  "github.com/j011195/eureka-setup/eureka-cli/internal/testhelpers"
+  "github.com/j011195/eureka-setup/eureka-cli/searchsvc"
   "github.com/stretchr/testify/assert"
   "github.com/stretchr/testify/mock"
 )

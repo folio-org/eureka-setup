@@ -3,7 +3,7 @@ package vaultclient
 import (
 	"testing"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
+	"github.com/j011195/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/stretchr/testify/assert"
 )
 

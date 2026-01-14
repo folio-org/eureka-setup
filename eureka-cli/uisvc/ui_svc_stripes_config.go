@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/j011195/eureka-setup/eureka-cli/action"
+	"github.com/j011195/eureka-setup/eureka-cli/constant"
+	"github.com/j011195/eureka-setup/eureka-cli/field"
 )
 
 // UIStripesConfigProcessor defines the interface for UI Stripes configuration operations

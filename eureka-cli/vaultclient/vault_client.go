@@ -3,10 +3,10 @@ package vaultclient
 import (
 	"context"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	"github.com/folio-org/eureka-setup/eureka-cli/httpclient"
 	"github.com/hashicorp/vault-client-go"
+	"github.com/j011195/eureka-setup/eureka-cli/action"
+	"github.com/j011195/eureka-setup/eureka-cli/constant"
+	"github.com/j011195/eureka-setup/eureka-cli/httpclient"
 )
 
 // TODO Add testcontainers tests
