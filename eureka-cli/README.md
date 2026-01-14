@@ -10,7 +10,7 @@
   - [Monitor system components](#monitor-system-components)
   - [Commands](#commands)
     - [Build the binary](#build-the-binary)
-    - [(Optional) Install binary](#optional-install-binary)
+    - [Install binary](#install-binary)
     - [(Optional) Enable autocompletion](#optional-enable-autocompletion)
     - [Deploy the _combined_ application](#deploy-the-combined-application)
     - [Undeploy the _combined_ application](#undeploy-the-combined-application)
@@ -48,8 +48,8 @@
 
 ## Architecture
 
-- The CLI is organized into layers: **actions** handle commands, **services** talk to external systems (Keycloak, Kong, Docker, Vault), and **run configs** manage profile-specific settings.
-- Commands like `interceptModule` and `upgradeModule` coordinate these layers to streamline local development — you can reroute traffic to your _local IntelliJ instance_ for live debugging, or build and deploy new module versions _in one go_. No more switching between terminals or remembering multi-step procedures.
+- The CLI is organized into layers: **actions** handle commands, **services** talk to external systems (Keycloak, Kong, Docker, Vault), and **run configs** manage profile-specific settings
+- Commands like `interceptModule` and `upgradeModule` coordinate these layers to streamline local development — you can reroute traffic to your _local IntelliJ instance_ for live debugging, or build and deploy new module versions _in one go_. No more switching between terminals or remembering multi-step procedures
 
 > For detailed workflows and examples, check out the [Module Development Guide](docs/MODULE_DEVELOPMENT_GUIDE.md).
 
@@ -89,12 +89,15 @@ Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc
 
 ```bash
 mkdir -p ./bin
-env GOOS=windows GOARCH=amd64 go build -o ./bin/ .
+go build -o ./bin/ .
+
+# Or pass GOOS and GOARCH to specify the platform and architecture explicitly
+env GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o ./bin/ .
 ```
 
 > For more details, check out the [Build Binary Guide](docs/BUILD_BINARY_GUIDE.md) to build a platform-specific binary
 
-### (Optional) Install binary
+### Install binary
 
 - After building and installing, the binary can be used from any directory
 
@@ -837,3 +840,4 @@ ERROR: unable to select packages:
 - **[Build Binary Guide](docs/BUILD_BINARY_GUIDE.md)** - Instructions for building platform-specific binaries
 - **[CLI Development Setup Guide](docs/CLI_DEVELOPMENT_SETUP_GUIDE.md)** - Live compilation and VSCode debugging setup for CLI development
 - **[AWS CLI Setup Guide](docs/AWS_CLI_SETUP_GUIDE.md)** - Using AWS ECR as container registry
+- **[Windows WSL Guide](docs/WINDOWS_WSL_GUIDE.md)** - Configuring WSL2 on Windows
