@@ -8,7 +8,7 @@ tmp_dir = "bin"
   args_bin = []
   bin = ""
   cmd = "bash build.sh"
-  delay = 1000
+  delay = 2500
   entrypoint = ["bin\\eureka-cli.exe", "-v"]
   exclude_dir = ["assets", "bin", "vendor", "testdata", "images"]
   exclude_file = []
@@ -28,7 +28,7 @@ tmp_dir = "bin"
   rerun = false
   rerun_delay = 500
   send_interrupt = false
-  stop_on_error = false
+  stop_on_error = true
 
 [color]
   app = ""
