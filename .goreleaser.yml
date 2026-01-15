@@ -8,6 +8,6 @@ builds:
     ignore: [{goos: windows, goarch: arm64}, {goos: linux, goarch: arm64}]
     ldflags:
       - -s -w
-      - -X github.com/folio-org/eureka-cli/cmd.Version={{.Version}}
-      - -X github.com/folio-org/eureka-cli/cmd.Commit={{.ShortCommit}}
-      - -X github.com/folio-org/eureka-cli/cmd.BuildDate={{.Date}}
+      - -X github.com/folio-org/eureka-setup/eureka-cli/cmd.Version={{.Version}}
+      - -X github.com/folio-org/eureka-setup/eureka-cli/cmd.Commit={{.ShortCommit}}
+      - -X github.com/folio-org/eureka-setup/eureka-cli/cmd.BuildDate={{.Date}}
