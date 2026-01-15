@@ -10,14 +10,14 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
-	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/field"
-	"github.com/folio-org/eureka-cli/gitrepository"
-	"github.com/folio-org/eureka-cli/internal/testhelpers"
-	"github.com/folio-org/eureka-cli/models"
-	"github.com/folio-org/eureka-cli/modulesvc"
-	"github.com/folio-org/eureka-cli/runconfig"
+	"github.com/folio-org/eureka-setup/eureka-cli/action"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/field"
+	"github.com/folio-org/eureka-setup/eureka-cli/gitrepository"
+	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/models"
+	"github.com/folio-org/eureka-setup/eureka-cli/modulesvc"
+	"github.com/folio-org/eureka-setup/eureka-cli/runconfig"
 	"github.com/go-git/go-git/v5/plumbing"
 	vault "github.com/hashicorp/vault-client-go"
 	"github.com/spf13/viper"
@@ -2030,14 +2030,16 @@ func TestCreateTenantEntitlements_CreateError(t *testing.T) {
 	// Arrange
 	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.CreateTenantEntitlements)
 
+	expectedError := assert.AnError
 	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
-	mockManagement.On("CreateTenantEntitlement", mock.Anything, mock.Anything).Return(assert.AnError)
+	mockManagement.On("CreateTenantEntitlement", mock.Anything, mock.Anything).Return(expectedError)
 
 	// Act
 	err := run.CreateTenantEntitlements(constant.NoneConsortium, constant.Default)
 
-	// Assert - function returns nil despite error
-	assert.NoError(t, err)
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
 	mockKeycloak.AssertExpectations(t)
 	mockManagement.AssertExpectations(t)
 }

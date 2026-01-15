@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/folio-org/eureka-cli/errors"
-	"github.com/folio-org/eureka-cli/internal/testhelpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/errors"
+	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

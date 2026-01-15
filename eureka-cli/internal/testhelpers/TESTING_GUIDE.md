@@ -398,7 +398,38 @@ go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
 ```
 
-### 13. Continuous Testing Strategy
+### 13. Code Quality and Security Checks
+
+**IMPORTANT**: Always run these checks as the final step after refactoring or adding tests:
+
+```bash
+# Run linter (checks code quality, style, and best practices)
+golangci-lint run
+
+# Run vulnerability checker (scans for known security issues)
+go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+```
+
+#### When to Run
+
+- ✅ **After adding new tests** - Ensure test code follows best practices
+- ✅ **After refactoring** - Verify no regressions or issues introduced
+- ✅ **Before committing** - Catch issues early in development
+- ✅ **In CI/CD pipeline** - Automated quality gates
+
+#### Expected Behavior
+
+- **golangci-lint**: Should pass with no errors or warnings
+- **govulncheck**: Should report no known vulnerabilities
+
+If either check fails:
+
+1. Review the reported issues
+2. Fix the problems (code quality or security vulnerabilities)
+3. Re-run the checks until they pass
+4. Only then proceed with commit/PR
+
+### 14. Continuous Testing Strategy
 
 #### Phase 1: Core Utilities (Priority: HIGH)
 
@@ -421,7 +452,7 @@ go tool cover -html=coverage.out
 2. Multi-service interactions
 3. Error propagation across layers
 
-### 14. Test Maintenance
+### 15. Test Maintenance
 
 - **Review**: Tests should be reviewed as part of PR process
 - **Update**: Tests must be updated when functionality changes
@@ -437,9 +468,9 @@ package searchsvc_test
 import (
     "testing"
     
-    "github.com/folio-org/eureka-cli/internal/testhelpers"
-    "github.com/folio-org/eureka-cli/models"
-    "github.com/folio-org/eureka-cli/searchsvc"
+    "github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
+    "github.com/folio-org/eureka-setup/eureka-cli/models"
+    "github.com/folio-org/eureka-setup/eureka-cli/searchsvc"
     "github.com/stretchr/testify/assert"
     "github.com/stretchr/testify/mock"
 )

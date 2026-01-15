@@ -13,8 +13,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/folio-org/eureka-cli/constant"
-	appErrors "github.com/folio-org/eureka-cli/errors"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	appErrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
 )
 
 func ReadJSONFromFile(filePath string, data any) error {

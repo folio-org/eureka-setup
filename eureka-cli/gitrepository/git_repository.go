@@ -3,8 +3,8 @@ package gitrepository
 import (
 	"path/filepath"
 
-	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/action"
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/go-git/go-git/v5/plumbing"
 )
 

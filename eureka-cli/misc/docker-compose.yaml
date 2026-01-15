@@ -26,7 +26,7 @@ services:
     image: ${DOCKERHUB_NAMESPACE}/folio-netcat:${FOLIO_NETCAT_VERSION}
     restart: unless-stopped
     build:
-      context: ./folio-netcat
+      context: ${HOME}/.eureka/misc/folio-netcat
       dockerfile: Dockerfile
     cpus: "0.25"
     mem_limit: 35m
@@ -63,7 +63,7 @@ services:
       POSTGRES_PASSWORD: supersecret
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ${HOME}/.eureka/misc/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - eureka-net
     ports:
@@ -139,7 +139,7 @@ services:
     image: ${DOCKERHUB_NAMESPACE}/folio-kafka-tools:${FOLIO_KAFKA_TOOLS_VERSION}
     restart: unless-stopped
     build:
-      context: ./folio-kafka-tools
+      context: ${HOME}/.eureka/misc/folio-kafka-tools
       dockerfile: Dockerfile
     cpus: "0.5"
     mem_limit: 350m
@@ -162,7 +162,7 @@ services:
     image: ${DOCKERHUB_NAMESPACE}/folio-vault:${FOLIO_VAULT_VERSION}
     restart: unless-stopped
     build:
-      context: ./folio-vault
+      context: ${HOME}/.eureka/misc/folio-vault
       dockerfile: Dockerfile
     cpus: 4
     mem_limit: 500m
@@ -197,7 +197,7 @@ services:
     depends_on:
       - keycloak-internal
     volumes:
-      - ./folio-keycloak-nginx/keycloak-nginx.conf:/etc/nginx/nginx.conf:ro
+      - ${HOME}/.eureka/misc/folio-keycloak-nginx/keycloak-nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
       - eureka-net
     ports:
@@ -216,7 +216,7 @@ services:
     image: ${DOCKERHUB_NAMESPACE}/folio-keycloak:${FOLIO_KEYCLOAK_VERSION}
     restart: unless-stopped
     build:
-      context: ./folio-keycloak
+      context: ${HOME}/.eureka/misc/folio-keycloak
       dockerfile: Dockerfile
     cpus: 4
     mem_limit: 2g
@@ -254,7 +254,7 @@ services:
     image: ${DOCKERHUB_NAMESPACE}/folio-kong:${FOLIO_KONG_VERSION}
     restart: unless-stopped
     build:
-      context: ./folio-kong
+      context: ${HOME}/.eureka/misc/folio-kong
       dockerfile: Dockerfile
     cpus: 4
     mem_limit: 2g

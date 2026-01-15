@@ -20,9 +20,9 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/gitrepository"
-	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/action"
+	"github.com/folio-org/eureka-setup/eureka-cli/gitrepository"
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
 

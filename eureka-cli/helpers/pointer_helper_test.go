@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/stretchr/testify/assert"
 )
 

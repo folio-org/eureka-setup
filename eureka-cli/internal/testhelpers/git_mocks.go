@@ -1,7 +1,7 @@
 package testhelpers
 
 import (
-	"github.com/folio-org/eureka-cli/gitrepository"
+	"github.com/folio-org/eureka-setup/eureka-cli/gitrepository"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/stretchr/testify/mock"
 )

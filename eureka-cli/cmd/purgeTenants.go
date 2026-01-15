@@ -21,8 +21,8 @@ import (
 	"log/slog"
 	"net/url"
 
-	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/models"
+	"github.com/folio-org/eureka-setup/eureka-cli/action"
+	"github.com/folio-org/eureka-setup/eureka-cli/models"
 	"github.com/spf13/cobra"
 )
 
