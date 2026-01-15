@@ -4,11 +4,11 @@ import (
 	stderrors "errors"
 	"testing"
 
-	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/errors"
-	"github.com/folio-org/eureka-cli/models"
-	"github.com/folio-org/eureka-cli/tenantsvc"
+	"github.com/folio-org/eureka-setup/eureka-cli/action"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/errors"
+	"github.com/folio-org/eureka-setup/eureka-cli/models"
+	"github.com/folio-org/eureka-setup/eureka-cli/tenantsvc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

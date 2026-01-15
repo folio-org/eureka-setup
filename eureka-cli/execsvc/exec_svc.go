@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/folio-org/eureka-cli/action"
+	"github.com/folio-org/eureka-setup/eureka-cli/action"
 )
 
 // CommandRunner defines the interface for executing system commands

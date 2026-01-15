@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	apperrors "github.com/folio-org/eureka-cli/errors"
+	apperrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/stretchr/testify/assert"
 )
 

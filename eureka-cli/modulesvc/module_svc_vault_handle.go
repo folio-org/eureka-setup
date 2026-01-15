@@ -8,8 +8,8 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/helpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 )
 
 // ModuleVaultHandler defines the interface for module Vault operations

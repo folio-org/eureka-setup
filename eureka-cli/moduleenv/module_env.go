@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/models"
+	"github.com/folio-org/eureka-setup/eureka-cli/action"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/models"
 )
 
 // ModuleEnvProcessor defines the interface for building module environment variable configurations

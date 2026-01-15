@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/docker/docker/client"
-	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/models"
-	"github.com/folio-org/eureka-cli/modulesvc"
-	"github.com/folio-org/eureka-cli/runconfig"
+	"github.com/folio-org/eureka-setup/eureka-cli/action"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/models"
+	"github.com/folio-org/eureka-setup/eureka-cli/modulesvc"
+	"github.com/folio-org/eureka-setup/eureka-cli/runconfig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

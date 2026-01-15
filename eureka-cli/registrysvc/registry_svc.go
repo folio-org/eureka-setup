@@ -7,14 +7,14 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/awssvc"
-	"github.com/folio-org/eureka-cli/constant"
-	appErrors "github.com/folio-org/eureka-cli/errors"
-	"github.com/folio-org/eureka-cli/field"
-	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/httpclient"
-	"github.com/folio-org/eureka-cli/models"
+	"github.com/folio-org/eureka-setup/eureka-cli/action"
+	"github.com/folio-org/eureka-setup/eureka-cli/awssvc"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	appErrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
+	"github.com/folio-org/eureka-setup/eureka-cli/field"
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/httpclient"
+	"github.com/folio-org/eureka-setup/eureka-cli/models"
 )
 
 // RegistryProcessor defines the interface for registry-related operations

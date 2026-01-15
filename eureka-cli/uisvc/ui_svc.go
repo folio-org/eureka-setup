@@ -7,13 +7,13 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/constant"
-	"github.com/folio-org/eureka-cli/dockerclient"
-	"github.com/folio-org/eureka-cli/execsvc"
-	"github.com/folio-org/eureka-cli/gitclient"
-	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/tenantsvc"
+	"github.com/folio-org/eureka-setup/eureka-cli/action"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/dockerclient"
+	"github.com/folio-org/eureka-setup/eureka-cli/execsvc"
+	"github.com/folio-org/eureka-setup/eureka-cli/gitclient"
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/tenantsvc"
 	"github.com/go-git/go-git/v5"
 )
 

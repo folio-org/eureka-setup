@@ -1,4 +1,4 @@
-module github.com/folio-org/eureka-cli
+module github.com/folio-org/eureka-setup/eureka-cli
 
 go 1.25.3
 

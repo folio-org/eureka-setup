@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"path/filepath"
 
-	"github.com/folio-org/eureka-cli/helpers"
-	"github.com/folio-org/eureka-cli/models"
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/models"
 )
 
 // UIPackageJSONProcessor defines the interface for UI package.json operations

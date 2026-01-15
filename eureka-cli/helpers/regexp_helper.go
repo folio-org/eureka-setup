@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/folio-org/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 )
 
 var (

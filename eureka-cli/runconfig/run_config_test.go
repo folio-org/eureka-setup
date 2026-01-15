@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/folio-org/eureka-cli/action"
-	"github.com/folio-org/eureka-cli/runconfig"
+	"github.com/folio-org/eureka-setup/eureka-cli/action"
+	"github.com/folio-org/eureka-setup/eureka-cli/runconfig"
 	"github.com/stretchr/testify/assert"
 )
 
