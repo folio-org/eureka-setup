@@ -1614,7 +1614,7 @@ func TestCreateApplication_HTTPError(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplication_WithModuleVersionOverride(t *testing.T) {
+func TestCreateApplication_UsesModuleVersionAsIs(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -1625,16 +1625,15 @@ func TestCreateApplication_WithModuleVersionOverride(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	originalVersion := "1.0.0"
-	overrideVersion := "2.0.0"
+	resolvedVersion := "2.0.0"
 	extract := &models.RegistryExtract{
 		Modules: &models.ProxyModulesByRegistry{
 			FolioModules: []*models.ProxyModule{
 				{
-					ID: "mod-test-1.0.0",
+					ID: "mod-test-2.0.0",
 					Metadata: models.ProxyModuleMetadata{
 						Name:        "mod-test",
-						Version:     &originalVersion,
+						Version:     &resolvedVersion,
 						SidecarName: "mod-test-sc",
 					},
 				},
@@ -1643,9 +1642,8 @@ func TestCreateApplication_WithModuleVersionOverride(t *testing.T) {
 		},
 		BackendModules: map[string]models.BackendModule{
 			"mod-test": {
-				DeployModule:  true,
-				PrivatePort:   8080,
-				ModuleVersion: &overrideVersion, // Override version
+				DeployModule: true,
+				PrivatePort:  8080,
 			},
 		},
 		FrontendModules:   map[string]models.FrontendModule{},
@@ -1662,7 +1660,7 @@ func TestCreateApplication_WithModuleVersionOverride(t *testing.T) {
 			modules := data["modules"].([]any)
 			if len(modules) > 0 {
 				module := modules[0].(map[string]any)
-				// Should use override version 2.0.0
+				// Should use the module's existing version 2.0.0
 				return module["version"] == "2.0.0" && module["id"] == "mod-test-2.0.0"
 			}
 			return false
@@ -2498,7 +2496,7 @@ func TestCreateApplication_FrontendModuleWithURL(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplication_FrontendVersionOverride(t *testing.T) {
+func TestCreateApplication_UsesFrontendModuleVersionAsIs(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	action := testhelpers.NewMockAction()
@@ -2509,16 +2507,15 @@ func TestCreateApplication_FrontendVersionOverride(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	originalVersion := "1.0.0"
-	overrideVersion := "3.0.0"
+	resolvedVersion := "3.0.0"
 	extract := &models.RegistryExtract{
 		Modules: &models.ProxyModulesByRegistry{
 			FolioModules: []*models.ProxyModule{
 				{
-					ID: "folio-ui-1.0.0",
+					ID: "folio-ui-3.0.0",
 					Metadata: models.ProxyModuleMetadata{
 						Name:    "folio-ui",
-						Version: &originalVersion,
+						Version: &resolvedVersion,
 					},
 				},
 			},
@@ -2527,8 +2524,7 @@ func TestCreateApplication_FrontendVersionOverride(t *testing.T) {
 		BackendModules: map[string]models.BackendModule{},
 		FrontendModules: map[string]models.FrontendModule{
 			"folio-ui": {
-				DeployModule:  true,
-				ModuleVersion: &overrideVersion, // Override version
+				DeployModule: true,
 			},
 		},
 		ModuleDescriptors: map[string]any{},
@@ -2544,7 +2540,7 @@ func TestCreateApplication_FrontendVersionOverride(t *testing.T) {
 			uiModules := data["uiModules"].([]any)
 			if len(uiModules) > 0 {
 				module := uiModules[0].(map[string]any)
-				// Should use override version 3.0.0
+				// Should use the module's existing version 3.0.0
 				return module["version"] == "3.0.0" && module["id"] == "folio-ui-3.0.0"
 			}
 			return false
@@ -2663,284 +2659,6 @@ func TestCreateApplication_MixedBackendAndFrontend(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestCreateApplication_BothModulesBackendVersionOverride(t *testing.T) {
-	// Arrange
-	mockHTTP := &testhelpers.MockHTTPClient{}
-	action := testhelpers.NewMockAction()
-	action.KeycloakMasterAccessToken = "test-token"
-	action.ConfigApplicationID = "test-app"
-	action.ConfigApplicationName = "Test Application"
-	action.ConfigApplicationVersion = "1.0.0"
-	mockTenantSvc := &MockTenantSvc{}
-	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
-
-	originalVersion := "1.0.0"
-	backendOverrideVersion := "2.0.0"
-	extract := &models.RegistryExtract{
-		Modules: &models.ProxyModulesByRegistry{
-			FolioModules: []*models.ProxyModule{
-				{
-					ID: "mod-test-1.0.0",
-					Metadata: models.ProxyModuleMetadata{
-						Name:        "mod-test",
-						Version:     &originalVersion,
-						SidecarName: "mod-test-sc",
-					},
-				},
-			},
-			EurekaModules: []*models.ProxyModule{},
-		},
-		BackendModules: map[string]models.BackendModule{
-			"mod-test": {
-				DeployModule:  true,
-				PrivatePort:   8080,
-				ModuleVersion: &backendOverrideVersion, // Backend has version override
-			},
-		},
-		FrontendModules: map[string]models.FrontendModule{
-			"mod-test": {
-				DeployModule: true,
-				// Frontend has no version override, but won't be used since backend takes priority
-			},
-		},
-		ModuleDescriptors: map[string]any{},
-	}
-
-	mockHTTP.On("PostReturnStruct",
-		mock.MatchedBy(func(url string) bool {
-			return strings.Contains(url, "/applications")
-		}),
-		mock.MatchedBy(func(payload []byte) bool {
-			var data map[string]any
-			_ = json.Unmarshal(payload, &data)
-			modules := data["modules"].([]any)
-			uiModules := data["uiModules"]
-			// Backend takes priority in if/else if, so only backend module should exist
-			if len(modules) > 0 && uiModules == nil {
-				backendModule := modules[0].(map[string]any)
-				// Backend should use override version 2.0.0
-				return backendModule["version"] == "2.0.0" &&
-					backendModule["id"] == "mod-test-2.0.0"
-			}
-			return false
-		}),
-		mock.Anything,
-		mock.AnythingOfType("*models.ApplicationDescriptor")).
-		Run(func(args mock.Arguments) {
-			resp := args.Get(3).(*models.ApplicationDescriptor)
-			resp.ID = "test-app"
-			resp.Name = "Test Application"
-			resp.Version = "1.0.0"
-		}).
-		Return(nil)
-
-	mockHTTP.On("PostReturnStruct",
-		mock.MatchedBy(func(url string) bool {
-			return strings.Contains(url, "/modules/discovery")
-		}),
-		mock.Anything,
-		mock.Anything,
-		mock.AnythingOfType("*models.ModuleDiscoveryResponse")).
-		Run(func(args mock.Arguments) {
-			resp := args.Get(3).(*models.ModuleDiscoveryResponse)
-			resp.TotalRecords = 1
-		}).
-		Return(nil)
-
-	// Act
-	err := svc.CreateApplication(extract)
-
-	// Assert
-	assert.NoError(t, err)
-	mockHTTP.AssertExpectations(t)
-}
-
-func TestCreateApplication_BothModulesFrontendVersionOverride(t *testing.T) {
-	// Arrange
-	mockHTTP := &testhelpers.MockHTTPClient{}
-	action := testhelpers.NewMockAction()
-	action.KeycloakMasterAccessToken = "test-token"
-	action.ConfigApplicationID = "test-app"
-	action.ConfigApplicationName = "Test Application"
-	action.ConfigApplicationVersion = "1.0.0"
-	mockTenantSvc := &MockTenantSvc{}
-	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
-
-	originalVersion := "1.0.0"
-	frontendOverrideVersion := "3.0.0"
-	extract := &models.RegistryExtract{
-		Modules: &models.ProxyModulesByRegistry{
-			FolioModules: []*models.ProxyModule{
-				{
-					ID: "mod-test-1.0.0",
-					Metadata: models.ProxyModuleMetadata{
-						Name:        "mod-test",
-						Version:     &originalVersion,
-						SidecarName: "mod-test-sc",
-					},
-				},
-			},
-			EurekaModules: []*models.ProxyModule{},
-		},
-		BackendModules: map[string]models.BackendModule{
-			"mod-test": {
-				DeployModule: true,
-				PrivatePort:  8080,
-				// Backend has no version override
-			},
-		},
-		FrontendModules: map[string]models.FrontendModule{
-			"mod-test": {
-				DeployModule:  true,
-				ModuleVersion: &frontendOverrideVersion, // Frontend has version override
-			},
-		},
-		ModuleDescriptors: map[string]any{},
-	}
-
-	mockHTTP.On("PostReturnStruct",
-		mock.MatchedBy(func(url string) bool {
-			return strings.Contains(url, "/applications")
-		}),
-		mock.MatchedBy(func(payload []byte) bool {
-			var data map[string]any
-			_ = json.Unmarshal(payload, &data)
-			modules := data["modules"].([]any)
-			uiModules := data["uiModules"]
-			// Backend takes priority in if/else if, so only backend module should exist
-			// But version should be from frontend override since backend has no override
-			if len(modules) > 0 && uiModules == nil {
-				backendModule := modules[0].(map[string]any)
-				// Should use frontend override version 3.0.0
-				return backendModule["version"] == "3.0.0" &&
-					backendModule["id"] == "mod-test-3.0.0"
-			}
-			return false
-		}),
-		mock.Anything,
-		mock.AnythingOfType("*models.ApplicationDescriptor")).
-		Run(func(args mock.Arguments) {
-			resp := args.Get(3).(*models.ApplicationDescriptor)
-			resp.ID = "test-app"
-			resp.Name = "Test Application"
-			resp.Version = "1.0.0"
-		}).
-		Return(nil)
-
-	mockHTTP.On("PostReturnStruct",
-		mock.MatchedBy(func(url string) bool {
-			return strings.Contains(url, "/modules/discovery")
-		}),
-		mock.Anything,
-		mock.Anything,
-		mock.AnythingOfType("*models.ModuleDiscoveryResponse")).
-		Run(func(args mock.Arguments) {
-			resp := args.Get(3).(*models.ModuleDiscoveryResponse)
-			resp.TotalRecords = 1
-		}).
-		Return(nil)
-
-	// Act
-	err := svc.CreateApplication(extract)
-
-	// Assert
-	assert.NoError(t, err)
-	mockHTTP.AssertExpectations(t)
-}
-
-func TestCreateApplication_BothModulesBothVersionOverrides(t *testing.T) {
-	// Arrange
-	mockHTTP := &testhelpers.MockHTTPClient{}
-	action := testhelpers.NewMockAction()
-	action.KeycloakMasterAccessToken = "test-token"
-	action.ConfigApplicationID = "test-app"
-	action.ConfigApplicationName = "Test Application"
-	action.ConfigApplicationVersion = "1.0.0"
-	mockTenantSvc := &MockTenantSvc{}
-	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
-
-	originalVersion := "1.0.0"
-	backendOverrideVersion := "2.5.0"
-	frontendOverrideVersion := "3.5.0"
-	extract := &models.RegistryExtract{
-		Modules: &models.ProxyModulesByRegistry{
-			FolioModules: []*models.ProxyModule{
-				{
-					ID: "mod-test-1.0.0",
-					Metadata: models.ProxyModuleMetadata{
-						Name:        "mod-test",
-						Version:     &originalVersion,
-						SidecarName: "mod-test-sc",
-					},
-				},
-			},
-			EurekaModules: []*models.ProxyModule{},
-		},
-		BackendModules: map[string]models.BackendModule{
-			"mod-test": {
-				DeployModule:  true,
-				PrivatePort:   8080,
-				ModuleVersion: &backendOverrideVersion, // Backend has version override
-			},
-		},
-		FrontendModules: map[string]models.FrontendModule{
-			"mod-test": {
-				DeployModule:  true,
-				ModuleVersion: &frontendOverrideVersion, // Frontend also has version override
-			},
-		},
-		ModuleDescriptors: map[string]any{},
-	}
-
-	mockHTTP.On("PostReturnStruct",
-		mock.MatchedBy(func(url string) bool {
-			return strings.Contains(url, "/applications")
-		}),
-		mock.MatchedBy(func(payload []byte) bool {
-			var data map[string]any
-			_ = json.Unmarshal(payload, &data)
-			modules := data["modules"].([]any)
-			uiModules := data["uiModules"]
-			// Backend takes priority in if/else if, so only backend module should exist
-			// Backend version override takes precedence over frontend
-			if len(modules) > 0 && uiModules == nil {
-				backendModule := modules[0].(map[string]any)
-				// Backend takes precedence - should use 2.5.0
-				return backendModule["version"] == "2.5.0" &&
-					backendModule["id"] == "mod-test-2.5.0"
-			}
-			return false
-		}),
-		mock.Anything,
-		mock.AnythingOfType("*models.ApplicationDescriptor")).
-		Run(func(args mock.Arguments) {
-			resp := args.Get(3).(*models.ApplicationDescriptor)
-			resp.ID = "test-app"
-			resp.Name = "Test Application"
-			resp.Version = "1.0.0"
-		}).
-		Return(nil)
-
-	mockHTTP.On("PostReturnStruct",
-		mock.MatchedBy(func(url string) bool {
-			return strings.Contains(url, "/modules/discovery")
-		}),
-		mock.Anything,
-		mock.Anything,
-		mock.AnythingOfType("*models.ModuleDiscoveryResponse")).
-		Run(func(args mock.Arguments) {
-			resp := args.Get(3).(*models.ModuleDiscoveryResponse)
-			resp.TotalRecords = 1
-		}).
-		Return(nil)
-
-	// Act
-	err := svc.CreateApplication(extract)
-
-	// Assert
-	assert.NoError(t, err)
-	mockHTTP.AssertExpectations(t)
-}
 func TestFetchModuleDescriptor_RemoteModule_Success(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}

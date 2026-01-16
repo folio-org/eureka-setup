@@ -211,7 +211,7 @@ func TestDeployManagement_Success(t *testing.T) {
 
 	mockModuleProps.On("ReadBackendModules", true, true).Return(map[string]models.BackendModule{}, nil)
 	mockRegistrySvc.On("GetModules", mock.Anything, true, true).Return(&models.ProxyModulesByRegistry{}, nil)
-	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
+	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything, mock.Anything, mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
 	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
@@ -241,7 +241,7 @@ func TestDeployManagement_DeployModulesError(t *testing.T) {
 	expectedError := assert.AnError
 	mockModuleProps.On("ReadBackendModules", true, true).Return(map[string]models.BackendModule{}, nil)
 	mockRegistrySvc.On("GetModules", mock.Anything, true, true).Return(&models.ProxyModulesByRegistry{}, nil)
-	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
+	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything, mock.Anything, mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
 	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, expectedError)
@@ -265,7 +265,7 @@ func TestDeployManagement_NoModulesDeployed(t *testing.T) {
 
 	mockModuleProps.On("ReadBackendModules", true, true).Return(map[string]models.BackendModule{}, nil)
 	mockRegistrySvc.On("GetModules", mock.Anything, true, true).Return(&models.ProxyModulesByRegistry{}, nil)
-	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
+	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything, mock.Anything, mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
 	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).

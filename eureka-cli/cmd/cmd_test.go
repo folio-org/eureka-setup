@@ -568,8 +568,8 @@ func (m *MockRegistrySvc) GetModules(installJSONURLs map[string]string, useRemot
 	return args.Get(0).(*models.ProxyModulesByRegistry), args.Error(1)
 }
 
-func (m *MockRegistrySvc) ExtractModuleMetadata(modules *models.ProxyModulesByRegistry) {
-	m.Called(modules)
+func (m *MockRegistrySvc) ResolveModuleMetadata(modules *models.ProxyModulesByRegistry, backendModules map[string]models.BackendModule, frontendModules map[string]models.FrontendModule) {
+	m.Called(modules, backendModules, frontendModules)
 }
 
 func (m *MockRegistrySvc) GetAuthorizationToken() (string, error) {
@@ -2274,7 +2274,7 @@ func TestDeployModules_Success(t *testing.T) {
 	mockModuleProps.On("ReadBackendModules", false, true).Return(map[string]models.BackendModule{}, nil)
 	mockModuleProps.On("ReadFrontendModules", true).Return(map[string]models.FrontendModule{}, nil)
 	mockRegistrySvc.On("GetModules", mock.Anything, true, true).Return(&models.ProxyModulesByRegistry{}, nil)
-	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
+	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything, mock.Anything, mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
 	mockModule.On("GetSidecarImage", mock.Anything).Return("test-sidecar:latest", false, nil)
@@ -2358,7 +2358,7 @@ func TestInterceptModule_Success(t *testing.T) {
 	}, nil)
 	mockModuleProps.On("ReadBackendModules", false, false).Return(map[string]models.BackendModule{}, nil)
 	mockRegistrySvc.On("GetModules", mock.Anything, true, false).Return(&models.ProxyModulesByRegistry{}, nil)
-	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
+	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything, mock.Anything, mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
 	mockInterceptSvc.On("DeployCustomSidecarForInterception", mock.Anything, mock.Anything).Return(nil)
@@ -2390,7 +2390,7 @@ func TestInterceptModule_InterceptError(t *testing.T) {
 	}, nil)
 	mockModuleProps.On("ReadBackendModules", false, false).Return(map[string]models.BackendModule{}, nil)
 	mockRegistrySvc.On("GetModules", mock.Anything, true, false).Return(&models.ProxyModulesByRegistry{}, nil)
-	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
+	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything, mock.Anything, mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
 	mockInterceptSvc.On("DeployCustomSidecarForInterception", mock.Anything, mock.Anything).Return(expectedError)

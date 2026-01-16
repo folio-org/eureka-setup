@@ -339,7 +339,7 @@ func TestGetModules_WithVerbose(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestExtractModuleMetadata_Success(t *testing.T) {
+func TestResolveModuleMetadata_Success(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
@@ -360,7 +360,7 @@ func TestExtractModuleMetadata_Success(t *testing.T) {
 	}
 
 	// Act
-	svc.ExtractModuleMetadata(modules)
+	svc.ResolveModuleMetadata(modules, nil, nil)
 
 	// Assert
 	// Check FOLIO modules
@@ -379,7 +379,7 @@ func TestExtractModuleMetadata_Success(t *testing.T) {
 	assert.Equal(t, "mod-custom-sc", modules.EurekaModules[0].Metadata.SidecarName)
 }
 
-func TestExtractModuleMetadata_EdgeModule(t *testing.T) {
+func TestResolveModuleMetadata_EdgeModule(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
@@ -394,7 +394,7 @@ func TestExtractModuleMetadata_EdgeModule(t *testing.T) {
 	}
 
 	// Act
-	svc.ExtractModuleMetadata(modules)
+	svc.ResolveModuleMetadata(modules, nil, nil)
 
 	// Assert
 	// Edge modules should have SidecarName equal to Name
@@ -402,7 +402,7 @@ func TestExtractModuleMetadata_EdgeModule(t *testing.T) {
 	assert.Equal(t, "edge-patron", modules.FolioModules[0].Metadata.SidecarName)
 }
 
-func TestExtractModuleMetadata_SkipsOkapi(t *testing.T) {
+func TestResolveModuleMetadata_SkipsOkapi(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
@@ -418,7 +418,7 @@ func TestExtractModuleMetadata_SkipsOkapi(t *testing.T) {
 	}
 
 	// Act
-	svc.ExtractModuleMetadata(modules)
+	svc.ResolveModuleMetadata(modules, nil, nil)
 
 	// Assert
 	// Okapi should remain unchanged
@@ -430,7 +430,7 @@ func TestExtractModuleMetadata_SkipsOkapi(t *testing.T) {
 	assert.Equal(t, "mod-users", modules.FolioModules[1].Metadata.Name)
 }
 
-func TestExtractModuleMetadata_EmptyModules(t *testing.T) {
+func TestResolveModuleMetadata_EmptyModules(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
@@ -440,7 +440,7 @@ func TestExtractModuleMetadata_EmptyModules(t *testing.T) {
 	modules := &models.ProxyModulesByRegistry{FolioModules: nil, EurekaModules: nil}
 
 	// Act & Assert - should not panic
-	svc.ExtractModuleMetadata(modules)
+	svc.ResolveModuleMetadata(modules, nil, nil)
 }
 
 func TestGetModules_ModuleSorting(t *testing.T) {
@@ -485,7 +485,7 @@ func TestGetModules_ModuleSorting(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestExtractModuleMetadata_ModuleWithoutVersion(t *testing.T) {
+func TestResolveModuleMetadata_ModuleWithoutVersion(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
@@ -500,7 +500,7 @@ func TestExtractModuleMetadata_ModuleWithoutVersion(t *testing.T) {
 	}
 
 	// Act
-	svc.ExtractModuleMetadata(modules)
+	svc.ResolveModuleMetadata(modules, nil, nil)
 
 	// Assert
 	// When module ID doesn't have a proper version, the regex parsing behavior
@@ -898,9 +898,9 @@ func TestGetSidecarName_StandardModule(t *testing.T) {
 		}
 
 		// Act
-		svc.ExtractModuleMetadata(&models.ProxyModulesByRegistry{
+		svc.ResolveModuleMetadata(&models.ProxyModulesByRegistry{
 			FolioModules: []*models.ProxyModule{module},
-		})
+		}, nil, nil)
 
 		// Assert - verify sidecar name follows standard pattern
 		assert.Equal(t, "mod-inventory-sc", module.Metadata.SidecarName)
@@ -921,9 +921,9 @@ func TestGetSidecarName_EdgeModule(t *testing.T) {
 		}
 
 		// Act
-		svc.ExtractModuleMetadata(&models.ProxyModulesByRegistry{
+		svc.ResolveModuleMetadata(&models.ProxyModulesByRegistry{
 			FolioModules: []*models.ProxyModule{module},
-		})
+		}, nil, nil)
 
 		// Assert - edge modules should use name as sidecar name (no -sc suffix)
 		assert.Equal(t, "edge-patron", module.Metadata.SidecarName)
@@ -944,9 +944,9 @@ func TestGetSidecarName_EdgeOaiPmhModule(t *testing.T) {
 		}
 
 		// Act
-		svc.ExtractModuleMetadata(&models.ProxyModulesByRegistry{
+		svc.ResolveModuleMetadata(&models.ProxyModulesByRegistry{
 			EurekaModules: []*models.ProxyModule{module},
-		})
+		}, nil, nil)
 
 		// Assert - edge module should use name without -sc suffix
 		assert.Equal(t, "edge-oai-pmh", module.Metadata.SidecarName)
@@ -967,9 +967,9 @@ func TestGetSidecarName_EdgeRtacModule(t *testing.T) {
 		}
 
 		// Act
-		svc.ExtractModuleMetadata(&models.ProxyModulesByRegistry{
+		svc.ResolveModuleMetadata(&models.ProxyModulesByRegistry{
 			FolioModules: []*models.ProxyModule{module},
-		})
+		}, nil, nil)
 
 		// Assert - edge module should use name without -sc suffix
 		assert.Equal(t, "edge-rtac", module.Metadata.SidecarName)
@@ -990,9 +990,9 @@ func TestGetSidecarName_NonEdgeModuleContainingEdge(t *testing.T) {
 		}
 
 		// Act
-		svc.ExtractModuleMetadata(&models.ProxyModulesByRegistry{
+		svc.ResolveModuleMetadata(&models.ProxyModulesByRegistry{
 			FolioModules: []*models.ProxyModule{module},
-		})
+		}, nil, nil)
 
 		// Assert - should use standard sidecar naming (contains 'edge' but doesn't start with 'edge')
 		assert.Equal(t, "mod-knowledge-sc", module.Metadata.SidecarName)
@@ -1017,7 +1017,7 @@ func TestGetSidecarName_MultipleEdgeModules(t *testing.T) {
 		}
 
 		// Act
-		svc.ExtractModuleMetadata(modules)
+		svc.ResolveModuleMetadata(modules, nil, nil)
 
 		// Assert - verify all edge modules use name without -sc, non-edge use -sc
 		assert.Equal(t, "edge-patron", modules.FolioModules[0].Metadata.SidecarName)
@@ -1111,4 +1111,158 @@ func TestGetModules_UseRemoteTrue_WriteFileError(t *testing.T) {
 		assert.Nil(t, result)
 		mockHTTP.AssertExpectations(t)
 	})
+}
+
+func TestResolveModuleMetadata_ReplacesRegistryVersion(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	action := testhelpers.NewMockAction()
+	svc := registrysvc.New(action, mockHTTP, mockAWS)
+
+	configVersion := "3.3.0-SNAPSHOT-local"
+
+	modules := &models.ProxyModulesByRegistry{
+		FolioModules: []*models.ProxyModule{
+			{ID: "mod-users-3.3.0-SNAPSHOT.194"},
+		},
+	}
+	backendModules := map[string]models.BackendModule{
+		"mod-users": {ModuleVersion: &configVersion},
+	}
+
+	// Act
+	svc.ResolveModuleMetadata(modules, backendModules, nil)
+
+	// Assert
+	assert.Equal(t, "mod-users-3.3.0-SNAPSHOT-local", modules.FolioModules[0].ID)
+	assert.Equal(t, configVersion, *modules.FolioModules[0].Metadata.Version)
+}
+
+func TestResolveModuleMetadata_BackendModuleOverride(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	action := testhelpers.NewMockAction()
+	svc := registrysvc.New(action, mockHTTP, mockAWS)
+
+	configVersion := "1.0.0-custom"
+
+	modules := &models.ProxyModulesByRegistry{
+		EurekaModules: []*models.ProxyModule{
+			{ID: "mod-inventory-1.0.0"},
+		},
+	}
+	backendModules := map[string]models.BackendModule{
+		"mod-inventory": {ModuleVersion: &configVersion},
+	}
+
+	// Act
+	svc.ResolveModuleMetadata(modules, backendModules, nil)
+
+	// Assert
+	assert.Equal(t, "mod-inventory-1.0.0-custom", modules.EurekaModules[0].ID)
+	assert.Equal(t, configVersion, *modules.EurekaModules[0].Metadata.Version)
+}
+
+func TestResolveModuleMetadata_FrontendModuleOverride(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	action := testhelpers.NewMockAction()
+	svc := registrysvc.New(action, mockHTTP, mockAWS)
+
+	configVersion := "2.0.0-dev"
+
+	modules := &models.ProxyModulesByRegistry{
+		FolioModules: []*models.ProxyModule{
+			{ID: "folio-users-2.0.0"},
+		},
+	}
+	frontendModules := map[string]models.FrontendModule{
+		"folio-users": {ModuleVersion: &configVersion},
+	}
+
+	// Act
+	svc.ResolveModuleMetadata(modules, nil, frontendModules)
+
+	// Assert
+	assert.Equal(t, "folio-users-2.0.0-dev", modules.FolioModules[0].ID)
+	assert.Equal(t, configVersion, *modules.FolioModules[0].Metadata.Version)
+}
+
+func TestResolveModuleMetadata_NoOverrideWhenNotConfigured(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	action := testhelpers.NewMockAction()
+	svc := registrysvc.New(action, mockHTTP, mockAWS)
+
+	modules := &models.ProxyModulesByRegistry{
+		FolioModules: []*models.ProxyModule{
+			{ID: "mod-users-1.0.0"},
+		},
+	}
+	backendModules := map[string]models.BackendModule{
+		"mod-users": {}, // No ModuleVersion set
+	}
+
+	// Act
+	svc.ResolveModuleMetadata(modules, backendModules, nil)
+
+	// Assert - version should be extracted from ID, not overridden
+	assert.Equal(t, "mod-users-1.0.0", modules.FolioModules[0].ID)
+	assert.Equal(t, "1.0.0", *modules.FolioModules[0].Metadata.Version)
+}
+
+func TestResolveModuleMetadata_MixedOverrides(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	action := testhelpers.NewMockAction()
+	svc := registrysvc.New(action, mockHTTP, mockAWS)
+
+	configVersion := "1.0.0-local"
+
+	modules := &models.ProxyModulesByRegistry{
+		FolioModules: []*models.ProxyModule{
+			{ID: "mod-users-1.0.0"},
+			{ID: "mod-inventory-2.0.0"},
+		},
+	}
+	backendModules := map[string]models.BackendModule{
+		"mod-users":     {ModuleVersion: &configVersion}, // Has override
+		"mod-inventory": {},                              // No override
+	}
+
+	// Act
+	svc.ResolveModuleMetadata(modules, backendModules, nil)
+
+	// Assert
+	assert.Equal(t, "mod-users-1.0.0-local", modules.FolioModules[0].ID)
+	assert.Equal(t, configVersion, *modules.FolioModules[0].Metadata.Version)
+
+	assert.Equal(t, "mod-inventory-2.0.0", modules.FolioModules[1].ID)
+	assert.Equal(t, "2.0.0", *modules.FolioModules[1].Metadata.Version)
+}
+
+func TestResolveModuleMetadata_NilModuleMaps(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	action := testhelpers.NewMockAction()
+	svc := registrysvc.New(action, mockHTTP, mockAWS)
+
+	modules := &models.ProxyModulesByRegistry{
+		FolioModules: []*models.ProxyModule{
+			{ID: "mod-users-1.0.0"},
+		},
+	}
+
+	// Act - should not panic with nil maps
+	svc.ResolveModuleMetadata(modules, nil, nil)
+
+	// Assert - metadata should still be extracted
+	assert.Equal(t, "mod-users", modules.FolioModules[0].Metadata.Name)
+	assert.Equal(t, "1.0.0", *modules.FolioModules[0].Metadata.Version)
 }
