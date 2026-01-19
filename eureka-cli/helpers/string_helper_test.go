@@ -1144,3 +1144,48 @@ func TestIncrementSnapshotVersion_TableDrivenTests(t *testing.T) {
 		})
 	}
 }
+
+func TestGenerateRandomCode_ReturnsThreeCharacters(t *testing.T) {
+	// Act
+	result := helpers.GenerateRandomCode(3)
+
+	// Assert
+	assert.Len(t, result, 3, "Generated code should be exactly 3 characters")
+}
+
+func TestGenerateRandomCode_ContainsOnlyValidCharacters(t *testing.T) {
+	// Arrange
+	validChars := "abcdefghijklmnopqrstuvwxyz0123456789"
+
+	// Act
+	result := helpers.GenerateRandomCode(3)
+
+	// Assert
+	for _, char := range result {
+		assert.Contains(t, validChars, string(char), "Generated code should only contain lowercase letters and digits")
+	}
+}
+
+func TestGenerateRandomCode_GeneratesDifferentCodes(t *testing.T) {
+	// Arrange
+	iterations := 100
+	codes := make(map[string]bool)
+
+	// Act
+	for range iterations {
+		code := helpers.GenerateRandomCode(3)
+		codes[code] = true
+	}
+
+	// Assert - With 36^3 = 46,656 possible combinations, 100 iterations should produce mostly unique codes
+	// We expect at least 90% to be unique (allowing for some collisions due to randomness)
+	assert.GreaterOrEqual(t, len(codes), 90, "Should generate mostly unique codes across multiple invocations")
+}
+
+func TestGenerateRandomCode_ConsistentLength(t *testing.T) {
+	// Act - Generate multiple codes and verify they all have consistent length
+	for range 50 {
+		result := helpers.GenerateRandomCode(3)
+		assert.Len(t, result, 3, "Every generated code should be exactly 3 characters")
+	}
+}

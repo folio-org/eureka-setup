@@ -62,6 +62,11 @@ Install dependencies
   - Enable **dockerd (Moby)** container engine
   - Disable **Check for updates automatically**
 
+On Windows, it is recommended to work exclusively in Windows Terminal running Git Bash
+
+- [Windows Terminal](https://learn.microsoft.com/en-us/windows/terminal/install): Install for better shell experience when paired with Git Bash
+- [Git Bash](https://gitforwindows.org/): Add to Windows Terminal as new default profile & Unix-like shell environment that supports Bash commands
+
 Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc\hosts`)
 
 - **Option 1 - Automated (recommended):**

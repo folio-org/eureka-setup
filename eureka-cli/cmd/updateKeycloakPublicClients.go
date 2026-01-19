@@ -46,8 +46,8 @@ func (run *Run) UpdateKeycloakPublicClients(consortiumName string, tenantType co
 		return err
 	}
 
+	slog.Info(run.Config.Action.Name, "text", "UPDATING KEYCLOAK PUBLIC CLIENTS")
 	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
-		slog.Info(run.Config.Action.Name, "text", "UPDATING KEYCLOAK PUBLIC CLIENTS")
 		if helpers.IsUIEnabled(configTenant, run.Config.Action.ConfigTenants) {
 			slog.Info(run.Config.Action.Name, "text", "Setting config tenant params")
 			if err := run.Config.TenantSvc.SetConfigTenantParams(configTenant); err != nil {

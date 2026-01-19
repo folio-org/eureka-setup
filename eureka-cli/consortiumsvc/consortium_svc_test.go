@@ -882,7 +882,10 @@ func TestCreateConsortiumTenants_CentralTenant(t *testing.T) {
 		mock.MatchedBy(func(payload []byte) bool {
 			var data map[string]any
 			_ = json.Unmarshal(payload, &data)
-			return data["id"] == centralTenant && data["isCentral"] == 1.0
+			code, hasCode := data["code"].(string)
+			return data["id"] == centralTenant &&
+				data["isCentral"] == 1.0 &&
+				hasCode && len(code) == 3
 		}),
 		mock.Anything).
 		Return(nil)
@@ -962,7 +965,10 @@ func TestCreateConsortiumTenants_MemberTenant(t *testing.T) {
 		mock.MatchedBy(func(payload []byte) bool {
 			var data map[string]any
 			_ = json.Unmarshal(payload, &data)
-			return data["id"] == memberTenant && data["isCentral"] == 0.0
+			code, hasCode := data["code"].(string)
+			return data["id"] == memberTenant &&
+				data["isCentral"] == 0.0 &&
+				hasCode && len(code) == 3
 		}),
 		mock.Anything).
 		Return(nil)

@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
 
@@ -78,4 +79,15 @@ func IsSnapshot(version string) bool {
 
 func IsFolioNamespace(namespace string) bool {
 	return namespace == constant.SnapshotNamespace || namespace == constant.ReleaseNamespace
+}
+
+func GenerateRandomCode(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+	code := make([]byte, length)
+	for i := range code {
+		code[i] = charset[rand.Intn(len(charset))]
+	}
+
+	return string(code)
 }

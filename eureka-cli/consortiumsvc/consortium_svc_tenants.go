@@ -51,7 +51,7 @@ func (cs *ConsortiumSvc) CreateConsortiumTenants(centralTenant string, consortiu
 	for _, consortiumTenant := range consortiumTenants {
 		payload, err := json.Marshal(map[string]any{
 			"id":        consortiumTenant.Name,
-			"code":      consortiumTenant.Name[0:3],
+			"code":      helpers.GenerateRandomCode(3),
 			"name":      consortiumTenant.Name,
 			"isCentral": consortiumTenant.IsCentral,
 		})
