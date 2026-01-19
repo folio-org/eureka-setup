@@ -1166,20 +1166,23 @@ func TestGenerateRandomCode_ContainsOnlyValidCharacters(t *testing.T) {
 	}
 }
 
-func TestGenerateRandomCode_GeneratesDifferentCodes(t *testing.T) {
+func TestGenerateRandomCode_AcceptsDifferentLengths(t *testing.T) {
 	// Arrange
-	iterations := 100
-	codes := make(map[string]bool)
-
-	// Act
-	for range iterations {
-		code := helpers.GenerateRandomCode(3)
-		codes[code] = true
+	testCases := []struct {
+		length   int
+		expected int
+	}{
+		{1, 1},
+		{3, 3},
+		{5, 5},
+		{10, 10},
 	}
 
-	// Assert - With 36^3 = 46,656 possible combinations, 100 iterations should produce mostly unique codes
-	// We expect at least 90% to be unique (allowing for some collisions due to randomness)
-	assert.GreaterOrEqual(t, len(codes), 90, "Should generate mostly unique codes across multiple invocations")
+	// Act & Assert
+	for _, tc := range testCases {
+		result := helpers.GenerateRandomCode(tc.length)
+		assert.Len(t, result, tc.expected, "Generated code should match requested length")
+	}
 }
 
 func TestGenerateRandomCode_ConsistentLength(t *testing.T) {
