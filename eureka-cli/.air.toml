@@ -7,10 +7,10 @@ tmp_dir = "bin"
 [build]
   args_bin = []
   bin = ""
-  cmd = "bash build.sh"
+  cmd = "bash build_cli.sh"
   delay = 2500
   entrypoint = ["bin\\eureka-cli.exe", "-v"]
-  exclude_dir = ["assets", "bin", "vendor", "testdata", "images"]
+  exclude_dir = ["assets", "bin", "vendor", "testdata", "images", "tmp"]
   exclude_file = []
   exclude_regex = ["_test.go"]
   exclude_unchanged = true
