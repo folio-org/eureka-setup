@@ -3,6 +3,7 @@ package helpers
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -90,4 +91,14 @@ func GenerateRandomCode(length int) string {
 	}
 
 	return string(code)
+}
+
+func SortedMapKeys(m map[string]any) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	return keys
 }

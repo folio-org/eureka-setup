@@ -10,6 +10,110 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestSortedMapKeys_EmptyMap(t *testing.T) {
+	// Arrange
+	m := map[string]any{}
+
+	// Act
+	result := helpers.SortedMapKeys(m)
+
+	// Assert
+	assert.NotNil(t, result)
+	assert.Len(t, result, 0)
+}
+
+func TestSortedMapKeys_SingleKey(t *testing.T) {
+	// Arrange
+	m := map[string]any{
+		"key1": "value1",
+	}
+
+	// Act
+	result := helpers.SortedMapKeys(m)
+
+	// Assert
+	assert.Len(t, result, 1)
+	assert.Equal(t, "key1", result[0])
+}
+
+func TestSortedMapKeys_MultipleKeys(t *testing.T) {
+	// Arrange
+	m := map[string]any{
+		"zebra":   "value1",
+		"apple":   "value2",
+		"banana":  "value3",
+		"charlie": "value4",
+	}
+
+	// Act
+	result := helpers.SortedMapKeys(m)
+
+	// Assert
+	assert.Len(t, result, 4)
+	assert.Equal(t, "apple", result[0])
+	assert.Equal(t, "banana", result[1])
+	assert.Equal(t, "charlie", result[2])
+	assert.Equal(t, "zebra", result[3])
+}
+
+func TestSortedMapKeys_NumericStrings(t *testing.T) {
+	// Arrange
+	m := map[string]any{
+		"3":  "value1",
+		"1":  "value2",
+		"2":  "value3",
+		"10": "value4",
+	}
+
+	// Act
+	result := helpers.SortedMapKeys(m)
+
+	// Assert
+	assert.Len(t, result, 4)
+	assert.Equal(t, "1", result[0])
+	assert.Equal(t, "10", result[1]) // Lexicographic sort
+	assert.Equal(t, "2", result[2])
+	assert.Equal(t, "3", result[3])
+}
+
+func TestSortedMapKeys_MixedCase(t *testing.T) {
+	// Arrange
+	m := map[string]any{
+		"Zebra":  "value1",
+		"apple":  "value2",
+		"Banana": "value3",
+	}
+
+	// Act
+	result := helpers.SortedMapKeys(m)
+
+	// Assert
+	assert.Len(t, result, 3)
+	assert.Equal(t, "Banana", result[0]) // Uppercase comes before lowercase
+	assert.Equal(t, "Zebra", result[1])
+	assert.Equal(t, "apple", result[2])
+}
+
+func TestSortedMapKeys_DifferentValueTypes(t *testing.T) {
+	// Arrange
+	m := map[string]any{
+		"key1": 123,
+		"key2": "string",
+		"key3": map[string]any{"nested": "value"},
+		"key4": []string{"array"},
+	}
+
+	// Act
+	result := helpers.SortedMapKeys(m)
+
+	// Assert
+	assert.Len(t, result, 4)
+	assert.Equal(t, "key1", result[0])
+	assert.Equal(t, "key2", result[1])
+	assert.Equal(t, "key3", result[2])
+	assert.Equal(t, "key4", result[3])
+}
+
 func TestStripModuleVersion_WithDashAndSuffix(t *testing.T) {
 	// Arrange - Removes everything after LAST dash
 	moduleName := "mod-users-19.3.0"

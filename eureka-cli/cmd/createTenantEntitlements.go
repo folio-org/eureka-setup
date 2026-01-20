@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
@@ -45,8 +46,12 @@ func (run *Run) CreateTenantEntitlements(consortiumName string, tenantType const
 	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.ClientCredentials); err != nil {
 		return err
 	}
+	if err := run.Config.ManagementSvc.CreateTenantEntitlement(consortiumName, tenantType); err != nil {
+		return err
+	}
+	time.Sleep(30 * time.Second)
 
-	return run.Config.ManagementSvc.CreateTenantEntitlement(consortiumName, tenantType)
+	return nil
 }
 
 func init() {

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"sort"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
@@ -48,11 +47,7 @@ func (ks *KeycloakSvc) GetUsers(tenantName string) ([]any, error) {
 }
 
 func (ks *KeycloakSvc) CreateUsers(configTenant string) error {
-	usernames := make([]string, 0, len(ks.Action.ConfigUsers))
-	for username := range ks.Action.ConfigUsers {
-		usernames = append(usernames, username)
-	}
-	sort.Strings(usernames)
+	usernames := helpers.SortedMapKeys(ks.Action.ConfigUsers)
 
 	for _, username := range usernames {
 		value := ks.Action.ConfigUsers[username]

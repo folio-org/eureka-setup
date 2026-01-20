@@ -26,7 +26,6 @@ func (ks *KeycloakSvc) GetRoles(headers map[string]string) ([]any, error) {
 	if err := ks.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return nil, err
 	}
-
 	if len(decodedResponse.Roles) == 0 {
 		return nil, nil
 	}
@@ -66,7 +65,10 @@ func (ks *KeycloakSvc) GetRoleByName(roleName string, headers map[string]string)
 
 func (ks *KeycloakSvc) CreateRoles(configTenant string) error {
 	requestURL := ks.Action.GetRequestURL(constant.KongPort, "/roles")
-	for role, value := range ks.Action.ConfigRoles {
+	roleNames := helpers.SortedMapKeys(ks.Action.ConfigRoles)
+
+	for _, role := range roleNames {
+		value := ks.Action.ConfigRoles[role]
 		entry := value.(map[string]any)
 		tenantName := helpers.GetString(entry, "tenant")
 		if configTenant != tenantName {
