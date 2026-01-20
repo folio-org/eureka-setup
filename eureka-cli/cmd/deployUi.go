@@ -42,8 +42,8 @@ var deployUiCmd = &cobra.Command{
 }
 
 func (run *Run) DeployUi(consortiumName string, tenantType constant.TenantType) error {
+	slog.Info(run.Config.Action.Name, "text", "DEPLOYING UI")
 	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
-		slog.Info(run.Config.Action.Name, "text", "DEPLOYING UI")
 		if helpers.IsUIEnabled(configTenant, run.Config.Action.ConfigTenants) {
 			if err := run.Config.TenantSvc.SetConfigTenantParams(configTenant); err != nil {
 				return err

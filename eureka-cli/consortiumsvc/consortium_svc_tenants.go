@@ -21,7 +21,10 @@ type ConsortiumTenantHandler interface {
 
 func (cs *ConsortiumSvc) GetSortedConsortiumTenants(consortiumName string) models.SortedConsortiumTenants {
 	var consortiumTenants models.SortedConsortiumTenants
-	for tenantName, properties := range cs.Action.ConfigTenants {
+	tenantNames := helpers.SortedMapKeys(cs.Action.ConfigTenants)
+
+	for _, tenantName := range tenantNames {
+		properties := cs.Action.ConfigTenants[tenantName]
 		if properties == nil {
 			continue
 		}
@@ -51,7 +54,7 @@ func (cs *ConsortiumSvc) CreateConsortiumTenants(centralTenant string, consortiu
 	for _, consortiumTenant := range consortiumTenants {
 		payload, err := json.Marshal(map[string]any{
 			"id":        consortiumTenant.Name,
-			"code":      consortiumTenant.Name[0:3],
+			"code":      helpers.GenerateRandomCode(3),
 			"name":      consortiumTenant.Name,
 			"isCentral": consortiumTenant.IsCentral,
 		})

@@ -82,7 +82,8 @@ func TestGetTenants_Success(t *testing.T) {
 	mockHTTP.On("GetRetryReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return assert.Contains(t, url, "/tenants") &&
-				assert.Contains(t, url, "query=description==test-consortium-member")
+				assert.Contains(t, url, "query=") &&
+				assert.Contains(t, url, "sortby+name")
 		}),
 		mock.Anything,
 		mock.Anything).
@@ -123,9 +124,11 @@ func TestGetTenants_AllTenantType(t *testing.T) {
 
 	mockHTTP.On("GetRetryReturnStruct",
 		mock.MatchedBy(func(url string) bool {
-			// When tenantType is All, no query parameter should be added
+			// When tenantType is All, should have cql.allRecords=1 with sortby name
 			return assert.Contains(t, url, "/tenants") &&
-				!strings.Contains(url, "query=")
+				assert.Contains(t, url, "query=") &&
+				assert.Contains(t, url, "cql.allRecords") &&
+				assert.Contains(t, url, "sortby+name")
 		}),
 		mock.Anything,
 		mock.Anything).

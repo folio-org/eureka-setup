@@ -63,20 +63,90 @@ tenants:
     enable-ecs-request: false
     central-tenant: true
     platform-complete-url: http://localhost:3000
-  university:
+  university1:
+    consortium: ecs
+  university2:
+    consortium: ecs
+  university3:
+    consortium: ecs
+  university4:
+    consortium: ecs
+  university5:
+    consortium: ecs
+  university6:
+    consortium: ecs
+  university7:
+    consortium: ecs
+  university8:
     consortium: ecs
 roles:
   ecs_admin_role:
     consortium: ecs 
     tenant: ecs
     capability-sets: ["all"]
-  university_admin_role:
+  university1_admin_role:
     consortium: ecs
-    tenant: university
+    tenant: university1
     capability-sets: ["all"]
-  university_user_role:
+  university1_user_role:
     consortium: ecs
-    tenant: university
+    tenant: university1
+    capability-sets: []
+  university2_admin_role:
+    consortium: ecs
+    tenant: university2
+    capability-sets: ["all"]
+  university2_user_role:
+    consortium: ecs
+    tenant: university2
+    capability-sets: []
+  university3_admin_role:
+    consortium: ecs
+    tenant: university3
+    capability-sets: ["all"]
+  university3_user_role:
+    consortium: ecs
+    tenant: university3
+    capability-sets: []
+  university4_admin_role:
+    consortium: ecs
+    tenant: university4
+    capability-sets: ["all"]
+  university4_user_role:
+    consortium: ecs
+    tenant: university4
+    capability-sets: []
+  university5_admin_role:
+    consortium: ecs
+    tenant: university5
+    capability-sets: ["all"]
+  university5_user_role:
+    consortium: ecs
+    tenant: university5
+    capability-sets: []
+  university6_admin_role:
+    consortium: ecs
+    tenant: university6
+    capability-sets: ["all"]
+  university6_user_role:
+    consortium: ecs
+    tenant: university6
+    capability-sets: []
+  university7_admin_role:
+    consortium: ecs
+    tenant: university7
+    capability-sets: ["all"]
+  university7_user_role:
+    consortium: ecs
+    tenant: university7
+    capability-sets: []
+  university8_admin_role:
+    consortium: ecs
+    tenant: university8
+    capability-sets: ["all"]
+  university8_user_role:
+    consortium: ecs
+    tenant: university8
     capability-sets: []
 users:
   # Admin Group
@@ -87,672 +157,5350 @@ users:
     first-name: ECS 
     last-name: Admin
     roles: ["ecs_admin_role"]
-  university_admin0:
+  university1_admin0:
     consortium: ecs
-    tenant: university
+    tenant: university1
     password: admin
     first-name: University
     last-name: Admin
-    roles: ["university_admin_role", "university_user_role"]
-  # User Group 1
-  university01_user1:
+    roles: ["university1_admin_role", "university1_user_role"]
+  # University 1 - User Group 1
+  university101_user1:
     consortium: ecs
-    tenant: university
+    tenant: university1
     password: user
-    first-name: University1
+    first-name: University101
     last-name: User1
     roles: []
     permissions: ["perms.all"]
-  university01_user2:
+  university101_user2:
     consortium: ecs
-    tenant: university
+    tenant: university1
     password: user
-    first-name: University1
+    first-name: University101
     last-name: User2
     roles: []
-  university01_user3:
+  university101_user3:
     consortium: ecs
-    tenant: university
+    tenant: university1
     password: user
-    first-name: University1
+    first-name: University101
     last-name: User3
     roles: []
-  # User Group 2
-  university02_user1:
+  # University 1 - User Group 2
+  university102_user1:
     consortium: ecs
-    tenant: university
+    tenant: university1
     password: user
+    first-name: University102
+    last-name: User1
+    roles: []
+  university102_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University102
+    last-name: User2
+    roles: []
+  university102_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University102
+    last-name: User3
+    roles: []
+  # University 1 - User Group 3
+  university103_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University103
+    last-name: User1
+    roles: []
+  university103_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University103
+    last-name: User2
+    roles: []
+  university103_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University103
+    last-name: User3
+    roles: []
+  # University 1 - User Group 4
+  university104_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University104
+    last-name: User1
+    roles: []
+  university104_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University104
+    last-name: User2
+    roles: []
+  university104_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University104
+    last-name: User3
+    roles: []
+  # University 1 - User Group 5
+  university105_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University105
+    last-name: User1
+    roles: []
+  university105_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University105
+    last-name: User2
+    roles: []
+  university105_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University105
+    last-name: User3
+    roles: []
+  # University 1 - User Group 6
+  university106_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University106
+    last-name: User1
+    roles: []
+  university106_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University106
+    last-name: User2
+    roles: []
+  university106_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University106
+    last-name: User3
+    roles: []
+  # University 1 - User Group 7
+  university107_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University107
+    last-name: User1
+    roles: []
+  university107_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University107
+    last-name: User2
+    roles: []
+  university107_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University107
+    last-name: User3
+    roles: []
+  # University 1 - User Group 8
+  university108_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University108
+    last-name: User1
+    roles: []
+  university108_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University108
+    last-name: User2
+    roles: []
+  university108_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University108
+    last-name: User3
+    roles: []
+  # University 1 - User Group 9
+  university109_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University109
+    last-name: User1
+    roles: []
+  university109_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University109
+    last-name: User2
+    roles: []
+  university109_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University109
+    last-name: User3
+    roles: []
+  # University 1 - User Group 10
+  university110_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University110
+    last-name: User1
+    roles: []
+  university110_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University110
+    last-name: User2
+    roles: []
+  university110_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University110
+    last-name: User3
+    roles: []
+  # University 1 - User Group 11
+  university111_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University111
+    last-name: User1
+    roles: []
+  university111_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University111
+    last-name: User2
+    roles: []
+  university111_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University111
+    last-name: User3
+    roles: []
+  # University 1 - User Group 12
+  university112_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University112
+    last-name: User1
+    roles: []
+  university112_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University112
+    last-name: User2
+    roles: []
+  university112_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University112
+    last-name: User3
+    roles: []
+  # University 1 - User Group 13
+  university113_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University113
+    last-name: User1
+    roles: []
+  university113_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University113
+    last-name: User2
+    roles: []
+  university113_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University113
+    last-name: User3
+    roles: []
+  # University 1 - User Group 14
+  university114_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University114
+    last-name: User1
+    roles: []
+  university114_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University114
+    last-name: User2
+    roles: []
+  university114_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University114
+    last-name: User3
+    roles: []
+  # University 1 - User Group 15
+  university115_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University115
+    last-name: User1
+    roles: []
+  university115_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University115
+    last-name: User2
+    roles: []
+  university115_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University115
+    last-name: User3
+    roles: []
+  # University 1 - User Group 16
+  university116_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University116
+    last-name: User1
+    roles: []
+  university116_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University116
+    last-name: User2
+    roles: []
+  university116_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University116
+    last-name: User3
+    roles: []
+  # University 1 - User Group 17
+  university117_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University117
+    last-name: User1
+    roles: []
+  university117_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University117
+    last-name: User2
+    roles: []
+  university117_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University117
+    last-name: User3
+    roles: []
+  # University 1 - User Group 18
+  university118_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University118
+    last-name: User1
+    roles: []
+  university118_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University118
+    last-name: User2
+    roles: []
+  university118_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University118
+    last-name: User3
+    roles: []
+  # University 1 - User Group 19
+  university119_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University119
+    last-name: User1
+    roles: []
+  university119_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University119
+    last-name: User2
+    roles: []
+  university119_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University119
+    last-name: User3
+    roles: []
+  # University 1 - User Group 20
+  university120_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University120
+    last-name: User1
+    roles: []
+  university120_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University120
+    last-name: User2
+    roles: []
+  university120_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University120
+    last-name: User3
+    roles: []
+  # University 1 - User Group 21
+  university121_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University121
+    last-name: User1
+    roles: []
+  university121_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University121
+    last-name: User2
+    roles: []
+  university121_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University121
+    last-name: User3
+    roles: []
+  # University 1 - User Group 22
+  university122_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University122
+    last-name: User1
+    roles: []
+  university122_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University122
+    last-name: User2
+    roles: []
+  university122_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University122
+    last-name: User3
+    roles: []
+  # University 1 - User Group 23
+  university123_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University123
+    last-name: User1
+    roles: []
+  university123_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University123
+    last-name: User2
+    roles: []
+  university123_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University123
+    last-name: User3
+    roles: []
+  # University 1 - User Group 24
+  university124_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University124
+    last-name: User1
+    roles: []
+  university124_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University124
+    last-name: User2
+    roles: []
+  university124_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University124
+    last-name: User3
+    roles: []
+  # University 1 - User Group 25
+  university125_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University125
+    last-name: User1
+    roles: []
+  university125_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University125
+    last-name: User2
+    roles: []
+  university125_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University125
+    last-name: User3
+    roles: []
+  # University 1 - User Group 26
+  university126_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University126
+    last-name: User1
+    roles: []
+  university126_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University126
+    last-name: User2
+    roles: []
+  university126_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University126
+    last-name: User3
+    roles: []
+  # University 1 - User Group 27
+  university127_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University127
+    last-name: User1
+    roles: []
+  university127_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University127
+    last-name: User2
+    roles: []
+  university127_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University127
+    last-name: User3
+    roles: []
+  # University 1 - User Group 28
+  university128_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University128
+    last-name: User1
+    roles: []
+  university128_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University128
+    last-name: User2
+    roles: []
+  university128_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University128
+    last-name: User3
+    roles: []
+  # University 1 - User Group 29
+  university129_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University129
+    last-name: User1
+    roles: []
+  university129_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University129
+    last-name: User2
+    roles: []
+  university129_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University129
+    last-name: User3
+    roles: []
+  # University 1 - User Group 30
+  university130_user1:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University130
+    last-name: User1
+    roles: []
+  university130_user2:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University130
+    last-name: User2
+    roles: []
+  university130_user3:
+    consortium: ecs
+    tenant: university1
+    password: user
+    first-name: University130
+    last-name: User3
+    roles: []
+  # University 2 - Admin Group
+  university2_admin0:
+    consortium: ecs
+    tenant: university2
+    password: admin
     first-name: University2
+    last-name: Admin
+    roles: ["university2_admin_role", "university2_user_role"]
+  # University 2 - User Group 1
+  university201_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University201
     last-name: User1
     roles: []
-  university02_user2:
+    permissions: ["perms.all"]
+  university201_user2:
     consortium: ecs
-    tenant: university
+    tenant: university2
     password: user
-    first-name: University2
+    first-name: University201
     last-name: User2
     roles: []
-  university02_user3:
+  university201_user3:
     consortium: ecs
-    tenant: university
+    tenant: university2
     password: user
-    first-name: University2
+    first-name: University201
     last-name: User3
     roles: []
-  # User Group 3
-  university03_user1:
+  # University 2 - User Group 2
+  university202_user1:
     consortium: ecs
-    tenant: university
+    tenant: university2
     password: user
+    first-name: University202
+    last-name: User1
+    roles: []
+  university202_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University202
+    last-name: User2
+    roles: []
+  university202_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University202
+    last-name: User3
+    roles: []
+  # University 2 - User Group 3
+  university203_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University203
+    last-name: User1
+    roles: []
+  university203_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University203
+    last-name: User2
+    roles: []
+  university203_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University203
+    last-name: User3
+    roles: []
+  # University 2 - User Group 4
+  university204_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University204
+    last-name: User1
+    roles: []
+  university204_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University204
+    last-name: User2
+    roles: []
+  university204_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University204
+    last-name: User3
+    roles: []
+  # University 2 - User Group 5
+  university205_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University205
+    last-name: User1
+    roles: []
+  university205_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University205
+    last-name: User2
+    roles: []
+  university205_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University205
+    last-name: User3
+    roles: []
+  # University 2 - User Group 6
+  university206_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University206
+    last-name: User1
+    roles: []
+  university206_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University206
+    last-name: User2
+    roles: []
+  university206_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University206
+    last-name: User3
+    roles: []
+  # University 2 - User Group 7
+  university207_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University207
+    last-name: User1
+    roles: []
+  university207_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University207
+    last-name: User2
+    roles: []
+  university207_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University207
+    last-name: User3
+    roles: []
+  # University 2 - User Group 8
+  university208_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University208
+    last-name: User1
+    roles: []
+  university208_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University208
+    last-name: User2
+    roles: []
+  university208_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University208
+    last-name: User3
+    roles: []
+  # University 2 - User Group 9
+  university209_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University209
+    last-name: User1
+    roles: []
+  university209_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University209
+    last-name: User2
+    roles: []
+  university209_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University209
+    last-name: User3
+    roles: []
+  # University 2 - User Group 10
+  university210_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University210
+    last-name: User1
+    roles: []
+  university210_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University210
+    last-name: User2
+    roles: []
+  university210_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University210
+    last-name: User3
+    roles: []
+  # University 2 - User Group 11
+  university211_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University211
+    last-name: User1
+    roles: []
+  university211_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University211
+    last-name: User2
+    roles: []
+  university211_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University211
+    last-name: User3
+    roles: []
+  # University 2 - User Group 12
+  university212_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University212
+    last-name: User1
+    roles: []
+  university212_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University212
+    last-name: User2
+    roles: []
+  university212_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University212
+    last-name: User3
+    roles: []
+  # University 2 - User Group 13
+  university213_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University213
+    last-name: User1
+    roles: []
+  university213_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University213
+    last-name: User2
+    roles: []
+  university213_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University213
+    last-name: User3
+    roles: []
+  # University 2 - User Group 14
+  university214_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University214
+    last-name: User1
+    roles: []
+  university214_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University214
+    last-name: User2
+    roles: []
+  university214_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University214
+    last-name: User3
+    roles: []
+  # University 2 - User Group 15
+  university215_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University215
+    last-name: User1
+    roles: []
+  university215_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University215
+    last-name: User2
+    roles: []
+  university215_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University215
+    last-name: User3
+    roles: []
+  # University 2 - User Group 16
+  university216_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University216
+    last-name: User1
+    roles: []
+  university216_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University216
+    last-name: User2
+    roles: []
+  university216_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University216
+    last-name: User3
+    roles: []
+  # University 2 - User Group 17
+  university217_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University217
+    last-name: User1
+    roles: []
+  university217_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University217
+    last-name: User2
+    roles: []
+  university217_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University217
+    last-name: User3
+    roles: []
+  # University 2 - User Group 18
+  university218_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University218
+    last-name: User1
+    roles: []
+  university218_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University218
+    last-name: User2
+    roles: []
+  university218_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University218
+    last-name: User3
+    roles: []
+  # University 2 - User Group 19
+  university219_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University219
+    last-name: User1
+    roles: []
+  university219_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University219
+    last-name: User2
+    roles: []
+  university219_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University219
+    last-name: User3
+    roles: []
+  # University 2 - User Group 20
+  university220_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University220
+    last-name: User1
+    roles: []
+  university220_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University220
+    last-name: User2
+    roles: []
+  university220_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University220
+    last-name: User3
+    roles: []
+  # University 2 - User Group 21
+  university221_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University221
+    last-name: User1
+    roles: []
+  university221_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University221
+    last-name: User2
+    roles: []
+  university221_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University221
+    last-name: User3
+    roles: []
+  # University 2 - User Group 22
+  university222_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University222
+    last-name: User1
+    roles: []
+  university222_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University222
+    last-name: User2
+    roles: []
+  university222_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University222
+    last-name: User3
+    roles: []
+  # University 2 - User Group 23
+  university223_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University223
+    last-name: User1
+    roles: []
+  university223_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University223
+    last-name: User2
+    roles: []
+  university223_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University223
+    last-name: User3
+    roles: []
+  # University 2 - User Group 24
+  university224_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University224
+    last-name: User1
+    roles: []
+  university224_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University224
+    last-name: User2
+    roles: []
+  university224_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University224
+    last-name: User3
+    roles: []
+  # University 2 - User Group 25
+  university225_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University225
+    last-name: User1
+    roles: []
+  university225_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University225
+    last-name: User2
+    roles: []
+  university225_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University225
+    last-name: User3
+    roles: []
+  # University 2 - User Group 26
+  university226_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University226
+    last-name: User1
+    roles: []
+  university226_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University226
+    last-name: User2
+    roles: []
+  university226_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University226
+    last-name: User3
+    roles: []
+  # University 2 - User Group 27
+  university227_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University227
+    last-name: User1
+    roles: []
+  university227_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University227
+    last-name: User2
+    roles: []
+  university227_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University227
+    last-name: User3
+    roles: []
+  # University 2 - User Group 28
+  university228_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University228
+    last-name: User1
+    roles: []
+  university228_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University228
+    last-name: User2
+    roles: []
+  university228_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University228
+    last-name: User3
+    roles: []
+  # University 2 - User Group 29
+  university229_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University229
+    last-name: User1
+    roles: []
+  university229_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University229
+    last-name: User2
+    roles: []
+  university229_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University229
+    last-name: User3
+    roles: []
+  # University 2 - User Group 30
+  university230_user1:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University230
+    last-name: User1
+    roles: []
+  university230_user2:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University230
+    last-name: User2
+    roles: []
+  university230_user3:
+    consortium: ecs
+    tenant: university2
+    password: user
+    first-name: University230
+    last-name: User3
+    roles: []
+  # University 3 - Admin Group
+  university3_admin0:
+    consortium: ecs
+    tenant: university3
+    password: admin
     first-name: University3
+    last-name: Admin
+    roles: ["university3_admin_role", "university3_user_role"]
+  # University 3 - User Group 1
+  university301_user1:
+    consortium: ecs
+    tenant: university3
+    password: user
+    first-name: University301
     last-name: User1
     roles: []
-  university03_user2:
+    permissions: ["perms.all"]
+  university301_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University3
+    first-name: University301
     last-name: User2
     roles: []
-  university03_user3:
+  university301_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University3
+    first-name: University301
     last-name: User3
     roles: []
-  # User Group 4
-  university04_user1:
+  # University 3 - User Group 2
+  university302_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University4
+    first-name: University302
     last-name: User1
     roles: []
-  university04_user2:
+  university302_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University4
+    first-name: University302
     last-name: User2
     roles: []
-  university04_user3:
+  university302_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University4
+    first-name: University302
     last-name: User3
     roles: []
-  # User Group 5
-  university05_user1:
+  # University 3 - User Group 3
+  university303_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University5
+    first-name: University303
     last-name: User1
     roles: []
-  university05_user2:
+  university303_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University5
+    first-name: University303
     last-name: User2
     roles: []
-  university05_user3:
+  university303_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University5
+    first-name: University303
     last-name: User3
     roles: []
-  # User Group 6
-  university06_user1:
+  # University 3 - User Group 4
+  university304_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University6
+    first-name: University304
     last-name: User1
     roles: []
-  university06_user2:
+  university304_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University6
+    first-name: University304
     last-name: User2
     roles: []
-  university06_user3:
+  university304_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University6
+    first-name: University304
     last-name: User3
     roles: []
-  # User Group 7
-  university07_user1:
+  # University 3 - User Group 5
+  university305_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University7
+    first-name: University305
     last-name: User1
     roles: []
-  university07_user2:
+  university305_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University7
+    first-name: University305
     last-name: User2
     roles: []
-  university07_user3:
+  university305_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University7
+    first-name: University305
     last-name: User3
     roles: []
-  # User Group 8
-  university08_user1:
+  # University 3 - User Group 6
+  university306_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University8
+    first-name: University306
     last-name: User1
     roles: []
-  university08_user2:
+  university306_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University8
+    first-name: University306
     last-name: User2
     roles: []
-  university08_user3:
+  university306_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University8
+    first-name: University306
     last-name: User3
     roles: []
-  # User Group 9
-  university09_user1:
+  # University 3 - User Group 7
+  university307_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University9
+    first-name: University307
     last-name: User1
     roles: []
-  university09_user2:
+  university307_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University9
+    first-name: University307
     last-name: User2
     roles: []
-  university09_user3:
+  university307_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University9
+    first-name: University307
     last-name: User3
     roles: []
-  # User Group 10
-  university10_user1:
+  # University 3 - User Group 8
+  university308_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University10
+    first-name: University308
     last-name: User1
     roles: []
-  university10_user2:
+  university308_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University10
+    first-name: University308
     last-name: User2
     roles: []
-  university10_user3:
+  university308_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University10
+    first-name: University308
     last-name: User3
     roles: []
-  # User Group 11
-  university11_user1:
+  # University 3 - User Group 9
+  university309_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University11
+    first-name: University309
     last-name: User1
     roles: []
-  university11_user2:
+  university309_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University11
+    first-name: University309
     last-name: User2
     roles: []
-  university11_user3:
+  university309_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University11
+    first-name: University309
     last-name: User3
     roles: []
-  # User Group 12
-  university12_user1:
+  # University 3 - User Group 10
+  university310_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University12
+    first-name: University310
     last-name: User1
     roles: []
-  university12_user2:
+  university310_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University12
+    first-name: University310
     last-name: User2
     roles: []
-  university12_user3:
+  university310_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University12
+    first-name: University310
     last-name: User3
     roles: []
-  # User Group 13
-  university13_user1:
+  # University 3 - User Group 11
+  university311_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University13
+    first-name: University311
     last-name: User1
     roles: []
-  university13_user2:
+  university311_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University13
+    first-name: University311
     last-name: User2
     roles: []
-  university13_user3:
+  university311_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University13
+    first-name: University311
     last-name: User3
     roles: []
-  # User Group 14
-  university14_user1:
+  # University 3 - User Group 12
+  university312_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University14
+    first-name: University312
     last-name: User1
     roles: []
-  university14_user2:
+  university312_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University14
+    first-name: University312
     last-name: User2
     roles: []
-  university14_user3:
+  university312_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University14
+    first-name: University312
     last-name: User3
     roles: []
-  # User Group 15
-  university15_user1:
+  # University 3 - User Group 13
+  university313_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University15
+    first-name: University313
     last-name: User1
     roles: []
-  university15_user2:
+  university313_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University15
+    first-name: University313
     last-name: User2
     roles: []
-  university15_user3:
+  university313_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University15
+    first-name: University313
     last-name: User3
     roles: []
-  # User Group 16
-  university16_user1:
+  # University 3 - User Group 14
+  university314_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University16
+    first-name: University314
     last-name: User1
     roles: []
-  university16_user2:
+  university314_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University16
+    first-name: University314
     last-name: User2
     roles: []
-  university16_user3:
+  university314_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University16
+    first-name: University314
     last-name: User3
     roles: []
-  # User Group 17
-  university17_user1:
+  # University 3 - User Group 15
+  university315_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University17
+    first-name: University315
     last-name: User1
     roles: []
-  university17_user2:
+  university315_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University17
+    first-name: University315
     last-name: User2
     roles: []
-  university17_user3:
+  university315_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University17
+    first-name: University315
     last-name: User3
     roles: []
-  # User Group 18
-  university18_user1:
+  # University 3 - User Group 16
+  university316_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University18
+    first-name: University316
     last-name: User1
     roles: []
-  university18_user2:
+  university316_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University18
+    first-name: University316
     last-name: User2
     roles: []
-  university18_user3:
+  university316_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University18
+    first-name: University316
     last-name: User3
     roles: []
-  # User Group 19
-  university19_user1:
+  # University 3 - User Group 17
+  university317_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University19
+    first-name: University317
     last-name: User1
     roles: []
-  university19_user2:
+  university317_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University19
+    first-name: University317
     last-name: User2
     roles: []
-  university19_user3:
+  university317_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University19
+    first-name: University317
     last-name: User3
     roles: []
-  # User Group 20
-  university20_user1:
+  # University 3 - User Group 18
+  university318_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University20
+    first-name: University318
     last-name: User1
     roles: []
-  university20_user2:
+  university318_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University20
+    first-name: University318
     last-name: User2
     roles: []
-  university20_user3:
+  university318_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University20
+    first-name: University318
     last-name: User3
     roles: []
-  # User Group 21
-  university21_user1:
+  # University 3 - User Group 19
+  university319_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University21
+    first-name: University319
     last-name: User1
     roles: []
-  university21_user2:
+  university319_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University21
+    first-name: University319
     last-name: User2
     roles: []
-  university21_user3:
+  university319_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University21
+    first-name: University319
     last-name: User3
     roles: []
-  # User Group 22
-  university22_user1:
+  # University 3 - User Group 20
+  university320_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University22
+    first-name: University320
     last-name: User1
     roles: []
-  university22_user2:
+  university320_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University22
+    first-name: University320
     last-name: User2
     roles: []
-  university22_user3:
+  university320_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University22
+    first-name: University320
     last-name: User3
     roles: []
-  # User Group 23
-  university23_user1:
+  # University 3 - User Group 21
+  university321_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University23
+    first-name: University321
     last-name: User1
     roles: []
-  university23_user2:
+  university321_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University23
+    first-name: University321
     last-name: User2
     roles: []
-  university23_user3:
+  university321_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University23
+    first-name: University321
     last-name: User3
     roles: []
-  # User Group 24
-  university24_user1:
+  # University 3 - User Group 22
+  university322_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University24
+    first-name: University322
     last-name: User1
     roles: []
-  university24_user2:
+  university322_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University24
+    first-name: University322
     last-name: User2
     roles: []
-  university24_user3:
+  university322_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University24
+    first-name: University322
     last-name: User3
     roles: []
-  # User Group 25
-  university25_user1:
+  # University 3 - User Group 23
+  university323_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University25
+    first-name: University323
     last-name: User1
     roles: []
-  university25_user2:
+  university323_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University25
+    first-name: University323
     last-name: User2
     roles: []
-  university25_user3:
+  university323_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University25
+    first-name: University323
     last-name: User3
     roles: []
-  # User Group 26
-  university26_user1:
+  # University 3 - User Group 24
+  university324_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University26
+    first-name: University324
     last-name: User1
     roles: []
-  university26_user2:
+  university324_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University26
+    first-name: University324
     last-name: User2
     roles: []
-  university26_user3:
+  university324_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University26
+    first-name: University324
     last-name: User3
     roles: []
-  # User Group 27
-  university27_user1:
+  # University 3 - User Group 25
+  university325_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University27
+    first-name: University325
     last-name: User1
     roles: []
-  university27_user2:
+  university325_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University27
+    first-name: University325
     last-name: User2
     roles: []
-  university27_user3:
+  university325_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University27
+    first-name: University325
     last-name: User3
     roles: []
-  # User Group 28
-  university28_user1:
+  # University 3 - User Group 26
+  university326_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University28
+    first-name: University326
     last-name: User1
     roles: []
-  university28_user2:
+  university326_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University28
+    first-name: University326
     last-name: User2
     roles: []
-  university28_user3:
+  university326_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University28
+    first-name: University326
     last-name: User3
     roles: []
-  # User Group 29
-  university29_user1:
+  # University 3 - User Group 27
+  university327_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University29
+    first-name: University327
     last-name: User1
     roles: []
-  university29_user2:
+  university327_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University29
+    first-name: University327
     last-name: User2
     roles: []
-  university29_user3:
+  university327_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University29
+    first-name: University327
     last-name: User3
     roles: []
-  # User Group 30
-  university30_user1:
+  # University 3 - User Group 28
+  university328_user1:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University30
+    first-name: University328
     last-name: User1
     roles: []
-  university30_user2:
+  university328_user2:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University30
+    first-name: University328
     last-name: User2
     roles: []
-  university30_user3:
+  university328_user3:
     consortium: ecs
-    tenant: university
+    tenant: university3
     password: user
-    first-name: University30
+    first-name: University328
+    last-name: User3
+    roles: []
+  # University 3 - User Group 29
+  university329_user1:
+    consortium: ecs
+    tenant: university3
+    password: user
+    first-name: University329
+    last-name: User1
+    roles: []
+  university329_user2:
+    consortium: ecs
+    tenant: university3
+    password: user
+    first-name: University329
+    last-name: User2
+    roles: []
+  university329_user3:
+    consortium: ecs
+    tenant: university3
+    password: user
+    first-name: University329
+    last-name: User3
+    roles: []
+  # University 3 - User Group 30
+  university330_user1:
+    consortium: ecs
+    tenant: university3
+    password: user
+    first-name: University330
+    last-name: User1
+    roles: []
+  university330_user2:
+    consortium: ecs
+    tenant: university3
+    password: user
+    first-name: University330
+    last-name: User2
+    roles: []
+  university330_user3:
+    consortium: ecs
+    tenant: university3
+    password: user
+    first-name: University330
+    last-name: User3
+    roles: []
+  university4_admin0:
+    consortium: ecs
+    tenant: university4
+    password: admin
+    first-name: University
+    last-name: Admin
+    roles: ["university4_admin_role", "university4_user_role"]
+  # University 4 - User Group 1
+  university401_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University401
+    last-name: User1
+    roles: []
+    permissions: ["perms.all"]
+  university401_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University401
+    last-name: User2
+    roles: []
+  university401_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University401
+    last-name: User3
+    roles: []
+  # University 4 - User Group 2
+  university402_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University402
+    last-name: User1
+    roles: []
+  university402_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University402
+    last-name: User2
+    roles: []
+  university402_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University402
+    last-name: User3
+    roles: []
+  # University 4 - User Group 3
+  university403_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University403
+    last-name: User1
+    roles: []
+  university403_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University403
+    last-name: User2
+    roles: []
+  university403_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University403
+    last-name: User3
+    roles: []
+  # University 4 - User Group 4
+  university404_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University404
+    last-name: User1
+    roles: []
+  university404_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University404
+    last-name: User2
+    roles: []
+  university404_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University404
+    last-name: User3
+    roles: []
+  # University 4 - User Group 5
+  university405_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University405
+    last-name: User1
+    roles: []
+  university405_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University405
+    last-name: User2
+    roles: []
+  university405_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University405
+    last-name: User3
+    roles: []
+  # University 4 - User Group 6
+  university406_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University406
+    last-name: User1
+    roles: []
+  university406_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University406
+    last-name: User2
+    roles: []
+  university406_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University406
+    last-name: User3
+    roles: []
+  # University 4 - User Group 7
+  university407_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University407
+    last-name: User1
+    roles: []
+  university407_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University407
+    last-name: User2
+    roles: []
+  university407_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University407
+    last-name: User3
+    roles: []
+  # University 4 - User Group 8
+  university408_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University408
+    last-name: User1
+    roles: []
+  university408_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University408
+    last-name: User2
+    roles: []
+  university408_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University408
+    last-name: User3
+    roles: []
+  # University 4 - User Group 9
+  university409_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University409
+    last-name: User1
+    roles: []
+  university409_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University409
+    last-name: User2
+    roles: []
+  university409_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University409
+    last-name: User3
+    roles: []
+  # University 4 - User Group 10
+  university410_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University410
+    last-name: User1
+    roles: []
+  university410_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University410
+    last-name: User2
+    roles: []
+  university410_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University410
+    last-name: User3
+    roles: []
+  # University 4 - User Group 11
+  university411_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University411
+    last-name: User1
+    roles: []
+  university411_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University411
+    last-name: User2
+    roles: []
+  university411_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University411
+    last-name: User3
+    roles: []
+  # University 4 - User Group 12
+  university412_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University412
+    last-name: User1
+    roles: []
+  university412_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University412
+    last-name: User2
+    roles: []
+  university412_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University412
+    last-name: User3
+    roles: []
+  # University 4 - User Group 13
+  university413_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University413
+    last-name: User1
+    roles: []
+  university413_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University413
+    last-name: User2
+    roles: []
+  university413_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University413
+    last-name: User3
+    roles: []
+  # University 4 - User Group 14
+  university414_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University414
+    last-name: User1
+    roles: []
+  university414_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University414
+    last-name: User2
+    roles: []
+  university414_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University414
+    last-name: User3
+    roles: []
+  # University 4 - User Group 15
+  university415_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University415
+    last-name: User1
+    roles: []
+  university415_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University415
+    last-name: User2
+    roles: []
+  university415_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University415
+    last-name: User3
+    roles: []
+  # University 4 - User Group 16
+  university416_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University416
+    last-name: User1
+    roles: []
+  university416_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University416
+    last-name: User2
+    roles: []
+  university416_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University416
+    last-name: User3
+    roles: []
+  # University 4 - User Group 17
+  university417_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University417
+    last-name: User1
+    roles: []
+  university417_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University417
+    last-name: User2
+    roles: []
+  university417_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University417
+    last-name: User3
+    roles: []
+  # University 4 - User Group 18
+  university418_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University418
+    last-name: User1
+    roles: []
+  university418_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University418
+    last-name: User2
+    roles: []
+  university418_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University418
+    last-name: User3
+    roles: []
+  # University 4 - User Group 19
+  university419_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University419
+    last-name: User1
+    roles: []
+  university419_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University419
+    last-name: User2
+    roles: []
+  university419_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University419
+    last-name: User3
+    roles: []
+  # University 4 - User Group 20
+  university420_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University420
+    last-name: User1
+    roles: []
+  university420_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University420
+    last-name: User2
+    roles: []
+  university420_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University420
+    last-name: User3
+    roles: []
+  # University 4 - User Group 21
+  university421_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University421
+    last-name: User1
+    roles: []
+  university421_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University421
+    last-name: User2
+    roles: []
+  university421_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University421
+    last-name: User3
+    roles: []
+  # University 4 - User Group 22
+  university422_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University422
+    last-name: User1
+    roles: []
+  university422_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University422
+    last-name: User2
+    roles: []
+  university422_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University422
+    last-name: User3
+    roles: []
+  # University 4 - User Group 23
+  university423_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University423
+    last-name: User1
+    roles: []
+  university423_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University423
+    last-name: User2
+    roles: []
+  university423_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University423
+    last-name: User3
+    roles: []
+  # University 4 - User Group 24
+  university424_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University424
+    last-name: User1
+    roles: []
+  university424_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University424
+    last-name: User2
+    roles: []
+  university424_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University424
+    last-name: User3
+    roles: []
+  # University 4 - User Group 25
+  university425_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University425
+    last-name: User1
+    roles: []
+  university425_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University425
+    last-name: User2
+    roles: []
+  university425_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University425
+    last-name: User3
+    roles: []
+  # University 4 - User Group 26
+  university426_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University426
+    last-name: User1
+    roles: []
+  university426_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University426
+    last-name: User2
+    roles: []
+  university426_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University426
+    last-name: User3
+    roles: []
+  # University 4 - User Group 27
+  university427_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University427
+    last-name: User1
+    roles: []
+  university427_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University427
+    last-name: User2
+    roles: []
+  university427_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University427
+    last-name: User3
+    roles: []
+  # University 4 - User Group 28
+  university428_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University428
+    last-name: User1
+    roles: []
+  university428_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University428
+    last-name: User2
+    roles: []
+  university428_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University428
+    last-name: User3
+    roles: []
+  # University 4 - User Group 29
+  university429_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University429
+    last-name: User1
+    roles: []
+  university429_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University429
+    last-name: User2
+    roles: []
+  university429_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University429
+    last-name: User3
+    roles: []
+  # University 4 - User Group 30
+  university430_user1:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University430
+    last-name: User1
+    roles: []
+  university430_user2:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University430
+    last-name: User2
+    roles: []
+  university430_user3:
+    consortium: ecs
+    tenant: university4
+    password: user
+    first-name: University430
+    last-name: User3
+    roles: []
+  university5_admin0:
+    consortium: ecs
+    tenant: university5
+    password: admin
+    first-name: University
+    last-name: Admin
+    roles: ["university5_admin_role", "university5_user_role"]
+  # University 5 - User Group 1
+  university501_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University501
+    last-name: User1
+    roles: []
+    permissions: ["perms.all"]
+  university501_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University501
+    last-name: User2
+    roles: []
+  university501_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University501
+    last-name: User3
+    roles: []
+  # University 5 - User Group 2
+  university502_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University502
+    last-name: User1
+    roles: []
+  university502_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University502
+    last-name: User2
+    roles: []
+  university502_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University502
+    last-name: User3
+    roles: []
+  # University 5 - User Group 3
+  university503_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University503
+    last-name: User1
+    roles: []
+  university503_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University503
+    last-name: User2
+    roles: []
+  university503_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University503
+    last-name: User3
+    roles: []
+  # University 5 - User Group 4
+  university504_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University504
+    last-name: User1
+    roles: []
+  university504_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University504
+    last-name: User2
+    roles: []
+  university504_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University504
+    last-name: User3
+    roles: []
+  # University 5 - User Group 5
+  university505_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University505
+    last-name: User1
+    roles: []
+  university505_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University505
+    last-name: User2
+    roles: []
+  university505_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University505
+    last-name: User3
+    roles: []
+  # University 5 - User Group 6
+  university506_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University506
+    last-name: User1
+    roles: []
+  university506_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University506
+    last-name: User2
+    roles: []
+  university506_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University506
+    last-name: User3
+    roles: []
+  # University 5 - User Group 7
+  university507_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University507
+    last-name: User1
+    roles: []
+  university507_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University507
+    last-name: User2
+    roles: []
+  university507_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University507
+    last-name: User3
+    roles: []
+  # University 5 - User Group 8
+  university508_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University508
+    last-name: User1
+    roles: []
+  university508_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University508
+    last-name: User2
+    roles: []
+  university508_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University508
+    last-name: User3
+    roles: []
+  # University 5 - User Group 9
+  university509_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University509
+    last-name: User1
+    roles: []
+  university509_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University509
+    last-name: User2
+    roles: []
+  university509_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University509
+    last-name: User3
+    roles: []
+  # University 5 - User Group 10
+  university510_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University510
+    last-name: User1
+    roles: []
+  university510_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University510
+    last-name: User2
+    roles: []
+  university510_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University510
+    last-name: User3
+    roles: []
+  # University 5 - User Group 11
+  university511_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University511
+    last-name: User1
+    roles: []
+  university511_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University511
+    last-name: User2
+    roles: []
+  university511_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University511
+    last-name: User3
+    roles: []
+  # University 5 - User Group 12
+  university512_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University512
+    last-name: User1
+    roles: []
+  university512_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University512
+    last-name: User2
+    roles: []
+  university512_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University512
+    last-name: User3
+    roles: []
+  # University 5 - User Group 13
+  university513_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University513
+    last-name: User1
+    roles: []
+  university513_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University513
+    last-name: User2
+    roles: []
+  university513_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University513
+    last-name: User3
+    roles: []
+  # University 5 - User Group 14
+  university514_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University514
+    last-name: User1
+    roles: []
+  university514_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University514
+    last-name: User2
+    roles: []
+  university514_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University514
+    last-name: User3
+    roles: []
+  # University 5 - User Group 15
+  university515_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University515
+    last-name: User1
+    roles: []
+  university515_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University515
+    last-name: User2
+    roles: []
+  university515_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University515
+    last-name: User3
+    roles: []
+  # University 5 - User Group 16
+  university516_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University516
+    last-name: User1
+    roles: []
+  university516_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University516
+    last-name: User2
+    roles: []
+  university516_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University516
+    last-name: User3
+    roles: []
+  # University 5 - User Group 17
+  university517_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University517
+    last-name: User1
+    roles: []
+  university517_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University517
+    last-name: User2
+    roles: []
+  university517_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University517
+    last-name: User3
+    roles: []
+  # University 5 - User Group 18
+  university518_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University518
+    last-name: User1
+    roles: []
+  university518_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University518
+    last-name: User2
+    roles: []
+  university518_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University518
+    last-name: User3
+    roles: []
+  # University 5 - User Group 19
+  university519_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University519
+    last-name: User1
+    roles: []
+  university519_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University519
+    last-name: User2
+    roles: []
+  university519_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University519
+    last-name: User3
+    roles: []
+  # University 5 - User Group 20
+  university520_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University520
+    last-name: User1
+    roles: []
+  university520_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University520
+    last-name: User2
+    roles: []
+  university520_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University520
+    last-name: User3
+    roles: []
+  # University 5 - User Group 21
+  university521_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University521
+    last-name: User1
+    roles: []
+  university521_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University521
+    last-name: User2
+    roles: []
+  university521_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University521
+    last-name: User3
+    roles: []
+  # University 5 - User Group 22
+  university522_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University522
+    last-name: User1
+    roles: []
+  university522_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University522
+    last-name: User2
+    roles: []
+  university522_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University522
+    last-name: User3
+    roles: []
+  # University 5 - User Group 23
+  university523_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University523
+    last-name: User1
+    roles: []
+  university523_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University523
+    last-name: User2
+    roles: []
+  university523_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University523
+    last-name: User3
+    roles: []
+  # University 5 - User Group 24
+  university524_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University524
+    last-name: User1
+    roles: []
+  university524_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University524
+    last-name: User2
+    roles: []
+  university524_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University524
+    last-name: User3
+    roles: []
+  # University 5 - User Group 25
+  university525_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University525
+    last-name: User1
+    roles: []
+  university525_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University525
+    last-name: User2
+    roles: []
+  university525_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University525
+    last-name: User3
+    roles: []
+  # University 5 - User Group 26
+  university526_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University526
+    last-name: User1
+    roles: []
+  university526_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University526
+    last-name: User2
+    roles: []
+  university526_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University526
+    last-name: User3
+    roles: []
+  # University 5 - User Group 27
+  university527_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University527
+    last-name: User1
+    roles: []
+  university527_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University527
+    last-name: User2
+    roles: []
+  university527_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University527
+    last-name: User3
+    roles: []
+  # University 5 - User Group 28
+  university528_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University528
+    last-name: User1
+    roles: []
+  university528_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University528
+    last-name: User2
+    roles: []
+  university528_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University528
+    last-name: User3
+    roles: []
+  # University 5 - User Group 29
+  university529_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University529
+    last-name: User1
+    roles: []
+  university529_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University529
+    last-name: User2
+    roles: []
+  university529_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University529
+    last-name: User3
+    roles: []
+  # University 5 - User Group 30
+  university530_user1:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University530
+    last-name: User1
+    roles: []
+  university530_user2:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University530
+    last-name: User2
+    roles: []
+  university530_user3:
+    consortium: ecs
+    tenant: university5
+    password: user
+    first-name: University530
+    last-name: User3
+    roles: []
+  university6_admin0:
+    consortium: ecs
+    tenant: university6
+    password: admin
+    first-name: University
+    last-name: Admin
+    roles: ["university6_admin_role", "university6_user_role"]
+  # University 6 - User Group 1
+  university601_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University601
+    last-name: User1
+    roles: []
+    permissions: ["perms.all"]
+  university601_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University601
+    last-name: User2
+    roles: []
+  university601_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University601
+    last-name: User3
+    roles: []
+  # University 6 - User Group 2
+  university602_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University602
+    last-name: User1
+    roles: []
+  university602_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University602
+    last-name: User2
+    roles: []
+  university602_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University602
+    last-name: User3
+    roles: []
+  # University 6 - User Group 3
+  university603_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University603
+    last-name: User1
+    roles: []
+  university603_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University603
+    last-name: User2
+    roles: []
+  university603_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University603
+    last-name: User3
+    roles: []
+  # University 6 - User Group 4
+  university604_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University604
+    last-name: User1
+    roles: []
+  university604_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University604
+    last-name: User2
+    roles: []
+  university604_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University604
+    last-name: User3
+    roles: []
+  # University 6 - User Group 5
+  university605_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University605
+    last-name: User1
+    roles: []
+  university605_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University605
+    last-name: User2
+    roles: []
+  university605_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University605
+    last-name: User3
+    roles: []
+  # University 6 - User Group 6
+  university606_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University606
+    last-name: User1
+    roles: []
+  university606_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University606
+    last-name: User2
+    roles: []
+  university606_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University606
+    last-name: User3
+    roles: []
+  # University 6 - User Group 7
+  university607_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University607
+    last-name: User1
+    roles: []
+  university607_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University607
+    last-name: User2
+    roles: []
+  university607_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University607
+    last-name: User3
+    roles: []
+  # University 6 - User Group 8
+  university608_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University608
+    last-name: User1
+    roles: []
+  university608_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University608
+    last-name: User2
+    roles: []
+  university608_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University608
+    last-name: User3
+    roles: []
+  # University 6 - User Group 9
+  university609_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University609
+    last-name: User1
+    roles: []
+  university609_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University609
+    last-name: User2
+    roles: []
+  university609_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University609
+    last-name: User3
+    roles: []
+  # University 6 - User Group 10
+  university610_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University610
+    last-name: User1
+    roles: []
+  university610_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University610
+    last-name: User2
+    roles: []
+  university610_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University610
+    last-name: User3
+    roles: []
+  # University 6 - User Group 11
+  university611_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University611
+    last-name: User1
+    roles: []
+  university611_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University611
+    last-name: User2
+    roles: []
+  university611_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University611
+    last-name: User3
+    roles: []
+  # University 6 - User Group 12
+  university612_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University612
+    last-name: User1
+    roles: []
+  university612_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University612
+    last-name: User2
+    roles: []
+  university612_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University612
+    last-name: User3
+    roles: []
+  # University 6 - User Group 13
+  university613_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University613
+    last-name: User1
+    roles: []
+  university613_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University613
+    last-name: User2
+    roles: []
+  university613_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University613
+    last-name: User3
+    roles: []
+  # University 6 - User Group 14
+  university614_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University614
+    last-name: User1
+    roles: []
+  university614_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University614
+    last-name: User2
+    roles: []
+  university614_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University614
+    last-name: User3
+    roles: []
+  # University 6 - User Group 15
+  university615_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University615
+    last-name: User1
+    roles: []
+  university615_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University615
+    last-name: User2
+    roles: []
+  university615_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University615
+    last-name: User3
+    roles: []
+  # University 6 - User Group 16
+  university616_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University616
+    last-name: User1
+    roles: []
+  university616_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University616
+    last-name: User2
+    roles: []
+  university616_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University616
+    last-name: User3
+    roles: []
+  # University 6 - User Group 17
+  university617_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University617
+    last-name: User1
+    roles: []
+  university617_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University617
+    last-name: User2
+    roles: []
+  university617_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University617
+    last-name: User3
+    roles: []
+  # University 6 - User Group 18
+  university618_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University618
+    last-name: User1
+    roles: []
+  university618_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University618
+    last-name: User2
+    roles: []
+  university618_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University618
+    last-name: User3
+    roles: []
+  # University 6 - User Group 19
+  university619_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University619
+    last-name: User1
+    roles: []
+  university619_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University619
+    last-name: User2
+    roles: []
+  university619_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University619
+    last-name: User3
+    roles: []
+  # University 6 - User Group 20
+  university620_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University620
+    last-name: User1
+    roles: []
+  university620_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University620
+    last-name: User2
+    roles: []
+  university620_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University620
+    last-name: User3
+    roles: []
+  # University 6 - User Group 21
+  university621_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University621
+    last-name: User1
+    roles: []
+  university621_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University621
+    last-name: User2
+    roles: []
+  university621_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University621
+    last-name: User3
+    roles: []
+  # University 6 - User Group 22
+  university622_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University622
+    last-name: User1
+    roles: []
+  university622_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University622
+    last-name: User2
+    roles: []
+  university622_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University622
+    last-name: User3
+    roles: []
+  # University 6 - User Group 23
+  university623_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University623
+    last-name: User1
+    roles: []
+  university623_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University623
+    last-name: User2
+    roles: []
+  university623_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University623
+    last-name: User3
+    roles: []
+  # University 6 - User Group 24
+  university624_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University624
+    last-name: User1
+    roles: []
+  university624_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University624
+    last-name: User2
+    roles: []
+  university624_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University624
+    last-name: User3
+    roles: []
+  # University 6 - User Group 25
+  university625_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University625
+    last-name: User1
+    roles: []
+  university625_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University625
+    last-name: User2
+    roles: []
+  university625_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University625
+    last-name: User3
+    roles: []
+  # University 6 - User Group 26
+  university626_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University626
+    last-name: User1
+    roles: []
+  university626_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University626
+    last-name: User2
+    roles: []
+  university626_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University626
+    last-name: User3
+    roles: []
+  # University 6 - User Group 27
+  university627_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University627
+    last-name: User1
+    roles: []
+  university627_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University627
+    last-name: User2
+    roles: []
+  university627_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University627
+    last-name: User3
+    roles: []
+  # University 6 - User Group 28
+  university628_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University628
+    last-name: User1
+    roles: []
+  university628_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University628
+    last-name: User2
+    roles: []
+  university628_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University628
+    last-name: User3
+    roles: []
+  # University 6 - User Group 29
+  university629_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University629
+    last-name: User1
+    roles: []
+  university629_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University629
+    last-name: User2
+    roles: []
+  university629_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University629
+    last-name: User3
+    roles: []
+  # University 6 - User Group 30
+  university630_user1:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University630
+    last-name: User1
+    roles: []
+  university630_user2:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University630
+    last-name: User2
+    roles: []
+  university630_user3:
+    consortium: ecs
+    tenant: university6
+    password: user
+    first-name: University630
+    last-name: User3
+    roles: []
+  university7_admin0:
+    consortium: ecs
+    tenant: university7
+    password: admin
+    first-name: University
+    last-name: Admin
+    roles: ["university7_admin_role", "university7_user_role"]
+  # University 7 - User Group 1
+  university701_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University701
+    last-name: User1
+    roles: []
+    permissions: ["perms.all"]
+  university701_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University701
+    last-name: User2
+    roles: []
+  university701_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University701
+    last-name: User3
+    roles: []
+  # University 7 - User Group 2
+  university702_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University702
+    last-name: User1
+    roles: []
+  university702_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University702
+    last-name: User2
+    roles: []
+  university702_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University702
+    last-name: User3
+    roles: []
+  # University 7 - User Group 3
+  university703_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University703
+    last-name: User1
+    roles: []
+  university703_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University703
+    last-name: User2
+    roles: []
+  university703_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University703
+    last-name: User3
+    roles: []
+  # University 7 - User Group 4
+  university704_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University704
+    last-name: User1
+    roles: []
+  university704_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University704
+    last-name: User2
+    roles: []
+  university704_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University704
+    last-name: User3
+    roles: []
+  # University 7 - User Group 5
+  university705_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University705
+    last-name: User1
+    roles: []
+  university705_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University705
+    last-name: User2
+    roles: []
+  university705_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University705
+    last-name: User3
+    roles: []
+  # University 7 - User Group 6
+  university706_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University706
+    last-name: User1
+    roles: []
+  university706_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University706
+    last-name: User2
+    roles: []
+  university706_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University706
+    last-name: User3
+    roles: []
+  # University 7 - User Group 7
+  university707_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University707
+    last-name: User1
+    roles: []
+  university707_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University707
+    last-name: User2
+    roles: []
+  university707_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University707
+    last-name: User3
+    roles: []
+  # University 7 - User Group 8
+  university708_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University708
+    last-name: User1
+    roles: []
+  university708_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University708
+    last-name: User2
+    roles: []
+  university708_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University708
+    last-name: User3
+    roles: []
+  # University 7 - User Group 9
+  university709_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University709
+    last-name: User1
+    roles: []
+  university709_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University709
+    last-name: User2
+    roles: []
+  university709_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University709
+    last-name: User3
+    roles: []
+  # University 7 - User Group 10
+  university710_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University710
+    last-name: User1
+    roles: []
+  university710_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University710
+    last-name: User2
+    roles: []
+  university710_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University710
+    last-name: User3
+    roles: []
+  # University 7 - User Group 11
+  university711_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University711
+    last-name: User1
+    roles: []
+  university711_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University711
+    last-name: User2
+    roles: []
+  university711_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University711
+    last-name: User3
+    roles: []
+  # University 7 - User Group 12
+  university712_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University712
+    last-name: User1
+    roles: []
+  university712_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University712
+    last-name: User2
+    roles: []
+  university712_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University712
+    last-name: User3
+    roles: []
+  # University 7 - User Group 13
+  university713_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University713
+    last-name: User1
+    roles: []
+  university713_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University713
+    last-name: User2
+    roles: []
+  university713_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University713
+    last-name: User3
+    roles: []
+  # University 7 - User Group 14
+  university714_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University714
+    last-name: User1
+    roles: []
+  university714_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University714
+    last-name: User2
+    roles: []
+  university714_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University714
+    last-name: User3
+    roles: []
+  # University 7 - User Group 15
+  university715_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University715
+    last-name: User1
+    roles: []
+  university715_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University715
+    last-name: User2
+    roles: []
+  university715_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University715
+    last-name: User3
+    roles: []
+  # University 7 - User Group 16
+  university716_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University716
+    last-name: User1
+    roles: []
+  university716_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University716
+    last-name: User2
+    roles: []
+  university716_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University716
+    last-name: User3
+    roles: []
+  # University 7 - User Group 17
+  university717_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University717
+    last-name: User1
+    roles: []
+  university717_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University717
+    last-name: User2
+    roles: []
+  university717_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University717
+    last-name: User3
+    roles: []
+  # University 7 - User Group 18
+  university718_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University718
+    last-name: User1
+    roles: []
+  university718_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University718
+    last-name: User2
+    roles: []
+  university718_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University718
+    last-name: User3
+    roles: []
+  # University 7 - User Group 19
+  university719_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University719
+    last-name: User1
+    roles: []
+  university719_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University719
+    last-name: User2
+    roles: []
+  university719_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University719
+    last-name: User3
+    roles: []
+  # University 7 - User Group 20
+  university720_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University720
+    last-name: User1
+    roles: []
+  university720_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University720
+    last-name: User2
+    roles: []
+  university720_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University720
+    last-name: User3
+    roles: []
+  # University 7 - User Group 21
+  university721_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University721
+    last-name: User1
+    roles: []
+  university721_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University721
+    last-name: User2
+    roles: []
+  university721_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University721
+    last-name: User3
+    roles: []
+  # University 7 - User Group 22
+  university722_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University722
+    last-name: User1
+    roles: []
+  university722_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University722
+    last-name: User2
+    roles: []
+  university722_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University722
+    last-name: User3
+    roles: []
+  # University 7 - User Group 23
+  university723_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University723
+    last-name: User1
+    roles: []
+  university723_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University723
+    last-name: User2
+    roles: []
+  university723_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University723
+    last-name: User3
+    roles: []
+  # University 7 - User Group 24
+  university724_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University724
+    last-name: User1
+    roles: []
+  university724_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University724
+    last-name: User2
+    roles: []
+  university724_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University724
+    last-name: User3
+    roles: []
+  # University 7 - User Group 25
+  university725_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University725
+    last-name: User1
+    roles: []
+  university725_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University725
+    last-name: User2
+    roles: []
+  university725_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University725
+    last-name: User3
+    roles: []
+  # University 7 - User Group 26
+  university726_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University726
+    last-name: User1
+    roles: []
+  university726_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University726
+    last-name: User2
+    roles: []
+  university726_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University726
+    last-name: User3
+    roles: []
+  # University 7 - User Group 27
+  university727_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University727
+    last-name: User1
+    roles: []
+  university727_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University727
+    last-name: User2
+    roles: []
+  university727_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University727
+    last-name: User3
+    roles: []
+  # University 7 - User Group 28
+  university728_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University728
+    last-name: User1
+    roles: []
+  university728_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University728
+    last-name: User2
+    roles: []
+  university728_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University728
+    last-name: User3
+    roles: []
+  # University 7 - User Group 29
+  university729_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University729
+    last-name: User1
+    roles: []
+  university729_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University729
+    last-name: User2
+    roles: []
+  university729_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University729
+    last-name: User3
+    roles: []
+  # University 7 - User Group 30
+  university730_user1:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University730
+    last-name: User1
+    roles: []
+  university730_user2:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University730
+    last-name: User2
+    roles: []
+  university730_user3:
+    consortium: ecs
+    tenant: university7
+    password: user
+    first-name: University730
+    last-name: User3
+    roles: []
+  university8_admin0:
+    consortium: ecs
+    tenant: university8
+    password: admin
+    first-name: University
+    last-name: Admin
+    roles: ["university8_admin_role", "university8_user_role"]
+  # University 8 - User Group 1
+  university801_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University801
+    last-name: User1
+    roles: []
+    permissions: ["perms.all"]
+  university801_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University801
+    last-name: User2
+    roles: []
+  university801_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University801
+    last-name: User3
+    roles: []
+  # University 8 - User Group 2
+  university802_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University802
+    last-name: User1
+    roles: []
+  university802_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University802
+    last-name: User2
+    roles: []
+  university802_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University802
+    last-name: User3
+    roles: []
+  # University 8 - User Group 3
+  university803_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University803
+    last-name: User1
+    roles: []
+  university803_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University803
+    last-name: User2
+    roles: []
+  university803_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University803
+    last-name: User3
+    roles: []
+  # University 8 - User Group 4
+  university804_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University804
+    last-name: User1
+    roles: []
+  university804_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University804
+    last-name: User2
+    roles: []
+  university804_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University804
+    last-name: User3
+    roles: []
+  # University 8 - User Group 5
+  university805_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University805
+    last-name: User1
+    roles: []
+  university805_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University805
+    last-name: User2
+    roles: []
+  university805_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University805
+    last-name: User3
+    roles: []
+  # University 8 - User Group 6
+  university806_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University806
+    last-name: User1
+    roles: []
+  university806_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University806
+    last-name: User2
+    roles: []
+  university806_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University806
+    last-name: User3
+    roles: []
+  # University 8 - User Group 7
+  university807_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University807
+    last-name: User1
+    roles: []
+  university807_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University807
+    last-name: User2
+    roles: []
+  university807_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University807
+    last-name: User3
+    roles: []
+  # University 8 - User Group 8
+  university808_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University808
+    last-name: User1
+    roles: []
+  university808_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University808
+    last-name: User2
+    roles: []
+  university808_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University808
+    last-name: User3
+    roles: []
+  # University 8 - User Group 9
+  university809_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University809
+    last-name: User1
+    roles: []
+  university809_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University809
+    last-name: User2
+    roles: []
+  university809_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University809
+    last-name: User3
+    roles: []
+  # University 8 - User Group 10
+  university810_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University810
+    last-name: User1
+    roles: []
+  university810_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University810
+    last-name: User2
+    roles: []
+  university810_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University810
+    last-name: User3
+    roles: []
+  # University 8 - User Group 11
+  university811_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University811
+    last-name: User1
+    roles: []
+  university811_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University811
+    last-name: User2
+    roles: []
+  university811_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University811
+    last-name: User3
+    roles: []
+  # University 8 - User Group 12
+  university812_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University812
+    last-name: User1
+    roles: []
+  university812_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University812
+    last-name: User2
+    roles: []
+  university812_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University812
+    last-name: User3
+    roles: []
+  # University 8 - User Group 13
+  university813_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University813
+    last-name: User1
+    roles: []
+  university813_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University813
+    last-name: User2
+    roles: []
+  university813_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University813
+    last-name: User3
+    roles: []
+  # University 8 - User Group 14
+  university814_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University814
+    last-name: User1
+    roles: []
+  university814_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University814
+    last-name: User2
+    roles: []
+  university814_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University814
+    last-name: User3
+    roles: []
+  # University 8 - User Group 15
+  university815_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University815
+    last-name: User1
+    roles: []
+  university815_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University815
+    last-name: User2
+    roles: []
+  university815_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University815
+    last-name: User3
+    roles: []
+  # University 8 - User Group 16
+  university816_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University816
+    last-name: User1
+    roles: []
+  university816_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University816
+    last-name: User2
+    roles: []
+  university816_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University816
+    last-name: User3
+    roles: []
+  # University 8 - User Group 17
+  university817_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University817
+    last-name: User1
+    roles: []
+  university817_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University817
+    last-name: User2
+    roles: []
+  university817_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University817
+    last-name: User3
+    roles: []
+  # University 8 - User Group 18
+  university818_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University818
+    last-name: User1
+    roles: []
+  university818_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University818
+    last-name: User2
+    roles: []
+  university818_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University818
+    last-name: User3
+    roles: []
+  # University 8 - User Group 19
+  university819_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University819
+    last-name: User1
+    roles: []
+  university819_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University819
+    last-name: User2
+    roles: []
+  university819_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University819
+    last-name: User3
+    roles: []
+  # University 8 - User Group 20
+  university820_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University820
+    last-name: User1
+    roles: []
+  university820_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University820
+    last-name: User2
+    roles: []
+  university820_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University820
+    last-name: User3
+    roles: []
+  # University 8 - User Group 21
+  university821_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University821
+    last-name: User1
+    roles: []
+  university821_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University821
+    last-name: User2
+    roles: []
+  university821_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University821
+    last-name: User3
+    roles: []
+  # University 8 - User Group 22
+  university822_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University822
+    last-name: User1
+    roles: []
+  university822_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University822
+    last-name: User2
+    roles: []
+  university822_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University822
+    last-name: User3
+    roles: []
+  # University 8 - User Group 23
+  university823_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University823
+    last-name: User1
+    roles: []
+  university823_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University823
+    last-name: User2
+    roles: []
+  university823_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University823
+    last-name: User3
+    roles: []
+  # University 8 - User Group 24
+  university824_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University824
+    last-name: User1
+    roles: []
+  university824_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University824
+    last-name: User2
+    roles: []
+  university824_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University824
+    last-name: User3
+    roles: []
+  # University 8 - User Group 25
+  university825_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University825
+    last-name: User1
+    roles: []
+  university825_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University825
+    last-name: User2
+    roles: []
+  university825_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University825
+    last-name: User3
+    roles: []
+  # University 8 - User Group 26
+  university826_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University826
+    last-name: User1
+    roles: []
+  university826_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University826
+    last-name: User2
+    roles: []
+  university826_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University826
+    last-name: User3
+    roles: []
+  # University 8 - User Group 27
+  university827_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University827
+    last-name: User1
+    roles: []
+  university827_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University827
+    last-name: User2
+    roles: []
+  university827_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University827
+    last-name: User3
+    roles: []
+  # University 8 - User Group 28
+  university828_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University828
+    last-name: User1
+    roles: []
+  university828_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University828
+    last-name: User2
+    roles: []
+  university828_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University828
+    last-name: User3
+    roles: []
+  # University 8 - User Group 29
+  university829_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University829
+    last-name: User1
+    roles: []
+  university829_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University829
+    last-name: User2
+    roles: []
+  university829_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University829
+    last-name: User3
+    roles: []
+  # University 8 - User Group 30
+  university830_user1:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University830
+    last-name: User1
+    roles: []
+  university830_user2:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University830
+    last-name: User2
+    roles: []
+  university830_user3:
+    consortium: ecs
+    tenant: university8
+    password: user
+    first-name: University830
     last-name: User3
     roles: []
 sidecar-module:
@@ -835,7 +5583,7 @@ backend-modules:
       KONG_READ_TIMEOUT: "941241418"
       KONG_WRITE_TIMEOUT: "941241418"
       FLOW_ENGINE_THREADS_NUM: "4"
-      FLOW_ENGINE_MODULE_INSTALLER_THREADS: "4"
+      FLOW_ENGINE_MODULE_INSTALLER_THREADS: "2"
       RETRIES_MODULE_MAX: "10"
       KAFKA_ENTITLEMENT_TOPIC_PARTITIONS: "1"
       KAFKA_SCHEDULED_JOB_TOPIC_PARTITIONS: "1"

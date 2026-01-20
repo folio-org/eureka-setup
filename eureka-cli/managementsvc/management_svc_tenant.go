@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/url"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
@@ -19,10 +20,14 @@ type ManagementTenantManager interface {
 }
 
 func (ms *ManagementSvc) GetTenants(consortiumName string, tenantType constant.TenantType) ([]any, error) {
-	requestURL := ms.Action.GetRequestURL(constant.KongPort, "/tenants")
+	var rawQuery string
 	if tenantType != constant.All {
-		requestURL += fmt.Sprintf("?query=description==%s-%s", consortiumName, tenantType)
+		rawQuery = fmt.Sprintf("(description==%s-%s) sortby name", consortiumName, tenantType)
+	} else {
+		rawQuery = "(cql.allRecords=1) sortby name"
 	}
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/tenants?query=%s", url.QueryEscape(rawQuery)))
+
 	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
 	if err != nil {
 		return nil, err
@@ -56,8 +61,10 @@ func (ms *ManagementSvc) CreateTenants() error {
 	if err != nil {
 		return err
 	}
+	tenantNames := helpers.SortedMapKeys(ms.Action.ConfigTenants)
 
-	for tenantName, properties := range ms.Action.ConfigTenants {
+	for _, tenantName := range tenantNames {
+		properties := ms.Action.ConfigTenants[tenantName]
 		entry := properties.(map[string]any)
 		payload, err := json.Marshal(map[string]string{
 			"name":        tenantName,

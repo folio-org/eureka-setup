@@ -19,6 +19,9 @@
     - [Undeploy the _ecs_ application](#undeploy-the-ecs-application)
     - [Deploy the _ecs-single_ application](#deploy-the-ecs-single-application)
     - [Undeploy the _ecs-single_ application](#undeploy-the-ecs-single-application)
+    - [Deploy the _ecs-migration_ application](#deploy-the-ecs-migration-application)
+    - [Undeploy the _ecs-migration_ application](#undeploy-the-ecs-migration-application)
+    - [Run IDP migration](#run-idp-migration)
     - [Deploy the import application](#deploy-the-import-application)
     - [Undeploy the import application](#undeploy-the-import-application)
     - [Deploy child applications](#deploy-child-applications)
@@ -61,6 +64,11 @@ Install dependencies
 - [Rancher Desktop](https://rancherdesktop.io/) container daemon: last development-tested version is `v1.20.1`
   - Enable **dockerd (Moby)** container engine
   - Disable **Check for updates automatically**
+
+On Windows, it is recommended to work exclusively in Windows Terminal running Git Bash
+
+- [Windows Terminal](https://learn.microsoft.com/en-us/windows/terminal/install): Install for better shell experience when paired with Git Bash
+- [Git Bash](https://gitforwindows.org/): Add to Windows Terminal as new default profile & Unix-like shell environment that supports Bash commands
 
 Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc\hosts`)
 
@@ -218,7 +226,7 @@ eureka-cli deployApplication -q
 eureka-cli -p combined deployApplication
 ```
 
-> Available profiles are: _combined_, _combined-native_, _export_, _search_, _edge_, _ecs_, _ecs-single_ and _import_ (_combined_, _combined-native_, _ecs_, _ecs-single_ and _import_ are standalone applications)
+> Available profiles are: _combined_, _combined-native_, _export_, _search_, _edge_, _ecs_, _ecs-single_, _ecs-migration_ and _import_ (_combined_, _combined-native_, _ecs_, _ecs-single_, _ecs-migration_ and _import_ are standalone applications)
 
 - It can be combined with the `-o` flag to overwrite all existing files in the `.eureka` home directory to receive changes from upstream
 
@@ -306,6 +314,32 @@ eureka-cli -p ecs-single deployApplication -oq
 ```bash
 eureka-cli -p ecs-single undeployApplication
 ```
+
+### Deploy the _ecs-migration_ application
+
+The _ecs-migration_ profile deploy a single consortium with one central and eight member tenants. This profile is primarily used to cross-check production workflows when there are issues reported with the migration to ECS. Because of the number of tenants involved, it is advised to run this profile with the maximum amount of resources to avoid frequent restarts on failure.
+
+```bash
+eureka-cli -p ecs-migration deployApplication -oq
+```
+
+### Undeploy the _ecs-migration_ application
+
+```bash
+eureka-cli -p ecs-migration undeployApplication
+```
+
+### Run IDP migration
+
+```bash
+# Create IDP users
+./migrate_users.sh -a create --consortium-id {{consortium uuid}}
+
+# Remove IDP users
+./migrate_users.sh -a delete --consortium-id {{consortium uuid}}
+```
+
+> The migration progress can be monitored from the `federated_identity` table in the Keycloak DB
 
 ### Deploy the import application
 
@@ -527,7 +561,7 @@ eureka-cli getEdgeApiKey -t diku -x diku_admin
 eureka-cli -p {{profile}} reindexElasticsearch
 ```
 
-> This command assumes that _mod-search_ module and _elasticsearch_ system container are deployed or if `{{profile}}` is being replaced by either _search_, _ecs_ or _ecs-single_ profiles
+> This command assumes that _mod-search_ module and _elasticsearch_ system container are deployed or if `{{profile}}` is being replaced by either _search_, _ecs_, _ecs-single_ or _ecs-migration_ profiles
 
 - Check if module internal ports are accessible
 
@@ -715,7 +749,7 @@ eureka-cli deployUi -b -u
 
 ## Using Single Tenant UX
 
-Single tenant UX is by default enabled for both _ecs_ and _ecs-single_ profiles. This functionality allows users in member tenant to automatically log-in in their respective tenant space from a single user login form, configured for the central tenant. Under the hood, the implementation behind Single Tenant UX uses shadow users created in the central tenant and the Keycloak realm to perform authentication using the correct member tenant identity provider.
+Single tenant UX is by default enabled for both _ecs_, _ecs-single_ and _ecs-migration_ profiles. This functionality allows users in member tenant to automatically log-in in their respective tenant space from a single user login form, configured for the central tenant. Under the hood, the implementation behind Single Tenant UX uses shadow users created in the central tenant and the Keycloak realm to perform authentication using the correct member tenant identity provider.
 
 - To disable this functionality from running automatically during the deployment, set `SINGLE_TENANT_UX` from `true` to `false` for both `mod-users-keycloak` and `mod-consortia-keycloak` backend modules
 

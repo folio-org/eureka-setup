@@ -2,6 +2,8 @@ package helpers
 
 import (
 	"fmt"
+	"math/rand"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -78,4 +80,25 @@ func IsSnapshot(version string) bool {
 
 func IsFolioNamespace(namespace string) bool {
 	return namespace == constant.SnapshotNamespace || namespace == constant.ReleaseNamespace
+}
+
+func GenerateRandomCode(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+	code := make([]byte, length)
+	for i := range code {
+		code[i] = charset[rand.Intn(len(charset))]
+	}
+
+	return string(code)
+}
+
+func SortedMapKeys(m map[string]any) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	return keys
 }
