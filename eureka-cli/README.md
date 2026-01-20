@@ -317,7 +317,7 @@ eureka-cli -p ecs-single undeployApplication
 
 ### Deploy the _ecs-migration_ application
 
-The _ecs-migration_ profile deploy a single consortium with one central and eight member tenants. This profile is primarily used to cross-check production workflows when there are issues reported with migration to ECS. Because of the number of tenants involved, it is advised to run this profile with maximum amount of resources to avoid frequent restarts on failure.
+The _ecs-migration_ profile deploy a single consortium with one central and eight member tenants. This profile is primarily used to cross-check production workflows when there are issues reported with the migration to ECS. Because of the number of tenants involved, it is advised to run this profile with the maximum amount of resources to avoid frequent restarts on failure.
 
 ```bash
 eureka-cli -p ecs-migration deployApplication -oq
