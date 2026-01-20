@@ -86,9 +86,9 @@ run_task() {
 }
 
 echo "Preparing to run tasks"
-run_task "university1" "tmp/university1_${ACTION}_users.json" &
-run_task "university2" "tmp/university2_${ACTION}_users.json" &
-run_task "university3" "tmp/university3_${ACTION}_users.json" &
+for i in {1..8}; do
+  run_task "university${i}" "tmp/university${i}_${ACTION}_users.json" &
+done
 
 wait
 echo "All tasks finished successfully"
