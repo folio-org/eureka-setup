@@ -21,7 +21,10 @@ type ConsortiumTenantHandler interface {
 
 func (cs *ConsortiumSvc) GetSortedConsortiumTenants(consortiumName string) models.SortedConsortiumTenants {
 	var consortiumTenants models.SortedConsortiumTenants
-	for tenantName, properties := range cs.Action.ConfigTenants {
+	tenantNames := helpers.SortedMapKeys(cs.Action.ConfigTenants)
+
+	for _, tenantName := range tenantNames {
+		properties := cs.Action.ConfigTenants[tenantName]
 		if properties == nil {
 			continue
 		}

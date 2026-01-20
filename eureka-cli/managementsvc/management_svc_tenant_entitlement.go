@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
@@ -70,6 +71,8 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 			return err
 		}
 		slog.Info(ms.Action.Name, "text", "Created tenant entitlement", "tenant", tenantName, "flowId", decodedResponse.FlowID)
+
+	  time.Sleep(30 * time.Second)
 	}
 
 	return nil

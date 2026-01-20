@@ -61,7 +61,6 @@ func (ms *ManagementSvc) CreateTenants() error {
 	if err != nil {
 		return err
 	}
-
 	tenantNames := helpers.SortedMapKeys(ms.Action.ConfigTenants)
 
 	for _, tenantName := range tenantNames {

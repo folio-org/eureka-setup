@@ -17,10 +17,10 @@ const (
 	ConsortiumTenantStatusWait        = 10 * time.Second
 
 	// Readiness retries
-	ModuleReadinessMaxRetries     = 50
+	ModuleReadinessMaxRetries     = 70
 	KongRouteReadinessMaxRetries  = 30
-	ConsumerGroupRebalanceRetries = 30
-	ConsumerGroupPollMaxRetries   = 30
+	ConsumerGroupRebalanceRetries = 70
+	ConsumerGroupPollMaxRetries   = 70
 
 	// Context timeout durations
 	ContextTimeoutDockerAPIVersion   = 15 * time.Second
@@ -178,8 +178,8 @@ const (
 	KeycloakAdminUsername                  = "admin"
 	KeycloakAdminPassword                  = "admin"
 	KeycloakMasterRealm                    = "master"
-	KeycloakMasterRealmAccessTokenLifespan = 1800
-	KeycloakTenantRealmAccessTokenLifespan = 900
+	KeycloakMasterRealmAccessTokenLifespan = 3600
+	KeycloakTenantRealmAccessTokenLifespan = 3600
 
 	// System container ports
 	KongPort        = "8000"
