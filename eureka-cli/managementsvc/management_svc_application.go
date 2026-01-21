@@ -112,14 +112,6 @@ func (ms *ManagementSvc) CreateApplication(extract *models.RegistryExtract) erro
 			if (!existsBackend && !existsFrontend) || (existsBackend && !backendModule.DeployModule || existsFrontend && !frontendModule.DeployModule) {
 				continue
 			}
-			if existsBackend && backendModule.ModuleVersion != nil || existsFrontend && frontendModule.ModuleVersion != nil {
-				if backendModule.ModuleVersion != nil {
-					module.Metadata.Version = backendModule.ModuleVersion
-				} else if frontendModule.ModuleVersion != nil {
-					module.Metadata.Version = frontendModule.ModuleVersion
-				}
-				module.ID = fmt.Sprintf("%s-%s", module.Metadata.Name, *module.Metadata.Version)
-			}
 
 			moduleDescriptorURL := ms.Action.GetModuleURL(module.ID)
 			isLocalBackendModule := existsBackend && backendModule.LocalDescriptorPath != ""

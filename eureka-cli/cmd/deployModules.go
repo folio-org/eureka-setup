@@ -61,7 +61,7 @@ func (run *Run) DeployModules() error {
 	if err != nil {
 		return err
 	}
-	run.Config.RegistrySvc.ExtractModuleMetadata(modules)
+	run.Config.RegistrySvc.ResolveModuleMetadata(modules, backendModules, frontendModules)
 
 	client, err := run.Config.DockerClient.Create()
 	if err != nil {

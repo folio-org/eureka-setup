@@ -54,7 +54,7 @@ func (run *Run) DeployManagement() error {
 	if err != nil {
 		return err
 	}
-	run.Config.RegistrySvc.ExtractModuleMetadata(modules)
+	run.Config.RegistrySvc.ResolveModuleMetadata(modules, backendModules, nil)
 
 	client, err := run.Config.DockerClient.Create()
 	if err != nil {

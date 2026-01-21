@@ -143,16 +143,16 @@ func (m *MockRegistrySvc) GetNamespace(version string) string {
 	return args.String(0)
 }
 
-func (m *MockRegistrySvc) ExtractModuleMetadata(modules *models.ProxyModulesByRegistry) {
-	m.Called(modules)
-}
-
 func (m *MockRegistrySvc) GetModules(installJsonURLs map[string]string, useRemote, verbose bool) (*models.ProxyModulesByRegistry, error) {
 	args := m.Called(installJsonURLs, useRemote, verbose)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*models.ProxyModulesByRegistry), args.Error(1)
+}
+
+func (m *MockRegistrySvc) ResolveModuleMetadata(modules *models.ProxyModulesByRegistry, backendModules map[string]models.BackendModule, frontendModules map[string]models.FrontendModule) {
+	m.Called(modules, backendModules, frontendModules)
 }
 
 func (m *MockRegistrySvc) GetAuthorizationToken() (string, error) {

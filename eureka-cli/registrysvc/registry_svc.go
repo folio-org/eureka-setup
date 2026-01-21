@@ -21,7 +21,7 @@ import (
 type RegistryProcessor interface {
 	GetNamespace(version string) string
 	GetModules(installJsonURLs map[string]string, useRemote, verbose bool) (*models.ProxyModulesByRegistry, error)
-	ExtractModuleMetadata(modules *models.ProxyModulesByRegistry)
+	ResolveModuleMetadata(modules *models.ProxyModulesByRegistry, backendModules map[string]models.BackendModule, frontendModules map[string]models.FrontendModule)
 	GetAuthorizationToken() (string, error)
 }
 
@@ -160,7 +160,14 @@ func (rs *RegistrySvc) readRemoteAndCreateLocalFile(r *models.RegistryRequest) (
 	return decodedResponse, nil
 }
 
-func (rs *RegistrySvc) ExtractModuleMetadata(modules *models.ProxyModulesByRegistry) {
+func (rs *RegistrySvc) ResolveModuleMetadata(modules *models.ProxyModulesByRegistry,
+	backendModules map[string]models.BackendModule,
+	frontendModules map[string]models.FrontendModule) {
+	rs.extractModuleMetadata(modules)
+	rs.resolveModuleVersions(modules, backendModules, frontendModules)
+}
+
+func (rs *RegistrySvc) extractModuleMetadata(modules *models.ProxyModulesByRegistry) {
 	allModules := [][]*models.ProxyModule{modules.FolioModules, modules.EurekaModules}
 	for _, moduleSet := range allModules {
 		for i, module := range moduleSet {
@@ -181,4 +188,46 @@ func (rs *RegistrySvc) getSidecarName(module *models.ProxyModule) string {
 	} else {
 		return helpers.GetSidecarName(module.Metadata.Name)
 	}
+}
+
+func (rs *RegistrySvc) resolveModuleVersions(modules *models.ProxyModulesByRegistry,
+	backendModules map[string]models.BackendModule,
+	frontendModules map[string]models.FrontendModule) {
+	if backendModules == nil && frontendModules == nil {
+		return
+	}
+	allModules := [][]*models.ProxyModule{modules.FolioModules, modules.EurekaModules}
+	for _, moduleSet := range allModules {
+		for _, module := range moduleSet {
+			moduleName := module.Metadata.Name
+			if moduleName == "" {
+				continue
+			}
+
+			// Check backend modules for version override
+			if backendModules != nil {
+				if backendModule, exists := backendModules[moduleName]; exists && backendModule.ModuleVersion != nil {
+					rs.applyVersionOverride(module, *backendModule.ModuleVersion)
+					continue
+				}
+			}
+
+			// Check frontend modules for version override
+			if frontendModules != nil {
+				if frontendModule, exists := frontendModules[moduleName]; exists && frontendModule.ModuleVersion != nil {
+					rs.applyVersionOverride(module, *frontendModule.ModuleVersion)
+				}
+			}
+		}
+	}
+}
+
+func (rs *RegistrySvc) applyVersionOverride(module *models.ProxyModule, newVersion string) {
+	oldVersion := "unknown"
+	if module.Metadata.Version != nil {
+		oldVersion = *module.Metadata.Version
+	}
+	slog.Info(rs.Action.Name, "text", "Applying version override", "module", module.Metadata.Name, "from", oldVersion, "to", newVersion)
+	module.ID = fmt.Sprintf("%s-%s", module.Metadata.Name, newVersion)
+	module.Metadata.Version = &newVersion
 }
