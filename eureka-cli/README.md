@@ -58,19 +58,19 @@
 
 ## Prerequisites
 
-Install dependencies
+Install dependencies:
 
 - [Go](https://go.dev/doc/install) compiler: last development-tested version is `go1.25.3 windows/amd64`
 - [Rancher Desktop](https://rancherdesktop.io/) container daemon: last development-tested version is `v1.20.1`
   - Enable **dockerd (Moby)** container engine
   - Disable **Check for updates automatically**
 
-On Windows, it is recommended to work exclusively in Windows Terminal running Git Bash
+On Windows, it is recommended to work exclusively in Windows Terminal running Git Bash:
 
 - [Windows Terminal](https://learn.microsoft.com/en-us/windows/terminal/install): Install for better shell experience when paired with Git Bash
 - [Git Bash](https://gitforwindows.org/): Add to Windows Terminal as new default profile & Unix-like shell environment that supports Bash commands
 
-Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc\hosts`)
+Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc\hosts`):
 
 - **Option 1 - Automated (recommended):**
   - **Linux/macOS:** `sudo ./misc/add-hosts.sh`
@@ -317,7 +317,7 @@ eureka-cli -p ecs-single undeployApplication
 
 ### Deploy the _ecs-migration_ application
 
-The _ecs-migration_ profile deploy a single consortium with one central and eight member tenants. This profile is primarily used to cross-check production workflows when there are issues reported with the migration to ECS. Because of the number of tenants involved, it is advised to run this profile with the maximum amount of resources to avoid frequent restarts on failure.
+The _ecs-migration_ profile deploys a single consortium with one central and eight member tenants. This profile is primarily used to cross-check production workflows when there are issues reported with the migration to ECS. Because of the number of tenants involved, it is advised to run this profile with the maximum amount of resources to avoid frequent restarts on failure.
 
 ```bash
 eureka-cli -p ecs-migration deployApplication -oq
@@ -332,11 +332,8 @@ eureka-cli -p ecs-migration undeployApplication
 ### Run IDP migration
 
 ```bash
-# Create IDP users
-./migrate_users.sh -a create --consortium-id {{consortium uuid}}
-
-# Remove IDP users
-./migrate_users.sh -a delete --consortium-id {{consortium uuid}}
+# Create/remove IDP users in Keycloak
+./migrate_users.sh -a {{create OR delete}} --consortium-id {{consortium uuid}}
 ```
 
 > The migration progress can be monitored from the `federated_identity` table in the Keycloak DB
@@ -401,13 +398,13 @@ eureka-cli -p {{profile}} undeployApplication
 
 ### Intercept a module
 
-The Intercept command allows rerouting traffic from a Kong service to a custom sidecar before reaching your local instance started in IntelliJ
+The Intercept command allows rerouting traffic from a Kong service to a custom sidecar before reaching your local instance started in IntelliJ.
 
 - Start your local module instance in IntelliJ with correct environment variables and JVM flags
 
 ![CLI Intercept Module](images/cli_intercept_module_1.png)
 
-- Enable interception to instance in Intellij by deploying a custom sidecar
+- Enable interception to instance in IntelliJ by deploying a custom sidecar
 
 ```bash
 # With custom module and sidecar URLs
@@ -444,11 +441,11 @@ eureka-cli interceptModule -n mod-orders -r --namespace foliolocal
 
 ![CLI Intercept Module](images/cli_intercept_module_5.png)
 
-To intercept multiple modules, make sure to use the right set of environment variables, JVM flags and instance ports for each target module
+To intercept multiple modules, make sure to use the right set of environment variables, JVM flags and instance ports for each target module.
 
 ### Create a port proxy
 
-Create a port proxy (Windows only), to route traffic to a specific deployed sidecar container. This command helps resolving some HTTP client issues in some modules when intercepted by the _interceptModule_ command.
+Create a port proxy (Windows only) to route traffic to a specific deployed sidecar container. This command can help resolve some HTTP client issues in some modules when intercepted by the _interceptModule_ command.
 
 - To create a proxy between your instance deployed in IntelliJ and some sidecar in the environment, pass the module name to which the sidecar is associated with (e.g. _mod-inventory-storage_), and the external port number of the HTTP server on the sidecar
 
@@ -486,7 +483,7 @@ eureka-cli -p combined-native upgradeModule -n mod-orders --moduleVersion 13.1.0
 
 ![CLI Upgrade Module](images/cli_upgrade_module_2.png)
 
-In both case the application patch version will be incremented up, as this does not have any functional reason for the CLI to rollback. Additionally, if the application is associated with multiple tenant entitlements, all of them will be upgraded to the latest version.
+In both cases, the application patch version will be incremented, as this does not have any functional reason for the CLI to roll back. Additionally, if the application is associated with multiple tenant entitlements, all of them will be upgraded to the latest version.
 
 - The upgrade command also has other flags that can be passed in order to skip a certain step in the process.
 
@@ -496,7 +493,7 @@ In both case the application patch version will be incremented up, as this does 
 
 The CLI includes several useful commands to enhance developer productivity. Here are the most important ones that can be used independently.
 
-- Lists deployed system containers
+- List deployed system containers
 
 ```bash
 eureka-cli listSystem
@@ -635,7 +632,7 @@ mvn clean install -Pnative -DskipTests \
   -Dquarkus.native.builder-image=quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-21
 ```
 
-> Builds a native binary using a container-based GraalVM with a Linux toolchain
+> This builds a native binary using a container-based GraalVM with a Linux toolchain
 
 - Build a custom local Docker image
 
@@ -749,7 +746,7 @@ eureka-cli deployUi -b -u
 
 ## Using Single Tenant UX
 
-Single tenant UX is by default enabled for both _ecs_, _ecs-single_ and _ecs-migration_ profiles. This functionality allows users in member tenant to automatically log-in in their respective tenant space from a single user login form, configured for the central tenant. Under the hood, the implementation behind Single Tenant UX uses shadow users created in the central tenant and the Keycloak realm to perform authentication using the correct member tenant identity provider.
+Single tenant UX is by default enabled for both _ecs_, _ecs-single_ and _ecs-migration_ profiles. This functionality allows users in member tenants to automatically log in to their respective tenant spaces from a single user login form configured for the central tenant. Under the hood, the implementation behind Single Tenant UX uses shadow users created in the central tenant and the Keycloak realm to perform authentication using the correct member tenant identity provider.
 
 - To disable this functionality from running automatically during the deployment, set `SINGLE_TENANT_UX` from `true` to `false` for both `mod-users-keycloak` and `mod-consortia-keycloak` backend modules
 
@@ -823,7 +820,7 @@ curl --request POST \
 
 ### General
 
-If there are multiple instances of a container daemon (e.g. **Rancher Desktop**, **Docker Desktop**, **Podman**) running on the host machine
+If there are multiple instances of a container daemon (e.g. **Rancher Desktop**, **Docker Desktop**, **Podman**) running on the host machine:
 
 - Verify that `DOCKER_HOST` is set to point to the correct daemon (otherwise `/var/run/docker.sock` will be used)
 
@@ -856,7 +853,7 @@ Module readiness checks are failing
 
 - Rerun the deployment again with more available RAM
 
-When trying to deploy with `eureka-cli deployApplication -bu` or building with `eureka-cli buildSystem -u` (retry if fails on `Error: worktree contains unstaged changes`)
+When trying to deploy with `eureka-cli deployApplication -bu` or building with `eureka-cli buildSystem -u` (retry if fails on `Error: worktree contains unstaged changes`):
 
 ```txt
 ERROR: unable to select packages:
@@ -864,7 +861,7 @@ ERROR: unable to select packages:
     breaks: world[bind-tools=9.18.39-r0]
 ```
 
-- Update your local CLI git repository and rebuild the binary, our Dockefiles in the `misc` folder no longer dependent on pinned and non-deterministic package versions of Alpine Linux
+- Update your local CLI git repository and rebuild the binary; our Dockerfiles in the `misc` folder are no longer dependent on pinned and non-deterministic package versions of Alpine Linux
 
 ---
 
