@@ -389,14 +389,16 @@ func TestGetModuleImage(t *testing.T) {
 
 	svc := New(action, nil, nil, mockRegistry, nil)
 
+	version := "1.5.0"
 	module := &models.ProxyModule{
 		Metadata: models.ProxyModuleMetadata{
-			Name: "mod-users",
+			Name:    "mod-users",
+			Version: &version,
 		},
 	}
 
 	// Act
-	image := svc.GetModuleImage(module, "1.5.0")
+	image := svc.GetModuleImage(module)
 
 	// Assert
 	assert.Equal(t, "ghcr.io/folio-org/mod-users:1.5.0", image)

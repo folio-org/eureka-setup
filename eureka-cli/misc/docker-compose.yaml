@@ -150,7 +150,7 @@ services:
     networks:
       - eureka-net
     healthcheck:
-      test: ["CMD", "/bin/bash", "-c", "kafka-topics.sh --bootstrap-server kafka.eureka:9092 --list"]
+      test: ["CMD", "/bin/bash", "-c", "kafka-broker-api-versions.sh --bootstrap-server kafka.eureka:9092 --version"]
       interval: 30s
       timeout: 10s
       retries: 10
