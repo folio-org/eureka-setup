@@ -37,7 +37,8 @@ func (ms *ModuleSvc) DeployCustomModule(client *client.Client, pair *ModulePair)
 	if pair.Namespace != "" && !helpers.IsFolioNamespace(pair.Namespace) {
 		imageName = ms.GetLocalModuleImage(pair.Namespace, pair.ModuleName, version)
 	} else {
-		imageName = ms.GetModuleImage(pair.Module, version)
+		pair.Module.Metadata.Version = &version
+		imageName = ms.GetModuleImage(pair.Module)
 	}
 	slog.Info(ms.Action.Name, "text", "Using module image", "image", imageName)
 

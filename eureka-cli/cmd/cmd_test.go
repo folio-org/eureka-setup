@@ -316,8 +316,8 @@ func (m *MockModuleSvc) GetSidecarImage(modules []*models.ProxyModule) (string, 
 	return args.String(0), args.Bool(1), args.Error(2)
 }
 
-func (m *MockModuleSvc) GetModuleImage(module *models.ProxyModule, moduleVersion string) string {
-	args := m.Called(module, moduleVersion)
+func (m *MockModuleSvc) GetModuleImage(module *models.ProxyModule) string {
+	args := m.Called(module)
 	return args.String(0)
 }
 

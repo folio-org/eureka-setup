@@ -122,6 +122,7 @@ backend-modules:
       KONG_WRITE_TIMEOUT: "941241418"
     resources:
       cpus: 2
+      memory: 900
   mgr-tenants:
     port: 9902
     use-vault: true

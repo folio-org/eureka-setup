@@ -30,7 +30,7 @@ type ModuleProvisioner interface {
 	GetBackendModule(containers *models.Containers, moduleName string) (*models.BackendModule, *models.ProxyModule)
 	GetModuleImageVersion(backendModule models.BackendModule, module *models.ProxyModule) string
 	GetSidecarImage(modules []*models.ProxyModule) (string, bool, error)
-	GetModuleImage(module *models.ProxyModule, moduleVersion string) string
+	GetModuleImage(module *models.ProxyModule) string
 	GetLocalModuleImage(namespace, moduleName, moduleVersion string) string
 	GetModuleEnv(container *models.Containers, module *models.ProxyModule, backendModule models.BackendModule) []string
 	GetSidecarEnv(containers *models.Containers, module *models.ProxyModule, backendModule models.BackendModule, moduleURL, sidecarURL string) []string
@@ -128,7 +128,8 @@ func (ms *ModuleSvc) findRegistrySidecarImageVersion(modules []*models.ProxyModu
 	return "", false
 }
 
-func (ms *ModuleSvc) GetModuleImage(module *models.ProxyModule, moduleVersion string) string {
+func (ms *ModuleSvc) GetModuleImage(module *models.ProxyModule) string {
+	moduleVersion := *module.Metadata.Version
 	return fmt.Sprintf("%s/%s:%s", ms.RegistrySvc.GetNamespace(moduleVersion), module.Metadata.Name, moduleVersion)
 }
 
