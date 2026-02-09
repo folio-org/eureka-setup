@@ -257,8 +257,8 @@ frontend-modules:
   folio_plugin-find-authority:
 custom-frontend-modules:
   folio_authorization-roles:
-    version: 2.1.1099000000000223
+    version: 2.1.1099000000000245
   folio_authorization-policies:
-    version: 2.0.1099000000000111
+    version: 2.0.1099000000000130
   folio_plugin-select-application:
-    version: 2.0.1099000000000124
+    version: 2.0.1099000000000130
