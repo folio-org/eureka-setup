@@ -34,12 +34,6 @@ services:
       - eureka-net
     ports:
       - "8888:8080"
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/healthcheck"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 10s
 
   ### Netcat (required by checkPorts command) ###
   netcat:
