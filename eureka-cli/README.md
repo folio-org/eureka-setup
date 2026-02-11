@@ -84,6 +84,7 @@ Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc
 
 ## Monitor system components
 
+- [Dozzle](http://localhost:8888) UI: No auth
 - [Keycloak](http://keycloak.eureka:8080) Admin Console: admin/admin
 - [Vault](http://localhost:8200) UI (Userpass method): admin/admin
 - [Kafka](http://localhost:9080) UI: No auth
