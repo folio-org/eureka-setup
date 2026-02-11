@@ -20,6 +20,21 @@ volumes:
     name: eureka_ftp_data
 
 services:
+  ### Dozzle (required) ###
+  dozzle:
+    container_name: dozzle
+    image: amir20/dozzle:${DOZZLE_VERSION}
+    restart: unless-stopped
+    cpus: "0.5"
+    mem_limit: 64m
+    memswap_limit: -1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - eureka-net
+    ports:
+      - "8888:8080"
+
   ### Netcat (required by checkPorts command) ###
   netcat:
     container_name: netcat

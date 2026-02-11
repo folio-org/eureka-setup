@@ -161,6 +161,7 @@ const (
 	ProtocolPattern       = `^[a-zA-Z]+://`
 
 	// System containers name
+	DozzleContainer        = "dozzle"
 	PostgreSQLContainer    = "postgres"
 	KafkaContainer         = "kafka"
 	KafkaToolsContainer    = "kafka-tools"
@@ -270,6 +271,7 @@ func GetNamespaces() []string {
 
 func GetInitialRequiredContainers() []string {
 	return []string{
+		DozzleContainer,
 		PostgreSQLContainer,
 		KafkaContainer,
 		KafkaToolsContainer,

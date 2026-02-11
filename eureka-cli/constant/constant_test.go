@@ -102,7 +102,8 @@ func TestGetInitialRequiredContainers(t *testing.T) {
 	containers := GetInitialRequiredContainers()
 
 	// Assert
-	assert.Len(t, containers, 7)
+	assert.Len(t, containers, 8)
+	assert.Contains(t, containers, DozzleContainer)
 	assert.Contains(t, containers, PostgreSQLContainer)
 	assert.Contains(t, containers, KafkaContainer)
 	assert.Contains(t, containers, KafkaToolsContainer)
@@ -117,13 +118,14 @@ func TestGetInitialRequiredContainers_OrderPreserved(t *testing.T) {
 	containers := GetInitialRequiredContainers()
 
 	// Assert - Verify order is preserved
-	assert.Equal(t, PostgreSQLContainer, containers[0])
-	assert.Equal(t, KafkaContainer, containers[1])
-	assert.Equal(t, KafkaToolsContainer, containers[2])
-	assert.Equal(t, VaultContainer, containers[3])
-	assert.Equal(t, KeycloakProxyContainer, containers[4])
-	assert.Equal(t, KeycloakContainer, containers[5])
-	assert.Equal(t, KongContainer, containers[6])
+	assert.Equal(t, DozzleContainer, containers[0])
+	assert.Equal(t, PostgreSQLContainer, containers[1])
+	assert.Equal(t, KafkaContainer, containers[2])
+	assert.Equal(t, KafkaToolsContainer, containers[3])
+	assert.Equal(t, VaultContainer, containers[4])
+	assert.Equal(t, KeycloakProxyContainer, containers[5])
+	assert.Equal(t, KeycloakContainer, containers[6])
+	assert.Equal(t, KongContainer, containers[7])
 }
 
 // ==================== GetProfiles Tests ====================

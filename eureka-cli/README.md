@@ -40,6 +40,7 @@
   - [Using the UI](#using-the-ui)
   - [Using Single Tenant UX](#using-single-tenant-ux)
   - [Using the environment](#using-the-environment)
+  - [Add missing Vault secrets](#add-missing-vault-secrets)
   - [Troubleshooting](#troubleshooting)
     - [General](#general)
     - [Command-based](#command-based)
@@ -84,6 +85,7 @@ Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc
 
 ## Monitor system components
 
+- [Dozzle](http://localhost:8888) UI: No auth
 - [Keycloak](http://keycloak.eureka:8080) Admin Console: admin/admin
 - [Vault](http://localhost:8200) UI (Userpass method): admin/admin
 - [Kafka](http://localhost:9080) UI: No auth
@@ -815,6 +817,18 @@ curl --request POST \
 ```
 
 - Using an _ecs_ profile that creates _ecs\_admin_ and _ecs\_admin2_ users in different consortiums
+
+## Add missing Vault secrets
+
+The environment may fail to add Vault secrets during tenant entitlement. If a secret is missing, you can add it post-deployment with the `add_missing_secret.sh` script.
+
+- Add the missing `mod-users` secret
+
+```bash
+./add_missing_secret.sh -t diku -u mod-users
+```
+
+> This script upserts the secret to Vault and resets the associated Keycloak user password in the specified realm (it is idempotent)
 
 ## Troubleshooting
 
