@@ -70,14 +70,14 @@ run_task() {
   local OUTPUT=$2
   
   if [ "$ACTION" = "create" ]; then
-    echo "Creating users for $TENANT member tenant"
+    echo -e "\nCreating users for $TENANT member tenant"
     curl -X POST -sf "$GATEWAY/consortia/$CONSORTIUM_ID/tenants/$TENANT/identity-provider" -o "$OUTPUT" \
       -H "x-okapi-tenant: $CENTRAL_TENANT" \
       -H "x-okapi-token: $TOKEN" \
       -H "Content-Type: application/json" \
       -d '{"createProvider": "true","migrateUsers": "true"}' || { echo "Task for $TENANT failed"; kill 0; }
   else
-    echo "Deleting users for $TENANT member tenant"
+    echo -e "\nDeleting users for $TENANT member tenant"
     curl -X DELETE -sf "$GATEWAY/consortia/$CONSORTIUM_ID/tenants/$TENANT/identity-provider" -o "$OUTPUT" \
       -H "x-okapi-tenant: $CENTRAL_TENANT" \
       -H "x-okapi-token: $TOKEN" \
@@ -85,10 +85,10 @@ run_task() {
   fi
 }
 
-echo "Preparing to run tasks"
+echo -e "\nPreparing to run tasks"
 for i in {1..8}; do
   run_task "university${i}" "tmp/university${i}_${ACTION}_users.json" &
 done
 
 wait
-echo "All tasks finished successfully"
+echo -e "\nAll tasks finished successfully"
