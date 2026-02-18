@@ -818,6 +818,32 @@ curl --request POST \
 
 - Using an _ecs_ profile that creates _ecs\_admin_ and _ecs\_admin2_ users in different consortiums
 
+## Using template environment variables
+
+The `template-environment` config key works like `environment` but supports per-module placeholder resolution. Values containing `{{.ModuleName}}` are resolved to the module's name at deploy time.
+
+**Supported placeholder:** `{{.ModuleName}}` — replaced with the module name (e.g. `mod-orders`)
+
+```yaml
+template-environment:
+  OTEL_SERVICE_NAME: "{{.ModuleName}}"
+```
+
+- Per-module `environment` entries in `backend-modules` can override template values (they appear later in the env slice)
+- If `template-environment` is omitted from a profile, no template env vars are injected
+
+## Using extra volumes
+
+The `extra-volumes` config key accepts a list of volume mounts applied to all backend modules.
+
+```yaml
+extra-volumes:
+  - /host/path:/container/path
+```
+
+- Extra volumes are prepended to any per-module `volumes` entries
+- If `extra-volumes` is omitted, no additional volumes are mounted
+
 ## Add missing Vault secrets
 
 The environment may fail to add Vault secrets during tenant entitlement. If a secret is missing, you can add it post-deployment with the `add_missing_secret.sh` script.

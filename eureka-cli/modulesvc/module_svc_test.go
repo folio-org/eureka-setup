@@ -407,6 +407,13 @@ func TestGetModuleImage(t *testing.T) {
 
 func TestGetModuleEnv_AllFeatures(t *testing.T) {
 	// Arrange
+	vc := testhelpers.SetupViperForTest(map[string]any{
+		field.TemplateEnv: map[string]any{
+			"OTEL_SERVICE_NAME": "{{.ModuleName}}",
+		},
+	})
+	defer vc.Reset()
+
 	action := testhelpers.NewMockAction()
 	mockModuleEnv := new(testhelpers.MockModuleEnv)
 
@@ -447,7 +454,7 @@ func TestGetModuleEnv_OnlyGlobalEnv(t *testing.T) {
 	action := testhelpers.NewMockAction()
 	mockModuleEnv := new(testhelpers.MockModuleEnv)
 
-	mockModuleEnv.On("ModuleEnv", []string(nil), map[string]any(nil)).Return([]string{"GLOBAL_VAR=global"})
+	mockModuleEnv.On("ModuleEnv", mock.Anything, map[string]any(nil)).Return([]string{"GLOBAL_VAR=global"})
 
 	svc := New(action, nil, nil, nil, mockModuleEnv)
 
@@ -471,6 +478,88 @@ func TestGetModuleEnv_OnlyGlobalEnv(t *testing.T) {
 
 	// Assert
 	assert.NotEmpty(t, env)
+	mockModuleEnv.AssertExpectations(t)
+}
+
+func TestGetModuleEnv_TemplateEnvIncluded(t *testing.T) {
+	// Arrange
+	vc := testhelpers.SetupViperForTest(map[string]any{
+		field.TemplateEnv: map[string]any{
+			"OTEL_SERVICE_NAME": "{{.ModuleName}}",
+			"SERVICE_ID":        "{{.ModuleName}}-service",
+		},
+	})
+	defer vc.Reset()
+
+	action := testhelpers.NewMockAction()
+	mockModuleEnv := new(testhelpers.MockModuleEnv)
+
+	// Use Run to capture the env slice passed to ModuleEnv (which includes template env vars)
+	var capturedEnv []string
+	mockModuleEnv.On("ModuleEnv", mock.Anything, map[string]any(nil)).
+		Run(func(args mock.Arguments) {
+			capturedEnv = args.Get(0).([]string)
+		}).
+		Return([]string{})
+
+	svc := New(action, nil, nil, nil, mockModuleEnv)
+
+	container := &models.Containers{}
+	module := &models.ProxyModule{
+		Metadata: models.ProxyModuleMetadata{
+			Name: "mod-orders",
+		},
+	}
+	backendModule := models.BackendModule{ModuleEnv: nil}
+
+	// Act
+	svc.GetModuleEnv(container, module, backendModule)
+
+	// Assert - template env vars were passed to ModuleEnv
+	assert.Contains(t, capturedEnv, "OTEL_SERVICE_NAME=mod-orders")
+	assert.Contains(t, capturedEnv, "SERVICE_ID=mod-orders-service")
+	mockModuleEnv.AssertExpectations(t)
+}
+
+func TestGetModuleEnv_ModuleLevelEnvOverridesTemplate(t *testing.T) {
+	// Arrange
+	vc := testhelpers.SetupViperForTest(map[string]any{
+		field.TemplateEnv: map[string]any{
+			"OTEL_SERVICE_NAME": "{{.ModuleName}}",
+		},
+	})
+	defer vc.Reset()
+
+	action := testhelpers.NewMockAction()
+	mockModuleEnv := new(testhelpers.MockModuleEnv)
+
+	// Capture env passed to ModuleEnv to verify template vars are present before module env
+	var capturedEnv []string
+	mockModuleEnv.On("ModuleEnv", mock.Anything, map[string]any{"OTEL_SERVICE_NAME": "custom-name"}).
+		Run(func(args mock.Arguments) {
+			capturedEnv = args.Get(0).([]string)
+		}).
+		Return([]string{"OTEL_SERVICE_NAME=custom-name"})
+
+	svc := New(action, nil, nil, nil, mockModuleEnv)
+
+	container := &models.Containers{}
+	module := &models.ProxyModule{
+		Metadata: models.ProxyModuleMetadata{
+			Name: "mod-orders",
+		},
+	}
+	backendModule := models.BackendModule{
+		ModuleEnv: map[string]any{"OTEL_SERVICE_NAME": "custom-name"},
+	}
+
+	// Act
+	env := svc.GetModuleEnv(container, module, backendModule)
+
+	// Assert - template env was in the slice before ModuleEnv was called
+	assert.Contains(t, capturedEnv, "OTEL_SERVICE_NAME=mod-orders")
+	// Assert - per-module env is in the final result (from ModuleEnv mock return)
+	assert.Contains(t, env, "OTEL_SERVICE_NAME=custom-name")
 	mockModuleEnv.AssertExpectations(t)
 }
 
