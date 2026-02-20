@@ -207,11 +207,14 @@ backend-modules:
       cpus: 4
       memory: 900
   mod-login-keycloak:
+    # Versions <3.1.0-SNAPSHOT.156 are unusable, do not use until addressed 
+    version: 3.1.0-SNAPSHOT.156
     use-vault: true
     port: 9905
     environment:
       X_OKAPI_TOKEN_HEADER_ENABLED: "false"
       LOGIN_COOKIE_SAMESITE: "NONE"
+      KC_ADMIN_TOKEN_TTL: 895s
       KAFKA_PRODUCER_TENANT_COLLECTION: "true"
   mod-roles-keycloak:
     use-vault: true
@@ -249,6 +252,7 @@ backend-modules:
   mod-permissions:
   mod-configuration:
   mod-users:
+    disable-system-user: true
   mod-roles:
   mod-password-validator:
   mod-settings:
@@ -257,12 +261,15 @@ backend-modules:
   mod-inventory-storage:
   mod-inventory:
     private-port: 9403
+    disable-system-user: true
   mod-organizations-storage:
   mod-organizations:
   mod-invoice-storage:
   mod-invoice:
+    disable-system-user: true
   mod-orders-storage:
   mod-orders:
+    disable-system-user: true
   mod-finance:
   mod-finance-storage:
     use-vault: true

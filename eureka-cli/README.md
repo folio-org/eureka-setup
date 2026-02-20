@@ -851,7 +851,11 @@ The environment may fail to add Vault secrets during tenant entitlement. If a se
 - Add the missing `mod-users` secret
 
 ```bash
-./add_missing_secret.sh -t diku -u mod-users
+# Single user
+./add_missing_secret.sh -t diku -u admin
+
+# Multiple users (space-delimited)
+./add_missing_secret.sh -t diku -u "mod-users mod-roles-keycloak mod-inventory"
 ```
 
 > This script upserts the secret to Vault and resets the associated Keycloak user password in the specified realm (it is idempotent)
