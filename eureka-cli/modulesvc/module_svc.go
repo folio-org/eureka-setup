@@ -148,6 +148,7 @@ func (ms *ModuleSvc) GetModuleEnv(container *models.Containers, module *models.P
 	if backendModule.DisableSystemUser {
 		env = ms.ModuleEnv.DisabledSystemUserEnv(env, module.Metadata.Name)
 	}
+	env = append(env, ms.Action.GetTemplateEnvVars(field.TemplateEnv, module.Metadata.Name)...)
 	env = ms.ModuleEnv.ModuleEnv(env, backendModule.ModuleEnv)
 
 	return env

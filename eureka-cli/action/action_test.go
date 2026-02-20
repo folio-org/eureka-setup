@@ -856,6 +856,81 @@ func TestIsChildApp(t *testing.T) {
 	}
 }
 
+// ==================== GetTemplateEnvVars Tests ====================
+
+func TestGetTemplateEnvVars(t *testing.T) {
+	t.Run("TestGetTemplateEnvVars_ReplacesModuleNamePlaceholder", func(t *testing.T) {
+		// Arrange
+		vc := testhelpers.SetupViperForTest(map[string]any{
+			"template-environment": map[string]any{
+				"OTEL_SERVICE_NAME": "{{.ModuleName}}",
+			},
+		})
+		defer vc.Reset()
+
+		act := &action.Action{Name: "test-action"}
+
+		// Act
+		result := act.GetTemplateEnvVars("template-environment", "mod-orders")
+
+		// Assert
+		assert.Len(t, result, 1)
+		assert.Contains(t, result, "OTEL_SERVICE_NAME=mod-orders")
+	})
+
+	t.Run("TestGetTemplateEnvVars_StaticValuesPassThrough", func(t *testing.T) {
+		// Arrange
+		vc := testhelpers.SetupViperForTest(map[string]any{
+			"template-environment": map[string]any{
+				"STATIC_VAR": "static-value",
+			},
+		})
+		defer vc.Reset()
+
+		act := &action.Action{Name: "test-action"}
+
+		// Act
+		result := act.GetTemplateEnvVars("template-environment", "mod-orders")
+
+		// Assert
+		assert.Len(t, result, 1)
+		assert.Contains(t, result, "STATIC_VAR=static-value")
+	})
+
+	t.Run("TestGetTemplateEnvVars_MultipleOccurrencesReplaced", func(t *testing.T) {
+		// Arrange
+		vc := testhelpers.SetupViperForTest(map[string]any{
+			"template-environment": map[string]any{
+				"COMBINED": "{{.ModuleName}}-{{.ModuleName}}",
+			},
+		})
+		defer vc.Reset()
+
+		act := &action.Action{Name: "test-action"}
+
+		// Act
+		result := act.GetTemplateEnvVars("template-environment", "mod-test")
+
+		// Assert
+		assert.Len(t, result, 1)
+		assert.Contains(t, result, "COMBINED=mod-test-mod-test")
+	})
+
+	t.Run("TestGetTemplateEnvVars_MissingKeyReturnsEmpty", func(t *testing.T) {
+		// Arrange
+		viper.Reset()
+		defer viper.Reset()
+
+		act := &action.Action{Name: "test-action"}
+
+		// Act
+		result := act.GetTemplateEnvVars("template-environment", "mod-test")
+
+		// Assert
+		assert.Empty(t, result)
+	})
+}
+
 // ==================== Param Tests ====================
 
 func TestFlag_GetName(t *testing.T) {

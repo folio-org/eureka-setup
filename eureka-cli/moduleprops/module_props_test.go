@@ -560,6 +560,63 @@ func TestReadBackendModules_Volumes(t *testing.T) {
 		module := result["mod-inventory"]
 		assert.Empty(t, module.ModuleVolumes)
 	})
+
+	t.Run("TestReadBackendModules_Volumes_ExtraVolumesPrepended", func(t *testing.T) {
+		// Arrange
+		extraDir := t.TempDir()
+		moduleDir := t.TempDir()
+
+		act := &action.Action{
+			Name:                       "test-action",
+			Param:                      &action.Param{},
+			ReservedPorts:              []int{},
+			ConfigApplicationPortStart: 8000,
+			ConfigApplicationPortEnd:   9000,
+			ConfigExtraVolumes:         []string{extraDir},
+			ConfigBackendModules: map[string]any{
+				"mod-inventory": map[string]any{
+					field.ModuleVolumesEntry: []any{moduleDir},
+				},
+			},
+		}
+		mp := moduleprops.New(act)
+
+		// Act
+		result, err := mp.ReadBackendModules(false, false)
+
+		// Assert
+		assert.NoError(t, err)
+		require.Len(t, result, 1)
+		module := result["mod-inventory"]
+		require.Len(t, module.ModuleVolumes, 2)
+		assert.Equal(t, extraDir, module.ModuleVolumes[0])
+		assert.Equal(t, moduleDir, module.ModuleVolumes[1])
+	})
+
+	t.Run("TestReadBackendModules_Volumes_InvalidExtraVolumeReturnsError", func(t *testing.T) {
+		// Arrange
+		missingDir := filepath.Join(t.TempDir(), "missing")
+
+		act := &action.Action{
+			Name:                       "test-action",
+			Param:                      &action.Param{},
+			ReservedPorts:              []int{},
+			ConfigApplicationPortStart: 8000,
+			ConfigApplicationPortEnd:   9000,
+			ConfigExtraVolumes:         []string{missingDir},
+			ConfigBackendModules: map[string]any{
+				"mod-inventory": nil,
+			},
+		}
+		mp := moduleprops.New(act)
+
+		// Act
+		result, err := mp.ReadBackendModules(false, false)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+	})
 }
 
 func TestReadBackendModules_EdgeModules(t *testing.T) {

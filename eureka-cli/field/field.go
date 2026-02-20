@@ -73,4 +73,6 @@ const (
 	ModuleResourceMemoryEntry            = "memory"
 	ModuleResourceMemorySwapEntry        = "memory-swap"
 	ModuleResourceOomKillDisableEntry    = "oom-kill-disable"
+	ExtraVolumes                         = "extra-volumes"
+	TemplateEnv                          = "template-environment"
 )

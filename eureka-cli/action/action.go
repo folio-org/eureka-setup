@@ -58,6 +58,7 @@ type Action struct {
 	ConfigUsers                        map[string]any
 	ConfigRolesCapabilitySets          map[string]any
 	ConfigConsortiums                  map[string]any
+	ConfigExtraVolumes                 []string
 }
 
 func New(name string, gatewayURL string, actionParam *Param) *Action {
@@ -99,6 +100,7 @@ func New(name string, gatewayURL string, actionParam *Param) *Action {
 		ConfigUsers:                        viper.GetStringMap(field.Users),
 		ConfigRolesCapabilitySets:          viper.GetStringMap(field.RolesCapabilitySetsEntry),
 		ConfigConsortiums:                  viper.GetStringMap(field.Consortiums),
+		ConfigExtraVolumes:                 viper.GetStringSlice(field.ExtraVolumes),
 	}
 }
 
@@ -129,6 +131,16 @@ func (a *Action) GetConfigEnvVars(key string) []string {
 	var envVars []string
 	for key, value := range viper.GetStringMapString(key) {
 		envVars = append(envVars, fmt.Sprintf("%s=%s", strings.ToUpper(key), value))
+	}
+
+	return envVars
+}
+
+func (a *Action) GetTemplateEnvVars(key string, moduleName string) []string {
+	var envVars []string
+	for k, v := range viper.GetStringMapString(key) {
+		resolved := strings.ReplaceAll(v, "{{.ModuleName}}", moduleName)
+		envVars = append(envVars, fmt.Sprintf("%s=%s", strings.ToUpper(k), resolved))
 	}
 
 	return envVars

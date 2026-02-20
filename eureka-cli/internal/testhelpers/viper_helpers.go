@@ -7,30 +7,37 @@ import (
 // ViperTestConfig helps manage viper configuration during tests
 type ViperTestConfig struct {
 	originalValues map[string]any
+	keyExisted     map[string]bool
 }
 
 // NewViperTestConfig creates a new viper test configuration manager
 func NewViperTestConfig() *ViperTestConfig {
 	return &ViperTestConfig{
 		originalValues: make(map[string]any),
+		keyExisted:     make(map[string]bool),
 	}
 }
 
 // Set sets a configuration value and stores the original value
 func (v *ViperTestConfig) Set(key string, value any) {
-	if viper.IsSet(key) {
-		v.originalValues[key] = viper.Get(key)
+	if _, tracked := v.keyExisted[key]; !tracked {
+		v.keyExisted[key] = viper.IsSet(key)
+		if v.keyExisted[key] {
+			v.originalValues[key] = viper.Get(key)
+		}
 	}
 	viper.Set(key, value)
 }
 
 // Reset restores all original values
 func (v *ViperTestConfig) Reset() {
-	// Reset all keys that were set
-	for key := range v.originalValues {
-		if originalValue, exists := v.originalValues[key]; exists {
-			viper.Set(key, originalValue)
+	for key, existed := range v.keyExisted {
+		if existed {
+			viper.Set(key, v.originalValues[key])
+			continue
 		}
+
+		viper.Set(key, nil)
 	}
 }
 
