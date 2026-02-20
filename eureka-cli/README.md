@@ -40,6 +40,8 @@
   - [Using the UI](#using-the-ui)
   - [Using Single Tenant UX](#using-single-tenant-ux)
   - [Using the environment](#using-the-environment)
+  - [Using template environment variables](#using-template-environment-variables)
+  - [Using extra volumes](#using-extra-volumes)
   - [Add missing Vault secrets](#add-missing-vault-secrets)
   - [Troubleshooting](#troubleshooting)
     - [General](#general)
