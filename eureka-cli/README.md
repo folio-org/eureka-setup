@@ -857,6 +857,7 @@ OpenTelemetry LGTM is a docker image that combines OpenTelemetry Collector with 
 
 ```bash
 mkdir -p $HOME/eureka
+rm -rf $HOME/eureka/opentelemetry-javaagent.jar
 curl -L -o $HOME/eureka/opentelemetry-javaagent.jar https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.25.0/opentelemetry-javaagent.jar
 ```
 
