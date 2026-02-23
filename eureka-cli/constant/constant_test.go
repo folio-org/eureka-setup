@@ -135,9 +135,10 @@ func TestGetProfiles(t *testing.T) {
 	profiles := GetProfiles()
 
 	// Assert
-	assert.Len(t, profiles, 9)
+	assert.Len(t, profiles, 10)
 	assert.Contains(t, profiles, CombinedProfile)
 	assert.Contains(t, profiles, CombinedNativeProfile)
+	assert.Contains(t, profiles, CombinedNativeOtelProfile)
 	assert.Contains(t, profiles, ExportProfile)
 	assert.Contains(t, profiles, SearchProfile)
 	assert.Contains(t, profiles, EdgeProfile)
@@ -154,13 +155,14 @@ func TestGetProfiles_OrderPreserved(t *testing.T) {
 	// Assert
 	assert.Equal(t, CombinedProfile, profiles[0])
 	assert.Equal(t, CombinedNativeProfile, profiles[1])
-	assert.Equal(t, ExportProfile, profiles[2])
-	assert.Equal(t, SearchProfile, profiles[3])
-	assert.Equal(t, EdgeProfile, profiles[4])
-	assert.Equal(t, ECSProfile, profiles[5])
-	assert.Equal(t, ECSSingleProfile, profiles[6])
-	assert.Equal(t, ECSMigrationProfile, profiles[7])
-	assert.Equal(t, ImportProfile, profiles[8])
+	assert.Equal(t, CombinedNativeOtelProfile, profiles[2])
+	assert.Equal(t, ExportProfile, profiles[3])
+	assert.Equal(t, SearchProfile, profiles[4])
+	assert.Equal(t, EdgeProfile, profiles[5])
+	assert.Equal(t, ECSProfile, profiles[6])
+	assert.Equal(t, ECSSingleProfile, profiles[7])
+	assert.Equal(t, ECSMigrationProfile, profiles[8])
+	assert.Equal(t, ImportProfile, profiles[9])
 }
 
 // ==================== GetDefaultProfile Tests ====================
@@ -219,6 +221,7 @@ func TestProfileConstants(t *testing.T) {
 	// Assert
 	assert.Equal(t, "combined", CombinedProfile)
 	assert.Equal(t, "combined-native", CombinedNativeProfile)
+	assert.Equal(t, "combined-native-otel", CombinedNativeOtelProfile)
 	assert.Equal(t, "export", ExportProfile)
 	assert.Equal(t, "search", SearchProfile)
 	assert.Equal(t, "edge", EdgeProfile)

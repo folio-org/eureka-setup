@@ -270,6 +270,13 @@ func (mp *ModuleProps) getVolumes(entry map[string]any) ([]string, error) {
 			}
 			volume = strings.ReplaceAll(volume, "$EUREKA", homeConfigDir)
 		}
+		if strings.Contains(volume, "$HOME") {
+			userHome, err := os.UserHomeDir()
+			if err != nil {
+				return nil, err
+			}
+			volume = strings.ReplaceAll(volume, "$HOME", userHome)
+		}
 		if _, err := os.Stat(volume); os.IsNotExist(err) {
 			if err != nil {
 				return nil, err

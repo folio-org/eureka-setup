@@ -285,21 +285,23 @@ func GetInitialRequiredContainers() []string {
 // ==================== Profiles ====================
 
 const (
-	CombinedProfile       = "combined"
-	CombinedNativeProfile = "combined-native"
-	ExportProfile         = "export"
-	SearchProfile         = "search"
-	EdgeProfile           = "edge"
-	ECSProfile            = "ecs"
-	ECSSingleProfile      = "ecs-single"
-	ECSMigrationProfile   = "ecs-migration"
-	ImportProfile         = "import"
+	CombinedProfile           = "combined"
+	CombinedNativeProfile     = "combined-native"
+	CombinedNativeOtelProfile = "combined-native-otel"
+	ExportProfile             = "export"
+	SearchProfile             = "search"
+	EdgeProfile               = "edge"
+	ECSProfile                = "ecs"
+	ECSSingleProfile          = "ecs-single"
+	ECSMigrationProfile       = "ecs-migration"
+	ImportProfile             = "import"
 )
 
 func GetProfiles() []string {
 	return []string{
 		CombinedProfile,
 		CombinedNativeProfile,
+		CombinedNativeOtelProfile,
 		ExportProfile,
 		SearchProfile,
 		EdgeProfile,
