@@ -1,0 +1,24 @@
+networks:
+  eureka:
+    external: true
+
+services:
+  ### OpenTelemetry LGTM stack (optional) ###
+  otel-lgtm:
+    container_name: otel-lgtm
+    image: grafana/otel-lgtm:${OTEL_LGTM_VERSION}
+    restart: unless-stopped
+    cpus: 2
+    mem_limit: 2g
+    memswap_limit: -1
+    networks:
+      - eureka
+    ports:
+      - "4000:3000"  # Grafana (remapped; 3000/3001 taken by platform-complete UI containers)
+      - "4317:4317"  # OTLP gRPC receiver
+      - "4318:4318"  # OTLP HTTP receiver
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

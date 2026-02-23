@@ -82,11 +82,38 @@ func (mp *ModuleProps) createBackendProperties(name string, value any) (models.B
 }
 
 func (mp *ModuleProps) createBackendModule(properties models.BackendModuleProperties) (*models.BackendModule, error) {
+	mergedVolumes, err := mp.mergeExtraVolumes(properties.Volumes)
+	if err != nil {
+		return nil, err
+	}
+	properties.Volumes = mergedVolumes
+
 	if properties.DeploySidecar != nil && *properties.DeploySidecar {
 		return models.NewBackendModuleWithSidecar(mp.Action, properties)
 	}
 
 	return models.NewBackendModule(mp.Action, properties)
+}
+
+func (mp *ModuleProps) mergeExtraVolumes(moduleVolumes []string) ([]string, error) {
+	if len(mp.Action.ConfigExtraVolumes) == 0 {
+		return moduleVolumes, nil
+	}
+
+	extraVolumesRaw := make([]any, 0, len(mp.Action.ConfigExtraVolumes))
+	for _, volume := range mp.Action.ConfigExtraVolumes {
+		extraVolumesRaw = append(extraVolumesRaw, volume)
+	}
+
+	extraVolumes, err := mp.getVolumes(map[string]any{field.ModuleVolumesEntry: extraVolumesRaw})
+	if err != nil {
+		return nil, err
+	}
+	merged := make([]string, 0, len(extraVolumes)+len(moduleVolumes))
+	merged = append(merged, extraVolumes...)
+	merged = append(merged, moduleVolumes...)
+
+	return merged, nil
 }
 
 func (mp *ModuleProps) createDefaultBackendProperties(name string) (p models.BackendModuleProperties, err error) {
@@ -242,6 +269,13 @@ func (mp *ModuleProps) getVolumes(entry map[string]any) ([]string, error) {
 				return nil, err
 			}
 			volume = strings.ReplaceAll(volume, "$EUREKA", homeConfigDir)
+		}
+		if strings.Contains(volume, "$HOME") {
+			userHome, err := os.UserHomeDir()
+			if err != nil {
+				return nil, err
+			}
+			volume = strings.ReplaceAll(volume, "$HOME", userHome)
 		}
 		if _, err := os.Stat(volume); os.IsNotExist(err) {
 			if err != nil {

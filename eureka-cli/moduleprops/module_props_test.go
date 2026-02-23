@@ -560,6 +560,154 @@ func TestReadBackendModules_Volumes(t *testing.T) {
 		module := result["mod-inventory"]
 		assert.Empty(t, module.ModuleVolumes)
 	})
+
+	t.Run("TestReadBackendModules_Volumes_ExtraVolumesPrepended", func(t *testing.T) {
+		// Arrange
+		extraDir := t.TempDir()
+		moduleDir := t.TempDir()
+
+		act := &action.Action{
+			Name:                       "test-action",
+			Param:                      &action.Param{},
+			ReservedPorts:              []int{},
+			ConfigApplicationPortStart: 8000,
+			ConfigApplicationPortEnd:   9000,
+			ConfigExtraVolumes:         []string{extraDir},
+			ConfigBackendModules: map[string]any{
+				"mod-inventory": map[string]any{
+					field.ModuleVolumesEntry: []any{moduleDir},
+				},
+			},
+		}
+		mp := moduleprops.New(act)
+
+		// Act
+		result, err := mp.ReadBackendModules(false, false)
+
+		// Assert
+		assert.NoError(t, err)
+		require.Len(t, result, 1)
+		module := result["mod-inventory"]
+		require.Len(t, module.ModuleVolumes, 2)
+		assert.Equal(t, extraDir, module.ModuleVolumes[0])
+		assert.Equal(t, moduleDir, module.ModuleVolumes[1])
+	})
+
+	t.Run("TestReadBackendModules_Volumes_InvalidExtraVolumeReturnsError", func(t *testing.T) {
+		// Arrange
+		missingDir := filepath.Join(t.TempDir(), "missing")
+
+		act := &action.Action{
+			Name:                       "test-action",
+			Param:                      &action.Param{},
+			ReservedPorts:              []int{},
+			ConfigApplicationPortStart: 8000,
+			ConfigApplicationPortEnd:   9000,
+			ConfigExtraVolumes:         []string{missingDir},
+			ConfigBackendModules: map[string]any{
+				"mod-inventory": nil,
+			},
+		}
+		mp := moduleprops.New(act)
+
+		// Act
+		result, err := mp.ReadBackendModules(false, false)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+	})
+
+	t.Run("TestReadBackendModules_Volumes_VolumeWithHomeVariable", func(t *testing.T) {
+		// Arrange
+		userHome, err := os.UserHomeDir()
+		require.NoError(t, err)
+
+		// Create test directory in user home
+		testPath := filepath.Join(userHome, "eureka-home-test-vol")
+		err = os.MkdirAll(testPath, 0750)
+		if err != nil {
+			t.Skip("Cannot create test directory in user home")
+		}
+		defer func() { _ = os.RemoveAll(testPath) }()
+
+		act := &action.Action{
+			Name:                       "test-action",
+			Param:                      &action.Param{},
+			ReservedPorts:              []int{},
+			ConfigApplicationPortStart: 8000,
+			ConfigApplicationPortEnd:   9000,
+			ConfigBackendModules: map[string]any{
+				"mod-inventory": map[string]any{
+					field.ModuleVolumesEntry: []any{"$HOME/eureka-home-test-vol"},
+				},
+			},
+		}
+		mp := moduleprops.New(act)
+
+		// Act
+		result, err := mp.ReadBackendModules(false, false)
+
+		// Assert
+		assert.NoError(t, err)
+		require.Len(t, result, 1)
+		module := result["mod-inventory"]
+		assert.Len(t, module.ModuleVolumes, 1)
+		assert.Contains(t, module.ModuleVolumes[0], userHome)
+		assert.NotContains(t, module.ModuleVolumes[0], "$HOME")
+	})
+
+	t.Run("TestReadBackendModules_Volumes_VolumeWithHomeMissingDirectory", func(t *testing.T) {
+		// Arrange
+		act := &action.Action{
+			Name:                       "test-action",
+			Param:                      &action.Param{},
+			ReservedPorts:              []int{},
+			ConfigApplicationPortStart: 8000,
+			ConfigApplicationPortEnd:   9000,
+			ConfigBackendModules: map[string]any{
+				"mod-inventory": map[string]any{
+					field.ModuleVolumesEntry: []any{"$HOME/non-existent-directory-for-test"},
+				},
+			},
+		}
+		mp := moduleprops.New(act)
+
+		// Act
+		result, err := mp.ReadBackendModules(false, false)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+	})
+
+	t.Run("TestReadBackendModules_Volumes_VolumeWithEurekaMissingDirectory_Windows", func(t *testing.T) {
+		if runtime.GOOS != "windows" {
+			t.Skip("Skipping Windows-specific test")
+		}
+
+		// Arrange
+		act := &action.Action{
+			Name:                       "test-action",
+			Param:                      &action.Param{},
+			ReservedPorts:              []int{},
+			ConfigApplicationPortStart: 8000,
+			ConfigApplicationPortEnd:   9000,
+			ConfigBackendModules: map[string]any{
+				"mod-inventory": map[string]any{
+					field.ModuleVolumesEntry: []any{"$EUREKA/non-existent-eureka-directory-for-test"},
+				},
+			},
+		}
+		mp := moduleprops.New(act)
+
+		// Act
+		result, err := mp.ReadBackendModules(false, false)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+	})
 }
 
 func TestReadBackendModules_EdgeModules(t *testing.T) {

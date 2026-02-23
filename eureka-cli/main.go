@@ -31,7 +31,7 @@ var (
 	//go:embed misc/.env
 	//go:embed misc/*.ps1
 	//go:embed misc/*.sh
-	//go:embed misc/docker-compose.yaml
+	//go:embed misc/docker-compose.*
 	//go:embed *.yaml
 	fs embed.FS
 )
