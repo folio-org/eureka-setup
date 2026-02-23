@@ -109,10 +109,10 @@ func (mp *ModuleProps) mergeExtraVolumes(moduleVolumes []string) ([]string, erro
 	if err != nil {
 		return nil, err
 	}
-
 	merged := make([]string, 0, len(extraVolumes)+len(moduleVolumes))
 	merged = append(merged, extraVolumes...)
 	merged = append(merged, moduleVolumes...)
+
 	return merged, nil
 }
 
