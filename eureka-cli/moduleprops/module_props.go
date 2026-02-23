@@ -277,10 +277,9 @@ func (mp *ModuleProps) getVolumes(entry map[string]any) ([]string, error) {
 			}
 			volume = strings.ReplaceAll(volume, "$HOME", userHome)
 		}
-		if _, err := os.Stat(volume); os.IsNotExist(err) {
-			if err != nil {
-				return nil, err
-			}
+		hostPath, _, _ := strings.Cut(volume, ":")
+		if _, err := os.Stat(hostPath); os.IsNotExist(err) {
+			return nil, err
 		}
 		volumes = append(volumes, volume)
 	}
