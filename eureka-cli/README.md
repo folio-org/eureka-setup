@@ -68,6 +68,7 @@ Install dependencies:
 - [Rancher Desktop](https://rancherdesktop.io/) container daemon: last development-tested version is `v1.20.1`
   - Enable **dockerd (Moby)** container engine
   - Disable **Check for updates automatically**
+  - Disable **Enable Kubernetes**
 
 On Windows, it is recommended to work exclusively in Windows Terminal running Git Bash:
 
