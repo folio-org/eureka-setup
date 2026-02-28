@@ -163,7 +163,7 @@ func (ms *ManagementSvc) CreateApplication(extract *models.RegistryExtract) erro
 					"name":    module.Metadata.Name,
 					"version": *module.Metadata.Version,
 				}
-				if ms.Action.ConfigApplicationFetchDescriptors {
+				if ms.Action.ConfigApplicationFetchDescriptors || isLocalModule {
 					frontendModuleDescriptors = append(frontendModuleDescriptors, extract.ModuleDescriptors[module.ID])
 				} else {
 					newFrontendModule["url"] = moduleDescriptorURL
