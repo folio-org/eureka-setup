@@ -688,6 +688,13 @@ backend-modules:
     local-descriptor-path: "/path/to/module/target/ModuleDescriptor.json"
 ```
 
+Additionally, `fetch-descriptors` must be set to `true` under `application` in your profile YAML:
+
+```yaml
+ application:
+   fetch-descriptors: true
+```
+
 > When `local-descriptor-path` is specified, the Docker image will not be pulled from a registry and the descriptor will be loaded from the local filesystem.
 
 - Deploy the environment with your local module
@@ -705,6 +712,13 @@ frontend-modules:
   folio_users:
     version: "<version>"
     local-descriptor-path: "/path/to/ui-module/module-descriptor.json"
+```
+
+Additionally, `fetch-descriptors` must be set to `true` under `application` in your profile YAML:
+
+```yaml
+ application:
+   fetch-descriptors: true
 ```
 
 - Deploy the environment with your local module
