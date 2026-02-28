@@ -306,6 +306,10 @@ func (ms *ManagementSvc) RemoveApplications(applicationName, ignoreAppID string)
 	}
 
 	for _, entry := range apps.ApplicationDescriptors {
+		name := helpers.GetString(entry, "name")
+		if name != applicationName {
+			continue
+		}
 		id := helpers.GetString(entry, "id")
 		if id == ignoreAppID {
 			continue
