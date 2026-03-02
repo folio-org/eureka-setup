@@ -46,15 +46,26 @@ func New(action *action.Action, httpClient interface {
 }
 
 func (ks *KongSvc) ListAllRoutes() ([]models.KongRoute, error) {
-	requestURL := ks.Action.GetRequestURL(constant.KongAdminPort, "/routes")
-
-	var decodedResponse models.KongRoutesResponse
-	if err := ks.HTTPClient.GetRetryReturnStruct(requestURL, nil, &decodedResponse); err != nil {
-		return nil, err
+	var allRoutes []models.KongRoute
+	path := "/routes"
+	for {
+		requestURL := ks.Action.GetRequestURL(constant.KongAdminPort, path)
+		
+		var decodedResponse models.KongRoutesResponse
+		if err := ks.HTTPClient.GetRetryReturnStruct(requestURL, nil, &decodedResponse); err != nil {
+			return nil, err
+		}
+		
+		allRoutes = append(allRoutes, decodedResponse.Data...)
+		if decodedResponse.Next == "" {
+			break
+		}
+		path = decodedResponse.Next
 	}
-
-	return decodedResponse.Data, nil
+	
+	return allRoutes, nil
 }
+
 
 func (ks *KongSvc) FindRouteByExpressions(expressions []string) ([]*models.KongRoute, error) {
 	allRoutes, err := ks.ListAllRoutes()
