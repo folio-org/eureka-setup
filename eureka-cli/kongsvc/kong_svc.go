@@ -62,7 +62,7 @@ func (ks *KongSvc) ListAllRoutes() ([]models.KongRoute, error) {
 		}
 		path = decodedResponse.Next
 	}
-	
+
 	return allRoutes, nil
 }
 
