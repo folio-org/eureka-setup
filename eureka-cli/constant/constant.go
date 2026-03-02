@@ -169,7 +169,7 @@ const (
 	KeycloakContainer      = "keycloak-internal"
 	KongContainer          = "kong"
 	VaultContainer         = "vault"
-	ElasticsearchContainer = "elasticsearch"
+	OpenSearchContainer    = "opensearch"
 	MinIOContainer         = "minio"
 	CreateBucketsContainer = "createbuckets"
 	FTPServerContainer     = "ftp-server"

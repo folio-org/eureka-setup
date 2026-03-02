@@ -95,7 +95,7 @@ Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc
 - [Kafka](http://localhost:9080) UI: No auth
 - [Kong](http://localhost:8002) Admin GUI: No auth
 - [MinIO](http://localhost:9001) Console: minioadmin/minioadmin
-- [Kibana](http://localhost:15601) UI: No auth
+- [OpenSearch Dashboards](http://localhost:15601) UI: No auth
 - [Grafana](http://localhost:4000) UI: No auth
 
 ## Commands
@@ -246,7 +246,7 @@ eureka-cli deployApplication -oq
 
 ![CLI Deploy Combined with Only Required System Containers](images/cli_deploy_combined_only_required.png)
 
-> Deploys the system without optional containers depending on the profile, such as _netcat_, _kafka-ui_, _minio_, _createbuckets_, _elasticsearch_, _kibana_ and _ftp-server_.
+> Deploys the system without optional containers depending on the profile, such as _netcat_, _kafka-ui_, _minio_, _createbuckets_, _opensearch_, _opensearch dashboards_ and _ftp-server_.
 
 - In case you want to update your local repositories of _folio-kong_, _folio-keycloak_ and _platform-complete_ (UI), you can do so with the combined `-bu` flags
 
@@ -296,7 +296,7 @@ AWS_SDK_LOAD_CONFIG=true eureka-cli deployApplication
 
 ### Deploy the _ecs_ application
 
-The _ecs_ application is a standalone application that deploys a UI container for each consortium. By default, it creates 3 tenants for the first consortium (ecs) and 2 tenants for the second one (ecs2). This profile also deploys _mod-okapi-facade_ and _mod-search_ modules along with the _elasticsearch_ system container.
+The _ecs_ application is a standalone application that deploys a UI container for each consortium. By default, it creates 3 tenants for the first consortium (ecs) and 2 tenants for the second one (ecs2). This profile also deploys _mod-okapi-facade_ and _mod-search_ modules along with the _opensearch_ system container.
 
 ```bash
 eureka-cli -p ecs deployApplication -oq
@@ -375,7 +375,7 @@ eureka-cli -p export deployApplication
 
 #### Deploy the search application
 
-- The search application provides Elasticsearch capabilities required by the Inventory App and ECS setup
+- The search application provides OpenSearch capabilities required by the Inventory App and ECS setup
 
 ```bash
 eureka-cli -p search deployApplication
@@ -559,13 +559,13 @@ eureka-cli getKeycloakAccessToken -t diku
 eureka-cli getEdgeApiKey -t diku -x diku_admin
 ```
 
-- Reindex inventory and instance record Elasticsearch indices
+- Reindex inventory and instance record OpenSearch indices
 
 ```bash
-eureka-cli -p {{profile}} reindexElasticsearch
+eureka-cli -p {{profile}} reindexIndices
 ```
 
-> This command assumes that _mod-search_ module and _elasticsearch_ system container are deployed or if `{{profile}}` is being replaced by either _search_, _ecs_, _ecs-single_ or _ecs-migration_ profiles.
+> This command assumes that _mod-search_ module and _opensearch_ system container are deployed or if `{{profile}}` is being replaced by either _search_, _ecs_, _ecs-single_ or _ecs-migration_ profiles.
 
 - Check if module internal ports are accessible
 

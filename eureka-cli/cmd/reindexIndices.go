@@ -28,8 +28,8 @@ import (
 // reindexIndicesCmd represents the reindexIndices command
 var reindexIndicesCmd = &cobra.Command{
 	Use:   "reindexIndices",
-	Short: "Reindex elasticsearch",
-	Long:  `Reindex elasticsearch indices.`,
+	Short: "Reindex opensearch",
+	Long:  `Reindex opensearch indices.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		run, err := New(action.ReindexIndices)
 		if err != nil {

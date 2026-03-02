@@ -190,7 +190,7 @@ backend-modules:
       cpus: 4
       memory: 900
   mod-login-keycloak:
-    # Versions <3.1.0-SNAPSHOT.156 are unusable, do not use until addressed 
+    # Versions >3.1.0-SNAPSHOT.156 are unusable, do not use until addressed 
     version: 3.1.0-SNAPSHOT.156
     use-vault: true
     port: 9905

@@ -18,6 +18,8 @@ volumes:
     name: eureka_minio_data
   ftp-data:
     name: eureka_ftp_data
+  opensearch-plugins:
+    name: eureka_opensearch_plugins
 
 services:
   ### Dozzle (required) ###
@@ -307,19 +309,20 @@ services:
       timeout: 10s
       retries: 10
 
-  ### Elasticsearch (required for mod-search), Kibana (optional) ###
-  kibana:
-    container_name: kibana
-    image: bitnamilegacy/kibana:${KIBANA_VERSION}
+  ### OpenSearch (required for mod-search), OpenSearch Dashboards (optional) ###
+  opensearch-dashboards:
+    container_name: opensearch-dashboards
+    image: opensearchproject/opensearch-dashboards:${OPENSEARCH_DASHBOARD_VERSION}
     restart: unless-stopped
     cpus: 1
     mem_limit: 1g
     memswap_limit: -1
     depends_on:
-      elasticsearch:
+      opensearch:
         condition: service_healthy
     environment:
-      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+      OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
     networks:
       - eureka-net
     ports:
@@ -330,22 +333,49 @@ services:
       timeout: 10s
       retries: 120
 
-  elasticsearch:
-    container_name: elasticsearch
-    image: bitnamilegacy/elasticsearch:${ELASTICSEARCH_VERSION}
+  opensearch:
+    container_name: opensearch
+    image: opensearchproject/opensearch:${OPENSEARCH_VERSION}
     restart: unless-stopped
+    privileged: true
     cpus: 1
-    mem_limit: 2g
+    mem_limit: 1g
     memswap_limit: -1
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch-plugins:/usr/share/opensearch/plugins
+    command: >
+      bash -c "
+        sysctl -w vm.max_map_count=262144;
+        sed -i 's!^securerandom\.source=.*!securerandom.source=file:/dev/./urandom!' /usr/share/opensearch/jdk/conf/security/java.security;
+        for plugin in analysis-icu analysis-kuromoji analysis-smartcn analysis-nori analysis-phonetic; do
+          if [ ! -d /usr/share/opensearch/plugins/$$plugin ]; then
+            opensearch-plugin install --batch $$plugin;
+          fi
+        done &&
+        if [ -d /usr/share/opensearch/plugins/opensearch-security ]; then
+          opensearch-plugin remove opensearch-security;
+        fi &&
+        /usr/share/opensearch/opensearch-docker-entrypoint.sh
+      "
     environment:
-      ELASTICSEARCH_PLUGINS: "analysis-icu,analysis-kuromoji,analysis-smartcn,analysis-nori,analysis-phonetic"
+      - discovery.type=single-node
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+      - DISABLE_SECURITY_PLUGIN=true
     networks:
       - eureka-net
     ports:
       - 9200:9200
       - 9300:9300
     healthcheck:
-      test: curl -s http://elasticsearch:9200 >/dev/null || exit 1
+      test: curl -s http://opensearch:9200 >/dev/null || exit 1
       interval: 30s
       timeout: 10s
       retries: 30

@@ -246,7 +246,7 @@ backend-modules:
       cpus: 4
       memory: 900
   mod-login-keycloak:
-    # Versions <3.1.0-SNAPSHOT.156 are unusable, do not use until addressed 
+    # Versions >3.1.0-SNAPSHOT.156 are unusable, do not use until addressed 
     version: 3.1.0-SNAPSHOT.156
     use-vault: true
     port: 9905
@@ -324,10 +324,11 @@ backend-modules:
     use-okapi-url: true
     disable-system-user: true
     environment:
-      ELASTICSEARCH_SERVER: "true"
-      ELASTICSEARCH_URL: http://elasticsearch.eureka:9200
-      ELASTICSEARCH_HOST: elasticsearch.eureka
+      ELASTICSEARCH_URL: http://opensearch.eureka:9200
+      ELASTICSEARCH_HOST: opensearch.eureka
       ELASTICSEARCH_PORT: 9200
+      KAFKA_REINDEX_RANGE_INDEX_TOPIC_PARTITIONS: "1"
+      MAX_SUPPORTED_LANGUAGES: "1"
   mod-fqm-manager:
     deploy-module: false
     environment:
