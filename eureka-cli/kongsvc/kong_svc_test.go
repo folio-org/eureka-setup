@@ -221,6 +221,61 @@ func TestListAllRoutes_Success(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
+func TestListAllRoutes_PaginatedResponse(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	svc := kongsvc.New(action, mockHTTP)
+
+	page1Response := models.KongRoutesResponse{
+		Data: []models.KongRoute{
+			{ID: "route-1", Name: "applications-get", Expression: `(http.path == "/applications" && http.method == "GET")`},
+			{ID: "route-2", Name: "tenants-post", Expression: `(http.path == "/tenants" && http.method == "POST")`},
+		},
+		Next: "/routes?offset=2",
+	}
+	page2Response := models.KongRoutesResponse{
+		Data: []models.KongRoute{
+			{ID: "route-3", Name: "entitlements-get", Expression: `(http.path == "/entitlements" && http.method == "GET")`},
+		},
+	}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/routes") && !strings.Contains(urlStr, "offset")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.KongRoutesResponse)
+			*target = page1Response
+		}).
+		Return(nil).Once()
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "offset")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.KongRoutesResponse)
+			*target = page2Response
+		}).
+		Return(nil).Once()
+
+	// Act
+	routes, err := svc.ListAllRoutes()
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Len(t, routes, 3)
+	assert.Equal(t, "route-1", routes[0].ID)
+	assert.Equal(t, "route-2", routes[1].ID)
+	assert.Equal(t, "route-3", routes[2].ID)
+	mockHTTP.AssertExpectations(t)
+}
+
 func TestListAllRoutes_EmptyResponse(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
