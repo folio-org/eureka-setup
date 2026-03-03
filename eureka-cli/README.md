@@ -840,7 +840,7 @@ template-environment:
 
 ## Using per-sidecar environment variables
 
-The `sidecar-environment` config key under a module's `backend-modules` entry sets environment variables on that module's sidecar only. These are appended after the global sidecar environment (`sidecar-module.environment`).
+Use `[my backend module].sidecar-environment` config key to define a unique set of environment variables to be used on a sidecar. These environment variables will override the global sidecar environment as defined in `sidecar-module.environment.`
 
 ```yaml
 backend-modules:
