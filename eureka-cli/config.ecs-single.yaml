@@ -65,6 +65,8 @@ tenants:
     platform-complete-url: http://localhost:3000
   university:
     consortium: ecs
+  college:
+    consortium: ecs
 roles:
   ecs_admin_role:
     consortium: ecs 
@@ -77,6 +79,14 @@ roles:
   university_user_role:
     consortium: ecs
     tenant: university
+    capability-sets: []
+  college_admin_role:
+    consortium: ecs
+    tenant: college
+    capability-sets: ["all"]
+  college_user_role:
+    consortium: ecs
+    tenant: college
     capability-sets: []
 users:
   ecs_admin:
@@ -99,7 +109,21 @@ users:
     password: user
     first-name: University
     last-name: User
-    roles: []
+    roles: ["university_user_role"]
+  college_admin:
+    consortium: ecs
+    tenant: college
+    password: admin
+    first-name: College
+    last-name: Admin
+    roles: ["college_admin_role", "college_user_role"]
+  college_user:
+    consortium: ecs
+    tenant: college
+    password: user
+    first-name: College
+    last-name: User
+    roles: ["college_user_role"]
 sidecar-module:
   # Must build locally for your OS and CPU
   image: folio-module-sidecar-native
@@ -274,8 +298,6 @@ backend-modules:
   mod-finance-storage:
     use-vault: true
   mod-audit:
-  # mod-source-record-manager:
-  # mod-source-record-storage:
   mod-pubsub:
     disable-system-user: true
   mod-circulation-storage:
@@ -323,10 +345,10 @@ frontend-modules:
   folio_plugin-find-authority:
 custom-frontend-modules:
   folio_authorization-roles:
-    version: 2.1.1099000000000245
+    version: 2.1.1099000000000251
   folio_authorization-policies:
-    version: 2.0.1099000000000130
+    version: 2.0.1099000000000136
   folio_plugin-select-application:
-    version: 2.0.1099000000000130
+    version: 2.0.1099000000000149
   folio_consortia-settings:
-    version: 3.0.1099000000000188
+    version: 3.0.1099000000000202
