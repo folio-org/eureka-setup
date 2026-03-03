@@ -66,6 +66,7 @@ const (
 	ModuleDisableSystemUserEntry         = "disable-system-user"
 	ModuleLocalDescriptorPathEntry       = "local-descriptor-path"
 	ModuleEnvEntry                       = "environment"
+	ModuleSidecarEnvEntry                = "sidecar-environment"
 	ModuleVolumesEntry                   = "volumes"
 	ModuleResourceEntry                  = "resources"
 	ModuleResourceCpuCountEntry          = "cpu-count"

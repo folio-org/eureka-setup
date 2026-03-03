@@ -128,6 +128,7 @@ func (mp *ModuleProps) createDefaultBackendProperties(name string) (p models.Bac
 	}
 	p.PrivatePort = mp.getDefaultPrivatePort()
 	p.Env = make(map[string]any)
+	p.SidecarEnv = make(map[string]any)
 	p.Resources = make(map[string]any)
 	p.Volumes = []string{}
 
@@ -171,6 +172,7 @@ func (mp *ModuleProps) createConfigurableBackendProperties(value any, name strin
 
 	p.PrivatePort = mp.getPrivatePort(entry)
 	p.Env = helpers.GetMap(entry, field.ModuleEnvEntry)
+	p.SidecarEnv = helpers.GetMap(entry, field.ModuleSidecarEnvEntry)
 	p.Resources = helpers.GetMap(entry, field.ModuleResourceEntry)
 	p.Volumes, err = mp.getVolumes(entry)
 	if err != nil {

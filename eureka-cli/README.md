@@ -41,6 +41,7 @@
   - [Using Single Tenant UX](#using-single-tenant-ux)
   - [Using the environment](#using-the-environment)
   - [Using template environment variables](#using-template-environment-variables)
+  - [Using per-sidecar environment variables](#using-per-sidecar-environment-variables)
   - [Using extra volumes](#using-extra-volumes)
   - [Using OpenTelemetry LGTM stack](#using-opentelemetry-lgtm-stack)
   - [Add missing Vault secrets](#add-missing-vault-secrets)
@@ -836,6 +837,18 @@ template-environment:
 
 - Per-module `environment` entries in `backend-modules` can override template values (they appear later in the env slice)
 - If `template-environment` is omitted from a profile, no template env vars are injected
+
+## Using per-sidecar environment variables
+
+The `sidecar-environment` config key under a module's `backend-modules` entry sets environment variables on that module's sidecar only. These are appended after the global sidecar environment (`sidecar-module.environment`).
+
+```yaml
+backend-modules:
+  mod-scheduler:
+    sidecar-environment:
+      ROUTING_DYNAMIC_ENABLED: "true"
+      SIDECAR_FORWARD_UNKNOWN_REQUESTS: "false"
+```
 
 ## Using extra volumes
 
