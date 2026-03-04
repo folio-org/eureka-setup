@@ -159,6 +159,7 @@ func (ms *ModuleSvc) GetSidecarEnv(containers *models.Containers, module *models
 	env = ms.ModuleEnv.VaultEnv(env, ms.Action.VaultRootToken)
 	env = ms.ModuleEnv.KeycloakEnv(env)
 	env = ms.ModuleEnv.SidecarEnv(env, module, backendModule.PrivatePort, moduleURL, sidecarURL)
+	env = ms.ModuleEnv.ModuleEnv(env, backendModule.SidecarEnv)
 
 	return env
 }

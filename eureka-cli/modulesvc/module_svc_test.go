@@ -572,6 +572,7 @@ func TestGetSidecarEnv(t *testing.T) {
 	mockModuleEnv.On("KeycloakEnv", mock.Anything).Return([]string{"KEYCLOAK_ENV=set"})
 	mockModuleEnv.On("SidecarEnv", mock.Anything, mock.Anything, 8081, "http://mod-test:8081", "http://sidecar:8081").
 		Return([]string{"SIDECAR_ENV=set"})
+	mockModuleEnv.On("ModuleEnv", mock.Anything, map[string]any(nil)).Return([]string{"SIDECAR_ENV=set"})
 
 	svc := New(action, nil, nil, nil, mockModuleEnv)
 
@@ -592,6 +593,48 @@ func TestGetSidecarEnv(t *testing.T) {
 
 	// Assert
 	assert.NotEmpty(t, env)
+	mockModuleEnv.AssertExpectations(t)
+}
+
+func TestGetSidecarEnv_WithPerSidecarEnv(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	mockModuleEnv := new(testhelpers.MockModuleEnv)
+
+	sidecarEnvMap := map[string]any{
+		"ROUTING_DYNAMIC_ENABLED":          "true",
+		"SIDECAR_FORWARD_UNKNOWN_REQUESTS": "false",
+	}
+
+	mockModuleEnv.On("VaultEnv", []string(nil), mock.Anything).Return([]string{"VAULT_ENV=set"})
+	mockModuleEnv.On("KeycloakEnv", mock.Anything).Return([]string{"KEYCLOAK_ENV=set"})
+	mockModuleEnv.On("SidecarEnv", mock.Anything, mock.Anything, 8081, "http://mod-scheduler:8081", "http://sidecar:8081").
+		Return([]string{"SIDECAR_ENV=set"})
+	mockModuleEnv.On("ModuleEnv", mock.Anything, sidecarEnvMap).
+		Return([]string{"SIDECAR_ENV=set", "ROUTING_DYNAMIC_ENABLED=true", "SIDECAR_FORWARD_UNKNOWN_REQUESTS=false"})
+
+	svc := New(action, nil, nil, nil, mockModuleEnv)
+
+	containers := &models.Containers{}
+
+	module := &models.ProxyModule{
+		Metadata: models.ProxyModuleMetadata{
+			Name: "mod-scheduler",
+		},
+	}
+
+	backendModule := models.BackendModule{
+		PrivatePort: 8081,
+		SidecarEnv:  sidecarEnvMap,
+	}
+
+	// Act
+	env := svc.GetSidecarEnv(containers, module, backendModule, "http://mod-scheduler:8081", "http://sidecar:8081")
+
+	// Assert
+	assert.NotEmpty(t, env)
+	assert.Contains(t, env, "ROUTING_DYNAMIC_ENABLED=true")
+	assert.Contains(t, env, "SIDECAR_FORWARD_UNKNOWN_REQUESTS=false")
 	mockModuleEnv.AssertExpectations(t)
 }
 
