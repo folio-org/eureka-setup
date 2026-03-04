@@ -408,6 +408,64 @@ func TestReadBackendModules_ConfigurableProperties(t *testing.T) {
 	})
 }
 
+func TestReadBackendModules_SidecarEnvironment(t *testing.T) {
+	t.Run("TestReadBackendModules_SidecarEnvironment_ParsedFromConfig", func(t *testing.T) {
+		// Arrange
+		act := &action.Action{
+			Name:                       "test-action",
+			Param:                      &action.Param{},
+			ReservedPorts:              []int{},
+			ConfigApplicationPortStart: 8000,
+			ConfigApplicationPortEnd:   9000,
+			ConfigBackendModules: map[string]any{
+				"mod-scheduler": map[string]any{
+					field.ModuleSidecarEnvEntry: map[string]any{
+						"ROUTING_DYNAMIC_ENABLED":          "true",
+						"SIDECAR_FORWARD_UNKNOWN_REQUESTS": "false",
+					},
+				},
+			},
+		}
+		mp := moduleprops.New(act)
+
+		// Act
+		result, err := mp.ReadBackendModules(false, false)
+
+		// Assert
+		assert.NoError(t, err)
+		require.Len(t, result, 1)
+		module := result["mod-scheduler"]
+		assert.NotNil(t, module.SidecarEnv)
+		assert.Equal(t, "true", module.SidecarEnv["ROUTING_DYNAMIC_ENABLED"])
+		assert.Equal(t, "false", module.SidecarEnv["SIDECAR_FORWARD_UNKNOWN_REQUESTS"])
+	})
+
+	t.Run("TestReadBackendModules_SidecarEnvironment_DefaultIsEmpty", func(t *testing.T) {
+		// Arrange
+		act := &action.Action{
+			Name:                       "test-action",
+			Param:                      &action.Param{},
+			ReservedPorts:              []int{},
+			ConfigApplicationPortStart: 8000,
+			ConfigApplicationPortEnd:   9000,
+			ConfigBackendModules: map[string]any{
+				"mod-inventory": nil,
+			},
+		}
+		mp := moduleprops.New(act)
+
+		// Act
+		result, err := mp.ReadBackendModules(false, false)
+
+		// Assert
+		assert.NoError(t, err)
+		require.Len(t, result, 1)
+		module := result["mod-inventory"]
+		assert.NotNil(t, module.SidecarEnv)
+		assert.Empty(t, module.SidecarEnv)
+	})
+}
+
 func TestReadBackendModules_LocalDescriptor(t *testing.T) {
 	t.Run("TestReadBackendModules_LocalDescriptor_ValidLocalDescriptor", func(t *testing.T) {
 		// Arrange

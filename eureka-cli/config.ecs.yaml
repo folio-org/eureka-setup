@@ -268,6 +268,9 @@ backend-modules:
     use-vault: true
     use-okapi-url: true
     disable-system-user: true
+    sidecar-environment:
+      ROUTING_DYNAMIC_ENABLED: "true"
+      SIDECAR_FORWARD_UNKNOWN_REQUESTS: "false"
     port: 9907
     resources:
       cpus: 4

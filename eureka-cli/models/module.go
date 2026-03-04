@@ -51,6 +51,7 @@ type BackendModule struct {
 	ModuleExposedPorts       *nat.PortSet
 	ModulePortBindings       *nat.PortMap
 	ModuleEnv                map[string]any
+	SidecarEnv               map[string]any
 	ModuleResources          container.Resources
 	ModuleVolumes            []string
 	DeploySidecar            bool
@@ -74,6 +75,7 @@ type BackendModuleProperties struct {
 	Port                *int
 	PrivatePort         *int
 	Env                 map[string]any
+	SidecarEnv          map[string]any
 	Resources           map[string]any
 	Volumes             []string
 }
@@ -119,6 +121,7 @@ func NewBackendModuleWithSidecar(action *action.Action, p BackendModulePropertie
 		ModuleExposedPorts:       exposedPorts,
 		ModulePortBindings:       helpers.CreatePortBindings(moduleServerPort, moduleDebugPort, *p.PrivatePort),
 		ModuleEnv:                p.Env,
+		SidecarEnv:               p.SidecarEnv,
 		ModuleResources:          *helpers.CreateResources(true, p.Resources),
 		ModuleVolumes:            p.Volumes,
 		DeploySidecar:            *p.DeploySidecar,
@@ -151,6 +154,7 @@ func NewBackendModule(action *action.Action, p BackendModuleProperties) (*Backen
 		ModuleExposedPorts:      helpers.CreateExposedPorts(*p.PrivatePort),
 		ModulePortBindings:      helpers.CreatePortBindings(serverPort, debugPort, *p.PrivatePort),
 		ModuleEnv:               p.Env,
+		SidecarEnv:              p.SidecarEnv,
 		ModuleResources:         *helpers.CreateResources(true, p.Resources),
 		ModuleVolumes:           p.Volumes,
 		DeploySidecar:           false,
