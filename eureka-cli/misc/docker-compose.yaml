@@ -381,6 +381,7 @@ services:
       retries: 30
 
   ### Minio (required for mod-data-export-worker), Minio MC (required) ###
+  # Deprecated: OSS no longer available
   minio:
     container_name: minio
     image: minio/minio:${MINIO_VERSION}
@@ -403,6 +404,7 @@ services:
       retries: 30
 
   # Will terminate after running its commands to create a bucket in minio
+  # Deprecated: OSS no longer available
   createbuckets:
     container_name: createbuckets
     image: minio/mc:${MINIO_MC_VERSION}
