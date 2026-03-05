@@ -111,7 +111,7 @@ func createDefaultResources(isModule bool) *container.Resources {
 
 func AppendRequiredContainers(actionName string, containers []string, backendModules map[string]any) []string {
 	if IsModuleEnabled(constant.ModSearchModule, backendModules) {
-		containers = append(containers, constant.ElasticsearchContainer)
+		containers = append(containers, constant.OpenSearchContainer)
 	}
 	if IsModuleEnabled(constant.ModDataExportWorkerModule, backendModules) {
 		extraContainers := []string{constant.MinIOContainer, constant.CreateBucketsContainer, constant.FTPServerContainer}
