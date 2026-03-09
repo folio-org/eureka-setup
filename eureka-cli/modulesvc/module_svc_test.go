@@ -981,6 +981,218 @@ func TestCheckModuleReadiness_DefaultMaxRetries(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
+// ==================== CheckModuleReadinessByURL Tests ====================
+
+func TestCheckModuleReadinessByURL_Success(t *testing.T) {
+	// Arrange
+	mockHTTP := new(testhelpers.MockHTTPClient)
+	action := testhelpers.NewMockAction()
+	svc := New(action, mockHTTP, nil, nil, nil)
+	svc.ReadinessMaxRetries = 3
+	svc.ReadinessWait = 1 * time.Millisecond
+
+	mockHTTP.On("Ping", "http://192.168.122.1:8082/admin/health", mock.Anything).
+		Return(http.StatusOK, nil)
+
+	wg := &sync.WaitGroup{}
+	errCh := make(chan error, 1)
+	wg.Add(1)
+
+	// Act
+	go svc.CheckModuleReadinessByURL(wg, errCh, "test-module", "http://192.168.122.1:8082")
+	wg.Wait()
+	close(errCh)
+
+	// Assert
+	select {
+	case err := <-errCh:
+		assert.NoError(t, err)
+	default:
+	}
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestCheckModuleReadinessByURL_Failure(t *testing.T) {
+	// Arrange
+	mockHTTP := new(testhelpers.MockHTTPClient)
+	action := testhelpers.NewMockAction()
+	svc := New(action, mockHTTP, nil, nil, nil)
+	svc.ReadinessMaxRetries = 3
+	svc.ReadinessWait = 1 * time.Millisecond
+
+	mockHTTP.On("Ping", "http://192.168.122.1:8082/admin/health", mock.Anything).
+		Return(http.StatusServiceUnavailable, nil)
+
+	wg := &sync.WaitGroup{}
+	errCh := make(chan error, 1)
+	wg.Add(1)
+
+	// Act
+	go svc.CheckModuleReadinessByURL(wg, errCh, "test-module", "http://192.168.122.1:8082")
+	wg.Wait()
+	close(errCh)
+
+	// Assert
+	err := <-errCh
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "module test-module")
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestCheckModuleReadinessByURL_TrailingSlash(t *testing.T) {
+	// Arrange
+	mockHTTP := new(testhelpers.MockHTTPClient)
+	action := testhelpers.NewMockAction()
+	svc := New(action, mockHTTP, nil, nil, nil)
+	svc.ReadinessMaxRetries = 3
+	svc.ReadinessWait = 1 * time.Millisecond
+
+	mockHTTP.On("Ping", "http://192.168.122.1:8082/admin/health", mock.Anything).
+		Return(http.StatusOK, nil)
+
+	wg := &sync.WaitGroup{}
+	errCh := make(chan error, 1)
+	wg.Add(1)
+
+	// Act
+	go svc.CheckModuleReadinessByURL(wg, errCh, "test-module", "http://192.168.122.1:8082/")
+	wg.Wait()
+	close(errCh)
+
+	// Assert
+	select {
+	case err := <-errCh:
+		assert.NoError(t, err)
+	default:
+	}
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestCheckModuleReadinessByURL_EventualSuccess(t *testing.T) {
+	// Arrange
+	mockHTTP := new(testhelpers.MockHTTPClient)
+	action := testhelpers.NewMockAction()
+	svc := New(action, mockHTTP, nil, nil, nil)
+	svc.ReadinessMaxRetries = 3
+	svc.ReadinessWait = 1 * time.Millisecond
+
+	mockHTTP.On("Ping", "http://192.168.122.1:8082/admin/health", mock.Anything).
+		Return(http.StatusServiceUnavailable, nil).Times(2)
+	mockHTTP.On("Ping", "http://192.168.122.1:8082/admin/health", mock.Anything).
+		Return(http.StatusOK, nil).Once()
+
+	wg := &sync.WaitGroup{}
+	errCh := make(chan error, 1)
+	wg.Add(1)
+
+	// Act
+	go svc.CheckModuleReadinessByURL(wg, errCh, "test-module", "http://192.168.122.1:8082")
+	wg.Wait()
+	close(errCh)
+
+	// Assert
+	select {
+	case err := <-errCh:
+		assert.NoError(t, err)
+	default:
+	}
+	mockHTTP.AssertExpectations(t)
+}
+
+// ==================== CheckModuleAndSidecarReadiness Tests ====================
+
+func TestCheckModuleAndSidecarReadiness_WithURLs(t *testing.T) {
+	// Arrange
+	mockHTTP := new(testhelpers.MockHTTPClient)
+	action := testhelpers.NewMockAction()
+	svc := New(action, mockHTTP, nil, nil, nil)
+	svc.ReadinessMaxRetries = 3
+	svc.ReadinessWait = 1 * time.Millisecond
+
+	pair := &ModulePair{
+		ModuleName: "mod-test",
+		ModuleURL:  "http://192.168.122.1:8082",
+		SidecarURL: "http://192.168.122.1:30056",
+		BackendModule: &models.BackendModule{
+			ModuleExposedServerPort:  8082,
+			SidecarExposedServerPort: 30056,
+		},
+	}
+
+	mockHTTP.On("Ping", "http://192.168.122.1:8082/admin/health", mock.Anything).
+		Return(http.StatusOK, nil)
+	mockHTTP.On("Ping", "http://192.168.122.1:30056/admin/health", mock.Anything).
+		Return(http.StatusOK, nil)
+
+	// Act
+	err := svc.CheckModuleAndSidecarReadiness(pair)
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestCheckModuleAndSidecarReadiness_WithoutURLs(t *testing.T) {
+	// Arrange
+	mockHTTP := new(testhelpers.MockHTTPClient)
+	action := testhelpers.NewMockAction()
+	svc := New(action, mockHTTP, nil, nil, nil)
+	svc.ReadinessMaxRetries = 3
+	svc.ReadinessWait = 1 * time.Millisecond
+
+	pair := &ModulePair{
+		ModuleName: "mod-test",
+		BackendModule: &models.BackendModule{
+			ModuleExposedServerPort:  8082,
+			SidecarExposedServerPort: 30056,
+		},
+	}
+
+	// Port-based URLs use the gateway template: http://localhost:<port>/admin/health
+	mockHTTP.On("Ping", "http://localhost:8082/admin/health", mock.Anything).
+		Return(http.StatusOK, nil)
+	mockHTTP.On("Ping", "http://localhost:30056/admin/health", mock.Anything).
+		Return(http.StatusOK, nil)
+
+	// Act
+	err := svc.CheckModuleAndSidecarReadiness(pair)
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestCheckModuleAndSidecarReadiness_MixedURLs(t *testing.T) {
+	// Arrange
+	mockHTTP := new(testhelpers.MockHTTPClient)
+	action := testhelpers.NewMockAction()
+	svc := New(action, mockHTTP, nil, nil, nil)
+	svc.ReadinessMaxRetries = 3
+	svc.ReadinessWait = 1 * time.Millisecond
+
+	pair := &ModulePair{
+		ModuleName: "mod-test",
+		ModuleURL:  "http://192.168.122.1:8082",
+		SidecarURL: "", // Empty - should fall back to port-based
+		BackendModule: &models.BackendModule{
+			ModuleExposedServerPort:  8082,
+			SidecarExposedServerPort: 30056,
+		},
+	}
+
+	mockHTTP.On("Ping", "http://192.168.122.1:8082/admin/health", mock.Anything).
+		Return(http.StatusOK, nil)
+	mockHTTP.On("Ping", "http://localhost:30056/admin/health", mock.Anything).
+		Return(http.StatusOK, nil)
+
+	// Act
+	err := svc.CheckModuleAndSidecarReadiness(pair)
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertExpectations(t)
+}
+
 // ==================== GetLocalModuleImage Tests ====================
 
 func TestGetLocalModuleImage_Success(t *testing.T) {
