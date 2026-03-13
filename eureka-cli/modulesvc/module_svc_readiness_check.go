@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,12 +19,21 @@ type ModuleReadinessChecker interface {
 }
 
 func (ms *ModuleSvc) CheckModuleReadiness(wg *sync.WaitGroup, errCh chan<- error, moduleName string, port int) {
+	requestURL := ms.Action.GetRequestURL(strconv.Itoa(port), "/admin/health")
+	ms.checkReadiness(wg, errCh, moduleName, requestURL)
+}
+
+func (ms *ModuleSvc) CheckModuleReadinessByURL(wg *sync.WaitGroup, errCh chan<- error, moduleName string, baseURL string) {
+	requestURL := strings.TrimRight(baseURL, "/") + "/admin/health"
+	ms.checkReadiness(wg, errCh, moduleName, requestURL)
+}
+
+func (ms *ModuleSvc) checkReadiness(wg *sync.WaitGroup, errCh chan<- error, moduleName string, requestURL string) {
 	defer wg.Done()
 
-	slog.Info(ms.Action.Name, "text", "Preparing module readiness check", "module", moduleName, "port", port)
+	slog.Info(ms.Action.Name, "text", "Preparing module readiness check", "module", moduleName, "url", requestURL)
 	maxRetries := helpers.DefaultInt(ms.ReadinessMaxRetries, constant.ModuleReadinessMaxRetries)
 	waitDuration := helpers.DefaultDuration(ms.ReadinessWait, constant.ModuleReadinessWait)
-	requestURL := ms.Action.GetRequestURL(strconv.Itoa(port), "/admin/health")
 	for retryCount := range maxRetries {
 		statusCode, _ := ms.HTTPClient.Ping(requestURL)
 		if statusCode == http.StatusOK {

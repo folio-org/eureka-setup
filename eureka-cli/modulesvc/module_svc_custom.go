@@ -88,13 +88,21 @@ func (ms *ModuleSvc) DeployCustomSidecar(client *client.Client, pair *ModulePair
 }
 
 func (ms *ModuleSvc) CheckModuleAndSidecarReadiness(pair *ModulePair) error {
-	slog.Info(ms.Action.Name, "text", "WAITING FOR MODULE AND SIDECAR TO INITIALIZE", "port", pair.BackendModule.ModuleExposedServerPort)
+	slog.Info(ms.Action.Name, "text", "WAITING FOR MODULE AND SIDECAR TO INITIALIZE", "module", pair.ModuleName)
 	var interceptModuleWG sync.WaitGroup
 	errCh := make(chan error, 2)
 
 	interceptModuleWG.Add(2)
-	go ms.CheckModuleReadiness(&interceptModuleWG, errCh, pair.ModuleName, pair.BackendModule.ModuleExposedServerPort)
-	go ms.CheckModuleReadiness(&interceptModuleWG, errCh, helpers.GetSidecarName(pair.ModuleName), pair.BackendModule.SidecarExposedServerPort)
+	if pair.ModuleURL != "" {
+		go ms.CheckModuleReadinessByURL(&interceptModuleWG, errCh, pair.ModuleName, pair.ModuleURL)
+	} else {
+		go ms.CheckModuleReadiness(&interceptModuleWG, errCh, pair.ModuleName, pair.BackendModule.ModuleExposedServerPort)
+	}
+	if pair.SidecarURL != "" {
+		go ms.CheckModuleReadinessByURL(&interceptModuleWG, errCh, helpers.GetSidecarName(pair.ModuleName), pair.SidecarURL)
+	} else {
+		go ms.CheckModuleReadiness(&interceptModuleWG, errCh, helpers.GetSidecarName(pair.ModuleName), pair.BackendModule.SidecarExposedServerPort)
+	}
 	interceptModuleWG.Wait()
 	close(errCh)
 
