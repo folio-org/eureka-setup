@@ -550,6 +550,63 @@ func TestReadBackendModules_Volumes(t *testing.T) {
 		assert.Contains(t, module.ModuleVolumes, tmpDir)
 	})
 
+	t.Run("TestReadBackendModules_Volumes_VolumeWithContainerPath", func(t *testing.T) {
+		// Arrange
+		tmpDir := t.TempDir()
+		volumeMount := tmpDir + ":/etc/edge"
+
+		act := &action.Action{
+			Name:                       "test-action",
+			Param:                      &action.Param{},
+			ReservedPorts:              []int{},
+			ConfigApplicationPortStart: 8000,
+			ConfigApplicationPortEnd:   9000,
+			ConfigBackendModules: map[string]any{
+				"edge-orders": map[string]any{
+					field.ModuleVolumesEntry: []any{volumeMount},
+				},
+			},
+		}
+		mp := moduleprops.New(act)
+
+		// Act
+		result, err := mp.ReadBackendModules(false, false)
+
+		// Assert
+		assert.NoError(t, err)
+		require.Len(t, result, 1)
+		module := result["edge-orders"]
+		assert.Len(t, module.ModuleVolumes, 1)
+		assert.Equal(t, volumeMount, module.ModuleVolumes[0])
+	})
+
+	t.Run("TestReadBackendModules_Volumes_VolumeWithContainerPathMissingHostDir", func(t *testing.T) {
+		// Arrange
+		missingDir := filepath.Join(t.TempDir(), "missing")
+		volumeMount := missingDir + ":/etc/edge"
+
+		act := &action.Action{
+			Name:                       "test-action",
+			Param:                      &action.Param{},
+			ReservedPorts:              []int{},
+			ConfigApplicationPortStart: 8000,
+			ConfigApplicationPortEnd:   9000,
+			ConfigBackendModules: map[string]any{
+				"edge-orders": map[string]any{
+					field.ModuleVolumesEntry: []any{volumeMount},
+				},
+			},
+		}
+		mp := moduleprops.New(act)
+
+		// Act
+		result, err := mp.ReadBackendModules(false, false)
+
+		// Assert
+		assert.Error(t, err)
+		assert.Nil(t, result)
+	})
+
 	t.Run("TestReadBackendModules_Volumes_VolumeWithEurekaVariable_Windows", func(t *testing.T) {
 		if runtime.GOOS != "windows" {
 			t.Skip("Skipping Windows-specific test")
