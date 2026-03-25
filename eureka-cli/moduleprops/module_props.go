@@ -3,6 +3,7 @@ package moduleprops
 import (
 	"log/slog"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -279,7 +280,11 @@ func (mp *ModuleProps) getVolumes(entry map[string]any) ([]string, error) {
 			}
 			volume = strings.ReplaceAll(volume, "$HOME", userHome)
 		}
-		hostPath, _, _ := strings.Cut(volume, ":")
+		hostPath := volume
+		volumePrefix := len(filepath.VolumeName(volume))
+		if idx := strings.Index(volume[volumePrefix:], ":"); idx != -1 {
+			hostPath = volume[:volumePrefix+idx]
+		}
 		if _, err := os.Stat(hostPath); os.IsNotExist(err) {
 			return nil, err
 		}
