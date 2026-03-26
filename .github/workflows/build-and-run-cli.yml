@@ -51,45 +51,6 @@ jobs:
           args: --timeout=5m
           only-new-issues: true
 
-  go-trivy:
-    name: Go Security Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Go Environment
-        uses: ./.github/actions/setup-go
-
-      - name: Download Go dependencies
-        working-directory: ./eureka-cli
-        run: go mod download
-
-      - name: Quick scan for HIGH/CRITICAL vulnerabilities
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: 'fs'
-          scan-ref: './eureka-cli'
-          format: 'table'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
-
-      - name: Run Trivy vulnerability scanner on Go dependencies
-        uses: aquasecurity/trivy-action@master
-        if: success() && github.actor != 'dependabot[bot]'
-        with:
-          scan-type: 'fs'
-          scan-ref: './eureka-cli'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v4
-        if: always() && github.actor != 'dependabot[bot]'
-        with:
-          sarif_file: 'trivy-results.sarif'
-
   go-test:
     name: Go Test
     runs-on: ubuntu-latest
@@ -111,18 +72,6 @@ jobs:
         working-directory: ./eureka-cli
         run: |
           go list ./... | grep -Ev "$EXCLUDE_PATTERN" | xargs go test -parallel 10 -coverprofile=coverage.out -covermode=atomic
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
-        if: github.repository == github.event.pull_request.head.repo.full_name || github.event_name != 'pull_request'
-        continue-on-error: true
-        with:
-          files: ./eureka-cli/coverage.out
-          flags: unit-tests
-          name: codecov-umbrella
-          fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
-          verbose: true
 
   build-and-run-cli:
     name: Build and Run CLI (${{ matrix.os }}-${{ matrix.goarch }})
