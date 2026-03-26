@@ -75,7 +75,7 @@ jobs:
 
   build-and-run-cli:
     name: Build and Run CLI (${{ matrix.os }}-${{ matrix.goarch }})
-    needs: [docker-lint, go-lint, go-trivy, go-test]
+    needs: [docker-lint, go-lint, go-test]
     strategy:
       matrix:
         include:
