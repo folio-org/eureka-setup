@@ -271,10 +271,14 @@ backend-modules:
     disable-system-user: true
   # Search Module
   mod-search:
-    deploy-module: false
+    use-okapi-url: true
     disable-system-user: true
     environment:
       ELASTICSEARCH_URL: http://opensearch.eureka:9200
+      ELASTICSEARCH_HOST: opensearch.eureka
+      ELASTICSEARCH_PORT: 9200
+      KAFKA_REINDEX_RANGE_INDEX_TOPIC_PARTITIONS: "1"
+      MAX_SUPPORTED_LANGUAGES: "1"
 frontend-modules:
   folio_data-import:
   folio_users:
