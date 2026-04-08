@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/spf13/viper"
@@ -54,8 +53,6 @@ func TestNewGeneric_AllViperFields(t *testing.T) {
 			field.ApplicationVersion:           "3.0.0",
 			field.ProfileName:                  "production",
 			field.RegistryURL:                  "https://registry.test.com",
-			field.InstallFolio:                 "folio-registry-url",
-			field.InstallEureka:                "eureka-registry-url",
 			field.ApplicationFetchDescriptors:  true,
 			field.ApplicationPortStart:         8000,
 			field.ApplicationPortEnd:           9000,
@@ -115,8 +112,6 @@ func TestNewGeneric_AllViperFields(t *testing.T) {
 		assert.Equal(t, "full-app-3.0.0", result.ConfigApplicationID)
 		assert.Equal(t, "production", result.ConfigProfileName)
 		assert.Equal(t, "https://registry.test.com", result.ConfigRegistryURL)
-		assert.Equal(t, "folio-registry-url", result.ConfigInstallFolio)
-		assert.Equal(t, "eureka-registry-url", result.ConfigInstallEureka)
 		assert.True(t, result.ConfigApplicationFetchDescriptors)
 		assert.Equal(t, 8000, result.ConfigApplicationPortStart)
 		assert.Equal(t, 9000, result.ConfigApplicationPortEnd)
@@ -518,42 +513,6 @@ func TestIsSet(t *testing.T) {
 
 		// Assert
 		assert.False(t, result)
-	})
-}
-
-// ==================== Registry URL Tests ====================
-
-func TestGetCombinedInstallJsonURLs(t *testing.T) {
-	t.Run("TestGetCombinedInstallJsonURLs_Success", func(t *testing.T) {
-		// Arrange
-		act := &action.Action{
-			ConfigInstallFolio:  "https://folio.registry.com/install.json",
-			ConfigInstallEureka: "https://eureka.registry.com/install.json",
-		}
-
-		// Act
-		result := act.GetCombinedInstallJsonURLs()
-
-		// Assert
-		assert.Len(t, result, 2)
-		assert.Equal(t, "https://folio.registry.com/install.json", result[constant.FolioRegistry])
-		assert.Equal(t, "https://eureka.registry.com/install.json", result[constant.EurekaRegistry])
-	})
-}
-
-func TestGetEurekaInstallJsonURLs(t *testing.T) {
-	t.Run("TestGetEurekaInstallJsonURLs_Success", func(t *testing.T) {
-		// Arrange
-		act := &action.Action{
-			ConfigInstallEureka: "https://eureka.registry.com/install.json",
-		}
-
-		// Act
-		result := act.GetEurekaInstallJsonURLs()
-
-		// Assert
-		assert.Len(t, result, 1)
-		assert.Equal(t, "https://eureka.registry.com/install.json", result[constant.EurekaRegistry])
 	})
 }
 

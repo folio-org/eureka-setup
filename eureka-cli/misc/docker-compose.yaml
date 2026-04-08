@@ -72,8 +72,9 @@ services:
       "-c", "jit=off" 
     ]
     cpus: 2
-    mem_limit: 1g
+    mem_limit: 1536m
     memswap_limit: -1
+    shm_size: 768m
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
@@ -253,12 +254,10 @@ services:
       KC_DB_URL_DATABASE: keycloak
       KC_DB_USERNAME: keycloak_rw
       KC_DB_PASSWORD: supersecret
-      KC_PROXY: edge
+      KC_PROXY_HEADERS: xforwarded
       KC_HOSTNAME: keycloak.eureka
-      KC_HOSTNAME_PORT: 8080
       KC_HTTP_ENABLED: true
       KC_HOSTNAME_STRICT: true
-      KC_HOSTNAME_STRICT_HTTPS: false
       KC_LOG_LEVEL: INFO
       JAVA_OPTS_APPEND: "-Xms768m -Xmx1024m"
     networks:

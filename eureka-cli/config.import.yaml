@@ -6,11 +6,12 @@ application:
   fetch-descriptors: false
   port-start: 34000
   port-end: 34999
+lsp:
+  url: https://raw.githubusercontent.com/folio-org/platform-lsp/refs/heads/snapshot/platform-descriptor.json
+far:
+  url: https://far.ci.folio.org
 registry:
   url: https://folio-registry.dev.folio.org
-install:
-  folio: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/install.json
-  eureka: https://raw.githubusercontent.com/folio-org/platform-complete/snapshot/eureka-platform.json
 namespaces:
   platform-complete-ui: bkadirkhodjaev
 environment:

@@ -3,15 +3,13 @@ package registrysvc
 import (
 	"fmt"
 	"log/slog"
-	"path/filepath"
-	"sort"
 	"strings"
+	"sync"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/awssvc"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	appErrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
-	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/httpclient"
 	"github.com/folio-org/eureka-setup/eureka-cli/models"
@@ -20,7 +18,7 @@ import (
 // RegistryProcessor defines the interface for registry-related operations
 type RegistryProcessor interface {
 	GetNamespace(version string) string
-	GetModules(installJsonURLs map[string]string, useRemote, verbose bool) (*models.ProxyModulesByRegistry, error)
+	GetModules(verbose bool) (*models.ProxyModulesByRegistry, error)
 	ExtractModuleMetadata(modules *models.ProxyModulesByRegistry)
 	GetAuthorizationToken() (string, error)
 }
@@ -53,113 +51,6 @@ func (rs *RegistrySvc) GetNamespace(version string) string {
 	}
 }
 
-func (rs *RegistrySvc) GetModules(installJsonURLs map[string]string, useRemote, verbose bool) (*models.ProxyModulesByRegistry, error) {
-	homeDir, err := helpers.GetHomeDirPath()
-	if err != nil {
-		return nil, err
-	}
-
-	var folioModules, eurekaModules []*models.ProxyModule
-	for registryName, installJsonURL := range installJsonURLs {
-		decodedResponse, err := rs.processInstallJsonURL(&models.RegistryRequest{
-			RegistryName:   registryName,
-			InstallJsonURL: installJsonURL,
-			HomeDir:        homeDir,
-			UseRemote:      useRemote,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		if registryName == constant.FolioRegistry {
-			for name, value := range rs.Action.ConfigCustomFrontendModules {
-				if value == nil {
-					continue
-				}
-
-				entry := value.(map[string]any)
-				if entry[field.ModuleVersionEntry] == nil {
-					continue
-				}
-				decodedResponse = append(decodedResponse, &models.ProxyModule{
-					ID:     fmt.Sprintf("%s-%s", name, helpers.GetString(entry, field.ModuleVersionEntry)),
-					Action: "enable",
-				})
-			}
-		}
-
-		if len(decodedResponse) > 0 {
-			if verbose {
-				slog.Info(rs.Action.Name, "text", "Read registry", "name", registryName, "count", len(decodedResponse))
-			}
-			sort.Slice(decodedResponse, func(i, j int) bool {
-				return decodedResponse[i].ID < decodedResponse[j].ID
-			})
-		}
-
-		switch registryName {
-		case constant.FolioRegistry:
-			folioModules = decodedResponse
-		case constant.EurekaRegistry:
-			eurekaModules = decodedResponse
-		}
-	}
-
-	return &models.ProxyModulesByRegistry{
-		FolioModules:  folioModules,
-		EurekaModules: eurekaModules,
-	}, nil
-}
-
-func (rs *RegistrySvc) processInstallJsonURL(r *models.RegistryRequest) ([]*models.ProxyModule, error) {
-	r.Metadata.FileName = fmt.Sprintf("install_%s.json", r.RegistryName)
-	r.Metadata.Path = filepath.Join(r.HomeDir, r.Metadata.FileName)
-	if !r.UseRemote || rs.Action.Param.SkipRegistry {
-		decodedResponse, err := rs.readLocalFile(r)
-		if err != nil {
-			return nil, err
-		}
-		if len(decodedResponse) == 0 {
-			return nil, appErrors.LocalInstallFileNotFound(err)
-		}
-		return decodedResponse, nil
-	}
-
-	decodedResponse, err := rs.readRemoteAndCreateLocalFile(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return decodedResponse, nil
-}
-
-func (rs *RegistrySvc) readLocalFile(r *models.RegistryRequest) ([]*models.ProxyModule, error) {
-	if err := helpers.IsRegularFile(r.Metadata.Path); err != nil {
-		return nil, err
-	}
-
-	var decodedResponse []*models.ProxyModule
-	if err := helpers.ReadJSONFromFile(r.Metadata.Path, &decodedResponse); err != nil {
-		return nil, err
-	}
-	slog.Info(rs.Action.Name, "text", "Read registry", "name", r.RegistryName, "local", true, "file", r.Metadata.FileName)
-
-	return decodedResponse, nil
-}
-
-func (rs *RegistrySvc) readRemoteAndCreateLocalFile(r *models.RegistryRequest) ([]*models.ProxyModule, error) {
-	var decodedResponse []*models.ProxyModule
-	if err := rs.HTTPClient.GetRetryReturnStruct(r.InstallJsonURL, map[string]string{}, &decodedResponse); err != nil {
-		return nil, err
-	}
-	if err := helpers.WriteJSONToFile(r.Metadata.Path, decodedResponse); err != nil {
-		return nil, err
-	}
-	slog.Info(rs.Action.Name, "text", "Read registry", "name", r.RegistryName, "local", false, "file", r.Metadata.FileName)
-
-	return decodedResponse, nil
-}
-
 func (rs *RegistrySvc) ExtractModuleMetadata(modules *models.ProxyModulesByRegistry) {
 	allModules := [][]*models.ProxyModule{modules.FolioModules, modules.EurekaModules}
 	for _, moduleSet := range allModules {
@@ -181,4 +72,115 @@ func (rs *RegistrySvc) getSidecarName(module *models.ProxyModule) string {
 	} else {
 		return helpers.GetSidecarName(module.Metadata.Name)
 	}
+}
+
+func (rs *RegistrySvc) GetModules(verbose bool) (*models.ProxyModulesByRegistry, error) {
+	allModules, err := rs.getFlattenedModuleVersions()
+	if err != nil {
+		return nil, err
+	}
+
+	var folioModules, eurekaModules []*models.ProxyModule
+	for _, m := range allModules {
+		proxy := &models.ProxyModule{
+			ID:     m.ID,
+			Action: "enable",
+		}
+		if isEurekaModule(m.Name) {
+			eurekaModules = append(eurekaModules, proxy)
+		} else {
+			folioModules = append(folioModules, proxy)
+		}
+	}
+
+	if verbose {
+		slog.Info(rs.Action.Name, "text", "LSP modules split", "folio", len(folioModules), "eureka", len(eurekaModules))
+	}
+
+	return &models.ProxyModulesByRegistry{
+		FolioModules:  folioModules,
+		EurekaModules: eurekaModules,
+	}, nil
+}
+
+func (rs *RegistrySvc) getFlattenedModuleVersions() ([]models.ApplicationModule, error) {
+	var descriptor models.PlatformDescriptor
+	if err := rs.HTTPClient.GetRetryReturnStruct(rs.Action.ConfigLspURL, map[string]string{}, &descriptor); err != nil {
+		return nil, err
+	}
+
+	slog.Info(rs.Action.Name, "text", "Fetched LSP platform descriptor", "name", descriptor.Name, "version", descriptor.Version, "description", descriptor.Description)
+
+	applications := append(descriptor.Applications.Required, descriptor.Applications.Optional...)
+	applications = append(applications, descriptor.Applications.Experimental...)
+
+	var modules []models.ApplicationModule
+	for _, component := range descriptor.EurekaComponents {
+		modules = append(modules, models.ApplicationModule{
+			ID:      fmt.Sprintf("%s-%s", component.Name, component.Version),
+			Name:    component.Name,
+			Version: component.Version,
+		})
+	}
+
+	type result struct {
+		modules []models.ApplicationModule
+		err     error
+		appID   string
+	}
+
+	results := make([]result, len(applications))
+	var wg sync.WaitGroup
+	wg.Add(len(applications))
+	for idx, app := range applications {
+		// The decision of fetching what application for what module is irrelevant, fetch everything
+		// and only then decide what to materialise into the realm of existence as a container
+		go func(innerIdx int, innerApp models.PlatformApplication) {
+			defer wg.Done()
+			appID := fmt.Sprintf("%s-%s", innerApp.Name, innerApp.Version)
+			farURL := fmt.Sprintf("%s/applications?query=id==%s", rs.Action.ConfigFarURL, appID)
+
+			var response models.ApplicationsResponse
+			if err := rs.HTTPClient.GetRetryReturnStruct(farURL, map[string]string{}, &response); err != nil {
+				results[innerIdx] = result{appID: appID, err: err}
+				return
+			}
+
+			var appModules []models.ApplicationModule
+			for _, appDescriptor := range response.ApplicationDescriptors {
+				for _, key := range []string{"modules", "uiModules"} {
+					for _, raw := range helpers.GetAnySlice(appDescriptor, key) {
+						entry, ok := raw.(map[string]any)
+						if !ok {
+							continue
+						}
+						appModules = append(appModules, models.ApplicationModule{
+							ID:      helpers.GetString(entry, "id"),
+							Name:    helpers.GetString(entry, "name"),
+							Version: helpers.GetString(entry, "version"),
+						})
+					}
+				}
+			}
+			results[innerIdx] = result{appID: appID, modules: appModules}
+		}(idx, app)
+	}
+	wg.Wait()
+
+	for _, r := range results {
+		if r.err != nil {
+			return nil, appErrors.FARFetchFailed(r.appID, r.err)
+		}
+		modules = append(modules, r.modules...)
+	}
+
+	return modules, nil
+}
+
+func isEurekaModule(name string) bool {
+	return strings.HasSuffix(name, "-keycloak") ||
+		strings.HasPrefix(name, "mgr-") ||
+		name == "folio-kong" ||
+		name == "folio-module-sidecar" ||
+		name == "mod-scheduler"
 }

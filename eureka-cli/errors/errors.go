@@ -105,6 +105,10 @@ func PingFailedWithStatus(url string, statusCode int) error {
 	return fmt.Errorf("failed to ping %s: received status code %d (%s)", url, statusCode, http.StatusText(statusCode))
 }
 
+func PingNilResponse(url string) error {
+	return fmt.Errorf("received nil response from %s", url)
+}
+
 func RequestFailed(statusCode int, method, url string) error {
 	return &HTTPError{
 		StatusCode: statusCode,
@@ -127,6 +131,10 @@ func NoFreeTCPPort(portStart, portEnd int) error {
 	return fmt.Errorf("failed to find free TCP ports in range: %d-%d", portStart, portEnd)
 }
 
+func HostnameNotReachable(hostname string, err error) error {
+	return fmt.Errorf("%w: check if hostname exists in /etc/hosts: %s", err, hostname)
+}
+
 // ==================== AWS Errors ====================
 
 func AWSConfigLoadFailed(err error) error {
@@ -147,6 +155,10 @@ func ECRTokenNil() error {
 
 func ECRTokenDecodeFailed(err error) error {
 	return fmt.Errorf("%w: failed to decode ECR authorization token: %w", ErrUnauthorized, err)
+}
+
+func ECRInvalidTokenFormat() error {
+	return fmt.Errorf("%w: invalid ECR authorization token format", ErrUnauthorized)
 }
 
 // ==================== Consortium Errors ====================
@@ -245,6 +257,10 @@ func SidecarVersionNotFound() error {
 	return fmt.Errorf("%w: sidecar version in registry", ErrNotFound)
 }
 
+func SidecarImageBlank() error {
+	return fmt.Errorf("%w: sidecar image is blank", ErrConfigMissing)
+}
+
 func LocalDescriptorNotFound(path, moduleName string) error {
 	return fmt.Errorf("%w: local descriptor %s for module %s", ErrNotFound, path, moduleName)
 }
@@ -305,6 +321,10 @@ func ReindexJobIDBlank() error {
 
 func LocalInstallFileNotFound(err error) error {
 	return fmt.Errorf("%w: failed to find local install file: %w", ErrNotFound, err)
+}
+
+func FARFetchFailed(appID string, err error) error {
+	return fmt.Errorf("%w: failed to fetch application %s from FAR: %w", ErrNotFound, appID, err)
 }
 
 // ==================== Flag Errors ====================

@@ -560,8 +560,8 @@ func (m *MockRegistrySvc) GetNamespace(version string) string {
 	return args.String(0)
 }
 
-func (m *MockRegistrySvc) GetModules(installJSONURLs map[string]string, useRemote, verbose bool) (*models.ProxyModulesByRegistry, error) {
-	args := m.Called(installJSONURLs, useRemote, verbose)
+func (m *MockRegistrySvc) GetModules(verbose bool) (*models.ProxyModulesByRegistry, error) {
+	args := m.Called(verbose)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -2273,7 +2273,7 @@ func TestDeployModules_Success(t *testing.T) {
 
 	mockModuleProps.On("ReadBackendModules", false, true).Return(map[string]models.BackendModule{}, nil)
 	mockModuleProps.On("ReadFrontendModules", true).Return(map[string]models.FrontendModule{}, nil)
-	mockRegistrySvc.On("GetModules", mock.Anything, true, true).Return(&models.ProxyModulesByRegistry{}, nil)
+	mockRegistrySvc.On("GetModules", true).Return(&models.ProxyModulesByRegistry{}, nil)
 	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
@@ -2357,7 +2357,7 @@ func TestInterceptModule_Success(t *testing.T) {
 		Discovery: []models.ModuleDiscovery{{ID: "module-id-123", Name: "test-module"}},
 	}, nil)
 	mockModuleProps.On("ReadBackendModules", false, false).Return(map[string]models.BackendModule{}, nil)
-	mockRegistrySvc.On("GetModules", mock.Anything, true, false).Return(&models.ProxyModulesByRegistry{}, nil)
+	mockRegistrySvc.On("GetModules", false).Return(&models.ProxyModulesByRegistry{}, nil)
 	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
@@ -2389,7 +2389,7 @@ func TestInterceptModule_InterceptError(t *testing.T) {
 		Discovery: []models.ModuleDiscovery{{ID: "module-id-123", Name: "test-module"}},
 	}, nil)
 	mockModuleProps.On("ReadBackendModules", false, false).Return(map[string]models.BackendModule{}, nil)
-	mockRegistrySvc.On("GetModules", mock.Anything, true, false).Return(&models.ProxyModulesByRegistry{}, nil)
+	mockRegistrySvc.On("GetModules", false).Return(&models.ProxyModulesByRegistry{}, nil)
 	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)

@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/spf13/viper"
@@ -27,9 +26,9 @@ type Action struct {
 	KeycloakAccessToken                string
 	KeycloakMasterAccessToken          string
 	ConfigProfileName                  string
+	ConfigLspURL                       string
+	ConfigFarURL                       string
 	ConfigRegistryURL                  string
-	ConfigInstallFolio                 string
-	ConfigInstallEureka                string
 	ConfigPortStart                    int
 	ConfigPortEnd                      int
 	ConfigManagementTopicSharing       bool
@@ -71,9 +70,9 @@ func New(name string, gatewayURL string, actionParam *Param) *Action {
 		Param:                              actionParam,
 		Caser:                              cases.Lower(language.English),
 		ConfigProfileName:                  viper.GetString(field.ProfileName),
+		ConfigLspURL:                       viper.GetString(field.LspURL),
+		ConfigFarURL:                       viper.GetString(field.FarURL),
 		ConfigRegistryURL:                  viper.GetString(field.RegistryURL),
-		ConfigInstallFolio:                 viper.GetString(field.InstallFolio),
-		ConfigInstallEureka:                viper.GetString(field.InstallEureka),
 		ConfigManagementTopicSharing:       viper.GetBool(field.BackendModulesManagementTopicSharing),
 		ConfigTopicSharingTenant:           viper.GetString(field.EnvTopicSharingTenant),
 		ConfigApplication:                  viper.GetStringMap(field.Application),
@@ -185,21 +184,6 @@ func (a *Action) isPortFree(portStart, portEnd int, port int) bool {
 	defer func() { _ = tcpListen.Close() }()
 
 	return true
-}
-
-// ==================== Install Json URLs ====================
-
-func (a *Action) GetCombinedInstallJsonURLs() map[string]string {
-	return map[string]string{
-		constant.FolioRegistry:  a.ConfigInstallFolio,
-		constant.EurekaRegistry: a.ConfigInstallEureka,
-	}
-}
-
-func (a *Action) GetEurekaInstallJsonURLs() map[string]string {
-	return map[string]string{
-		constant.EurekaRegistry: a.ConfigInstallEureka,
-	}
 }
 
 // ==================== Module URL  ====================

@@ -183,8 +183,7 @@ func (run *Run) deployNewModuleAndSidecarPair() error {
 		return err
 	}
 
-	installJsonURLs := run.Config.Action.GetCombinedInstallJsonURLs()
-	modules, err := run.Config.RegistrySvc.GetModules(installJsonURLs, true, false)
+	modules, err := run.Config.RegistrySvc.GetModules(false)
 	if err != nil {
 		return err
 	}

@@ -101,7 +101,7 @@ func (run *Run) createPortProxyForWindows() error {
 
 	if err := run.execWithArgs("tracert", sidecarHostname); err != nil {
 		slog.Error(run.Config.Action.Name, "text", "Failed to trace hostname", "from", from, "error", err)
-		return fmt.Errorf("%w: Check if hostname exists in /etc/hosts: %s", err, sidecarHostname)
+		return errors.HostnameNotReachable(sidecarHostname, err)
 	}
 	slog.Info(run.Config.Action.Name, "text", "Traced hostname", "from", sidecarHostname)
 

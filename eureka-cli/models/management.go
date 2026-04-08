@@ -112,3 +112,27 @@ type ModuleDiscovery struct {
 	Version  string `json:"version"`
 	Location string `json:"location"`
 }
+
+// ==================== LSP Platform Descriptor ====================
+
+// PlatformDescriptor represents the LSP platform descriptor JSON payload
+type PlatformDescriptor struct {
+	Name             string                `json:"name"`
+	Version          string                `json:"version"`
+	Description      string                `json:"description"`
+	EurekaComponents []PlatformApplication `json:"eureka-components"`
+	Applications     PlatformApplications  `json:"applications"`
+}
+
+// PlatformApplications contains the required, optional and experimental application lists from the platform descriptor
+type PlatformApplications struct {
+	Required     []PlatformApplication `json:"required"`
+	Optional     []PlatformApplication `json:"optional"`
+	Experimental []PlatformApplication `json:"experimental"`
+}
+
+// PlatformApplication represents a named and versioned application entry in the platform descriptor
+type PlatformApplication struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
