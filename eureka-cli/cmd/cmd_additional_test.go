@@ -210,7 +210,7 @@ func TestDeployManagement_Success(t *testing.T) {
 	run.Config.KongSvc = mockKongSvc
 
 	mockModuleProps.On("ReadBackendModules", true, true).Return(map[string]models.BackendModule{}, nil)
-	mockRegistrySvc.On("GetModules", mock.Anything, true, true).Return(&models.ProxyModulesByRegistry{}, nil)
+	mockRegistrySvc.On("GetModules", true).Return(&models.ProxyModulesByRegistry{}, nil)
 	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
@@ -240,7 +240,7 @@ func TestDeployManagement_DeployModulesError(t *testing.T) {
 
 	expectedError := assert.AnError
 	mockModuleProps.On("ReadBackendModules", true, true).Return(map[string]models.BackendModule{}, nil)
-	mockRegistrySvc.On("GetModules", mock.Anything, true, true).Return(&models.ProxyModulesByRegistry{}, nil)
+	mockRegistrySvc.On("GetModules", true).Return(&models.ProxyModulesByRegistry{}, nil)
 	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
@@ -264,7 +264,7 @@ func TestDeployManagement_NoModulesDeployed(t *testing.T) {
 	run.Config.RegistrySvc = mockRegistrySvc
 
 	mockModuleProps.On("ReadBackendModules", true, true).Return(map[string]models.BackendModule{}, nil)
-	mockRegistrySvc.On("GetModules", mock.Anything, true, true).Return(&models.ProxyModulesByRegistry{}, nil)
+	mockRegistrySvc.On("GetModules", true).Return(&models.ProxyModulesByRegistry{}, nil)
 	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)

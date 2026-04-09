@@ -2,12 +2,9 @@ package registrysvc_test
 
 import (
 	"errors"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/models"
 	"github.com/folio-org/eureka-setup/eureka-cli/registrysvc"
@@ -136,207 +133,406 @@ func TestGetNamespace_ReleaseVersion(t *testing.T) {
 	mockAWS.AssertExpectations(t)
 }
 
+// ==================== GetModules (LSP-based) Tests ====================
+
+func buildLSPResponse(required, optional, experimental []models.PlatformApplication, components []models.PlatformApplication) models.PlatformDescriptor {
+	return models.PlatformDescriptor{
+		EurekaComponents: components,
+		Applications: models.PlatformApplications{
+			Required:     required,
+			Optional:     optional,
+			Experimental: experimental,
+		},
+	}
+}
+
+func stubLSP(mockHTTP *testhelpers.MockHTTPClient, lspURL string, descriptor models.PlatformDescriptor) {
+	mockHTTP.On("GetRetryReturnStruct", lspURL, mock.Anything, mock.AnythingOfType("*models.PlatformDescriptor")).
+		Run(func(args mock.Arguments) {
+			ptr := args.Get(2).(*models.PlatformDescriptor)
+			*ptr = descriptor
+		}).Return(nil)
+}
+
+func stubFAR(mockHTTP *testhelpers.MockHTTPClient, farBase string, appName, appVersion string, mods []any) {
+	appID := appName + "-" + appVersion
+	url := farBase + "/applications?query=id==" + appID
+	resp := models.ApplicationsResponse{ApplicationDescriptors: []map[string]any{{"modules": mods}}}
+	mockHTTP.On("GetRetryReturnStruct", url, mock.Anything, mock.AnythingOfType("*models.ApplicationsResponse")).
+		Run(func(args mock.Arguments) {
+			ptr := args.Get(2).(*models.ApplicationsResponse)
+			*ptr = resp
+		}).Return(nil)
+}
+
+func stubFARWithUI(mockHTTP *testhelpers.MockHTTPClient, farBase string, appName, appVersion string, mods, uiMods []any) {
+	appID := appName + "-" + appVersion
+	url := farBase + "/applications?query=id==" + appID
+	resp := models.ApplicationsResponse{ApplicationDescriptors: []map[string]any{{"modules": mods, "uiModules": uiMods}}}
+	mockHTTP.On("GetRetryReturnStruct", url, mock.Anything, mock.AnythingOfType("*models.ApplicationsResponse")).
+		Run(func(args mock.Arguments) {
+			ptr := args.Get(2).(*models.ApplicationsResponse)
+			*ptr = resp
+		}).Return(nil)
+}
+
 func TestGetModules_Success(t *testing.T) {
-	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
-	action := testhelpers.NewMockAction()
-	svc := registrysvc.New(action, mockHTTP, mockAWS)
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
 
-	installJsonURLs := map[string]string{
-		constant.FolioRegistry:  "http://folio.example.com/install.json",
-		constant.EurekaRegistry: "http://eureka.example.com/install.json",
-	}
+	descriptor := buildLSPResponse(
+		[]models.PlatformApplication{{Name: "app-core", Version: "1.0.0"}},
+		nil, nil, nil,
+	)
+	stubLSP(mockHTTP, act.ConfigLspURL, descriptor)
+	stubFAR(mockHTTP, act.ConfigFarURL, "app-core", "1.0.0", []any{
+		map[string]any{"id": "mod-inventory-1.0.0", "name": "mod-inventory", "version": "1.0.0"},
+		map[string]any{"id": "mod-users-2.0.0", "name": "mod-users", "version": "2.0.0"},
+	})
 
-	folioModules := []*models.ProxyModule{
-		{ID: "mod-inventory-1.0.0", Action: "enable"},
-		{ID: "mod-users-1.0.0", Action: "enable"},
-	}
+	result, err := svc.GetModules(false)
 
-	eurekaModules := []*models.ProxyModule{
-		{ID: "mod-custom-1.0.0", Action: "enable"},
-	}
-
-	mockHTTP.On("GetRetryReturnStruct",
-		"http://folio.example.com/install.json",
-		mock.Anything,
-		mock.AnythingOfType("*[]*models.ProxyModule")).
-		Run(func(args mock.Arguments) {
-			arg := args.Get(2).(*[]*models.ProxyModule)
-			*arg = folioModules
-		}).
-		Return(nil)
-
-	mockHTTP.On("GetRetryReturnStruct",
-		"http://eureka.example.com/install.json",
-		mock.Anything,
-		mock.AnythingOfType("*[]*models.ProxyModule")).
-		Run(func(args mock.Arguments) {
-			arg := args.Get(2).(*[]*models.ProxyModule)
-			*arg = eurekaModules
-		}).
-		Return(nil)
-
-	// Act
-	result, err := svc.GetModules(installJsonURLs, true, false)
-
-	// Assert
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, result.FolioModules, 2)
+	assert.Empty(t, result.EurekaModules)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestGetModules_Verbose(t *testing.T) {
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
+
+	descriptor := buildLSPResponse(
+		[]models.PlatformApplication{{Name: "app-core", Version: "1.0.0"}},
+		nil, nil, nil,
+	)
+	stubLSP(mockHTTP, act.ConfigLspURL, descriptor)
+	stubFAR(mockHTTP, act.ConfigFarURL, "app-core", "1.0.0", []any{
+		map[string]any{"id": "mod-inventory-1.0.0", "name": "mod-inventory", "version": "1.0.0"},
+	})
+
+	result, err := svc.GetModules(true)
+
+	assert.NoError(t, err)
+	assert.Len(t, result.FolioModules, 1)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestGetModules_LSPFetchError(t *testing.T) {
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
+
+	mockHTTP.On("GetRetryReturnStruct", act.ConfigLspURL, mock.Anything, mock.AnythingOfType("*models.PlatformDescriptor")).
+		Return(errors.New("LSP unreachable"))
+
+	result, err := svc.GetModules(false)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "LSP unreachable")
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestGetModules_FARFetchError(t *testing.T) {
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
+
+	descriptor := buildLSPResponse(
+		[]models.PlatformApplication{{Name: "app-core", Version: "1.0.0"}},
+		nil, nil, nil,
+	)
+	stubLSP(mockHTTP, act.ConfigLspURL, descriptor)
+
+	farURL := act.ConfigFarURL + "/applications?query=id==app-core-1.0.0"
+	mockHTTP.On("GetRetryReturnStruct", farURL, mock.Anything, mock.AnythingOfType("*models.ApplicationsResponse")).
+		Return(errors.New("FAR timeout"))
+
+	result, err := svc.GetModules(false)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "app-core-1.0.0")
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestGetModules_EurekaComponentsIncluded(t *testing.T) {
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
+
+	descriptor := buildLSPResponse(nil, nil, nil, []models.PlatformApplication{
+		{Name: "mgr-tenants", Version: "1.0.0"},
+		{Name: "folio-kong", Version: "3.0.0"},
+	})
+	stubLSP(mockHTTP, act.ConfigLspURL, descriptor)
+
+	result, err := svc.GetModules(false)
+
+	assert.NoError(t, err)
+	assert.Empty(t, result.FolioModules)
+	assert.Len(t, result.EurekaModules, 2)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestGetModules_ModulePartitioning(t *testing.T) {
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
+
+	descriptor := buildLSPResponse(
+		[]models.PlatformApplication{{Name: "app-mixed", Version: "1.0.0"}},
+		nil, nil, nil,
+	)
+	stubLSP(mockHTTP, act.ConfigLspURL, descriptor)
+	stubFAR(mockHTTP, act.ConfigFarURL, "app-mixed", "1.0.0", []any{
+		map[string]any{"id": "mod-inventory-1.0.0", "name": "mod-inventory", "version": "1.0.0"},
+		map[string]any{"id": "mgr-tenants-1.0.0", "name": "mgr-tenants", "version": "1.0.0"},
+		map[string]any{"id": "mod-login-keycloak-1.0.0", "name": "mod-login-keycloak", "version": "1.0.0"},
+		map[string]any{"id": "folio-kong-3.0.0", "name": "folio-kong", "version": "3.0.0"},
+		map[string]any{"id": "folio-module-sidecar-1.0.0", "name": "folio-module-sidecar", "version": "1.0.0"},
+		map[string]any{"id": "mod-scheduler-2.0.0", "name": "mod-scheduler", "version": "2.0.0"},
+	})
+
+	result, err := svc.GetModules(false)
+
+	assert.NoError(t, err)
+	assert.Len(t, result.FolioModules, 1)
+	assert.Len(t, result.EurekaModules, 5)
+	assert.Equal(t, "mod-inventory-1.0.0", result.FolioModules[0].ID)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestGetModules_RequiredAndOptionalMerged(t *testing.T) {
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
+
+	descriptor := buildLSPResponse(
+		[]models.PlatformApplication{{Name: "app-required", Version: "1.0.0"}},
+		[]models.PlatformApplication{{Name: "app-optional", Version: "2.0.0"}},
+		nil, nil,
+	)
+	stubLSP(mockHTTP, act.ConfigLspURL, descriptor)
+	stubFAR(mockHTTP, act.ConfigFarURL, "app-required", "1.0.0", []any{
+		map[string]any{"id": "mod-alpha-1.0.0", "name": "mod-alpha", "version": "1.0.0"},
+	})
+	stubFAR(mockHTTP, act.ConfigFarURL, "app-optional", "2.0.0", []any{
+		map[string]any{"id": "mod-beta-2.0.0", "name": "mod-beta", "version": "2.0.0"},
+	})
+
+	result, err := svc.GetModules(false)
+
+	assert.NoError(t, err)
+	assert.Len(t, result.FolioModules, 2)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestGetModules_ExperimentalAppsIncluded(t *testing.T) {
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
+
+	descriptor := buildLSPResponse(
+		[]models.PlatformApplication{{Name: "app-required", Version: "1.0.0"}},
+		nil,
+		[]models.PlatformApplication{{Name: "app-experimental", Version: "3.0.0"}},
+		nil,
+	)
+	stubLSP(mockHTTP, act.ConfigLspURL, descriptor)
+	stubFAR(mockHTTP, act.ConfigFarURL, "app-required", "1.0.0", []any{
+		map[string]any{"id": "mod-inventory-1.0.0", "name": "mod-inventory", "version": "1.0.0"},
+	})
+	stubFAR(mockHTTP, act.ConfigFarURL, "app-experimental", "3.0.0", []any{
+		map[string]any{"id": "mod-linked-data-3.0.0", "name": "mod-linked-data", "version": "3.0.0"},
+		map[string]any{"id": "mod-inn-reach-3.0.0", "name": "mod-inn-reach", "version": "3.0.0"},
+	})
+
+	result, err := svc.GetModules(false)
+
+	assert.NoError(t, err)
+	assert.Len(t, result.FolioModules, 3)
+	assert.Empty(t, result.EurekaModules)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestGetModules_UIModulesIncluded(t *testing.T) {
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
+
+	descriptor := buildLSPResponse(
+		[]models.PlatformApplication{{Name: "app-ui", Version: "1.0.0"}},
+		nil, nil, nil,
+	)
+	stubLSP(mockHTTP, act.ConfigLspURL, descriptor)
+	stubFARWithUI(mockHTTP, act.ConfigFarURL, "app-ui", "1.0.0",
+		[]any{
+			map[string]any{"id": "mod-inventory-1.0.0", "name": "mod-inventory", "version": "1.0.0"},
+		},
+		[]any{
+			map[string]any{"id": "folio_inventory-1.0.0", "name": "folio_inventory", "version": "1.0.0"},
+			map[string]any{"id": "folio_users-2.0.0", "name": "folio_users", "version": "2.0.0"},
+		},
+	)
+
+	result, err := svc.GetModules(false)
+
+	assert.NoError(t, err)
+	assert.Len(t, result.FolioModules, 3)
+	assert.Empty(t, result.EurekaModules)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestGetModules_EmptyApplications(t *testing.T) {
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
+
+	descriptor := buildLSPResponse(nil, nil, nil, []models.PlatformApplication{
+		{Name: "folio-module-sidecar", Version: "1.0.0"},
+	})
+	stubLSP(mockHTTP, act.ConfigLspURL, descriptor)
+
+	result, err := svc.GetModules(false)
+
+	assert.NoError(t, err)
+	assert.Empty(t, result.FolioModules)
 	assert.Len(t, result.EurekaModules, 1)
 	mockHTTP.AssertExpectations(t)
 }
 
-func TestGetModules_WithCustomFrontendModules(t *testing.T) {
-	// Arrange
+// ==================== isEurekaModule Tests ====================
+
+func TestIsEurekaModule_KeycloakSuffix(t *testing.T) {
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
-	action := testhelpers.NewMockAction()
-	svc := registrysvc.New(action, mockHTTP, mockAWS)
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
 
-	// Setup custom frontend modules
-	action.ConfigCustomFrontendModules = map[string]any{
-		"custom-ui": map[string]any{
-			field.ModuleVersionEntry: "2.0.0",
-		},
-		"invalid-module": nil,
-		"no-version": map[string]any{
-			"other-field": "value",
-		},
-	}
+	descriptor := buildLSPResponse(
+		[]models.PlatformApplication{{Name: "app-kc", Version: "1.0.0"}},
+		nil, nil, nil,
+	)
+	stubLSP(mockHTTP, act.ConfigLspURL, descriptor)
+	stubFAR(mockHTTP, act.ConfigFarURL, "app-kc", "1.0.0", []any{
+		map[string]any{"id": "mod-auth-keycloak-1.0.0", "name": "mod-auth-keycloak", "version": "1.0.0"},
+	})
 
-	installJsonURLs := map[string]string{
-		constant.FolioRegistry: "http://folio.example.com/install.json",
-	}
-
-	folioModules := []*models.ProxyModule{
-		{ID: "mod-inventory-1.0.0", Action: "enable"},
-	}
-
-	mockHTTP.On("GetRetryReturnStruct",
-		"http://folio.example.com/install.json",
-		mock.Anything,
-		mock.AnythingOfType("*[]*models.ProxyModule")).
-		Run(func(args mock.Arguments) {
-			arg := args.Get(2).(*[]*models.ProxyModule)
-			*arg = folioModules
-		}).
-		Return(nil)
-
-	// Act
-	result, err := svc.GetModules(installJsonURLs, true, false)
-
-	// Assert
+	result, err := svc.GetModules(false)
 	assert.NoError(t, err)
-	assert.NotNil(t, result)
-	// Should have original module + 1 custom module (invalid-module and no-version are skipped)
-	assert.Len(t, result.FolioModules, 2)
-	// Verify custom module was added
-	hasCustomUI := false
-	for _, mod := range result.FolioModules {
-		if mod.ID == "custom-ui-2.0.0" {
-			hasCustomUI = true
-			assert.Equal(t, "enable", mod.Action)
-		}
-	}
-	assert.True(t, hasCustomUI, "custom-ui module should be present")
-	mockHTTP.AssertExpectations(t)
-}
-
-func TestGetModules_HTTPError(t *testing.T) {
-	// Arrange
-	mockHTTP := &testhelpers.MockHTTPClient{}
-	mockAWS := &MockAWSSvc{}
-	action := testhelpers.NewMockAction()
-	svc := registrysvc.New(action, mockHTTP, mockAWS)
-
-	installJsonURLs := map[string]string{
-		constant.FolioRegistry: "http://folio.example.com/install.json",
-	}
-
-	mockHTTP.On("GetRetryReturnStruct",
-		"http://folio.example.com/install.json",
-		mock.Anything,
-		mock.AnythingOfType("*[]*models.ProxyModule")).
-		Return(errors.New("HTTP 500"))
-
-	// Act
-	result, err := svc.GetModules(installJsonURLs, true, false)
-
-	// Assert
-	assert.Error(t, err)
-	assert.Nil(t, result)
-	assert.Contains(t, err.Error(), "HTTP 500")
-	mockHTTP.AssertExpectations(t)
-}
-
-func TestGetModules_EmptyResults(t *testing.T) {
-	// Arrange
-	mockHTTP := &testhelpers.MockHTTPClient{}
-	mockAWS := &MockAWSSvc{}
-	action := testhelpers.NewMockAction()
-	svc := registrysvc.New(action, mockHTTP, mockAWS)
-
-	installJsonURLs := map[string]string{
-		constant.FolioRegistry: "http://folio.example.com/install.json",
-	}
-
-	emptyModules := []*models.ProxyModule{}
-
-	mockHTTP.On("GetRetryReturnStruct",
-		"http://folio.example.com/install.json",
-		mock.Anything,
-		mock.AnythingOfType("*[]*models.ProxyModule")).
-		Run(func(args mock.Arguments) {
-			arg := args.Get(2).(*[]*models.ProxyModule)
-			*arg = emptyModules
-		}).
-		Return(nil)
-
-	// Act
-	result, err := svc.GetModules(installJsonURLs, true, false)
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, result)
 	assert.Empty(t, result.FolioModules)
-	mockHTTP.AssertExpectations(t)
+	assert.Len(t, result.EurekaModules, 1)
 }
 
-func TestGetModules_WithVerbose(t *testing.T) {
-	// Arrange
+func TestIsEurekaModule_MgrPrefix(t *testing.T) {
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
-	action := testhelpers.NewMockAction()
-	svc := registrysvc.New(action, mockHTTP, mockAWS)
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
 
-	installJsonURLs := map[string]string{
-		constant.FolioRegistry: "http://folio.example.com/install.json",
-	}
+	descriptor := buildLSPResponse(
+		[]models.PlatformApplication{{Name: "app-mgr", Version: "1.0.0"}},
+		nil, nil, nil,
+	)
+	stubLSP(mockHTTP, act.ConfigLspURL, descriptor)
+	stubFAR(mockHTTP, act.ConfigFarURL, "app-mgr", "1.0.0", []any{
+		map[string]any{"id": "mgr-applications-1.0.0", "name": "mgr-applications", "version": "1.0.0"},
+		map[string]any{"id": "mgr-tenants-1.0.0", "name": "mgr-tenants", "version": "1.0.0"},
+	})
 
-	folioModules := []*models.ProxyModule{
-		{ID: "mod-inventory-1.0.0", Action: "enable"},
-	}
-
-	mockHTTP.On("GetRetryReturnStruct",
-		"http://folio.example.com/install.json",
-		mock.Anything,
-		mock.AnythingOfType("*[]*models.ProxyModule")).
-		Run(func(args mock.Arguments) {
-			arg := args.Get(2).(*[]*models.ProxyModule)
-			*arg = folioModules
-		}).
-		Return(nil)
-
-	// Act
-	result, err := svc.GetModules(installJsonURLs, true, true)
-
-	// Assert
+	result, err := svc.GetModules(false)
 	assert.NoError(t, err)
-	assert.NotNil(t, result)
-	assert.Len(t, result.FolioModules, 1)
-	mockHTTP.AssertExpectations(t)
+	assert.Empty(t, result.FolioModules)
+	assert.Len(t, result.EurekaModules, 2)
+}
+
+func TestIsEurekaModule_ExactMatches(t *testing.T) {
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
+
+	descriptor := buildLSPResponse(
+		[]models.PlatformApplication{{Name: "app-exact", Version: "1.0.0"}},
+		nil, nil, nil,
+	)
+	stubLSP(mockHTTP, act.ConfigLspURL, descriptor)
+	stubFAR(mockHTTP, act.ConfigFarURL, "app-exact", "1.0.0", []any{
+		map[string]any{"id": "folio-kong-3.0.0", "name": "folio-kong", "version": "3.0.0"},
+		map[string]any{"id": "folio-module-sidecar-1.0.0", "name": "folio-module-sidecar", "version": "1.0.0"},
+		map[string]any{"id": "mod-scheduler-2.0.0", "name": "mod-scheduler", "version": "2.0.0"},
+	})
+
+	result, err := svc.GetModules(false)
+	assert.NoError(t, err)
+	assert.Empty(t, result.FolioModules)
+	assert.Len(t, result.EurekaModules, 3)
+}
+
+func TestIsEurekaModule_RegularFolioModuleNotEureka(t *testing.T) {
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
+
+	descriptor := buildLSPResponse(
+		[]models.PlatformApplication{{Name: "app-folio", Version: "1.0.0"}},
+		nil, nil, nil,
+	)
+	stubLSP(mockHTTP, act.ConfigLspURL, descriptor)
+	stubFAR(mockHTTP, act.ConfigFarURL, "app-folio", "1.0.0", []any{
+		map[string]any{"id": "mod-inventory-1.0.0", "name": "mod-inventory", "version": "1.0.0"},
+		map[string]any{"id": "mod-users-2.0.0", "name": "mod-users", "version": "2.0.0"},
+		map[string]any{"id": "edge-patron-1.0.0", "name": "edge-patron", "version": "1.0.0"},
+	})
+
+	result, err := svc.GetModules(false)
+	assert.NoError(t, err)
+	assert.Len(t, result.FolioModules, 3)
+	assert.Empty(t, result.EurekaModules)
 }
 
 func TestExtractModuleMetadata_Success(t *testing.T) {
@@ -443,48 +639,6 @@ func TestExtractModuleMetadata_EmptyModules(t *testing.T) {
 	svc.ExtractModuleMetadata(modules)
 }
 
-func TestGetModules_ModuleSorting(t *testing.T) {
-	// Arrange
-	mockHTTP := &testhelpers.MockHTTPClient{}
-	mockAWS := &MockAWSSvc{}
-	action := testhelpers.NewMockAction()
-	svc := registrysvc.New(action, mockHTTP, mockAWS)
-
-	installJsonURLs := map[string]string{
-		constant.FolioRegistry: "http://folio.example.com/install.json",
-	}
-
-	// Unsorted modules
-	folioModules := []*models.ProxyModule{
-		{ID: "mod-users-1.0.0", Action: "enable"},
-		{ID: "mod-inventory-1.0.0", Action: "enable"},
-		{ID: "mod-agreements-2.0.0", Action: "enable"},
-	}
-
-	mockHTTP.On("GetRetryReturnStruct",
-		"http://folio.example.com/install.json",
-		mock.Anything,
-		mock.AnythingOfType("*[]*models.ProxyModule")).
-		Run(func(args mock.Arguments) {
-			arg := args.Get(2).(*[]*models.ProxyModule)
-			*arg = folioModules
-		}).
-		Return(nil)
-
-	// Act
-	result, err := svc.GetModules(installJsonURLs, true, false)
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, result)
-	assert.Len(t, result.FolioModules, 3)
-	// Verify sorting - should be alphabetically sorted
-	assert.Equal(t, "mod-agreements-2.0.0", result.FolioModules[0].ID)
-	assert.Equal(t, "mod-inventory-1.0.0", result.FolioModules[1].ID)
-	assert.Equal(t, "mod-users-1.0.0", result.FolioModules[2].ID)
-	mockHTTP.AssertExpectations(t)
-}
-
 func TestExtractModuleMetadata_ModuleWithoutVersion(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
@@ -510,377 +664,6 @@ func TestExtractModuleMetadata_ModuleWithoutVersion(t *testing.T) {
 	assert.NotNil(t, modules.FolioModules[0].Metadata.Version)
 	assert.Equal(t, "-users", *modules.FolioModules[0].Metadata.Version)
 	assert.Equal(t, "mod-sc", modules.FolioModules[0].Metadata.SidecarName)
-}
-
-func TestGetModules_BothRegistries(t *testing.T) {
-	// Arrange
-	mockHTTP := &testhelpers.MockHTTPClient{}
-	mockAWS := &MockAWSSvc{}
-	action := testhelpers.NewMockAction()
-	svc := registrysvc.New(action, mockHTTP, mockAWS)
-
-	installJsonURLs := map[string]string{
-		constant.FolioRegistry:  "http://folio.example.com/install.json",
-		constant.EurekaRegistry: "http://eureka.example.com/install.json",
-	}
-
-	folioModules := []*models.ProxyModule{
-		{ID: "mod-z-1.0.0", Action: "enable"},
-		{ID: "mod-a-1.0.0", Action: "enable"},
-	}
-
-	eurekaModules := []*models.ProxyModule{
-		{ID: "mod-eureka-2.0.0", Action: "enable"},
-	}
-
-	mockHTTP.On("GetRetryReturnStruct",
-		"http://folio.example.com/install.json",
-		mock.Anything,
-		mock.AnythingOfType("*[]*models.ProxyModule")).
-		Run(func(args mock.Arguments) {
-			arg := args.Get(2).(*[]*models.ProxyModule)
-			*arg = folioModules
-		}).
-		Return(nil)
-
-	mockHTTP.On("GetRetryReturnStruct",
-		"http://eureka.example.com/install.json",
-		mock.Anything,
-		mock.AnythingOfType("*[]*models.ProxyModule")).
-		Run(func(args mock.Arguments) {
-			arg := args.Get(2).(*[]*models.ProxyModule)
-			*arg = eurekaModules
-		}).
-		Return(nil)
-
-	// Act
-	result, err := svc.GetModules(installJsonURLs, true, false)
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, result)
-	assert.Len(t, result.FolioModules, 2)
-	assert.Len(t, result.EurekaModules, 1)
-	// Verify sorting: mod-a should come before mod-z
-	assert.Equal(t, "mod-a-1.0.0", result.FolioModules[0].ID)
-	assert.Equal(t, "mod-z-1.0.0", result.FolioModules[1].ID)
-	mockHTTP.AssertExpectations(t)
-}
-
-// Tests for useRemote parameter
-
-func TestGetModules_UseRemoteFalse_Success(t *testing.T) {
-	t.Run("TestGetModules_UseRemoteFalse_Success", func(t *testing.T) {
-		// Arrange
-		mockHTTP := &testhelpers.MockHTTPClient{}
-		mockAWS := &MockAWSSvc{}
-		action := testhelpers.NewMockAction()
-		svc := registrysvc.New(action, mockHTTP, mockAWS)
-
-		// Create temp directory structure matching .eureka
-		tmpDir := t.TempDir()
-		eurekaDir := filepath.Join(tmpDir, ".eureka")
-		err := os.MkdirAll(eurekaDir, 0755)
-		assert.NoError(t, err)
-
-		folioModules := []*models.ProxyModule{
-			{ID: "mod-inventory-1.0.0", Action: "enable"},
-			{ID: "mod-users-1.0.0", Action: "enable"},
-		}
-
-		eurekaModules := []*models.ProxyModule{
-			{ID: "mod-custom-1.0.0", Action: "enable"},
-		}
-
-		// Create local install files in .eureka directory (not misc subdirectory)
-		testhelpers.CreateJSONFileInDir(t, eurekaDir, "install_folio.json", folioModules)
-		testhelpers.CreateJSONFileInDir(t, eurekaDir, "install_eureka.json", eurekaModules)
-
-		// Override GetHomeMiscDir by setting environment variable
-		t.Setenv("HOME", tmpDir)
-		t.Setenv("USERPROFILE", tmpDir)
-
-		installJsonURLs := map[string]string{
-			constant.FolioRegistry:  "http://folio.example.com/install.json",
-			constant.EurekaRegistry: "http://eureka.example.com/install.json",
-		}
-
-		// Act - useRemote=false should read local files
-		result, err := svc.GetModules(installJsonURLs, false, false)
-
-		// Assert
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		assert.Len(t, result.FolioModules, 2)
-		assert.Len(t, result.EurekaModules, 1)
-		// HTTP client should not be called when useRemote=false
-		mockHTTP.AssertNotCalled(t, "GetRetryReturnStruct")
-	})
-}
-
-func TestGetModules_UseRemoteFalse_LocalFileNotFound(t *testing.T) {
-	t.Run("TestGetModules_UseRemoteFalse_LocalFileNotFound", func(t *testing.T) {
-		// Arrange
-		mockHTTP := &testhelpers.MockHTTPClient{}
-		mockAWS := &MockAWSSvc{}
-		action := testhelpers.NewMockAction()
-		svc := registrysvc.New(action, mockHTTP, mockAWS)
-
-		// Set to empty temp directory (no install files)
-		tmpDir := t.TempDir()
-		t.Setenv("HOME", tmpDir)
-		t.Setenv("USERPROFILE", tmpDir)
-
-		installJsonURLs := map[string]string{
-			constant.FolioRegistry: "http://folio.example.com/install.json",
-		}
-
-		// Act - useRemote=false but local file doesn't exist
-		result, err := svc.GetModules(installJsonURLs, false, false)
-
-		// Assert
-		assert.Error(t, err)
-		assert.Nil(t, result)
-		// HTTP client should not be called
-		mockHTTP.AssertNotCalled(t, "GetRetryReturnStruct")
-	})
-}
-
-func TestGetModules_SkipRegistry_ReadsLocalFile(t *testing.T) {
-	t.Run("TestGetModules_SkipRegistry_ReadsLocalFile", func(t *testing.T) {
-		// Arrange
-		mockHTTP := &testhelpers.MockHTTPClient{}
-		mockAWS := &MockAWSSvc{}
-		action := testhelpers.NewMockAction()
-		action.Param.SkipRegistry = true // SkipRegistry forces local file read
-		svc := registrysvc.New(action, mockHTTP, mockAWS)
-
-		// Create temp directory structure
-		tmpDir := t.TempDir()
-		eurekaDir := filepath.Join(tmpDir, ".eureka")
-		err := os.MkdirAll(eurekaDir, 0755)
-		assert.NoError(t, err)
-
-		folioModules := []*models.ProxyModule{
-			{ID: "mod-local-1.0.0", Action: "enable"},
-		}
-
-		testhelpers.CreateJSONFileInDir(t, eurekaDir, "install_folio.json", folioModules)
-
-		// Override home directory
-		t.Setenv("HOME", tmpDir)
-		t.Setenv("USERPROFILE", tmpDir)
-
-		installJsonURLs := map[string]string{
-			constant.FolioRegistry: "http://folio.example.com/install.json",
-		}
-
-		// Act - useRemote=true but SkipRegistry=true should read local file
-		result, err := svc.GetModules(installJsonURLs, true, false)
-
-		// Assert
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		assert.Len(t, result.FolioModules, 1)
-		assert.Equal(t, "mod-local-1.0.0", result.FolioModules[0].ID)
-		// HTTP client should not be called when SkipRegistry=true
-		mockHTTP.AssertNotCalled(t, "GetRetryReturnStruct")
-	})
-}
-
-func TestGetModules_UseRemoteFalse_WithCustomFrontendModules(t *testing.T) {
-	t.Run("TestGetModules_UseRemoteFalse_WithCustomFrontendModules", func(t *testing.T) {
-		// Arrange
-		mockHTTP := &testhelpers.MockHTTPClient{}
-		mockAWS := &MockAWSSvc{}
-		action := testhelpers.NewMockAction()
-		svc := registrysvc.New(action, mockHTTP, mockAWS)
-
-		// Setup custom frontend modules
-		action.ConfigCustomFrontendModules = map[string]any{
-			"custom-ui": map[string]any{
-				field.ModuleVersionEntry: "2.0.0",
-			},
-		}
-
-		// Create temp directory structure
-		tmpDir := t.TempDir()
-		eurekaDir := filepath.Join(tmpDir, ".eureka")
-		err := os.MkdirAll(eurekaDir, 0755)
-		assert.NoError(t, err)
-
-		folioModules := []*models.ProxyModule{
-			{ID: "mod-inventory-1.0.0", Action: "enable"},
-		}
-
-		testhelpers.CreateJSONFileInDir(t, eurekaDir, "install_folio.json", folioModules)
-
-		t.Setenv("HOME", tmpDir)
-		t.Setenv("USERPROFILE", tmpDir)
-
-		installJsonURLs := map[string]string{
-			constant.FolioRegistry: "http://folio.example.com/install.json",
-		}
-
-		// Act - useRemote=false with custom modules
-		result, err := svc.GetModules(installJsonURLs, false, false)
-
-		// Assert
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		// Should have 1 local module + 1 custom module
-		assert.Len(t, result.FolioModules, 2)
-
-		// Verify custom module was added
-		hasCustomUI := false
-		for _, mod := range result.FolioModules {
-			if mod.ID == "custom-ui-2.0.0" {
-				hasCustomUI = true
-			}
-		}
-		assert.True(t, hasCustomUI, "custom-ui module should be present")
-		mockHTTP.AssertNotCalled(t, "GetRetryReturnStruct")
-	})
-}
-
-func TestGetModules_UseRemoteFalse_EmptyLocalFile(t *testing.T) {
-	t.Run("TestGetModules_UseRemoteFalse_EmptyLocalFile", func(t *testing.T) {
-		// Arrange
-		mockHTTP := &testhelpers.MockHTTPClient{}
-		mockAWS := &MockAWSSvc{}
-		action := testhelpers.NewMockAction()
-		svc := registrysvc.New(action, mockHTTP, mockAWS)
-
-		// Create temp directory structure with empty install file
-		tmpDir := t.TempDir()
-		eurekaDir := filepath.Join(tmpDir, ".eureka")
-		err := os.MkdirAll(eurekaDir, 0755)
-		assert.NoError(t, err)
-
-		emptyModules := []*models.ProxyModule{}
-		testhelpers.CreateJSONFileInDir(t, eurekaDir, "install_folio.json", emptyModules)
-
-		t.Setenv("HOME", tmpDir)
-		t.Setenv("USERPROFILE", tmpDir)
-
-		installJsonURLs := map[string]string{
-			constant.FolioRegistry: "http://folio.example.com/install.json",
-		}
-
-		// Act - useRemote=false with empty local file
-		result, err := svc.GetModules(installJsonURLs, false, false)
-
-		// Assert
-		assert.Error(t, err)
-		assert.Nil(t, result)
-		// Error message contains reference to local install file
-		assert.Contains(t, err.Error(), "local install file")
-		mockHTTP.AssertNotCalled(t, "GetRetryReturnStruct")
-	})
-}
-
-func TestGetModules_UseRemoteFalse_MultipleRegistries(t *testing.T) {
-	t.Run("TestGetModules_UseRemoteFalse_MultipleRegistries", func(t *testing.T) {
-		// Arrange
-		mockHTTP := &testhelpers.MockHTTPClient{}
-		mockAWS := &MockAWSSvc{}
-		action := testhelpers.NewMockAction()
-		svc := registrysvc.New(action, mockHTTP, mockAWS)
-
-		// Create temp directory structure with install files for both registries
-		tmpDir := t.TempDir()
-		eurekaDir := filepath.Join(tmpDir, ".eureka")
-		err := os.MkdirAll(eurekaDir, 0755)
-		assert.NoError(t, err)
-
-		folioModules := []*models.ProxyModule{
-			{ID: "mod-users-1.0.0", Action: "enable"},
-			{ID: "mod-inventory-1.0.0", Action: "enable"},
-		}
-
-		eurekaModules := []*models.ProxyModule{
-			{ID: "mod-eureka-custom-1.0.0", Action: "enable"},
-		}
-
-		testhelpers.CreateJSONFileInDir(t, eurekaDir, "install_folio.json", folioModules)
-		testhelpers.CreateJSONFileInDir(t, eurekaDir, "install_eureka.json", eurekaModules)
-
-		t.Setenv("HOME", tmpDir)
-		t.Setenv("USERPROFILE", tmpDir)
-
-		installJsonURLs := map[string]string{
-			constant.FolioRegistry:  "http://folio.example.com/install.json",
-			constant.EurekaRegistry: "http://eureka.example.com/install.json",
-		}
-
-		// Act - useRemote=false reads both local files
-		result, err := svc.GetModules(installJsonURLs, false, false)
-
-		// Assert
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		assert.Len(t, result.FolioModules, 2)
-		assert.Len(t, result.EurekaModules, 1)
-		// Verify sorting
-		assert.Equal(t, "mod-inventory-1.0.0", result.FolioModules[0].ID)
-		assert.Equal(t, "mod-users-1.0.0", result.FolioModules[1].ID)
-		mockHTTP.AssertNotCalled(t, "GetRetryReturnStruct")
-	})
-}
-
-func TestGetModules_UseRemoteTrue_CreatesLocalFile(t *testing.T) {
-	t.Run("TestGetModules_UseRemoteTrue_CreatesLocalFile", func(t *testing.T) {
-		// Arrange
-		mockHTTP := &testhelpers.MockHTTPClient{}
-		mockAWS := &MockAWSSvc{}
-		action := testhelpers.NewMockAction()
-		svc := registrysvc.New(action, mockHTTP, mockAWS)
-
-		tmpDir := t.TempDir()
-		// Create the .eureka directory structure that the code expects
-		eurekaDir := filepath.Join(tmpDir, ".eureka")
-		err := os.MkdirAll(eurekaDir, 0755)
-		assert.NoError(t, err)
-
-		t.Setenv("HOME", tmpDir)
-		t.Setenv("USERPROFILE", tmpDir)
-
-		installJsonURLs := map[string]string{
-			constant.FolioRegistry: "http://folio.example.com/install.json",
-		}
-
-		folioModules := []*models.ProxyModule{
-			{ID: "mod-remote-1.0.0", Action: "enable"},
-		}
-
-		mockHTTP.On("GetRetryReturnStruct",
-			"http://folio.example.com/install.json",
-			mock.Anything,
-			mock.AnythingOfType("*[]*models.ProxyModule")).
-			Run(func(args mock.Arguments) {
-				arg := args.Get(2).(*[]*models.ProxyModule)
-				*arg = folioModules
-			}).
-			Return(nil)
-
-		// Act - useRemote=true fetches from remote and creates local file
-		result, err := svc.GetModules(installJsonURLs, true, false)
-
-		// Assert
-		assert.NoError(t, err)
-		assert.NotNil(t, result)
-		assert.Len(t, result.FolioModules, 1)
-		assert.Equal(t, "mod-remote-1.0.0", result.FolioModules[0].ID)
-		mockHTTP.AssertExpectations(t)
-
-		// Verify local file was created in the .eureka directory
-		expectedPath := filepath.Join(tmpDir, ".eureka", "install_folio.json")
-		fileInfo, err := os.Stat(expectedPath)
-		assert.NoError(t, err, "local file should be created")
-		if err == nil {
-			assert.False(t, fileInfo.IsDir(), "should be a file not a directory")
-		}
-	})
 }
 
 // Tests for getSidecarName
@@ -1023,92 +806,5 @@ func TestGetSidecarName_MultipleEdgeModules(t *testing.T) {
 		assert.Equal(t, "edge-patron", modules.FolioModules[0].Metadata.SidecarName)
 		assert.Equal(t, "edge-orders", modules.FolioModules[1].Metadata.SidecarName)
 		assert.Equal(t, "mod-users-sc", modules.FolioModules[2].Metadata.SidecarName)
-	})
-}
-
-func TestGetModules_UseRemoteFalse_InvalidJSON(t *testing.T) {
-	t.Run("TestGetModules_UseRemoteFalse_InvalidJSON", func(t *testing.T) {
-		// Arrange
-		mockHTTP := &testhelpers.MockHTTPClient{}
-		mockAWS := &MockAWSSvc{}
-		action := testhelpers.NewMockAction()
-		svc := registrysvc.New(action, mockHTTP, mockAWS)
-
-		// Create temp directory with invalid JSON file
-		tmpDir := t.TempDir()
-		eurekaDir := filepath.Join(tmpDir, ".eureka")
-		err := os.MkdirAll(eurekaDir, 0755)
-		assert.NoError(t, err)
-
-		// Write invalid JSON to file
-		invalidJSON := []byte(`{"invalid": json}`)
-		err = os.WriteFile(filepath.Join(eurekaDir, "install_folio.json"), invalidJSON, 0600)
-		assert.NoError(t, err)
-
-		t.Setenv("HOME", tmpDir)
-		t.Setenv("USERPROFILE", tmpDir)
-
-		installJsonURLs := map[string]string{
-			constant.FolioRegistry: "http://folio.example.com/install.json",
-		}
-
-		// Act - useRemote=false with invalid JSON file
-		result, err := svc.GetModules(installJsonURLs, false, false)
-
-		// Assert
-		assert.Error(t, err)
-		assert.Nil(t, result)
-		mockHTTP.AssertNotCalled(t, "GetRetryReturnStruct")
-	})
-}
-
-func TestGetModules_UseRemoteTrue_WriteFileError(t *testing.T) {
-	t.Run("TestGetModules_UseRemoteTrue_WriteFileError", func(t *testing.T) {
-		// Arrange
-		mockHTTP := &testhelpers.MockHTTPClient{}
-		mockAWS := &MockAWSSvc{}
-		action := testhelpers.NewMockAction()
-		svc := registrysvc.New(action, mockHTTP, mockAWS)
-
-		// Set to a directory path where the install file path is actually a directory
-		tmpDir := t.TempDir()
-		eurekaDir := filepath.Join(tmpDir, ".eureka")
-		err := os.MkdirAll(eurekaDir, 0755)
-		assert.NoError(t, err)
-
-		// Create a directory with the name of the file we want to write
-		// This will cause WriteJSONToFile to fail
-		installFileDir := filepath.Join(eurekaDir, "install_folio.json")
-		err = os.MkdirAll(installFileDir, 0755)
-		assert.NoError(t, err)
-
-		t.Setenv("HOME", tmpDir)
-		t.Setenv("USERPROFILE", tmpDir)
-
-		installJsonURLs := map[string]string{
-			constant.FolioRegistry: "http://folio.example.com/install.json",
-		}
-
-		folioModules := []*models.ProxyModule{
-			{ID: "mod-test-1.0.0", Action: "enable"},
-		}
-
-		mockHTTP.On("GetRetryReturnStruct",
-			"http://folio.example.com/install.json",
-			mock.Anything,
-			mock.AnythingOfType("*[]*models.ProxyModule")).
-			Run(func(args mock.Arguments) {
-				arg := args.Get(2).(*[]*models.ProxyModule)
-				*arg = folioModules
-			}).
-			Return(nil)
-
-		// Act - useRemote=true but can't write file (path is a directory)
-		result, err := svc.GetModules(installJsonURLs, true, false)
-
-		// Assert
-		assert.Error(t, err)
-		assert.Nil(t, result)
-		mockHTTP.AssertExpectations(t)
 	})
 }

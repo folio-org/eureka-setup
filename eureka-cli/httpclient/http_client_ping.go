@@ -1,7 +1,6 @@
 package httpclient
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/errors"
@@ -53,7 +52,7 @@ func (hc *HTTPClient) doStatusCheck(url string, useRetry bool) (int, error) {
 		}
 	}
 	if httpResponse == nil {
-		return 0, fmt.Errorf("received nil response from %s", url)
+		return 0, errors.PingNilResponse(url)
 	}
 	defer CloseResponse(httpResponse)
 

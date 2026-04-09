@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"os"
 	"strings"
@@ -75,7 +74,7 @@ func (as *AWSSvc) GetAuthorizationToken() (string, error) {
 
 	authCreds := strings.SplitN(string(decodedBytes), ":", 2)
 	if len(authCreds) != 2 {
-		return "", errors.ECRTokenDecodeFailed(fmt.Errorf("invalid authorization token format"))
+		return "", errors.ECRInvalidTokenFormat()
 	}
 	authConfig := map[string]string{
 		"username": authCreds[0],

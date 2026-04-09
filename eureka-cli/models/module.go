@@ -215,14 +215,3 @@ type RegistryExtract struct {
 	FrontendModules   map[string]FrontendModule
 	ModuleDescriptors map[string]any
 }
-
-type RegistryRequest struct {
-	RegistryName   string
-	InstallJsonURL string
-	HomeDir        string
-	UseRemote      bool
-	Metadata       struct {
-		FileName string
-		Path     string
-	}
-}

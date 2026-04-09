@@ -89,7 +89,7 @@ func (ms *ModuleSvc) GetSidecarImage(modules []*models.ProxyModule) (string, boo
 
 	image := helpers.GetString(ms.Action.ConfigSidecarModule, field.SidecarModuleImageEntry)
 	if image == "" {
-		return "", false, errors.New("sidecar image is blank")
+		return "", false, errors.SidecarImageBlank()
 	}
 	finalImage := fmt.Sprintf("%s:%s", image, sidecarImageVersion)
 

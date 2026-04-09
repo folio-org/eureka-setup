@@ -1040,3 +1040,58 @@ type flagAdapter struct {
 func (f flagAdapter) GetName() string {
 	return f.name
 }
+
+// ==================== ECRInvalidTokenFormat Tests ====================
+
+func TestECRInvalidTokenFormat(t *testing.T) {
+	result := apperrors.ECRInvalidTokenFormat()
+
+	assert.Error(t, result)
+	assert.Contains(t, result.Error(), "invalid ECR authorization token format")
+	assert.True(t, errors.Is(result, apperrors.ErrUnauthorized))
+}
+
+// ==================== HostnameNotReachable Tests ====================
+
+func TestHostnameNotReachable(t *testing.T) {
+	baseErr := errors.New("tracert failed")
+	result := apperrors.HostnameNotReachable("my-module.eureka", baseErr)
+
+	assert.Error(t, result)
+	assert.Contains(t, result.Error(), "my-module.eureka")
+	assert.Contains(t, result.Error(), "/etc/hosts")
+	assert.True(t, errors.Is(result, baseErr))
+}
+
+// ==================== PingNilResponse Tests ====================
+
+func TestPingNilResponse(t *testing.T) {
+	result := apperrors.PingNilResponse("http://example.com/health")
+
+	assert.Error(t, result)
+	assert.Contains(t, result.Error(), "http://example.com/health")
+	assert.Contains(t, result.Error(), "nil response")
+}
+
+// ==================== FARFetchFailed Tests ====================
+
+func TestFARFetchFailed(t *testing.T) {
+	baseErr := errors.New("connection refused")
+	result := apperrors.FARFetchFailed("my-app-1.0.0", baseErr)
+
+	assert.Error(t, result)
+	assert.Contains(t, result.Error(), "my-app-1.0.0")
+	assert.Contains(t, result.Error(), "FAR")
+	assert.True(t, errors.Is(result, apperrors.ErrNotFound))
+	assert.True(t, errors.Is(result, baseErr))
+}
+
+// ==================== SidecarImageBlank Tests ====================
+
+func TestSidecarImageBlank(t *testing.T) {
+	result := apperrors.SidecarImageBlank()
+
+	assert.Error(t, result)
+	assert.Contains(t, result.Error(), "sidecar image is blank")
+	assert.True(t, errors.Is(result, apperrors.ErrConfigMissing))
+}

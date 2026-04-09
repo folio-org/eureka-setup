@@ -56,8 +56,7 @@ func (run *Run) DeployModules() error {
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "READING BACKEND MODULE REGISTRIES")
-	installJsonURLs := run.Config.Action.GetCombinedInstallJsonURLs()
-	modules, err := run.Config.RegistrySvc.GetModules(installJsonURLs, true, true)
+	modules, err := run.Config.RegistrySvc.GetModules(true)
 	if err != nil {
 		return err
 	}
