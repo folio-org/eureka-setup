@@ -109,7 +109,7 @@ func (rs *RegistrySvc) getFlattenedModuleVersions() ([]models.ApplicationModule,
 		return nil, err
 	}
 
-	slog.Info(rs.Action.Name, "text", "Fetched LSP platform descriptor", "name", descriptor.Name, "version", descriptor.Version, "description", descriptor.Description)
+	slog.Info(rs.Action.Name, "text", "Fetched LSP platform descriptor", "name", descriptor.Name, "version", descriptor.Version)
 
 	applications := append(descriptor.Applications.Required, descriptor.Applications.Optional...)
 	applications = append(applications, descriptor.Applications.Experimental...)
@@ -145,6 +145,7 @@ func (rs *RegistrySvc) getFlattenedModuleVersions() ([]models.ApplicationModule,
 				results[innerIdx] = result{appID: appID, err: err}
 				return
 			}
+			slog.Info(rs.Action.Name, "text", "Fetched FAR application descriptor", "appId", appID)
 
 			var appModules []models.ApplicationModule
 			for _, appDescriptor := range response.ApplicationDescriptors {
