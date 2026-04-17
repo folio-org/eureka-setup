@@ -22,9 +22,9 @@ HTTP testing utilities for mocking HTTP servers and responses:
 Mock implementations of key interfaces:
 
 - **MockHTTPClient**: Mock for `httpclient.HTTPClientRunner` interface
-- **MockAction**: Mock for `action.Action` struct
+- **NewMockAction()**: Returns a real `*action.Action` with an empty `Param` — set fields directly
 - **MockCommandExecutor**: Mock for `execsvc.CommandRunner` interface
-- **MockRegistrySvc**: Mock for `registrysvc.RegistryProcessor` interface
+- **MockRegistrySvc**: Mock for `registrysvc.RegistryProcessor` interface — `GetModules(verbose, forceRefresh bool)`
 - **MockModuleEnv**: Mock for `moduleenv.ModuleEnvProcessor` interface
 - **MockDockerClient**: Mock for `dockerclient.DockerClientRunner` interface
 - **MockTenantSvc**: Mock for `tenantsvc.TenantProcessor` interface
@@ -149,8 +149,9 @@ func TestSearchSvc_ReindexInventoryRecords(t *testing.T) {
 - Use descriptive test names
 - Test edge cases with empty strings and special characters
 - Verify URL parameter formatting and escaping
-- Remove TODO comments once tests are written
-- Run tests immediately after writing them
+- Use `_ = os.Remove(...)` / `_ = os.Rename(...)` in `t.Cleanup` closures to satisfy errcheck
+- Run `golangci-lint run ./...` once as the final finishing move
+- Target specific packages with `go test ./pkg/...` rather than `go test ./...`
 
 ❌ **DON'T**:
 
@@ -161,26 +162,27 @@ func TestSearchSvc_ReindexInventoryRecords(t *testing.T) {
 - Write flaky tests
 - Leave duplicate test function names
 - Forget to test error paths (headers, HTTP errors)
+- Run `go test ./...` across the whole module (RAM constrained)
 
 ## Running Tests
 
 ```bash
-# Run all tests
-go test ./...
+# Run specific package (preferred — machine is RAM-constrained)
+go test ./registrysvc/...
+go test ./cmd/...
 
-# Run with coverage
-go test -cover ./...
+# Run with race detection on a single package
+go test -race ./registrysvc/...
 
-# Run specific package
-go test ./searchsvc/...
+# Lint — run once as a finishing move
+golangci-lint run ./...
 
-# Run with race detection
-go test -race ./...
-
-# Generate coverage report
-go test -coverprofile=coverage.out ./...
+# Coverage for a single package
+go test -coverprofile=coverage.out ./registrysvc/...
 go tool cover -html=coverage.out
 ```
+
+> **Note**: Avoid `go test ./...` across the full module — it consumes significant RAM.
 
 ## Contributing
 

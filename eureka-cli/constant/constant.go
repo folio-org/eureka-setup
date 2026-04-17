@@ -130,6 +130,9 @@ const (
 	FolioRegistry  = "folio"
 	EurekaRegistry = "eureka"
 
+	// Files
+	ModulesFile = "modules.json"
+
 	// Docker compose properties
 	DockerComposeWorkDir = "./misc"
 

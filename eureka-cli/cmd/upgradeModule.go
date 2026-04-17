@@ -183,11 +183,11 @@ func (run *Run) deployNewModuleAndSidecarPair() error {
 		return err
 	}
 
-	modules, err := run.Config.RegistrySvc.GetModules(false)
+	modules, err := run.Config.RegistrySvc.GetModules(false, false)
 	if err != nil {
 		return err
 	}
-	run.Config.RegistrySvc.ExtractModuleMetadata(modules)
+	run.Config.RegistrySvc.ResolveModuleMetadata(modules)
 
 	client, err := run.Config.DockerClient.Create()
 	if err != nil {
@@ -271,6 +271,7 @@ func init() {
 	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipApplication, action.SkipApplication.Long, action.SkipApplication.Short, false, action.SkipApplication.Description)
 	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipModuleDiscovery, action.SkipModuleDiscovery.Long, action.SkipModuleDiscovery.Short, false, action.SkipModuleDiscovery.Description)
 	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipTenantEntitlement, action.SkipTenantEntitlement.Long, action.SkipTenantEntitlement.Short, false, action.SkipTenantEntitlement.Description)
+	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipRegistry, action.SkipRegistry.Long, action.SkipRegistry.Short, false, action.SkipRegistry.Description)
 
 	if err := upgradeModuleCmd.MarkPersistentFlagRequired(action.ModuleName.Long); err != nil {
 		slog.Error(errors.MarkFlagRequiredFailed(action.ModuleName, err).Error())
