@@ -26,6 +26,19 @@ Module versions come from **LSP + FAR**, not install JSON files.
 - **LSP JSON schema**: `{ "eureka-components": [{name, version}], "applications": { "required": [{name, version}], "optional": [{name, version}] } }`
 - `registry.url` is still used by `listModuleVersions` and `GetModuleURL` — do not remove it.
 
+## Module list persistence
+
+The flattened module list is persisted as `~/modules.json` (`constant.ModulesFile`).
+
+| Caller            | Call                         | Behaviour                                          |
+| ----------------- | ---------------------------- | -------------------------------------------------- |
+| `deployModules`   | `GetModules(true, true)`     | Always fetches from LSP+FAR, overwrites file       |
+| `deployManagement`| `GetModules(true, true)`     | Always fetches from LSP+FAR, overwrites file       |
+| `interceptModule` | `GetModules(false, false)`   | Uses file if present; fetches+creates if missing   |
+| `upgradeModule`   | `GetModules(false, false)`   | Uses file if present; fetches+creates if missing   |
+
+`--skipRegistry` flag forces read from file only — hard error if absent. Available on `deployModules`, `deployManagement`, `interceptModule`, `upgradeModule`.
+
 ## isEurekaModule predicate
 
 ```go
@@ -82,14 +95,17 @@ Pre-allocated slice with per-goroutine index — no mutex needed.
 - Set `act.ConfigLspURL` and `act.ConfigFarURL` directly before passing to `registrysvc.New()`
 - `stubLSP` / `stubFAR` helpers in `registrysvc/registry_svc_test.go` for LSP/FAR stubs
 - FAR module slices must be `[]any{map[string]any{...}, ...}` — not `[]map[string]any` — because `GetAnySlice` does `rawValue.([]any)`
-- `MockRegistrySvc` in `cmd/cmd_test.go` and `internal/testhelpers/mocks.go` must implement `RegistryProcessor` interface exactly
+- `MockRegistrySvc` in `cmd/cmd_test.go` and `internal/testhelpers/mocks.go` must implement `RegistryProcessor` interface exactly: `GetModules(verbose bool, forceRefresh bool)`
+- Persistence tests write/read `~/modules.json` directly; use `t.Cleanup(func() { _ = os.Remove(filePath) })` — note the `_ =` to satisfy errcheck
+- Do NOT run `go test ./...` (RAM constrained) — target only affected packages
+- Run `golangci-lint run ./...` once as a finishing move, not after every edit
 
 ## Interface
 
 ```go
 type RegistryProcessor interface {
     GetNamespace(version string) string
-    GetModules(verbose bool) (*models.ProxyModulesByRegistry, error)
+    GetModules(verbose bool, forceRefresh bool) (*models.ProxyModulesByRegistry, error)
     ExtractModuleMetadata(modules *models.ProxyModulesByRegistry)
     GetAuthorizationToken() (string, error)
 }

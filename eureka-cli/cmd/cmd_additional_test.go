@@ -210,8 +210,8 @@ func TestDeployManagement_Success(t *testing.T) {
 	run.Config.KongSvc = mockKongSvc
 
 	mockModuleProps.On("ReadBackendModules", true, true).Return(map[string]models.BackendModule{}, nil)
-	mockRegistrySvc.On("GetModules", true).Return(&models.ProxyModulesByRegistry{}, nil)
-	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
+	mockRegistrySvc.On("GetModules", true, true).Return(&models.ProxyModulesByRegistry{}, nil)
+	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
 	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
@@ -240,8 +240,8 @@ func TestDeployManagement_DeployModulesError(t *testing.T) {
 
 	expectedError := assert.AnError
 	mockModuleProps.On("ReadBackendModules", true, true).Return(map[string]models.BackendModule{}, nil)
-	mockRegistrySvc.On("GetModules", true).Return(&models.ProxyModulesByRegistry{}, nil)
-	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
+	mockRegistrySvc.On("GetModules", true, true).Return(&models.ProxyModulesByRegistry{}, nil)
+	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
 	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, expectedError)
@@ -264,8 +264,8 @@ func TestDeployManagement_NoModulesDeployed(t *testing.T) {
 	run.Config.RegistrySvc = mockRegistrySvc
 
 	mockModuleProps.On("ReadBackendModules", true, true).Return(map[string]models.BackendModule{}, nil)
-	mockRegistrySvc.On("GetModules", true).Return(&models.ProxyModulesByRegistry{}, nil)
-	mockRegistrySvc.On("ExtractModuleMetadata", mock.Anything).Return()
+	mockRegistrySvc.On("GetModules", true, true).Return(&models.ProxyModulesByRegistry{}, nil)
+	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
 	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).

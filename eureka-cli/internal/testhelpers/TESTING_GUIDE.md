@@ -326,17 +326,17 @@ require.NotNil(t, obj)
   - Application version retrieval (latest version queries)
   - Module discovery operations
 
-#### ModuleSvc Testing
+#### RegistrySvc Testing
 
-- **Focus**: Module provisioning and image management
-- **Mocks**: HTTPClient, RegistrySvc, ModuleEnv, DockerClient
+- **Focus**: LSP+FAR fetching, module partitioning, file persistence
+- **Mocks**: `MockHTTPClient`
 - **Key scenarios**:
-  - Module image formatting (standard, custom, local)
-  - Sidecar image resolution
-  - Environment variable configuration
-  - Module readiness checks
-  - Version resolution logic
-  - Edge cases with empty/special characters in parameters
+  - `GetModules(verbose, forceRefresh bool)` — both args required in every `.On()` call
+  - `forceRefresh=true`: fetch from network, write `~/modules.json`
+  - `forceRefresh=false` + file present: read local file, zero HTTP calls
+  - `SkipRegistry=true`: read local file, error if absent
+  - `t.Cleanup(func() { _ = os.Remove(filePath) })` — `_ =` required for errcheck
+  - FAR stubs use `[]any{map[string]any{...}}` not `[]map[string]any`
 
 #### HTTPClient Testing
 
@@ -375,28 +375,25 @@ func NewTestReindexJobResponseWithErrors(errors ...models.ReindexJobError) *mode
 ### 12. Running Tests
 
 ```bash
-# Run all tests
-go test ./...
-
-# Run tests with coverage
-go test -cover ./...
-
-# Run tests with verbose output
-go test -v ./...
-
-# Run specific package tests
-go test ./searchsvc/...
+# Run specific package (preferred — machine is RAM-constrained)
+go test ./registrysvc/...
+go test ./cmd/...
 
 # Run specific test
 go test ./searchsvc/ -run TestReindexInventoryRecords_Success
 
-# Run with race detection
-go test -race ./...
+# Run with race detection on a single package
+go test -race ./registrysvc/...
 
-# Generate coverage report
-go test -coverprofile=coverage.out ./...
+# Lint — run once as finishing move, not after every edit
+golangci-lint run ./...
+
+# Coverage for a single package
+go test -coverprofile=coverage.out ./registrysvc/...
 go tool cover -html=coverage.out
 ```
+
+> **Note**: Avoid `go test ./...` and `go test -cover ./...` across the full module — RAM-constrained machine.
 
 ### 13. Code Quality and Security Checks
 

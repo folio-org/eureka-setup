@@ -3,6 +3,8 @@ package registrysvc
 import (
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -18,8 +20,8 @@ import (
 // RegistryProcessor defines the interface for registry-related operations
 type RegistryProcessor interface {
 	GetNamespace(version string) string
-	GetModules(verbose bool) (*models.ProxyModulesByRegistry, error)
-	ExtractModuleMetadata(modules *models.ProxyModulesByRegistry)
+	GetModules(verbose bool, forceRefresh bool) (*models.ProxyModulesByRegistry, error)
+	ResolveModuleMetadata(modules *models.ProxyModulesByRegistry)
 	GetAuthorizationToken() (string, error)
 }
 
@@ -51,9 +53,9 @@ func (rs *RegistrySvc) GetNamespace(version string) string {
 	}
 }
 
-func (rs *RegistrySvc) ExtractModuleMetadata(modules *models.ProxyModulesByRegistry) {
-	allModules := [][]*models.ProxyModule{modules.FolioModules, modules.EurekaModules}
-	for _, moduleSet := range allModules {
+func (rs *RegistrySvc) ResolveModuleMetadata(modules *models.ProxyModulesByRegistry) {
+	moduleSets := [][]*models.ProxyModule{modules.FolioModules, modules.EurekaModules}
+	for _, moduleSet := range moduleSets {
 		for i, module := range moduleSet {
 			if module.ID == "okapi" {
 				continue
@@ -74,14 +76,14 @@ func (rs *RegistrySvc) getSidecarName(module *models.ProxyModule) string {
 	}
 }
 
-func (rs *RegistrySvc) GetModules(verbose bool) (*models.ProxyModulesByRegistry, error) {
-	allModules, err := rs.getFlattenedModuleVersions()
+func (rs *RegistrySvc) GetModules(verbose bool, forceRefresh bool) (*models.ProxyModulesByRegistry, error) {
+	moduleVersions, err := rs.getFlattenedModuleVersions(forceRefresh)
 	if err != nil {
 		return nil, err
 	}
 
 	var folioModules, eurekaModules []*models.ProxyModule
-	for _, m := range allModules {
+	for _, m := range moduleVersions {
 		proxy := &models.ProxyModule{
 			ID:     m.ID,
 			Action: "enable",
@@ -103,7 +105,43 @@ func (rs *RegistrySvc) GetModules(verbose bool) (*models.ProxyModulesByRegistry,
 	}, nil
 }
 
-func (rs *RegistrySvc) getFlattenedModuleVersions() ([]models.ApplicationModule, error) {
+func (rs *RegistrySvc) getFlattenedModuleVersions(forceRefresh bool) ([]models.ApplicationModule, error) {
+	homeDir, err := helpers.GetHomeDirPath()
+	if err != nil {
+		return nil, err
+	}
+	filePath := filepath.Join(homeDir, constant.ModulesFile)
+
+	if rs.Action.Param.SkipRegistry {
+		return rs.readModulesLocalFile(filePath)
+	}
+	if !forceRefresh {
+		if info, statErr := os.Stat(filePath); statErr == nil && info.Mode().IsRegular() {
+			return rs.readModulesLocalFile(filePath)
+		}
+	}
+
+	return rs.fetchAndPersistModuleVersions(filePath)
+}
+
+func (rs *RegistrySvc) readModulesLocalFile(path string) ([]models.ApplicationModule, error) {
+	if err := helpers.IsRegularFile(path); err != nil {
+		return nil, appErrors.LocalInstallFileNotFound(err)
+	}
+
+	var modules []models.ApplicationModule
+	if err := helpers.ReadJSONFromFile(path, &modules); err != nil {
+		return nil, err
+	}
+	if modules == nil {
+		modules = make([]models.ApplicationModule, 0)
+	}
+	slog.Info(rs.Action.Name, "text", "Read module versions from a local file", "file", constant.ModulesFile)
+
+	return modules, nil
+}
+
+func (rs *RegistrySvc) fetchAndPersistModuleVersions(filePath string) ([]models.ApplicationModule, error) {
 	var descriptor models.PlatformDescriptor
 	if err := rs.HTTPClient.GetRetryReturnStruct(rs.Action.ConfigLspURL, map[string]string{}, &descriptor); err != nil {
 		return nil, err
@@ -174,6 +212,15 @@ func (rs *RegistrySvc) getFlattenedModuleVersions() ([]models.ApplicationModule,
 		}
 		modules = append(modules, r.modules...)
 	}
+
+	if modules == nil {
+		modules = make([]models.ApplicationModule, 0)
+	}
+
+	if err := helpers.WriteJSONToFile(filePath, modules); err != nil {
+		return nil, err
+	}
+	slog.Info(rs.Action.Name, "text", "Persisted module versions to a local file", "file", constant.ModulesFile)
 
 	return modules, nil
 }

@@ -2,14 +2,18 @@ package registrysvc_test
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/models"
 	"github.com/folio-org/eureka-setup/eureka-cli/registrysvc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // MockAWSSvc is a mock for awssvc.AWSProcessor
@@ -194,7 +198,7 @@ func TestGetModules_Success(t *testing.T) {
 		map[string]any{"id": "mod-users-2.0.0", "name": "mod-users", "version": "2.0.0"},
 	})
 
-	result, err := svc.GetModules(false)
+	result, err := svc.GetModules(false, true)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -220,7 +224,7 @@ func TestGetModules_Verbose(t *testing.T) {
 		map[string]any{"id": "mod-inventory-1.0.0", "name": "mod-inventory", "version": "1.0.0"},
 	})
 
-	result, err := svc.GetModules(true)
+	result, err := svc.GetModules(true, true)
 
 	assert.NoError(t, err)
 	assert.Len(t, result.FolioModules, 1)
@@ -238,7 +242,7 @@ func TestGetModules_LSPFetchError(t *testing.T) {
 	mockHTTP.On("GetRetryReturnStruct", act.ConfigLspURL, mock.Anything, mock.AnythingOfType("*models.PlatformDescriptor")).
 		Return(errors.New("LSP unreachable"))
 
-	result, err := svc.GetModules(false)
+	result, err := svc.GetModules(false, true)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -264,7 +268,7 @@ func TestGetModules_FARFetchError(t *testing.T) {
 	mockHTTP.On("GetRetryReturnStruct", farURL, mock.Anything, mock.AnythingOfType("*models.ApplicationsResponse")).
 		Return(errors.New("FAR timeout"))
 
-	result, err := svc.GetModules(false)
+	result, err := svc.GetModules(false, true)
 
 	assert.Error(t, err)
 	assert.Nil(t, result)
@@ -286,7 +290,7 @@ func TestGetModules_EurekaComponentsIncluded(t *testing.T) {
 	})
 	stubLSP(mockHTTP, act.ConfigLspURL, descriptor)
 
-	result, err := svc.GetModules(false)
+	result, err := svc.GetModules(false, true)
 
 	assert.NoError(t, err)
 	assert.Empty(t, result.FolioModules)
@@ -316,7 +320,7 @@ func TestGetModules_ModulePartitioning(t *testing.T) {
 		map[string]any{"id": "mod-scheduler-2.0.0", "name": "mod-scheduler", "version": "2.0.0"},
 	})
 
-	result, err := svc.GetModules(false)
+	result, err := svc.GetModules(false, true)
 
 	assert.NoError(t, err)
 	assert.Len(t, result.FolioModules, 1)
@@ -346,7 +350,7 @@ func TestGetModules_RequiredAndOptionalMerged(t *testing.T) {
 		map[string]any{"id": "mod-beta-2.0.0", "name": "mod-beta", "version": "2.0.0"},
 	})
 
-	result, err := svc.GetModules(false)
+	result, err := svc.GetModules(false, true)
 
 	assert.NoError(t, err)
 	assert.Len(t, result.FolioModules, 2)
@@ -376,7 +380,7 @@ func TestGetModules_ExperimentalAppsIncluded(t *testing.T) {
 		map[string]any{"id": "mod-inn-reach-3.0.0", "name": "mod-inn-reach", "version": "3.0.0"},
 	})
 
-	result, err := svc.GetModules(false)
+	result, err := svc.GetModules(false, true)
 
 	assert.NoError(t, err)
 	assert.Len(t, result.FolioModules, 3)
@@ -407,7 +411,7 @@ func TestGetModules_UIModulesIncluded(t *testing.T) {
 		},
 	)
 
-	result, err := svc.GetModules(false)
+	result, err := svc.GetModules(false, true)
 
 	assert.NoError(t, err)
 	assert.Len(t, result.FolioModules, 3)
@@ -428,7 +432,7 @@ func TestGetModules_EmptyApplications(t *testing.T) {
 	})
 	stubLSP(mockHTTP, act.ConfigLspURL, descriptor)
 
-	result, err := svc.GetModules(false)
+	result, err := svc.GetModules(false, true)
 
 	assert.NoError(t, err)
 	assert.Empty(t, result.FolioModules)
@@ -455,7 +459,7 @@ func TestIsEurekaModule_KeycloakSuffix(t *testing.T) {
 		map[string]any{"id": "mod-auth-keycloak-1.0.0", "name": "mod-auth-keycloak", "version": "1.0.0"},
 	})
 
-	result, err := svc.GetModules(false)
+	result, err := svc.GetModules(false, true)
 	assert.NoError(t, err)
 	assert.Empty(t, result.FolioModules)
 	assert.Len(t, result.EurekaModules, 1)
@@ -479,7 +483,7 @@ func TestIsEurekaModule_MgrPrefix(t *testing.T) {
 		map[string]any{"id": "mgr-tenants-1.0.0", "name": "mgr-tenants", "version": "1.0.0"},
 	})
 
-	result, err := svc.GetModules(false)
+	result, err := svc.GetModules(false, true)
 	assert.NoError(t, err)
 	assert.Empty(t, result.FolioModules)
 	assert.Len(t, result.EurekaModules, 2)
@@ -504,7 +508,7 @@ func TestIsEurekaModule_ExactMatches(t *testing.T) {
 		map[string]any{"id": "mod-scheduler-2.0.0", "name": "mod-scheduler", "version": "2.0.0"},
 	})
 
-	result, err := svc.GetModules(false)
+	result, err := svc.GetModules(false, true)
 	assert.NoError(t, err)
 	assert.Empty(t, result.FolioModules)
 	assert.Len(t, result.EurekaModules, 3)
@@ -529,13 +533,13 @@ func TestIsEurekaModule_RegularFolioModuleNotEureka(t *testing.T) {
 		map[string]any{"id": "edge-patron-1.0.0", "name": "edge-patron", "version": "1.0.0"},
 	})
 
-	result, err := svc.GetModules(false)
+	result, err := svc.GetModules(false, true)
 	assert.NoError(t, err)
 	assert.Len(t, result.FolioModules, 3)
 	assert.Empty(t, result.EurekaModules)
 }
 
-func TestExtractModuleMetadata_Success(t *testing.T) {
+func TestResolveModuleMetadata_Success(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
@@ -556,7 +560,7 @@ func TestExtractModuleMetadata_Success(t *testing.T) {
 	}
 
 	// Act
-	svc.ExtractModuleMetadata(modules)
+	svc.ResolveModuleMetadata(modules)
 
 	// Assert
 	// Check FOLIO modules
@@ -575,7 +579,7 @@ func TestExtractModuleMetadata_Success(t *testing.T) {
 	assert.Equal(t, "mod-custom-sc", modules.EurekaModules[0].Metadata.SidecarName)
 }
 
-func TestExtractModuleMetadata_EdgeModule(t *testing.T) {
+func TestResolveModuleMetadata_EdgeModule(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
@@ -590,7 +594,7 @@ func TestExtractModuleMetadata_EdgeModule(t *testing.T) {
 	}
 
 	// Act
-	svc.ExtractModuleMetadata(modules)
+	svc.ResolveModuleMetadata(modules)
 
 	// Assert
 	// Edge modules should have SidecarName equal to Name
@@ -598,7 +602,7 @@ func TestExtractModuleMetadata_EdgeModule(t *testing.T) {
 	assert.Equal(t, "edge-patron", modules.FolioModules[0].Metadata.SidecarName)
 }
 
-func TestExtractModuleMetadata_SkipsOkapi(t *testing.T) {
+func TestResolveModuleMetadata_SkipsOkapi(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
@@ -614,7 +618,7 @@ func TestExtractModuleMetadata_SkipsOkapi(t *testing.T) {
 	}
 
 	// Act
-	svc.ExtractModuleMetadata(modules)
+	svc.ResolveModuleMetadata(modules)
 
 	// Assert
 	// Okapi should remain unchanged
@@ -626,7 +630,7 @@ func TestExtractModuleMetadata_SkipsOkapi(t *testing.T) {
 	assert.Equal(t, "mod-users", modules.FolioModules[1].Metadata.Name)
 }
 
-func TestExtractModuleMetadata_EmptyModules(t *testing.T) {
+func TestResolveModuleMetadata_EmptyModules(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
@@ -636,10 +640,10 @@ func TestExtractModuleMetadata_EmptyModules(t *testing.T) {
 	modules := &models.ProxyModulesByRegistry{FolioModules: nil, EurekaModules: nil}
 
 	// Act & Assert - should not panic
-	svc.ExtractModuleMetadata(modules)
+	svc.ResolveModuleMetadata(modules)
 }
 
-func TestExtractModuleMetadata_ModuleWithoutVersion(t *testing.T) {
+func TestResolveModuleMetadata_ModuleWithoutVersion(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
@@ -654,7 +658,7 @@ func TestExtractModuleMetadata_ModuleWithoutVersion(t *testing.T) {
 	}
 
 	// Act
-	svc.ExtractModuleMetadata(modules)
+	svc.ResolveModuleMetadata(modules)
 
 	// Assert
 	// When module ID doesn't have a proper version, the regex parsing behavior
@@ -681,7 +685,7 @@ func TestGetSidecarName_StandardModule(t *testing.T) {
 		}
 
 		// Act
-		svc.ExtractModuleMetadata(&models.ProxyModulesByRegistry{
+		svc.ResolveModuleMetadata(&models.ProxyModulesByRegistry{
 			FolioModules: []*models.ProxyModule{module},
 		})
 
@@ -704,7 +708,7 @@ func TestGetSidecarName_EdgeModule(t *testing.T) {
 		}
 
 		// Act
-		svc.ExtractModuleMetadata(&models.ProxyModulesByRegistry{
+		svc.ResolveModuleMetadata(&models.ProxyModulesByRegistry{
 			FolioModules: []*models.ProxyModule{module},
 		})
 
@@ -727,7 +731,7 @@ func TestGetSidecarName_EdgeOaiPmhModule(t *testing.T) {
 		}
 
 		// Act
-		svc.ExtractModuleMetadata(&models.ProxyModulesByRegistry{
+		svc.ResolveModuleMetadata(&models.ProxyModulesByRegistry{
 			EurekaModules: []*models.ProxyModule{module},
 		})
 
@@ -750,7 +754,7 @@ func TestGetSidecarName_EdgeRtacModule(t *testing.T) {
 		}
 
 		// Act
-		svc.ExtractModuleMetadata(&models.ProxyModulesByRegistry{
+		svc.ResolveModuleMetadata(&models.ProxyModulesByRegistry{
 			FolioModules: []*models.ProxyModule{module},
 		})
 
@@ -773,7 +777,7 @@ func TestGetSidecarName_NonEdgeModuleContainingEdge(t *testing.T) {
 		}
 
 		// Act
-		svc.ExtractModuleMetadata(&models.ProxyModulesByRegistry{
+		svc.ResolveModuleMetadata(&models.ProxyModulesByRegistry{
 			FolioModules: []*models.ProxyModule{module},
 		})
 
@@ -800,11 +804,134 @@ func TestGetSidecarName_MultipleEdgeModules(t *testing.T) {
 		}
 
 		// Act
-		svc.ExtractModuleMetadata(modules)
+		svc.ResolveModuleMetadata(modules)
 
 		// Assert - verify all edge modules use name without -sc, non-edge use -sc
 		assert.Equal(t, "edge-patron", modules.FolioModules[0].Metadata.SidecarName)
 		assert.Equal(t, "edge-orders", modules.FolioModules[1].Metadata.SidecarName)
 		assert.Equal(t, "mod-users-sc", modules.FolioModules[2].Metadata.SidecarName)
 	})
+}
+
+// ==================== Persistence Tests ====================
+
+func modulesFilePath(t *testing.T) string {
+	t.Helper()
+	homeDir, err := helpers.GetHomeDirPath()
+	require.NoError(t, err)
+	return filepath.Join(homeDir, constant.ModulesFile)
+}
+
+func TestGetModules_SkipRegistry_ReadsLocalFile(t *testing.T) {
+	filePath := modulesFilePath(t)
+
+	known := []models.ApplicationModule{
+		{ID: "mod-inventory-1.0.0", Name: "mod-inventory", Version: "1.0.0"},
+		{ID: "mgr-tenants-2.0.0", Name: "mgr-tenants", Version: "2.0.0"},
+	}
+	require.NoError(t, helpers.WriteJSONToFile(filePath, known))
+	t.Cleanup(func() { _ = os.Remove(filePath) })
+
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	act := testhelpers.NewMockAction()
+	act.Param.SkipRegistry = true
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
+
+	result, err := svc.GetModules(false, false)
+
+	assert.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Len(t, result.FolioModules, 1)
+	assert.Len(t, result.EurekaModules, 1)
+	assert.Equal(t, "mod-inventory-1.0.0", result.FolioModules[0].ID)
+	assert.Equal(t, "mgr-tenants-2.0.0", result.EurekaModules[0].ID)
+	mockHTTP.AssertNotCalled(t, "GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestGetModules_SkipRegistry_MissingFile(t *testing.T) {
+	filePath := modulesFilePath(t)
+
+	// Temporarily move the file aside if it exists so we get a clean miss
+	backup := filePath + ".bak"
+	if _, err := os.Stat(filePath); err == nil {
+		require.NoError(t, os.Rename(filePath, backup))
+		t.Cleanup(func() { _ = os.Rename(backup, filePath) })
+	}
+
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	act := testhelpers.NewMockAction()
+	act.Param.SkipRegistry = true
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
+
+	result, err := svc.GetModules(false, false)
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to find local install file")
+	mockHTTP.AssertNotCalled(t, "GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestGetModules_FetchAndPersistWritesFile(t *testing.T) {
+	filePath := modulesFilePath(t)
+	t.Cleanup(func() { _ = os.Remove(filePath) })
+
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
+
+	descriptor := buildLSPResponse(
+		[]models.PlatformApplication{{Name: "app-core", Version: "1.0.0"}},
+		nil, nil, nil,
+	)
+	stubLSP(mockHTTP, act.ConfigLspURL, descriptor)
+	stubFAR(mockHTTP, act.ConfigFarURL, "app-core", "1.0.0", []any{
+		map[string]any{"id": "mod-inventory-1.0.0", "name": "mod-inventory", "version": "1.0.0"},
+		map[string]any{"id": "mod-users-2.0.0", "name": "mod-users", "version": "2.0.0"},
+	})
+
+	_, err := svc.GetModules(false, true)
+	require.NoError(t, err)
+
+	var persisted []models.ApplicationModule
+	require.NoError(t, helpers.ReadJSONFromFile(filePath, &persisted))
+	assert.Len(t, persisted, 2)
+	assert.Equal(t, "mod-inventory-1.0.0", persisted[0].ID)
+	assert.Equal(t, "mod-inventory", persisted[0].Name)
+	assert.Equal(t, "1.0.0", persisted[0].Version)
+	assert.Equal(t, "mod-users-2.0.0", persisted[1].ID)
+	mockHTTP.AssertExpectations(t)
+}
+
+func TestGetModules_PreferLocalWhenFileExists(t *testing.T) {
+	filePath := modulesFilePath(t)
+
+	known := []models.ApplicationModule{
+		{ID: "mod-search-3.0.0", Name: "mod-search", Version: "3.0.0"},
+		{ID: "mgr-applications-1.5.0", Name: "mgr-applications", Version: "1.5.0"},
+	}
+	require.NoError(t, helpers.WriteJSONToFile(filePath, known))
+	t.Cleanup(func() { _ = os.Remove(filePath) })
+
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	mockAWS := &MockAWSSvc{}
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	// SkipRegistry=false, forceRefresh=false — intercept/upgrade path
+	svc := registrysvc.New(act, mockHTTP, mockAWS)
+
+	result, err := svc.GetModules(false, false)
+
+	assert.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Len(t, result.FolioModules, 1)
+	assert.Len(t, result.EurekaModules, 1)
+	assert.Equal(t, "mod-search-3.0.0", result.FolioModules[0].ID)
+	assert.Equal(t, "mgr-applications-1.5.0", result.EurekaModules[0].ID)
+	mockHTTP.AssertNotCalled(t, "GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything)
 }
