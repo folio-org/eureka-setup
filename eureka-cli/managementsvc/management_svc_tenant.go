@@ -64,6 +64,15 @@ func (ms *ManagementSvc) CreateTenants() error {
 	tenantNames := helpers.SortedMapKeys(ms.Action.ConfigTenants)
 
 	for _, tenantName := range tenantNames {
+		existing, err := ms.getTenantByName(tenantName)
+		if err != nil {
+			return err
+		}
+		if existing != nil {
+			slog.Info(ms.Action.Name, "text", "Tenant already exists, skipping", "tenant", tenantName)
+			continue
+		}
+
 		properties := ms.Action.ConfigTenants[tenantName]
 		entry := properties.(map[string]any)
 		payload, err := json.Marshal(map[string]string{
@@ -82,6 +91,25 @@ func (ms *ManagementSvc) CreateTenants() error {
 	}
 
 	return nil
+}
+
+func (ms *ManagementSvc) getTenantByName(name string) (*models.Tenant, error) {
+	rawQuery := fmt.Sprintf("name==%s", name)
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/tenants?query=%s&limit=1", url.QueryEscape(rawQuery)))
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	var decodedResponse models.TenantsResponse
+	if err := ms.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
+		return nil, err
+	}
+	if len(decodedResponse.Tenants) == 0 {
+		return nil, nil
+	}
+
+	return &decodedResponse.Tenants[0], nil
 }
 
 func (ms *ManagementSvc) GetTenantType(entry map[string]any) string {

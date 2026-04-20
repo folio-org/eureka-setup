@@ -210,6 +210,11 @@ func (m *MockKeycloakSvc) GetCapabilitySetsByName(headers map[string]string, cap
 	return args.Get(0).([]any), args.Error(1)
 }
 
+func (m *MockKeycloakSvc) HasCapabilitySets(tenantName string) (bool, error) {
+	args := m.Called(tenantName)
+	return args.Bool(0), args.Error(1)
+}
+
 func (m *MockKeycloakSvc) AttachCapabilitySets(tenantName string) error {
 	args := m.Called(tenantName)
 	return args.Error(0)
@@ -350,17 +355,25 @@ func (m *MockModuleSvc) GetDeployedModules(cli *client.Client, f filters.Args) (
 	return args.Get(0).([]container.Summary), args.Error(1)
 }
 
+func (m *MockModuleSvc) GetModule(cli *client.Client, moduleName string) ([]container.Summary, error) {
+	args := m.Called(cli, moduleName)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]container.Summary), args.Error(1)
+}
+
 func (m *MockModuleSvc) PullModule(cli *client.Client, imageName string) error {
 	args := m.Called(cli, imageName)
 	return args.Error(0)
 }
 
-func (m *MockModuleSvc) DeployModules(cli *client.Client, containers *models.Containers, sidecarImage string, sidecarResources *container.Resources) (map[string]int, error) {
+func (m *MockModuleSvc) DeployModules(cli *client.Client, containers *models.Containers, sidecarImage string, sidecarResources *container.Resources) (map[string]int, int, error) {
 	args := m.Called(cli, containers, sidecarImage, sidecarResources)
 	if args.Get(0) == nil {
-		return nil, args.Error(1)
+		return nil, args.Int(1), args.Error(2)
 	}
-	return args.Get(0).(map[string]int), args.Error(1)
+	return args.Get(0).(map[string]int), args.Int(1), args.Error(2)
 }
 
 func (m *MockModuleSvc) DeployModule(cli *client.Client, container *models.Container) error {
@@ -1609,6 +1622,7 @@ func TestAttachCapabilitySets_Success(t *testing.T) {
 		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
 	mockKeycloak.On("UpdateRealmAccessTokenSettings", mock.Anything, mock.Anything).Return(nil)
 	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("HasCapabilitySets", "test-tenant").Return(false, nil)
 	mockKafkaSvc.On("PollConsumerGroup", mock.Anything).Return(nil)
 	mockKeycloak.On("AttachCapabilitySetsToRoles", "test-tenant").Return(nil)
 
@@ -1619,6 +1633,31 @@ func TestAttachCapabilitySets_Success(t *testing.T) {
 	assert.NoError(t, err)
 	mockKeycloak.AssertExpectations(t)
 	mockKafkaSvc.AssertExpectations(t)
+}
+
+func TestAttachCapabilitySets_AlreadyExist_SkipsPoll(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.AttachCapabilitySets)
+	mockKafkaSvc := &MockKafkaSvc{}
+	run.Config.KafkaSvc = mockKafkaSvc
+
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
+	mockKeycloak.On("UpdateRealmAccessTokenSettings", mock.Anything, mock.Anything).Return(nil)
+	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("HasCapabilitySets", "test-tenant").Return(true, nil)
+	mockKeycloak.On("AttachCapabilitySetsToRoles", "test-tenant").Return(nil)
+
+	// Act
+	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0)
+
+	// Assert
+	assert.NoError(t, err)
+	mockKeycloak.AssertExpectations(t)
+	mockKafkaSvc.AssertNotCalled(t, "PollConsumerGroup", mock.Anything)
 }
 
 func TestAttachCapabilitySets_GetMasterTokenError(t *testing.T) {
@@ -1673,6 +1712,7 @@ func TestAttachCapabilitySets_AttachError(t *testing.T) {
 		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
 	mockKeycloak.On("UpdateRealmAccessTokenSettings", mock.Anything, mock.Anything).Return(nil)
 	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("HasCapabilitySets", "test-tenant").Return(false, nil)
 	mockKafkaSvc.On("PollConsumerGroup", mock.Anything).Return(nil)
 	mockKeycloak.On("AttachCapabilitySetsToRoles", "test-tenant").Return(expectedError)
 
@@ -2278,7 +2318,7 @@ func TestDeployModules_Success(t *testing.T) {
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
 	mockModule.On("GetSidecarImage", mock.Anything).Return("test-sidecar:latest", false, nil)
-	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{"test-module": 8080}, nil)
+	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{"test-module": 8080}, 1, nil)
 	mockModule.On("CheckModuleReadiness", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return()
 	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("access-token", nil)
 	mockManagement.On("CreateApplication", mock.Anything).Return(nil)
@@ -2291,7 +2331,34 @@ func TestDeployModules_Success(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// ==================== DeploySystem Tests ====================
+func TestDeployModules_AllAlreadyDeployed_SkipsHealthcheck(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.DeployModules)
+	mockModuleProps := &MockModuleProps{}
+	mockRegistrySvc := &MockRegistrySvc{}
+	run.Config.ModuleProps = mockModuleProps
+	run.Config.RegistrySvc = mockRegistrySvc
+
+	mockModuleProps.On("ReadBackendModules", false, true).Return(map[string]models.BackendModule{}, nil)
+	mockModuleProps.On("ReadFrontendModules", true).Return(map[string]models.FrontendModule{}, nil)
+	mockRegistrySvc.On("GetModules", true, true).Return(&models.ProxyModulesByRegistry{}, nil)
+	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything).Return()
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockModule.On("GetSidecarImage", mock.Anything).Return("test-sidecar:latest", false, nil)
+	// newlyDeployed=empty (all already existed), totalMatched=2
+	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(map[string]int{}, 2, nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("access-token", nil)
+	mockManagement.On("CreateApplication", mock.Anything).Return(nil)
+	mockDocker.On("Close", mock.Anything).Return(nil)
+
+	// Act
+	err := run.DeployModules()
+
+	// Assert — no CheckModuleReadiness call
+	assert.NoError(t, err)
+	mockModule.AssertNotCalled(t, "CheckModuleReadiness")
+}
 
 func TestDeploySystem_Success(t *testing.T) {
 	// Arrange
@@ -2305,7 +2372,31 @@ func TestDeploySystem_Success(t *testing.T) {
 	mockGitClient.On("KongRepository").Return(&gitrepository.GitRepository{}, nil)
 	mockGitClient.On("KeycloakRepository").Return(&gitrepository.GitRepository{}, nil)
 	mockGitClient.On("Clone", mock.Anything).Return(nil)
-	mockExecSvc.On("ExecFromDir", mock.Anything, mock.Anything).Return(nil)
+	mockExecSvc.On("ExecReturnOutput", mock.Anything).Return(bytes.Buffer{}, bytes.Buffer{}, nil)
+
+	// Act
+	err := run.DeploySystem()
+
+	// Assert
+	assert.NoError(t, err)
+	mockExecSvc.AssertExpectations(t)
+}
+
+func TestDeploySystem_AlreadyRunning_SkipsSleep(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.DeploySystem)
+	mockGitClient := &testhelpers.MockGitClient{}
+	mockExecSvc := &MockExecSvc{}
+	run.Config.GitClient = mockGitClient
+	run.Config.ExecSvc = mockExecSvc
+	params.BuildImages = false
+
+	var stdout bytes.Buffer
+	stdout.WriteString("Container eureka-kafka  Running\nContainer eureka-postgres  Running\n")
+	mockGitClient.On("KongRepository").Return(&gitrepository.GitRepository{}, nil)
+	mockGitClient.On("KeycloakRepository").Return(&gitrepository.GitRepository{}, nil)
+	mockGitClient.On("Clone", mock.Anything).Return(nil)
+	mockExecSvc.On("ExecReturnOutput", mock.Anything).Return(stdout, bytes.Buffer{}, nil)
 
 	// Act
 	err := run.DeploySystem()
@@ -2328,10 +2419,89 @@ func TestDeploySystem_ExecError(t *testing.T) {
 	mockGitClient.On("KongRepository").Return(&gitrepository.GitRepository{}, nil)
 	mockGitClient.On("KeycloakRepository").Return(&gitrepository.GitRepository{}, nil)
 	mockGitClient.On("Clone", mock.Anything).Return(nil)
-	mockExecSvc.On("ExecFromDir", mock.Anything, mock.Anything).Return(expectedError)
+	mockExecSvc.On("ExecReturnOutput", mock.Anything).Return(bytes.Buffer{}, bytes.Buffer{}, expectedError)
 
 	// Act
 	err := run.DeploySystem()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+}
+
+// ==================== DeployAdditionalSystem Tests ====================
+
+func TestDeployAdditionalSystem_NoContainers_Skips(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.DeployAdditionalSystem)
+	mockExecSvc := &MockExecSvc{}
+	run.Config.ExecSvc = mockExecSvc
+	// ConfigBackendModules is nil — no containers matched, returns early
+
+	// Act
+	err := run.DeployAdditionalSystem()
+
+	// Assert
+	assert.NoError(t, err)
+	mockExecSvc.AssertNotCalled(t, "ExecReturnOutput", mock.Anything)
+}
+
+func TestDeployAdditionalSystem_NewContainers_Sleeps(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.DeployAdditionalSystem)
+	mockExecSvc := &MockExecSvc{}
+	run.Config.ExecSvc = mockExecSvc
+	run.Config.Action.ConfigBackendModules = map[string]any{
+		constant.ModSearchModule: map[string]any{field.ModuleDeployModuleEntry: true},
+	}
+
+	var stderr bytes.Buffer
+	stderr.WriteString(" Started\n")
+	mockExecSvc.On("ExecReturnOutput", mock.Anything).Return(bytes.Buffer{}, stderr, nil)
+
+	// Act
+	err := run.DeployAdditionalSystem()
+
+	// Assert
+	assert.NoError(t, err)
+	mockExecSvc.AssertExpectations(t)
+}
+
+func TestDeployAdditionalSystem_AlreadyRunning_SkipsSleep(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.DeployAdditionalSystem)
+	mockExecSvc := &MockExecSvc{}
+	run.Config.ExecSvc = mockExecSvc
+	run.Config.Action.ConfigBackendModules = map[string]any{
+		constant.ModSearchModule: map[string]any{field.ModuleDeployModuleEntry: true},
+	}
+
+	var stdout bytes.Buffer
+	stdout.WriteString("Container eureka-opensearch  Running\n")
+	mockExecSvc.On("ExecReturnOutput", mock.Anything).Return(stdout, bytes.Buffer{}, nil)
+
+	// Act
+	err := run.DeployAdditionalSystem()
+
+	// Assert
+	assert.NoError(t, err)
+	mockExecSvc.AssertExpectations(t)
+}
+
+func TestDeployAdditionalSystem_ExecError(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.DeployAdditionalSystem)
+	mockExecSvc := &MockExecSvc{}
+	run.Config.ExecSvc = mockExecSvc
+	run.Config.Action.ConfigBackendModules = map[string]any{
+		constant.ModSearchModule: map[string]any{field.ModuleDeployModuleEntry: true},
+	}
+
+	expectedError := assert.AnError
+	mockExecSvc.On("ExecReturnOutput", mock.Anything).Return(bytes.Buffer{}, bytes.Buffer{}, expectedError)
+
+	// Act
+	err := run.DeployAdditionalSystem()
 
 	// Assert
 	assert.Error(t, err)

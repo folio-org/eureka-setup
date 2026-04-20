@@ -18,6 +18,7 @@ package cmd
 import (
 	"log/slog"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
@@ -59,16 +60,30 @@ func (run *Run) DeploySystem() error {
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "DEPLOYING SYSTEM CONTAINERS")
+	return run.dockerComposeUp(subCommand, constant.DeploySystemWait, "system")
+}
+
+func (run *Run) dockerComposeUp(subCommand []string, wait time.Duration, label string) error {
 	homeDir, err := helpers.GetHomeMiscDir()
 	if err != nil {
 		return err
 	}
-	if err := run.Config.ExecSvc.ExecFromDir(exec.Command("docker", subCommand...), homeDir); err != nil {
+	dockerCmd := exec.Command("docker", subCommand...)
+	dockerCmd.Dir = homeDir
+
+	stdout, stderr, err := run.Config.ExecSvc.ExecReturnOutput(dockerCmd)
+	if err != nil {
 		return err
 	}
-	slog.Info(run.Config.Action.Name, "text", "WAITING FOR SYSTEM CONTAINERS TO BECOME READY")
-	time.Sleep(constant.DeploySystemWait)
-	slog.Info(run.Config.Action.Name, "text", "All system containers are ready")
+
+	combined := stdout.String() + stderr.String()
+	if strings.Contains(combined, " Started") || strings.Contains(combined, " Created") {
+		slog.Info(run.Config.Action.Name, "text", "WAITING FOR "+strings.ToUpper(label)+" CONTAINERS TO BECOME READY")
+		time.Sleep(wait)
+		slog.Info(run.Config.Action.Name, "text", "All "+label+" containers are ready")
+	} else {
+		slog.Info(run.Config.Action.Name, "text", "All "+label+" containers already running, skipping wait")
+	}
 
 	return nil
 }
