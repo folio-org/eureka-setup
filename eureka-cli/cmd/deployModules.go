@@ -71,7 +71,7 @@ func (run *Run) DeployModules() error {
 		return err
 	}
 
-	slog.Info(run.Config.Action.Name, "text", "PULLING SIDECAR IMAGE")
+	slog.Info(run.Config.Action.Name, "text", "PREPARING SIDECAR IMAGE")
 	containers := &models.Containers{
 		Modules:        modules,
 		BackendModules: backendModules,
@@ -82,7 +82,7 @@ func (run *Run) DeployModules() error {
 		return err
 	}
 
-	slog.Info(run.Config.Action.Name, "text", "Using sidecar image", "image", sidecarImage)
+	slog.Info(run.Config.Action.Name, "text", "Using sidecar image", "image", sidecarImage, "pullImage", pullSidecarImage)
 	if pullSidecarImage {
 		err = run.Config.ModuleSvc.PullModule(client, sidecarImage)
 		if err != nil {

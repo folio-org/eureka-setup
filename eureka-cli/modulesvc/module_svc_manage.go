@@ -61,7 +61,7 @@ func (ms *ModuleSvc) GetModule(client *client.Client, moduleName string) ([]cont
 func (ms *ModuleSvc) PullModule(client *client.Client, imageName string) error {
 	_, err := client.ImageInspect(context.Background(), imageName)
 	if err == nil {
-		slog.Debug(ms.Action.Name, "text", "Image already exists locally", "image", imageName)
+		slog.Info(ms.Action.Name, "text", "Image already exists locally", "image", imageName)
 		return nil
 	}
 	if !errdefs.IsNotFound(err) {
