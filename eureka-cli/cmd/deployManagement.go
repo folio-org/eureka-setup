@@ -65,7 +65,7 @@ func (run *Run) DeployManagement() error {
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "DEPLOYING MANAGEMENT MODULES")
-	deployedModules, err := run.Config.ModuleSvc.DeployModules(client, &models.Containers{
+	newlyDeployed, totalMatched, err := run.Config.ModuleSvc.DeployModules(client, &models.Containers{
 		Modules:        modules,
 		BackendModules: backendModules,
 		IsManagement:   true,
@@ -73,19 +73,23 @@ func (run *Run) DeployManagement() error {
 	if err != nil {
 		return err
 	}
-	if len(deployedModules) == 0 {
-		return errors.ModulesNotDeployed(len(deployedModules))
+	if totalMatched == 0 {
+		return errors.ModulesNotDeployed(totalMatched)
 	}
-	time.Sleep(constant.DeployManagementWait)
+	if len(newlyDeployed) == 0 {
+		slog.Info(run.Config.Action.Name, "text", "All management modules already deployed, skipping healthchecks")
+	} else {
+		time.Sleep(constant.DeployManagementWait)
 
-	slog.Info(run.Config.Action.Name, "text", "WAITING FOR MANAGEMENT MODULES TO BECOME READY")
-	if err := run.CheckDeployedModuleReadiness(constant.Management, deployedModules); err != nil {
-		return err
-	}
+		slog.Info(run.Config.Action.Name, "text", "WAITING FOR MANAGEMENT MODULES TO BECOME READY")
+		if err := run.CheckDeployedModuleReadiness(constant.Management, newlyDeployed); err != nil {
+			return err
+		}
 
-	slog.Info(run.Config.Action.Name, "text", "WAITING FOR KONG ROUTES TO BECOME READY")
-	if err := run.Config.KongSvc.CheckRouteReadiness(); err != nil {
-		return err
+		slog.Info(run.Config.Action.Name, "text", "WAITING FOR KONG ROUTES TO BECOME READY")
+		if err := run.Config.KongSvc.CheckRouteReadiness(); err != nil {
+			return err
+		}
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "UPDATING REALM SETTINGS")

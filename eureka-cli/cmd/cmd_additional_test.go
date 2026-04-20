@@ -215,7 +215,7 @@ func TestDeployManagement_Success(t *testing.T) {
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
 	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(map[string]int{"test-module": 8080}, nil)
+		Return(map[string]int{"test-module": 8080}, 1, nil)
 	mockModule.On("CheckModuleReadiness", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return()
 	mockKongSvc.On("CheckRouteReadiness").Return(nil)
 	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("access-token", nil)
@@ -244,7 +244,7 @@ func TestDeployManagement_DeployModulesError(t *testing.T) {
 	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
-	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, expectedError)
+	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, expectedError)
 	mockDocker.On("Close", mock.Anything).Return(nil)
 
 	// Act
@@ -269,7 +269,7 @@ func TestDeployManagement_NoModulesDeployed(t *testing.T) {
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
 	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(map[string]int{}, nil)
+		Return(map[string]int{}, 0, nil)
 	mockDocker.On("Close", mock.Anything).Return(nil)
 
 	// Act
@@ -278,6 +278,34 @@ func TestDeployManagement_NoModulesDeployed(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "modules not deployed")
+}
+
+func TestDeployManagement_AllAlreadyDeployed_SkipsHealthcheck(t *testing.T) {
+	// Arrange
+	run, _, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.DeployManagement)
+	mockModuleProps := &MockModuleProps{}
+	mockRegistrySvc := &MockRegistrySvc{}
+	run.Config.ModuleProps = mockModuleProps
+	run.Config.RegistrySvc = mockRegistrySvc
+
+	mockModuleProps.On("ReadBackendModules", true, true).Return(map[string]models.BackendModule{}, nil)
+	mockRegistrySvc.On("GetModules", true, true).Return(&models.ProxyModulesByRegistry{}, nil)
+	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything).Return()
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	// newlyDeployed=empty (all already existed), totalMatched=1
+	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(map[string]int{}, 1, nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.Anything).Return("access-token", nil)
+	mockKeycloak.On("UpdateRealmAccessTokenSettings", constant.KeycloakMasterRealm, mock.Anything).Return(nil)
+	mockDocker.On("Close", mock.Anything).Return(nil)
+
+	// Act
+	err := run.DeployManagement()
+
+	// Assert — no healthcheck, no kong check
+	assert.NoError(t, err)
+	mockModule.AssertNotCalled(t, "CheckModuleReadiness")
 }
 
 // ==================== UndeployManagement Tests ====================

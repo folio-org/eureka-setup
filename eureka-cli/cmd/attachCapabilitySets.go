@@ -53,11 +53,21 @@ func (run *Run) AttachCapabilitySets(consortiumName string, tenantType constant.
 		if err := run.updateRealmAccessTokenSettingsAndRelogin(configTenant); err != nil {
 			return err
 		}
-		topicConfigTenant := run.Config.Action.GetKafkaTopicConfigTenant(configTenant)
 
-		slog.Info(run.Config.Action.Name, "text", "POLLING FOR CAPABILITY SETS CREATION", "topicConfigTenant", topicConfigTenant)
-		if err := run.Config.KafkaSvc.PollConsumerGroup(topicConfigTenant); err != nil {
+		slog.Info(run.Config.Action.Name, "text", "CHECKING IF CAPABILITY SETS ALREADY EXIST", "tenant", configTenant)
+		hasCapabilitySets, err := run.Config.KeycloakSvc.HasCapabilitySets(configTenant)
+		if err != nil {
 			return err
+		}
+
+		if !hasCapabilitySets {
+			topicConfigTenant := run.Config.Action.GetKafkaTopicConfigTenant(configTenant)
+			slog.Info(run.Config.Action.Name, "text", "POLLING FOR CAPABILITY SETS CREATION", "topicConfigTenant", topicConfigTenant)
+			if err := run.Config.KafkaSvc.PollConsumerGroup(topicConfigTenant); err != nil {
+				return err
+			}
+		} else {
+			slog.Info(run.Config.Action.Name, "text", "Capability sets already exist, skipping Kafka poll", "tenant", configTenant)
 		}
 
 		slog.Info(run.Config.Action.Name, "text", "ATTACHING CAPABILITY SETS", "tenant", configTenant)

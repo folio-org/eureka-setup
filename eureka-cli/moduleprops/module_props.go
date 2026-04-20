@@ -56,17 +56,9 @@ func (mp *ModuleProps) ReadBackendModules(isManagement bool, verbose bool) (map[
 		modules[name] = *backendModule
 		if verbose {
 			if p.Version == nil {
-				slog.Info(mp.Action.Name, "text", "Read backend module", "module", name,
-					"port1", modules[name].ModuleExposedServerPort,
-					"port2", modules[name].ModuleExposedDebugPort,
-					"port3", modules[name].SidecarExposedServerPort,
-					"port4", modules[name].SidecarExposedDebugPort)
+				slog.Info(mp.Action.Name, "text", "Read backend module", "module", name)
 			} else {
-				slog.Info(mp.Action.Name, "text", "Read backend module", "module", name, "version", *p.Version,
-					"port1", modules[name].ModuleExposedServerPort,
-					"port2", modules[name].ModuleExposedDebugPort,
-					"port3", modules[name].SidecarExposedServerPort,
-					"port4", modules[name].SidecarExposedDebugPort)
+				slog.Info(mp.Action.Name, "text", "Read backend module", "module", name, "version", *p.Version)
 			}
 		}
 	}

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
@@ -142,7 +143,20 @@ func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error)
 func (us *UISvc) DeployContainer(tenantName string, imageName string, externalPort int) error {
 	slog.Info(us.Action.Name, "text", "Deploying UI container for tenant", "tenant", tenantName)
 	containerName := fmt.Sprintf("eureka-platform-complete-ui-%s", tenantName)
-	err := us.ExecSvc.Exec(exec.Command("docker", "run", "--name", containerName,
+
+	stdout, _, err := us.ExecSvc.ExecReturnOutput(exec.Command("docker", "ps", "-a",
+		"--filter", fmt.Sprintf("name=^%s$", containerName),
+		"--format", "{{.Names}}",
+	))
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(stdout.String()) != "" {
+		slog.Info(us.Action.Name, "text", "UI container already deployed, skipping", "tenant", tenantName)
+		return nil
+	}
+
+	err = us.ExecSvc.Exec(exec.Command("docker", "run", "--name", containerName,
 		"--hostname", containerName,
 		"--publish", fmt.Sprintf("%d:80", externalPort),
 		"--restart", "unless-stopped",

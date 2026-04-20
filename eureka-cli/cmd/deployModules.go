@@ -71,7 +71,7 @@ func (run *Run) DeployModules() error {
 		return err
 	}
 
-	slog.Info(run.Config.Action.Name, "text", "PULLING SIDECAR IMAGE")
+	slog.Info(run.Config.Action.Name, "text", "PREPARING SIDECAR IMAGE")
 	containers := &models.Containers{
 		Modules:        modules,
 		BackendModules: backendModules,
@@ -82,7 +82,7 @@ func (run *Run) DeployModules() error {
 		return err
 	}
 
-	slog.Info(run.Config.Action.Name, "text", "Using sidecar image", "image", sidecarImage)
+	slog.Info(run.Config.Action.Name, "text", "Using sidecar image", "image", sidecarImage, "pullImage", pullSidecarImage)
 	if pullSidecarImage {
 		err = run.Config.ModuleSvc.PullModule(client, sidecarImage)
 		if err != nil {
@@ -92,18 +92,22 @@ func (run *Run) DeployModules() error {
 
 	slog.Info(run.Config.Action.Name, "text", "DEPLOYING MODULES")
 	sidecarResources := helpers.CreateResources(false, run.Config.Action.ConfigSidecarModuleResources)
-	deployedModules, err := run.Config.ModuleSvc.DeployModules(client, containers, sidecarImage, sidecarResources)
+	newlyDeployed, totalMatched, err := run.Config.ModuleSvc.DeployModules(client, containers, sidecarImage, sidecarResources)
 	if err != nil {
 		return err
 	}
-	if len(deployedModules) == 0 {
-		return errors.ModulesNotDeployed(len(deployedModules))
+	if totalMatched == 0 {
+		return errors.ModulesNotDeployed(totalMatched)
 	}
-	time.Sleep(constant.DeployModulesWait)
+	if len(newlyDeployed) == 0 {
+		slog.Info(run.Config.Action.Name, "text", "All modules already deployed, skipping healthchecks")
+	} else {
+		time.Sleep(constant.DeployModulesWait)
 
-	slog.Info(run.Config.Action.Name, "text", "WAITING FOR MODULES TO BECOME READY")
-	if err := run.CheckDeployedModuleReadiness(constant.Module, deployedModules); err != nil {
-		return err
+		slog.Info(run.Config.Action.Name, "text", "WAITING FOR MODULES TO BECOME READY")
+		if err := run.CheckDeployedModuleReadiness(constant.Module, newlyDeployed); err != nil {
+			return err
+		}
 	}
 
 	slog.Info(run.Config.Action.Name, "text", "CREATING APPLICATION")

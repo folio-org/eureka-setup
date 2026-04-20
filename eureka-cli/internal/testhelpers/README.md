@@ -1,202 +1,44 @@
 # Internal Test Helpers Package
 
-## Overview
+Reusable testing utilities for eureka-cli. Import path: `github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers`
 
-This package provides reusable testing utilities for the eureka-cli project, enabling consistent, maintainable, and efficient unit and integration tests.
+## Files
 
-## Package Contents
+| File                | Contents                                                              |
+|:--------------------|:----------------------------------------------------------------------|
+| `mocks.go`          | `NewMockAction()`, `MockHTTPClient`, `MockCommandExecutor`, `MockRegistrySvc`, `MockModuleEnv`, `MockDockerClient`, `MockTenantSvc` |
+| `git_mocks.go`      | `MockGitClient` — mock for `gitclient.GitClientRunner` (`KongRepository`, `KeycloakRepository`, `PlatformCompleteRepository`, `Clone`, `ResetHardPullFromOrigin`) |
+| `http_helpers.go`   | `MockHTTPServer`, `JSONResponse`, `ErrorResponse`, `EmptyResponse`, `SequentialResponses`, request assertion helpers |
+| `file_helpers.go`   | `CreateTempJSONFile`, `CreateTempFile`, `CreateJSONFileInDir`, `CreateFileInDir`, `ReadFileContent` |
+| `viper_helpers.go`  | `ViperTestConfig` — tracks original values and restores them in `Reset()`; `SetupViperForTest(map[string]any)` for bulk setup |
+| `doc.go`            | Package doc comment                                                   |
 
-### 1. `http_helpers.go`
+## Key mocks
 
-HTTP testing utilities for mocking HTTP servers and responses:
+**`NewMockAction()`** — returns `*action.Action` with name `"test-action"` and empty `Param`. Set fields directly after construction (e.g. `action.ConfigProfileName = "platform-complete"`).
 
-- **MockHTTPServer**: Test HTTP server with request capture and assertion helpers
-- **JSONResponse**: Handler for JSON responses
-- **ErrorResponse**: Handler for error responses  
-- **EmptyResponse**: Handler for empty responses
-- **SequentialResponses**: Handler for sequential different responses
-- **Assertion helpers**: Request count, method, path, headers, body validation
+**`MockCommandExecutor`** — implements `execsvc.CommandRunner`: `Exec`, `ExecReturnOutput`, `ExecFromDir`. Also has `ExecIgnoreError` as an extra method not present in the interface — do not stub it unless the code under test calls it directly. When mocking `ExecReturnOutput`, always return `(bytes.Buffer, bytes.Buffer, error)`.
 
-### 2. `mocks.go`
+> **Note:** `cmd/cmd_test.go` defines its own `MockExecSvc` (three interface methods only) for use within `cmd/` tests. Do not replace it with `MockCommandExecutor` — they are separate types serving different test scopes.
 
-Mock implementations of key interfaces:
+**`MockHTTPClient`** — implements all `httpclient.HTTPClientRunner` methods. Use `.On("MethodName", mock.Anything, ...).Return(...)`.
 
-- **MockHTTPClient**: Mock for `httpclient.HTTPClientRunner` interface
-- **NewMockAction()**: Returns a real `*action.Action` with an empty `Param` — set fields directly
-- **MockCommandExecutor**: Mock for `execsvc.CommandRunner` interface
-- **MockRegistrySvc**: Mock for `registrysvc.RegistryProcessor` interface — `GetModules(verbose, forceRefresh bool)`
-- **MockModuleEnv**: Mock for `moduleenv.ModuleEnvProcessor` interface
-- **MockDockerClient**: Mock for `dockerclient.DockerClientRunner` interface
-- **MockTenantSvc**: Mock for `tenantsvc.TenantProcessor` interface
-- Additional mocks can be added as needed
+**`MockRegistrySvc`** — `GetModules(verbose, forceRefresh bool)` — both args required in every `.On()` call. `forceRefresh=true` exercises network path; `false` exercises local file path.
 
-### 3. `doc.go`
+**`MockDockerClient`** — implements `dockerclient.DockerClientRunner`: `Create`, `Close`, `PushImage`, `ForcePullImage`.
 
-Package documentation
-
-### 4. `TESTING_GUIDE.md`
-
-Comprehensive testing system prompt containing:
-
-- Testing principles and patterns
-- Test organization guidelines
-- HTTP testing patterns (mock server vs mock client)
-- Table-driven test examples
-- Error scenario testing
-- Service-specific testing strategies
-- Test maintenance and coverage guidelines
-- Token-efficient testing approach
-
-## Quick Start
-
-### Install Dependencies
+## Running tests
 
 ```bash
-go get github.com/stretchr/testify
-```
-
-### Example: Testing with Mock HTTP Server
-
-```go
-package httpclient_test
-
-import (
-  "testing"
-  "net/http"
-  
-  "github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
-  "github.com/stretchr/testify/assert"
-)
-
-func TestHTTPClient_GetRequest(t *testing.T) {
-  // Create mock server
-  mockServer := testhelpers.NewMockHTTPServer(t, 
-    testhelpers.JSONResponse(http.StatusOK, map[string]string{"status": "ok"}))
-  defer mockServer.Close()
-  
-  // Test code here...
-  
-  // Assertions
-  mockServer.AssertRequestCount(1)
-  mockServer.AssertRequestMethod(0, "GET")
-}
-```
-
-### Example: Testing with Mock HTTP Client
-
-```go
-package searchsvc_test
-
-import (
-  "testing"
-  
-  "github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
-  "github.com/folio-org/eureka-setup/eureka-cli/searchsvc"
-  "github.com/stretchr/testify/assert"
-  "github.com/stretchr/testify/mock"
-)
-
-func TestSearchSvc_ReindexInventoryRecords(t *testing.T) {
-  // Setup mocks
-  mockHTTP := &testhelpers.MockHTTPClient{}
-  action := testhelpers.NewMockAction()
-  svc := searchsvc.New(action, mockHTTP)
-  
-  // Configure expectations
-  mockHTTP.On("PostReturnStruct", 
-    mock.Anything, 
-    mock.Anything, 
-    mock.Anything, 
-    mock.Anything).Return(nil)
-  
-  // Test code here...
-  
-  // Verify expectations
-  mockHTTP.AssertExpectations(t)
-}
-```
-
-## Testing Strategy
-
-### Phase 1: Core Utilities (High Priority)
-
-- HTTP client methods
-- Error package functions
-- Helper utilities
-
-### Phase 2: Service Layer (Medium Priority)
-
-- SearchSvc - reindexing operations
-- KeycloakSvc - authentication and user management
-- ManagementSvc - tenant and application operations
-- RegistrySvc - module registry operations
-- ModuleSvc - module provisioning and image management
-- TenantSvc - tenant parameters and configuration
-
-### Phase 3: Integration Tests (Low Priority)
-
-- End-to-end flows
-- Multi-service interactions
-
-## Best Practices
-
-✅ **DO**:
-
-- Use table-driven tests for multiple scenarios
-- Mock all external dependencies
-- Test both success and error paths
-- Keep tests independent
-- Use descriptive test names
-- Test edge cases with empty strings and special characters
-- Verify URL parameter formatting and escaping
-- Use `_ = os.Remove(...)` / `_ = os.Rename(...)` in `t.Cleanup` closures to satisfy errcheck
-- Run `golangci-lint run ./...` once as the final finishing move
-- Target specific packages with `go test ./pkg/...` rather than `go test ./...`
-
-❌ **DON'T**:
-
-- Test external services directly
-- Share state between tests
-- Use time.Sleep()
-- Ignore test setup errors
-- Write flaky tests
-- Leave duplicate test function names
-- Forget to test error paths (headers, HTTP errors)
-- Run `go test ./...` across the whole module (RAM constrained)
-
-## Running Tests
-
-```bash
-# Run specific package (preferred — machine is RAM-constrained)
-go test ./registrysvc/...
+# Target a single package — machine is RAM-constrained
 go test ./cmd/...
+go test ./modulesvc/...
 
-# Run with race detection on a single package
-go test -race ./registrysvc/...
+# Docker API tests use httptest, no real daemon needed:
+# client.NewClientWithOpts(client.WithHost(ts.URL), client.WithVersion("1.41"))
 
-# Lint — run once as a finishing move
+# Lint once as finishing move
 golangci-lint run ./...
-
-# Coverage for a single package
-go test -coverprofile=coverage.out ./registrysvc/...
-go tool cover -html=coverage.out
 ```
 
-> **Note**: Avoid `go test ./...` across the full module — it consumes significant RAM.
-
-## Contributing
-
-When adding new test helpers:
-
-1. Add to appropriate file (`http_helpers.go` or `mocks.go`)
-2. Document with clear comments
-3. Add usage examples to TESTING_GUIDE.md
-4. Ensure helpers are reusable across packages
-5. Keep helpers simple and focused
-
-## References
-
-- [TESTING_GUIDE.md](./TESTING_GUIDE.md) - Comprehensive testing system prompt
-- [Go Testing Package](https://pkg.go.dev/testing)
-- [Testify](https://github.com/stretchr/testify)
-- [Go Testing Best Practices](https://go.dev/doc/tutorial/add-a-test)
+See [TESTING_GUIDE.md](./TESTING_GUIDE.md) for AAA structure, HTTP patterns, table-driven tests, and service-specific notes.

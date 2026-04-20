@@ -146,7 +146,6 @@ func (rs *RegistrySvc) fetchAndPersistModuleVersions(filePath string) ([]models.
 	if err := rs.HTTPClient.GetRetryReturnStruct(rs.Action.ConfigLspURL, map[string]string{}, &descriptor); err != nil {
 		return nil, err
 	}
-
 	slog.Info(rs.Action.Name, "text", "Fetched LSP platform descriptor", "name", descriptor.Name, "version", descriptor.Version)
 
 	applications := append(descriptor.Applications.Required, descriptor.Applications.Optional...)
