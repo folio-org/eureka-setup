@@ -127,12 +127,21 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 				return nil, 0, err
 			}
 			if len(existingContainers) > 0 {
-				slog.Info(ms.Action.Name, "text", "Container already deployed, skipping", "module", module.Metadata.Name)
+				var portParts []string
+				for _, p := range existingContainers[0].Ports {
+					portParts = append(portParts, fmt.Sprintf("%d->%d/%s", p.PublicPort, p.PrivatePort, p.Type))
+				}
+				slog.Info(ms.Action.Name, "text", "Container already deployed, skipping", "module", module.Metadata.Name, "ports", strings.Join(portParts, ", "))
 				continue
 			}
 
 			version := ms.GetModuleImageVersion(backendModule, module)
 			module.Metadata.Version = &version
+			slog.Info(ms.Action.Name, "text", "Deploying module", "module", module.Metadata.Name,
+				"port1", backendModule.ModuleExposedServerPort,
+				"port2", backendModule.ModuleExposedDebugPort,
+				"port3", backendModule.SidecarExposedServerPort,
+				"port4", backendModule.SidecarExposedDebugPort)
 
 			if err := ms.DeployModule(client, &models.Container{
 				Name: module.Metadata.Name,

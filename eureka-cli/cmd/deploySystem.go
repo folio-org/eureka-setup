@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"os/exec"
 	"strings"
@@ -43,6 +44,7 @@ var deploySystemCmd = &cobra.Command{
 }
 
 func (run *Run) DeploySystem() error {
+	slog.Info(run.Config.Action.Name, "text", "DEPLOYING SYSTEM CONTAINERS")
 	if err := run.CloneUpdateRepositories(); err != nil {
 		return err
 	}
@@ -59,7 +61,6 @@ func (run *Run) DeploySystem() error {
 		subCommand = append(subCommand, finalRequiredContainers...)
 	}
 
-	slog.Info(run.Config.Action.Name, "text", "DEPLOYING SYSTEM CONTAINERS")
 	return run.dockerComposeUp(subCommand, constant.DeploySystemWait, "system")
 }
 
@@ -80,9 +81,9 @@ func (run *Run) dockerComposeUp(subCommand []string, wait time.Duration, label s
 	if strings.Contains(combined, " Started") || strings.Contains(combined, " Created") {
 		slog.Info(run.Config.Action.Name, "text", "WAITING FOR "+strings.ToUpper(label)+" CONTAINERS TO BECOME READY")
 		time.Sleep(wait)
-		slog.Info(run.Config.Action.Name, "text", "All "+label+" containers are ready")
+		slog.Info(run.Config.Action.Name, "text", fmt.Sprintf("All %s containers are ready", label))
 	} else {
-		slog.Info(run.Config.Action.Name, "text", "All "+label+" containers already running, skipping wait")
+		slog.Info(run.Config.Action.Name, "text", fmt.Sprintf("All %s containers already running, skipping wait", label))
 	}
 
 	return nil
