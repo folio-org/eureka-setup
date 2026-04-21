@@ -3,7 +3,11 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 	"testing"
 
@@ -213,6 +217,11 @@ func (m *MockKeycloakSvc) GetCapabilitySetsByName(headers map[string]string, cap
 func (m *MockKeycloakSvc) HasCapabilitySets(tenantName string) (bool, error) {
 	args := m.Called(tenantName)
 	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockKeycloakSvc) CountCapabilitySets(tenantName string) (int, error) {
+	args := m.Called(tenantName)
+	return args.Int(0), args.Error(1)
 }
 
 func (m *MockKeycloakSvc) AttachCapabilitySets(tenantName string) error {
@@ -1615,6 +1624,13 @@ func TestAttachCapabilitySets_Success(t *testing.T) {
 	mockKafkaSvc := &MockKafkaSvc{}
 	run.Config.KafkaSvc = mockKafkaSvc
 
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	filePath := filepath.Join(homeDir, ".eureka", fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
+	t.Cleanup(func() { _ = os.Remove(filePath) })
+
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
 	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
@@ -1622,21 +1638,42 @@ func TestAttachCapabilitySets_Success(t *testing.T) {
 		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
 	mockKeycloak.On("UpdateRealmAccessTokenSettings", mock.Anything, mock.Anything).Return(nil)
 	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
-	mockKeycloak.On("HasCapabilitySets", "test-tenant").Return(false, nil)
 	mockKafkaSvc.On("PollConsumerGroup", mock.Anything).Return(nil)
 	mockKeycloak.On("AttachCapabilitySetsToRoles", "test-tenant").Return(nil)
+	mockKeycloak.On("CountCapabilitySets", "test-tenant").Return(530, nil)
 
 	// Act
-	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0)
+	err = run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
 
 	// Assert
 	assert.NoError(t, err)
 	mockKeycloak.AssertExpectations(t)
 	mockKafkaSvc.AssertExpectations(t)
+
+	var written capabilitySetsRecord
+	data, readErr := os.ReadFile(filePath)
+	if assert.NoError(t, readErr, "capability sets file should have been written") {
+		assert.NoError(t, json.Unmarshal(data, &written))
+		assert.Equal(t, "test-tenant", written.Tenant)
+		assert.Equal(t, 530, written.Total)
+	}
 }
 
-func TestAttachCapabilitySets_AlreadyExist_SkipsPoll(t *testing.T) {
-	// Arrange
+func TestAttachCapabilitySets_FilePersisted_SkipsPoll(t *testing.T) {
+	// Arrange — pre-create persistence file; live count matches → skip poll
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	filePath := filepath.Join(homeDir, ".eureka", fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
+	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filePath, []byte(`{"tenant":"test-tenant","total":530}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Remove(filePath) })
+
 	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.AttachCapabilitySets)
 	mockKafkaSvc := &MockKafkaSvc{}
 	run.Config.KafkaSvc = mockKafkaSvc
@@ -1648,16 +1685,24 @@ func TestAttachCapabilitySets_AlreadyExist_SkipsPoll(t *testing.T) {
 		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
 	mockKeycloak.On("UpdateRealmAccessTokenSettings", mock.Anything, mock.Anything).Return(nil)
 	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
-	mockKeycloak.On("HasCapabilitySets", "test-tenant").Return(true, nil)
 	mockKeycloak.On("AttachCapabilitySetsToRoles", "test-tenant").Return(nil)
+	mockKeycloak.On("CountCapabilitySets", "test-tenant").Return(530, nil)
 
 	// Act
-	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0)
+	err = run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
 
 	// Assert
 	assert.NoError(t, err)
 	mockKeycloak.AssertExpectations(t)
 	mockKafkaSvc.AssertNotCalled(t, "PollConsumerGroup", mock.Anything)
+
+	var written capabilitySetsRecord
+	data, readErr := os.ReadFile(filePath)
+	if assert.NoError(t, readErr, "capability sets file should still exist after re-attach") {
+		assert.NoError(t, json.Unmarshal(data, &written))
+		assert.Equal(t, "test-tenant", written.Tenant)
+		assert.Equal(t, 530, written.Total)
+	}
 }
 
 func TestAttachCapabilitySets_GetMasterTokenError(t *testing.T) {
@@ -1668,7 +1713,7 @@ func TestAttachCapabilitySets_GetMasterTokenError(t *testing.T) {
 	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", expectedError)
 
 	// Act
-	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0)
+	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
 
 	// Assert
 	assert.Error(t, err)
@@ -1690,7 +1735,7 @@ func TestAttachCapabilitySets_UpdateRealmError(t *testing.T) {
 	mockKeycloak.On("UpdateRealmAccessTokenSettings", mock.Anything, mock.Anything).Return(expectedError)
 
 	// Act
-	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0)
+	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
 
 	// Assert
 	assert.Error(t, err)
@@ -1712,17 +1757,183 @@ func TestAttachCapabilitySets_AttachError(t *testing.T) {
 		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
 	mockKeycloak.On("UpdateRealmAccessTokenSettings", mock.Anything, mock.Anything).Return(nil)
 	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
-	mockKeycloak.On("HasCapabilitySets", "test-tenant").Return(false, nil)
 	mockKafkaSvc.On("PollConsumerGroup", mock.Anything).Return(nil)
 	mockKeycloak.On("AttachCapabilitySetsToRoles", "test-tenant").Return(expectedError)
 
 	// Act
-	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0)
+	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
 
 	// Assert
 	assert.Error(t, err)
 	assert.Equal(t, expectedError, err)
 	mockKeycloak.AssertExpectations(t)
+	mockKeycloak.AssertNotCalled(t, "CountCapabilitySets", mock.Anything)
+}
+
+func TestAttachCapabilitySets_ForceRefresh_DeletesFile(t *testing.T) {
+	// Arrange — pre-create file; forceRefresh=true deletes it, forcing a full poll
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	filePath := filepath.Join(homeDir, ".eureka", fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
+	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filePath, []byte(`{"tenant":"test-tenant","total":200}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Remove(filePath) })
+
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.AttachCapabilitySets)
+	mockKafkaSvc := &MockKafkaSvc{}
+	run.Config.KafkaSvc = mockKafkaSvc
+
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
+	mockKeycloak.On("UpdateRealmAccessTokenSettings", mock.Anything, mock.Anything).Return(nil)
+	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockKafkaSvc.On("PollConsumerGroup", mock.Anything).Return(nil)
+	mockKeycloak.On("AttachCapabilitySetsToRoles", "test-tenant").Return(nil)
+	mockKeycloak.On("CountCapabilitySets", "test-tenant").Return(200, nil)
+
+	// Act
+	err = run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, true)
+
+	// Assert — poll must have been called since file was deleted
+	assert.NoError(t, err)
+	mockKafkaSvc.AssertExpectations(t)
+	mockKeycloak.AssertExpectations(t)
+
+	var written capabilitySetsRecord
+	data, readErr := os.ReadFile(filePath)
+	if assert.NoError(t, readErr, "capability sets file should have been re-written after force refresh") {
+		assert.NoError(t, json.Unmarshal(data, &written))
+		assert.Equal(t, 200, written.Total)
+	}
+}
+
+func TestAttachCapabilitySets_CountChanged_Polls(t *testing.T) {
+	// Arrange — persisted total doesn't match live count; poll is required
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	filePath := filepath.Join(homeDir, ".eureka", fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
+	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filePath, []byte(`{"tenant":"test-tenant","total":100}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Remove(filePath) })
+
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.AttachCapabilitySets)
+	mockKafkaSvc := &MockKafkaSvc{}
+	run.Config.KafkaSvc = mockKafkaSvc
+
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
+	mockKeycloak.On("UpdateRealmAccessTokenSettings", mock.Anything, mock.Anything).Return(nil)
+	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockKafkaSvc.On("PollConsumerGroup", mock.Anything).Return(nil)
+	mockKeycloak.On("AttachCapabilitySetsToRoles", "test-tenant").Return(nil)
+	// pre-check returns 200 (≠ persisted 100); post-attach also returns 200
+	mockKeycloak.On("CountCapabilitySets", "test-tenant").Return(200, nil)
+
+	// Act
+	err = run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
+
+	// Assert — poll called; file updated to live count
+	assert.NoError(t, err)
+	mockKafkaSvc.AssertExpectations(t)
+	mockKeycloak.AssertExpectations(t)
+
+	var written capabilitySetsRecord
+	data, readErr := os.ReadFile(filePath)
+	if assert.NoError(t, readErr, "capability sets file should have been updated to new count") {
+		assert.NoError(t, json.Unmarshal(data, &written))
+		assert.Equal(t, 200, written.Total)
+	}
+}
+
+func TestAttachCapabilitySets_PreCheckCountError_Polls(t *testing.T) {
+	// Arrange — CountCapabilitySets errors during pre-check; falls through to poll
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	filePath := filepath.Join(homeDir, ".eureka", fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
+	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filePath, []byte(`{"tenant":"test-tenant","total":300}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Remove(filePath) })
+
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.AttachCapabilitySets)
+	mockKafkaSvc := &MockKafkaSvc{}
+	run.Config.KafkaSvc = mockKafkaSvc
+
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
+	mockKeycloak.On("UpdateRealmAccessTokenSettings", mock.Anything, mock.Anything).Return(nil)
+	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockKafkaSvc.On("PollConsumerGroup", mock.Anything).Return(nil)
+	mockKeycloak.On("AttachCapabilitySetsToRoles", "test-tenant").Return(nil)
+	mockKeycloak.On("CountCapabilitySets", "test-tenant").Return(0, assert.AnError).Once()
+	mockKeycloak.On("CountCapabilitySets", "test-tenant").Return(300, nil)
+
+	// Act
+	err = run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
+
+	// Assert — poll called despite file existing; function succeeds
+	assert.NoError(t, err)
+	mockKafkaSvc.AssertExpectations(t)
+	mockKeycloak.AssertExpectations(t)
+}
+
+func TestAttachCapabilitySets_PostAttachCountError_ReturnsNil(t *testing.T) {
+	// Arrange — CountCapabilitySets errors after attach; non-fatal, function returns nil
+	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.AttachCapabilitySets)
+	mockKafkaSvc := &MockKafkaSvc{}
+	run.Config.KafkaSvc = mockKafkaSvc
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	filePath := filepath.Join(homeDir, ".eureka", fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
+	t.Cleanup(func() { _ = os.Remove(filePath) })
+
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", nil)
+	mockManagement.On("GetTenants", mock.Anything, mock.Anything).
+		Return([]any{map[string]any{"name": "test-tenant", "description": "nop-default"}}, nil)
+	mockKeycloak.On("UpdateRealmAccessTokenSettings", mock.Anything, mock.Anything).Return(nil)
+	mockKeycloak.On("GetAccessToken", mock.Anything).Return("", nil)
+	mockKafkaSvc.On("PollConsumerGroup", mock.Anything).Return(nil)
+	mockKeycloak.On("AttachCapabilitySetsToRoles", "test-tenant").Return(nil)
+	mockKeycloak.On("CountCapabilitySets", "test-tenant").Return(0, assert.AnError)
+
+	// Act
+	err = run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
+
+	// Assert — count error is non-fatal; no file written
+	assert.NoError(t, err)
+	_, statErr := os.Stat(filePath)
+	assert.True(t, os.IsNotExist(statErr), "capability sets file should not have been written after count error")
 }
 
 // ==================== DetachCapabilitySets Tests ====================
