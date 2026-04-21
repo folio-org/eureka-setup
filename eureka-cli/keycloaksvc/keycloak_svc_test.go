@@ -1778,6 +1778,94 @@ func TestHasCapabilitySets_GetCapabilitySetsError(t *testing.T) {
 	assert.False(t, has)
 }
 
+func TestCountCapabilitySets_ReturnsCount(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	act := testhelpers.NewMockAction()
+	act.KeycloakAccessToken = "token"
+	mockVault := &MockVaultClient{}
+	mockMgmt := &MockManagementSvc{}
+	svc := keycloaksvc.New(act, mockHTTP, mockVault, mockMgmt)
+
+	capSetsResponse := models.KeycloakCapabilitySetsResponse{
+		CapabilitySets: []models.KeycloakCapabilitySet{
+			{ID: "cap-1", Name: "users.read", ApplicationID: "app-1"},
+			{ID: "cap-2", Name: "users.write", ApplicationID: "app-1"},
+		},
+	}
+	mockMgmt.On("GetApplications").Return(models.ApplicationsResponse{ApplicationDescriptors: []map[string]any{{"id": "app-1"}}}, nil)
+	mockHTTP.On("GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			*args.Get(2).(*models.KeycloakCapabilitySetsResponse) = capSetsResponse
+		}).
+		Return(nil)
+
+	// Act
+	count, err := svc.CountCapabilitySets("test-tenant")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, 2, count)
+}
+
+func TestCountCapabilitySets_ReturnsZero_WhenEmpty(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	act := testhelpers.NewMockAction()
+	act.KeycloakAccessToken = "token"
+	mockVault := &MockVaultClient{}
+	mockMgmt := &MockManagementSvc{}
+	svc := keycloaksvc.New(act, mockHTTP, mockVault, mockMgmt)
+
+	mockMgmt.On("GetApplications").Return(models.ApplicationsResponse{ApplicationDescriptors: []map[string]any{{"id": "app-1"}}}, nil)
+	mockHTTP.On("GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	// Act
+	count, err := svc.CountCapabilitySets("test-tenant")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, 0, count)
+}
+
+func TestCountCapabilitySets_HeadersError(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	act := testhelpers.NewMockAction()
+	// KeycloakAccessToken empty → headers error
+	mockVault := &MockVaultClient{}
+	mockMgmt := &MockManagementSvc{}
+	svc := keycloaksvc.New(act, mockHTTP, mockVault, mockMgmt)
+
+	// Act
+	count, err := svc.CountCapabilitySets("test-tenant")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, 0, count)
+}
+
+func TestCountCapabilitySets_GetCapabilitySetsError(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	act := testhelpers.NewMockAction()
+	act.KeycloakAccessToken = "token"
+	mockVault := &MockVaultClient{}
+	mockMgmt := &MockManagementSvc{}
+	svc := keycloaksvc.New(act, mockHTTP, mockVault, mockMgmt)
+
+	expectedError := errors.New("get applications failed")
+	mockMgmt.On("GetApplications").Return(models.ApplicationsResponse{}, expectedError)
+
+	// Act
+	count, err := svc.CountCapabilitySets("test-tenant")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	assert.Equal(t, 0, count)
+}
+
 func TestGetCapabilitySetsByName_Success(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}

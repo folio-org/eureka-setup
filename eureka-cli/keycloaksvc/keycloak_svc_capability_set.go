@@ -19,6 +19,7 @@ type KeycloakCapabilitySetManager interface {
 	GetCapabilitySets(headers map[string]string) ([]any, error)
 	GetCapabilitySetsByName(headers map[string]string, capabilityName string) ([]any, error)
 	HasCapabilitySets(tenantName string) (bool, error)
+	CountCapabilitySets(tenantName string) (int, error)
 	AttachCapabilitySetsToRoles(tenantName string) error
 	DetachCapabilitySetsFromRoles(tenantName string) error
 }
@@ -92,6 +93,19 @@ func (ks *KeycloakSvc) HasCapabilitySets(tenantName string) (bool, error) {
 		return false, err
 	}
 	return len(sets) > 0, nil
+}
+
+func (ks *KeycloakSvc) CountCapabilitySets(tenantName string) (int, error) {
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	if err != nil {
+		return 0, err
+	}
+	sets, err := ks.GetCapabilitySets(headers)
+	if err != nil {
+		return 0, err
+	}
+
+	return len(sets), nil
 }
 
 func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenantName string) error {

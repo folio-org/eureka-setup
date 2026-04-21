@@ -131,7 +131,8 @@ const (
 	EurekaRegistry = "eureka"
 
 	// Files
-	ModulesFile = "modules.json"
+	ModulesFile               = "modules.json"
+	CapabilitySetsFilePattern = "%s_capability_sets.json"
 
 	// Docker compose properties
 	DockerComposeWorkDir = "./misc"
