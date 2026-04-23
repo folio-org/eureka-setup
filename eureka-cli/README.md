@@ -28,6 +28,7 @@
       - [Deploy the export application](#deploy-the-export-application)
       - [Deploy the search application](#deploy-the-search-application)
       - [Deploy the edge application](#deploy-the-edge-application)
+      - [Deploy the erm application](#deploy-the-erm-application)
     - [Undeploy child applications](#undeploy-child-applications)
     - [Intercept a module](#intercept-a-module)
     - [Create a port proxy](#create-a-port-proxy)
@@ -153,14 +154,14 @@ Available flags:
 
 **Global flags (available for all commands):**
 
-| Long                    | Short | Description                                                                                                                    |
-|-------------------------|-------|--------------------------------------------------------------------------------------------------------------------------------|
-| `--buildImages`         | `-b`  | Build Docker images                                                                                                            |
-| `--configFile`          | `-c`  | Specify config file path                                                                                                       |
-| `--enableDebug`         | `-d`  | Enable debug mode                                                                                                              |
-| `--onlyRequired`        | `-q`  | Use only required system containers (deploySystem, deployApplication)                                                          |
-| `--overwriteFiles`      | `-o`  | Overwrite files in .eureka home directory                                                                                      |
-| `--profile`             | `-p`  | Select profile (combined, combined-native, combined-native-otel, export, search, edge, ecs, ecs-single, ecs-migration, import) |
+| Long                    | Short | Description                                                                                                                         |
+|-------------------------|-------|-------------------------------------------------------------------------------------------------------------------------------------|
+| `--buildImages`         | `-b`  | Build Docker images                                                                                                                 |
+| `--configFile`          | `-c`  | Specify config file path                                                                                                            |
+| `--enableDebug`         | `-d`  | Enable debug mode                                                                                                                   |
+| `--onlyRequired`        | `-q`  | Use only required system containers (deploySystem, deployApplication)                                                               |
+| `--overwriteFiles`      | `-o`  | Overwrite files in .eureka home directory                                                                                           |
+| `--profile`             | `-p`  | Select profile (combined, combined-native, combined-native-otel, export, search, edge, erm, ecs, ecs-single, ecs-migration, import) |
 
 **Command-specific flags:**
 
@@ -234,7 +235,7 @@ eureka-cli deployApplication -q
 eureka-cli -p combined deployApplication
 ```
 
-> Available profiles are: _combined_, _combined-native_, _combined-native-otel_, _export_, _search_, _edge_, _ecs_, _ecs-single_, _ecs-migration_ and _import_ (_combined_, _combined-native_, _combined-native-otel_, _ecs_, _ecs-single_, _ecs-migration_ and _import_ are standalone applications).
+> Available profiles are: _combined_, _combined-native_, _combined-native-otel_, _export_, _search_, _edge_, _erm_, _ecs_, _ecs-single_, _ecs-migration_ and _import_ (_combined_, _combined-native_, _combined-native-otel_, _ecs_, _ecs-single_, _ecs-migration_ and _import_ are standalone applications).
 
 - It can be combined with the `-o` flag to overwrite all existing files in the `.eureka` home directory to receive changes from upstream
 
@@ -394,6 +395,14 @@ eureka-cli -p edge deployApplication
 
 ![CLI Deploy Edge Application](images/cli_deploy_edge_application.png)
 
+#### Deploy the erm application
+
+- The erm application contains modules, including mod-okapi-facade, for working with the ERM, OA and Serials
+
+```bash
+eureka-cli -p erm deployApplication
+```
+
 ### Undeploy child applications
 
 - All child applications can be undeployed with the same `undeployApplication` command, which will remove both the modules and system containers used by the app
@@ -402,7 +411,7 @@ eureka-cli -p edge deployApplication
 eureka-cli -p {{profile}} undeployApplication
 ```
 
-> Replace `{{app}}` or `{{profile}}` with either of the supported child profiles: _export_, _search_ or _edge_.
+> Replace `{{app}}` or `{{profile}}` with either of the supported child profiles: _export_, _search_, _edge_ or _erm_.
 
 ### Intercept a module
 
