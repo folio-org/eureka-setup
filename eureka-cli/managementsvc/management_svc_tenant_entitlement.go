@@ -58,6 +58,22 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 			continue
 		}
 
+		existingEntitlements, err := ms.GetTenantEntitlements(tenantName, false)
+		if err != nil {
+			return err
+		}
+		alreadyEntitled := false
+		for _, e := range existingEntitlements.Entitlements {
+			if e.ApplicationID == ms.Action.ConfigApplicationID {
+				alreadyEntitled = true
+				break
+			}
+		}
+		if alreadyEntitled {
+			slog.Info(ms.Action.Name, "text", "Tenant entitlement already exists, skipping", "tenant", tenantName)
+			continue
+		}
+
 		payload, err := json.Marshal(map[string]any{
 			"tenantId":     helpers.GetString(entry, "id"),
 			"applications": []string{ms.Action.ConfigApplicationID},
@@ -72,7 +88,7 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 		}
 		slog.Info(ms.Action.Name, "text", "Created tenant entitlement", "tenant", tenantName, "flowId", decodedResponse.FlowID)
 
-	  time.Sleep(30 * time.Second)
+		time.Sleep(30 * time.Second)
 	}
 
 	return nil

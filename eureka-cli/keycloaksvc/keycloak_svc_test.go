@@ -1036,6 +1036,14 @@ func TestCreateRoles_Success(t *testing.T) {
 	mockMgmt := &MockManagementSvc{}
 	svc := keycloaksvc.New(action, mockHTTP, mockVault, mockMgmt)
 
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/roles?query=name==")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Return(nil)
+
 	mockHTTP.On("PostReturnNoContent",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/roles")
@@ -1090,6 +1098,14 @@ func TestCreateRoles_HTTPError(t *testing.T) {
 	mockVault := &MockVaultClient{}
 	mockMgmt := &MockManagementSvc{}
 	svc := keycloaksvc.New(action, mockHTTP, mockVault, mockMgmt)
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/roles?query=name==")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Return(nil)
 
 	expectedError := errors.New("HTTP POST failed")
 	mockHTTP.On("PostReturnNoContent",
@@ -1343,6 +1359,14 @@ func TestCreateUsers_Success(t *testing.T) {
 	svc := keycloaksvc.New(action, mockHTTP, mockVault, mockMgmt)
 
 	createdUser := map[string]any{"id": "user-123"}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/users?query=username==")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Return(nil)
 
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(urlStr string) bool {
@@ -1669,6 +1693,179 @@ func TestGetCapabilitySets_GetApplicationsError(t *testing.T) {
 	mockMgmt.AssertExpectations(t)
 }
 
+func TestHasCapabilitySets_ReturnsFalse_WhenEmpty(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	act := testhelpers.NewMockAction()
+	act.KeycloakAccessToken = "token"
+	mockVault := &MockVaultClient{}
+	mockMgmt := &MockManagementSvc{}
+	svc := keycloaksvc.New(act, mockHTTP, mockVault, mockMgmt)
+
+	mockMgmt.On("GetApplications").Return(models.ApplicationsResponse{ApplicationDescriptors: []map[string]any{{"id": "app-1"}}}, nil)
+	mockHTTP.On("GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	// Act
+	has, err := svc.HasCapabilitySets("test-tenant")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.False(t, has)
+}
+
+func TestHasCapabilitySets_ReturnsTrue_WhenNonEmpty(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	act := testhelpers.NewMockAction()
+	act.KeycloakAccessToken = "token"
+	mockVault := &MockVaultClient{}
+	mockMgmt := &MockManagementSvc{}
+	svc := keycloaksvc.New(act, mockHTTP, mockVault, mockMgmt)
+
+	capSetsResponse := models.KeycloakCapabilitySetsResponse{
+		CapabilitySets: []models.KeycloakCapabilitySet{{ID: "cap-1", Name: "users.read", ApplicationID: "app-1"}},
+	}
+	mockMgmt.On("GetApplications").Return(models.ApplicationsResponse{ApplicationDescriptors: []map[string]any{{"id": "app-1"}}}, nil)
+	mockHTTP.On("GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			*args.Get(2).(*models.KeycloakCapabilitySetsResponse) = capSetsResponse
+		}).
+		Return(nil)
+
+	// Act
+	has, err := svc.HasCapabilitySets("test-tenant")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.True(t, has)
+}
+
+func TestHasCapabilitySets_HeadersError(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	act := testhelpers.NewMockAction()
+	// KeycloakAccessToken left empty — SecureOkapiTenantApplicationJSONHeaders returns error
+	mockVault := &MockVaultClient{}
+	mockMgmt := &MockManagementSvc{}
+	svc := keycloaksvc.New(act, mockHTTP, mockVault, mockMgmt)
+
+	// Act
+	has, err := svc.HasCapabilitySets("test-tenant")
+
+	// Assert
+	assert.Error(t, err)
+	assert.False(t, has)
+}
+
+func TestHasCapabilitySets_GetCapabilitySetsError(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	act := testhelpers.NewMockAction()
+	act.KeycloakAccessToken = "token"
+	mockVault := &MockVaultClient{}
+	mockMgmt := &MockManagementSvc{}
+	svc := keycloaksvc.New(act, mockHTTP, mockVault, mockMgmt)
+
+	expectedError := errors.New("get applications failed")
+	mockMgmt.On("GetApplications").Return(models.ApplicationsResponse{}, expectedError)
+
+	// Act
+	has, err := svc.HasCapabilitySets("test-tenant")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	assert.False(t, has)
+}
+
+func TestCountCapabilitySets_ReturnsCount(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	act := testhelpers.NewMockAction()
+	act.KeycloakAccessToken = "token"
+	mockVault := &MockVaultClient{}
+	mockMgmt := &MockManagementSvc{}
+	svc := keycloaksvc.New(act, mockHTTP, mockVault, mockMgmt)
+
+	capSetsResponse := models.KeycloakCapabilitySetsResponse{
+		CapabilitySets: []models.KeycloakCapabilitySet{
+			{ID: "cap-1", Name: "users.read", ApplicationID: "app-1"},
+			{ID: "cap-2", Name: "users.write", ApplicationID: "app-1"},
+		},
+	}
+	mockMgmt.On("GetApplications").Return(models.ApplicationsResponse{ApplicationDescriptors: []map[string]any{{"id": "app-1"}}}, nil)
+	mockHTTP.On("GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything).
+		Run(func(args mock.Arguments) {
+			*args.Get(2).(*models.KeycloakCapabilitySetsResponse) = capSetsResponse
+		}).
+		Return(nil)
+
+	// Act
+	count, err := svc.CountCapabilitySets("test-tenant")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, 2, count)
+}
+
+func TestCountCapabilitySets_ReturnsZero_WhenEmpty(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	act := testhelpers.NewMockAction()
+	act.KeycloakAccessToken = "token"
+	mockVault := &MockVaultClient{}
+	mockMgmt := &MockManagementSvc{}
+	svc := keycloaksvc.New(act, mockHTTP, mockVault, mockMgmt)
+
+	mockMgmt.On("GetApplications").Return(models.ApplicationsResponse{ApplicationDescriptors: []map[string]any{{"id": "app-1"}}}, nil)
+	mockHTTP.On("GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	// Act
+	count, err := svc.CountCapabilitySets("test-tenant")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, 0, count)
+}
+
+func TestCountCapabilitySets_HeadersError(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	act := testhelpers.NewMockAction()
+	// KeycloakAccessToken empty → headers error
+	mockVault := &MockVaultClient{}
+	mockMgmt := &MockManagementSvc{}
+	svc := keycloaksvc.New(act, mockHTTP, mockVault, mockMgmt)
+
+	// Act
+	count, err := svc.CountCapabilitySets("test-tenant")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, 0, count)
+}
+
+func TestCountCapabilitySets_GetCapabilitySetsError(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	act := testhelpers.NewMockAction()
+	act.KeycloakAccessToken = "token"
+	mockVault := &MockVaultClient{}
+	mockMgmt := &MockManagementSvc{}
+	svc := keycloaksvc.New(act, mockHTTP, mockVault, mockMgmt)
+
+	expectedError := errors.New("get applications failed")
+	mockMgmt.On("GetApplications").Return(models.ApplicationsResponse{}, expectedError)
+
+	// Act
+	count, err := svc.CountCapabilitySets("test-tenant")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, expectedError, err)
+	assert.Equal(t, 0, count)
+}
+
 func TestGetCapabilitySetsByName_Success(t *testing.T) {
 	// Arrange
 	mockHTTP := &testhelpers.MockHTTPClient{}
@@ -1786,6 +1983,14 @@ func TestAttachCapabilitySetsToRoles_Success(t *testing.T) {
 			target := args.Get(2).(*models.KeycloakCapabilitySetsResponse)
 			*target = capSetsResponse
 		}).
+		Return(nil)
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/capability-sets?limit=10000")
+		}),
+		mock.Anything,
+		mock.Anything).
 		Return(nil)
 
 	mockHTTP.On("PostRetryReturnNoContent",
@@ -2189,6 +2394,14 @@ func TestAttachCapabilitySetsToRoles_WithAllCapabilitySets(t *testing.T) {
 		}).
 		Return(nil)
 
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/capability-sets?limit=10000")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Return(nil)
+
 	mockHTTP.On("PostRetryReturnNoContent",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/roles/capability-sets")
@@ -2270,6 +2483,14 @@ func TestAttachCapabilitySetsToRoles_LargeBatchSplitting(t *testing.T) {
 		Return(nil)
 
 	// Expect 2 batches: 250 + 50
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/capability-sets?limit=10000")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Return(nil)
+
 	mockHTTP.On("PostRetryReturnNoContent",
 		mock.MatchedBy(func(urlStr string) bool {
 			return strings.Contains(urlStr, "/roles/capability-sets")
@@ -2524,6 +2745,14 @@ func TestAttachCapabilitySetsToRoles_PostError(t *testing.T) {
 		}).
 		Return(nil)
 
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/capability-sets?limit=10000")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Return(nil)
+
 	mockHTTP.On("PostRetryReturnNoContent",
 		mock.Anything,
 		mock.Anything,
@@ -2536,5 +2765,231 @@ func TestAttachCapabilitySetsToRoles_PostError(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Equal(t, expectedError, err)
+	mockHTTP.AssertExpectations(t)
+}
+
+// ==================== Idempotency Tests ====================
+
+func TestCreateRoles_RoleAlreadyExists_Skipped(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakAccessToken = "test-token"
+	action.ConfigRoles = map[string]any{
+		"admin": map[string]any{
+			"tenant": "test-tenant",
+		},
+	}
+	mockVault := &MockVaultClient{}
+	mockMgmt := &MockManagementSvc{}
+	svc := keycloaksvc.New(action, mockHTTP, mockVault, mockMgmt)
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/roles?query=name==")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.KeycloakRolesResponse)
+			target.Roles = []models.KeycloakRole{{ID: "role-1", Name: "admin"}}
+			target.TotalCount = 1
+		}).
+		Return(nil)
+
+	// Act
+	err := svc.CreateRoles("test-tenant")
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertNotCalled(t, "PostReturnNoContent", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestCreateUsers_UserAlreadyExists_Skipped(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakAccessToken = "test-token"
+	action.ConfigUsers = map[string]any{
+		"testuser": map[string]any{
+			"tenant":     "test-tenant",
+			"password":   "pass123",
+			"first-name": "Test",
+			"last-name":  "User",
+		},
+	}
+	mockVault := &MockVaultClient{}
+	mockMgmt := &MockManagementSvc{}
+	svc := keycloaksvc.New(action, mockHTTP, mockVault, mockMgmt)
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/users?query=username==")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.KeycloakUsersResponse)
+			target.Users = []models.KeycloakUser{{ID: "user-1", Username: "testuser", Active: true}}
+		}).
+		Return(nil)
+
+	// Act
+	err := svc.CreateUsers("test-tenant")
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertNotCalled(t, "PostReturnStruct", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mockHTTP.AssertNotCalled(t, "PostReturnNoContent", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestAttachCapabilitySetsToRoles_AllAlreadyAttached_Skipped(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakAccessToken = "test-token"
+	action.ConfigRoles = map[string]any{
+		"admin": map[string]any{
+			"tenant":          "test-tenant",
+			"capability-sets": []any{"users.read"},
+		},
+	}
+	mockVault := &MockVaultClient{}
+	mockMgmt := &MockManagementSvc{}
+	svc := keycloaksvc.New(action, mockHTTP, mockVault, mockMgmt)
+
+	rolesResponse := models.KeycloakRolesResponse{
+		Roles: []models.KeycloakRole{{ID: "role-1", Name: "admin"}},
+	}
+	capSetsResponse := models.KeycloakCapabilitySetsResponse{
+		CapabilitySets: []models.KeycloakCapabilitySet{{ID: "cap-1", Name: "users.read"}},
+	}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/roles?offset=0&limit=10000")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.KeycloakRolesResponse)
+			*target = rolesResponse
+		}).
+		Return(nil)
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/capability-sets?query=name==users.read")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.KeycloakCapabilitySetsResponse)
+			*target = capSetsResponse
+		}).
+		Return(nil)
+
+	// cap-1 already attached — delta is empty
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/capability-sets?limit=10000")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.KeycloakCapabilitySetsResponse)
+			target.CapabilitySets = []models.KeycloakCapabilitySet{{ID: "cap-1"}}
+		}).
+		Return(nil)
+
+	// Act
+	err := svc.AttachCapabilitySetsToRoles("test-tenant")
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertNotCalled(t, "PostRetryReturnNoContent", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestAttachCapabilitySetsToRoles_PartiallyAttached_PostsDelta(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakAccessToken = "test-token"
+	action.ConfigRoles = map[string]any{
+		"admin": map[string]any{
+			"tenant":          "test-tenant",
+			"capability-sets": []any{"users.read"},
+		},
+	}
+	mockVault := &MockVaultClient{}
+	mockMgmt := &MockManagementSvc{}
+	svc := keycloaksvc.New(action, mockHTTP, mockVault, mockMgmt)
+
+	rolesResponse := models.KeycloakRolesResponse{
+		Roles: []models.KeycloakRole{{ID: "role-1", Name: "admin"}},
+	}
+	// GetCapabilitySetsByName returns two entries for the single set name
+	capSetsResponse := models.KeycloakCapabilitySetsResponse{
+		CapabilitySets: []models.KeycloakCapabilitySet{
+			{ID: "cap-1", Name: "users.read"},
+			{ID: "cap-2", Name: "users.write"},
+		},
+	}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/roles?offset=0&limit=10000")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.KeycloakRolesResponse)
+			*target = rolesResponse
+		}).
+		Return(nil)
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/capability-sets?query=name==users.read")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.KeycloakCapabilitySetsResponse)
+			*target = capSetsResponse
+		}).
+		Return(nil)
+
+	// Only cap-1 already attached; cap-2 is the delta
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/capability-sets?limit=10000")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.KeycloakCapabilitySetsResponse)
+			target.CapabilitySets = []models.KeycloakCapabilitySet{{ID: "cap-1"}}
+		}).
+		Return(nil)
+
+	mockHTTP.On("PostRetryReturnNoContent",
+		mock.MatchedBy(func(urlStr string) bool {
+			return strings.Contains(urlStr, "/roles/capability-sets")
+		}),
+		mock.MatchedBy(func(payload []byte) bool {
+			var data map[string]any
+			_ = json.Unmarshal(payload, &data)
+			ids, ok := data["capabilitySetIds"].([]any)
+			return ok && len(ids) == 1 && ids[0] == "cap-2"
+		}),
+		mock.Anything).
+		Return(nil)
+
+	// Act
+	err := svc.AttachCapabilitySetsToRoles("test-tenant")
+
+	// Assert
+	assert.NoError(t, err)
 	mockHTTP.AssertExpectations(t)
 }

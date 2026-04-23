@@ -16,8 +16,10 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
@@ -42,6 +44,7 @@ var deploySystemCmd = &cobra.Command{
 }
 
 func (run *Run) DeploySystem() error {
+	slog.Info(run.Config.Action.Name, "text", "DEPLOYING SYSTEM CONTAINERS")
 	if err := run.CloneUpdateRepositories(); err != nil {
 		return err
 	}
@@ -58,17 +61,30 @@ func (run *Run) DeploySystem() error {
 		subCommand = append(subCommand, finalRequiredContainers...)
 	}
 
-	slog.Info(run.Config.Action.Name, "text", "DEPLOYING SYSTEM CONTAINERS")
+	return run.dockerComposeUp(subCommand, constant.DeploySystemWait, "system")
+}
+
+func (run *Run) dockerComposeUp(subCommand []string, wait time.Duration, label string) error {
 	homeDir, err := helpers.GetHomeMiscDir()
 	if err != nil {
 		return err
 	}
-	if err := run.Config.ExecSvc.ExecFromDir(exec.Command("docker", subCommand...), homeDir); err != nil {
+	dockerCmd := exec.Command("docker", subCommand...)
+	dockerCmd.Dir = homeDir
+
+	stdout, stderr, err := run.Config.ExecSvc.ExecReturnOutput(dockerCmd)
+	if err != nil {
 		return err
 	}
-	slog.Info(run.Config.Action.Name, "text", "WAITING FOR SYSTEM CONTAINERS TO BECOME READY")
-	time.Sleep(constant.DeploySystemWait)
-	slog.Info(run.Config.Action.Name, "text", "All system containers are ready")
+
+	combined := stdout.String() + stderr.String()
+	if strings.Contains(combined, " Started") || strings.Contains(combined, " Created") {
+		slog.Info(run.Config.Action.Name, "text", "WAITING FOR "+strings.ToUpper(label)+" CONTAINERS TO BECOME READY")
+		time.Sleep(wait)
+		slog.Info(run.Config.Action.Name, "text", fmt.Sprintf("All %s containers are ready", label))
+	} else {
+		slog.Info(run.Config.Action.Name, "text", fmt.Sprintf("All %s containers already running, skipping wait", label))
+	}
 
 	return nil
 }

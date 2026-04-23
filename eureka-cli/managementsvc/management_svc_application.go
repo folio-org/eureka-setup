@@ -2,6 +2,7 @@ package managementsvc
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -10,7 +11,7 @@ import (
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	"github.com/folio-org/eureka-setup/eureka-cli/errors"
+	apperrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/httpclient"
 	"github.com/folio-org/eureka-setup/eureka-cli/models"
@@ -76,13 +77,40 @@ func (ms *ManagementSvc) GetLatestApplication() (map[string]any, error) {
 		return nil, err
 	}
 	if len(decodedResponse.ApplicationDescriptors) == 0 {
-		return nil, errors.ApplicationNotFound(ms.Action.ConfigApplicationName)
+		return nil, apperrors.ApplicationNotFound(ms.Action.ConfigApplicationName)
 	}
 
 	return decodedResponse.ApplicationDescriptors[0], nil
 }
 
+func (ms *ManagementSvc) getApplicationByID(id string) (map[string]any, error) {
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/applications/%s", id))
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	var decodedResponse map[string]any
+	if err := ms.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
+		if errors.Is(err, apperrors.ErrHTTP404NotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return decodedResponse, nil
+}
+
 func (ms *ManagementSvc) CreateApplication(extract *models.RegistryExtract) error {
+	existing, err := ms.getApplicationByID(ms.Action.ConfigApplicationID)
+	if err != nil {
+		return err
+	}
+	if existing != nil {
+		slog.Info(ms.Action.Name, "text", "Application already exists, skipping", "id", ms.Action.ConfigApplicationID)
+		return nil
+	}
+
 	var (
 		backendModules            []map[string]string
 		frontendModules           []map[string]string
