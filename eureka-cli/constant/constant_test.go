@@ -135,7 +135,7 @@ func TestGetProfiles(t *testing.T) {
 	profiles := GetProfiles()
 
 	// Assert
-	assert.Len(t, profiles, 10)
+	assert.Len(t, profiles, 11)
 	assert.Contains(t, profiles, CombinedProfile)
 	assert.Contains(t, profiles, CombinedNativeProfile)
 	assert.Contains(t, profiles, CombinedNativeOtelProfile)
