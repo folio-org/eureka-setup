@@ -403,8 +403,6 @@ eureka-cli -p edge deployApplication
 eureka-cli -p erm deployApplication
 ```
 
-<!-- ![CLI Deploy ERM Application](images/cli_deploy_erm_application.png) -->
-
 ### Undeploy child applications
 
 - All child applications can be undeployed with the same `undeployApplication` command, which will remove both the modules and system containers used by the app
