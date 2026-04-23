@@ -295,6 +295,7 @@ const (
 	ExportProfile             = "export"
 	SearchProfile             = "search"
 	EdgeProfile               = "edge"
+	ERMProfile                = "erm"
 	ECSProfile                = "ecs"
 	ECSSingleProfile          = "ecs-single"
 	ECSMigrationProfile       = "ecs-migration"
@@ -309,6 +310,7 @@ func GetProfiles() []string {
 		ExportProfile,
 		SearchProfile,
 		EdgeProfile,
+		ERMProfile,
 		ECSProfile,
 		ECSSingleProfile,
 		ECSMigrationProfile,

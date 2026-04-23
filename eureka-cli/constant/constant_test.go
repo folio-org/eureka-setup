@@ -142,6 +142,7 @@ func TestGetProfiles(t *testing.T) {
 	assert.Contains(t, profiles, ExportProfile)
 	assert.Contains(t, profiles, SearchProfile)
 	assert.Contains(t, profiles, EdgeProfile)
+	assert.Contains(t, profiles, ERMProfile)
 	assert.Contains(t, profiles, ECSProfile)
 	assert.Contains(t, profiles, ECSSingleProfile)
 	assert.Contains(t, profiles, ECSMigrationProfile)
@@ -159,10 +160,11 @@ func TestGetProfiles_OrderPreserved(t *testing.T) {
 	assert.Equal(t, ExportProfile, profiles[3])
 	assert.Equal(t, SearchProfile, profiles[4])
 	assert.Equal(t, EdgeProfile, profiles[5])
-	assert.Equal(t, ECSProfile, profiles[6])
-	assert.Equal(t, ECSSingleProfile, profiles[7])
-	assert.Equal(t, ECSMigrationProfile, profiles[8])
-	assert.Equal(t, ImportProfile, profiles[9])
+	assert.Equal(t, ERMProfile, profiles[6])
+	assert.Equal(t, ECSProfile, profiles[7])
+	assert.Equal(t, ECSSingleProfile, profiles[8])
+	assert.Equal(t, ECSMigrationProfile, profiles[9])
+	assert.Equal(t, ImportProfile, profiles[10])
 }
 
 // ==================== GetDefaultProfile Tests ====================
@@ -228,4 +230,5 @@ func TestProfileConstants(t *testing.T) {
 	assert.Equal(t, "ecs", ECSProfile)
 	assert.Equal(t, "ecs-single", ECSSingleProfile)
 	assert.Equal(t, "import", ImportProfile)
+	assert.Equal(t, "erm", ERMProfile)
 }
