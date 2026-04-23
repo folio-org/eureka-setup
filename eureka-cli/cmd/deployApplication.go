@@ -102,7 +102,7 @@ func (run *Run) DeployApplication() error {
 		if err := run.CreateUsers(consortiumName, tenantType); err != nil {
 			return err
 		}
-		if err := run.AttachCapabilitySets(consortiumName, tenantType, constant.DeployApplicationPartitionWait); err != nil {
+		if err := run.AttachCapabilitySets(consortiumName, tenantType, constant.DeployApplicationPartitionWait, true); err != nil {
 			return err
 		}
 		if consortiumName != constant.NoneConsortium {
@@ -146,7 +146,7 @@ func (run *Run) DeployChildApplication() error {
 			return err
 		}
 
-		return run.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second)
+		return run.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second, true)
 	})
 }
 

@@ -57,6 +57,15 @@ func (ks *KeycloakSvc) CreateUsers(configTenant string) error {
 			continue
 		}
 
+		existingUser, err := ks.getUserByUsername(tenantName, username)
+		if err != nil {
+			return err
+		}
+		if existingUser != nil {
+			slog.Info(ks.Action.Name, "text", "User already exists, skipping", "username", username, "tenant", tenantName)
+			continue
+		}
+
 		createdUser, err := ks.createUser(tenantName, username, entry)
 		if err != nil {
 			return err
@@ -76,6 +85,27 @@ func (ks *KeycloakSvc) CreateUsers(configTenant string) error {
 	}
 
 	return nil
+}
+
+func (ks *KeycloakSvc) getUserByUsername(tenantName, username string) (map[string]any, error) {
+	requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/users?query=username==%s&limit=1", username))
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	if err != nil {
+		return nil, err
+	}
+
+	var decodedResponse models.KeycloakUsersResponse
+	if err := ks.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
+		return nil, err
+	}
+	if len(decodedResponse.Users) == 0 {
+		return nil, nil
+	}
+
+	return map[string]any{
+		"id":       decodedResponse.Users[0].ID,
+		"username": decodedResponse.Users[0].Username,
+	}, nil
 }
 
 func (ks *KeycloakSvc) createUser(tenantName string, username string, entry map[string]any) (map[string]any, error) {

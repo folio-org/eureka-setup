@@ -17,8 +17,6 @@ package cmd
 
 import (
 	"log/slog"
-	"os/exec"
-	"time"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
@@ -49,20 +47,8 @@ func (run *Run) DeployAdditionalSystem() error {
 		return nil
 	}
 
-	homeDir, err := helpers.GetHomeMiscDir()
-	if err != nil {
-		return err
-	}
-
 	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}, finalRequiredContainers...)
-	if err := run.Config.ExecSvc.ExecFromDir(exec.Command("docker", subCommand...), homeDir); err != nil {
-		return err
-	}
-	slog.Info(run.Config.Action.Name, "text", "WAITING FOR ADDITIONAL SYSTEM CONTAINERS TO BECOME READY")
-	time.Sleep(constant.DeployAdditionalSystemWait)
-	slog.Info(run.Config.Action.Name, "text", "All additional system containers are ready")
-
-	return nil
+	return run.dockerComposeUp(subCommand, constant.DeployAdditionalSystemWait, "additional system")
 }
 
 func init() {

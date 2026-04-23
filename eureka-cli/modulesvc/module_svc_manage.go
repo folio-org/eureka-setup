@@ -24,8 +24,9 @@ import (
 // ModuleManager defines the interface for managing module deployment and lifecycle
 type ModuleManager interface {
 	GetDeployedModules(client *client.Client, filters filters.Args) ([]container.Summary, error)
+	GetModule(client *client.Client, moduleName string) ([]container.Summary, error)
 	PullModule(client *client.Client, imageName string) error
-	DeployModules(client *client.Client, containers *models.Containers, sidecarImage string, sidecarResources *container.Resources) (map[string]int, error)
+	DeployModules(client *client.Client, containers *models.Containers, sidecarImage string, sidecarResources *container.Resources) (map[string]int, int, error)
 	DeployModule(client *client.Client, container *models.Container) error
 	UndeployModuleByNamePattern(client *client.Client, pattern string) error
 }
@@ -45,10 +46,22 @@ func (ms *ModuleSvc) GetDeployedModules(client *client.Client, filters filters.A
 	return deployedModules, nil
 }
 
+func (ms *ModuleSvc) GetModule(client *client.Client, moduleName string) ([]container.Summary, error) {
+	containerName := fmt.Sprintf("eureka-%s-%s", ms.Action.ConfigProfileName, moduleName)
+	if strings.HasPrefix(moduleName, constant.ManagementModulePattern) {
+		containerName = fmt.Sprintf("eureka-%s", moduleName)
+	}
+
+	return ms.GetDeployedModules(client, filters.NewArgs(filters.KeyValuePair{
+		Key:   "name",
+		Value: fmt.Sprintf("^%s$", containerName),
+	}))
+}
+
 func (ms *ModuleSvc) PullModule(client *client.Client, imageName string) error {
 	_, err := client.ImageInspect(context.Background(), imageName)
 	if err == nil {
-		slog.Debug(ms.Action.Name, "text", "Image already exists locally", "image", imageName)
+		slog.Info(ms.Action.Name, "text", "Image already exists locally", "image", imageName)
 		return nil
 	}
 	if !errdefs.IsNotFound(err) {
@@ -90,8 +103,9 @@ func (ms *ModuleSvc) PullModule(client *client.Client, imageName string) error {
 	return nil
 }
 
-func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Containers, sidecarImage string, sidecarResources *container.Resources) (map[string]int, error) {
-	deployedModules := make(map[string]int)
+func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Containers, sidecarImage string, sidecarResources *container.Resources) (map[string]int, int, error) {
+	newlyDeployed := make(map[string]int)
+	totalMatched := 0
 
 	var sidecarWG sync.WaitGroup
 	sidecarErrCh := make(chan error, 10)
@@ -106,8 +120,28 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 			}
 
 			backendModule := containers.BackendModules[module.Metadata.Name]
+			totalMatched++
+
+			existingContainers, err := ms.GetModule(client, module.Metadata.Name)
+			if err != nil {
+				return nil, 0, err
+			}
+			if len(existingContainers) > 0 {
+				var portParts []string
+				for _, p := range existingContainers[0].Ports {
+					portParts = append(portParts, fmt.Sprintf("%d->%d/%s", p.PublicPort, p.PrivatePort, p.Type))
+				}
+				slog.Info(ms.Action.Name, "text", "Container already deployed, skipping", "module", module.Metadata.Name, "ports", strings.Join(portParts, ", "))
+				continue
+			}
+
 			version := ms.GetModuleImageVersion(backendModule, module)
 			module.Metadata.Version = &version
+			slog.Info(ms.Action.Name, "text", "Deploying module", "module", module.Metadata.Name,
+				"port1", backendModule.ModuleExposedServerPort,
+				"port2", backendModule.ModuleExposedDebugPort,
+				"port3", backendModule.SidecarExposedServerPort,
+				"port4", backendModule.SidecarExposedDebugPort)
 
 			if err := ms.DeployModule(client, &models.Container{
 				Name: module.Metadata.Name,
@@ -127,9 +161,9 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 				Platform:      helpers.GetPlatform(),
 				PullImage:     backendModule.LocalDescriptorPath == "",
 			}); err != nil {
-				return nil, err
+				return nil, 0, err
 			}
-			deployedModules[module.Metadata.Name] = backendModule.ModuleExposedServerPort
+			newlyDeployed[module.Metadata.Name] = backendModule.ModuleExposedServerPort
 
 			if backendModule.DeploySidecar && sidecarImage != "" {
 				sidecarWG.Add(1)
@@ -150,10 +184,10 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 		close(sidecarErrCh)
 	}()
 	for err := range sidecarErrCh {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return deployedModules, nil
+	return newlyDeployed, totalMatched, nil
 }
 
 func (ms *ModuleSvc) shouldSkipModule(module *models.ProxyModule, managementOnly bool) bool {

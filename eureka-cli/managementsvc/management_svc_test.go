@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	apperrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/managementsvc"
 	"github.com/folio-org/eureka-setup/eureka-cli/models"
@@ -698,6 +699,14 @@ func TestCreateTenants_Success(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "query=name%3D%3D")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Return(nil)
+
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/tenants")
@@ -739,6 +748,14 @@ func TestCreateTenants_CentralTenant(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "query=name%3D%3D")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Return(nil)
+
 	mockHTTP.On("PostReturnStruct",
 		mock.Anything,
 		mock.MatchedBy(func(payload []byte) bool {
@@ -774,6 +791,14 @@ func TestCreateTenants_HTTPError(t *testing.T) {
 	}
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "query=name%3D%3D")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Return(nil)
 
 	expectedError := errors.New("HTTP POST failed")
 	mockHTTP.On("PostReturnStruct",
@@ -879,6 +904,14 @@ func TestCreateTenantEntitlement_Success(t *testing.T) {
 			target := args.Get(2).(*models.TenantsResponse)
 			_ = json.Unmarshal([]byte(responseBody), target)
 		}).
+		Return(nil)
+
+	mockHTTP.On("GetReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/entitlements?tenant=")
+		}),
+		mock.Anything,
+		mock.Anything).
 		Return(nil)
 
 	mockHTTP.On("PostReturnStruct",
@@ -1066,6 +1099,14 @@ func TestCreateTenants_NoConsortium(t *testing.T) {
 	}
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "query=name%3D%3D")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Return(nil)
 
 	mockHTTP.On("PostReturnStruct",
 		mock.Anything,
@@ -1313,6 +1354,14 @@ func TestCreateTenantEntitlement_PostError(t *testing.T) {
 		}).
 		Return(nil)
 
+	mockHTTP.On("GetReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/entitlements?tenant=")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Return(nil)
+
 	expectedError := errors.New("post failed")
 	mockHTTP.On("PostReturnStruct",
 		mock.Anything,
@@ -1408,6 +1457,15 @@ func TestCreateApplication_MinimalSuccess(t *testing.T) {
 		ModuleDescriptors: map[string]any{},
 	}
 
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
+
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
@@ -1487,6 +1545,15 @@ func TestCreateApplication_WithFrontendModule(t *testing.T) {
 		ModuleDescriptors: map[string]any{},
 	}
 
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
+
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
@@ -1550,6 +1617,15 @@ func TestCreateApplication_SkipsManagementModule(t *testing.T) {
 		ModuleDescriptors: map[string]any{},
 	}
 
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
+
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
@@ -1599,6 +1675,15 @@ func TestCreateApplication_HTTPError(t *testing.T) {
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
 	}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
 
 	expectedError := errors.New("HTTP POST failed")
 	mockHTTP.On("PostReturnStruct",
@@ -1654,6 +1739,15 @@ func TestCreateApplication_WithModuleVersionOverride(t *testing.T) {
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
 	}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
 
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
@@ -1742,6 +1836,15 @@ func TestCreateApplication_WithFetchDescriptorsFromRemote(t *testing.T) {
 		"id":   "mod-test-1.0.0",
 		"name": "Test Module",
 	}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
 
 	// Mock the remote descriptor fetch
 	mockHTTP.On("GetRetryReturnStruct",
@@ -1874,6 +1977,15 @@ func TestCreateApplication_WithDependencies(t *testing.T) {
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
 	}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
 
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
@@ -2027,6 +2139,15 @@ func TestCreateApplication_SkipsModuleNotInConfig(t *testing.T) {
 		ModuleDescriptors: map[string]any{},
 	}
 
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
+
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
@@ -2090,6 +2211,15 @@ func TestCreateApplication_SkipsModuleWithDeployFalse(t *testing.T) {
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
 	}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
 
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
@@ -2155,6 +2285,15 @@ func TestCreateApplication_WithEurekaModules(t *testing.T) {
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
 	}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
 
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
@@ -2233,6 +2372,15 @@ func TestCreateApplication_DiscoveryPostError(t *testing.T) {
 		ModuleDescriptors: map[string]any{},
 	}
 
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
+
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
@@ -2303,6 +2451,15 @@ func TestCreateApplication_WithModuleURLs(t *testing.T) {
 		FrontendModules:   map[string]models.FrontendModule{},
 		ModuleDescriptors: map[string]any{},
 	}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
 
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
@@ -2393,6 +2550,15 @@ func TestCreateApplication_FrontendModuleWithFetchDescriptors(t *testing.T) {
 
 	mockHTTP.On("GetRetryReturnStruct",
 		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/_/proxy/modules/folio-ui-1.0.0")
 		}),
 		mock.Anything,
@@ -2467,6 +2633,15 @@ func TestCreateApplication_FrontendModuleWithURL(t *testing.T) {
 		ModuleDescriptors: map[string]any{},
 	}
 
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
+
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
@@ -2536,6 +2711,15 @@ func TestCreateApplication_FrontendVersionOverride(t *testing.T) {
 		},
 		ModuleDescriptors: map[string]any{},
 	}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
 
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
@@ -2616,6 +2800,15 @@ func TestCreateApplication_MixedBackendAndFrontend(t *testing.T) {
 		},
 		ModuleDescriptors: map[string]any{},
 	}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
 
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
@@ -2709,6 +2902,15 @@ func TestCreateApplication_BothModulesBackendVersionOverride(t *testing.T) {
 		ModuleDescriptors: map[string]any{},
 	}
 
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
+
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
@@ -2800,6 +3002,15 @@ func TestCreateApplication_BothModulesFrontendVersionOverride(t *testing.T) {
 		},
 		ModuleDescriptors: map[string]any{},
 	}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
 
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
@@ -2894,6 +3105,15 @@ func TestCreateApplication_BothModulesBothVersionOverrides(t *testing.T) {
 		},
 		ModuleDescriptors: map[string]any{},
 	}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/") && !strings.Contains(url, "?")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Once().
+		Return(apperrors.ErrHTTP404NotFound)
 
 	mockHTTP.On("PostReturnStruct",
 		mock.MatchedBy(func(url string) bool {
@@ -3844,4 +4064,128 @@ func TestCreateNewModuleDiscovery_HTTPError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, expectedError, err)
 	mockHTTP.AssertExpectations(t)
+}
+
+// ==================== Idempotency Tests ====================
+
+func TestCreateTenants_TenantAlreadyExists_Skipped(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = "test-token"
+	action.ConfigTenants = map[string]any{
+		"test-tenant": map[string]any{
+			"consortium": "test-consortium",
+		},
+	}
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "query=name%3D%3D")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.TenantsResponse)
+			target.Tenants = []models.Tenant{{ID: "existing-id", Name: "test-tenant"}}
+		}).
+		Return(nil)
+
+	// Act
+	err := svc.CreateTenants()
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertNotCalled(t, "PostReturnStruct", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestCreateApplication_AlreadyExists_Skipped(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = "test-token"
+	action.ConfigApplicationID = "test-app"
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	extract := &models.RegistryExtract{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules:  []*models.ProxyModule{},
+			EurekaModules: []*models.ProxyModule{},
+		},
+		BackendModules:    map[string]models.BackendModule{},
+		FrontendModules:   map[string]models.FrontendModule{},
+		ModuleDescriptors: map[string]any{},
+	}
+
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/applications/test-app")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*map[string]any)
+			*target = map[string]any{"id": "test-app", "name": "Test App"}
+		}).
+		Return(nil)
+
+	// Act
+	err := svc.CreateApplication(extract)
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertNotCalled(t, "PostReturnStruct", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestCreateTenantEntitlement_AlreadyEntitled_Skipped(t *testing.T) {
+	// Arrange
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	action := testhelpers.NewMockAction()
+	action.KeycloakMasterAccessToken = "test-token"
+	action.ConfigTenants = map[string]any{
+		"test-tenant": map[string]any{},
+	}
+	action.ConfigApplicationID = "app-123"
+	mockTenantSvc := &MockTenantSvc{}
+	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
+
+	mockTenantSvc.On("GetEntitlementTenantParameters", "test-consortium").
+		Return("param1=value1", nil)
+
+	responseBody := `{"tenants": [{"id": "tenant-123", "name": "test-tenant"}], "totalRecords": 1}`
+	mockHTTP.On("GetRetryReturnStruct",
+		mock.Anything,
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.TenantsResponse)
+			_ = json.Unmarshal([]byte(responseBody), target)
+		}).
+		Return(nil)
+
+	mockHTTP.On("GetReturnStruct",
+		mock.MatchedBy(func(url string) bool {
+			return strings.Contains(url, "/entitlements?tenant=")
+		}),
+		mock.Anything,
+		mock.Anything).
+		Run(func(args mock.Arguments) {
+			target := args.Get(2).(*models.TenantEntitlementResponse)
+			target.Entitlements = []models.TenantEntitlementDTO{
+				{ApplicationID: "app-123", TenantID: "tenant-123"},
+			}
+			target.TotalRecords = 1
+		}).
+		Return(nil)
+
+	// Act
+	err := svc.CreateTenantEntitlement("test-consortium", constant.TenantType(constant.Member))
+
+	// Assert
+	assert.NoError(t, err)
+	mockHTTP.AssertNotCalled(t, "PostReturnStruct", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	mockTenantSvc.AssertExpectations(t)
 }
