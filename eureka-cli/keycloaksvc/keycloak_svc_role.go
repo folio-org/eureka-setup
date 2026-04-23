@@ -80,6 +80,15 @@ func (ks *KeycloakSvc) CreateRoles(configTenant string) error {
 			return err
 		}
 
+		existingRole, err := ks.GetRoleByName(ks.Action.Caser.String(role), headers)
+		if err != nil {
+			return err
+		}
+		if existingRole != nil {
+			slog.Info(ks.Action.Name, "text", "Role already exists, skipping", "role", role, "tenant", tenantName)
+			continue
+		}
+
 		payload, err := json.Marshal(map[string]string{
 			"name":        ks.Action.Caser.String(role),
 			"description": "Default",

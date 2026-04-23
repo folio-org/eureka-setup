@@ -104,7 +104,9 @@ func (hc *HTTPClient) validateResponse(method, url string, httpResponse *http.Re
 	if httpResponse.StatusCode >= http.StatusOK && httpResponse.StatusCode < http.StatusMultipleChoices {
 		return nil
 	}
-	_ = helpers.DumpResponse(method, url, httpResponse, true)
+	if httpResponse.StatusCode != http.StatusNotFound {
+		_ = helpers.DumpResponse(method, url, httpResponse, true)
+	}
 
 	return errors.RequestFailed(httpResponse.StatusCode, httpResponse.Request.Method, httpResponse.Request.URL.String())
 }

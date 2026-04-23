@@ -1,19 +1,24 @@
 package modulesvc
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	dockertypes "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNew(t *testing.T) {
@@ -1369,4 +1374,101 @@ func TestGetLocalModuleImage_LatestTag(t *testing.T) {
 
 	// Assert
 	assert.Equal(t, "docker.io/folioorg/mod-latest:latest", result)
+}
+
+func newDockerTestServer(t *testing.T, summaries []dockertypes.Summary, statusCode int) (*httptest.Server, *client.Client) {
+	t.Helper()
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/containers/json") {
+			w.Header().Set("Content-Type", "application/json")
+			if statusCode != http.StatusOK {
+				w.WriteHeader(statusCode)
+				return
+			}
+			_ = json.NewEncoder(w).Encode(summaries)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	cli, err := client.NewClientWithOpts(client.WithHost(ts.URL), client.WithVersion("1.41"))
+	require.NoError(t, err)
+	t.Cleanup(ts.Close)
+	return ts, cli
+}
+
+func TestGetModule_RegularModule_Found(t *testing.T) {
+	// Arrange
+	summaries := []dockertypes.Summary{{ID: "abc123"}}
+	_, dockerClient := newDockerTestServer(t, summaries, http.StatusOK)
+
+	action := testhelpers.NewMockAction()
+	svc := New(action, nil, nil, nil, nil)
+
+	// Act
+	result, err := svc.GetModule(dockerClient, "mod-test")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Len(t, result, 1)
+	assert.Equal(t, "abc123", result[0].ID)
+}
+
+func TestGetModule_ManagementModule_SkipsProfilePrefix(t *testing.T) {
+	// Arrange — capture the filter to verify no profile name is prepended
+	var capturedFilter string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/containers/json") {
+			capturedFilter = r.URL.Query().Get("filters")
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode([]dockertypes.Summary{{ID: "def456"}})
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(ts.Close)
+	dockerClient, err := client.NewClientWithOpts(client.WithHost(ts.URL), client.WithVersion("1.41"))
+	require.NoError(t, err)
+
+	action := testhelpers.NewMockAction()
+	svc := New(action, nil, nil, nil, nil)
+
+	// Act
+	result, err := svc.GetModule(dockerClient, "mgr-tenants")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Len(t, result, 1)
+	// Filter must reference "eureka-mgr-tenants", not "eureka--mgr-tenants"
+	assert.Contains(t, capturedFilter, "eureka-mgr-tenants")
+	assert.NotContains(t, capturedFilter, "eureka--mgr-tenants")
+}
+
+func TestGetModule_NotFound_ReturnsEmpty(t *testing.T) {
+	// Arrange
+	_, dockerClient := newDockerTestServer(t, []dockertypes.Summary{}, http.StatusOK)
+
+	action := testhelpers.NewMockAction()
+	svc := New(action, nil, nil, nil, nil)
+
+	// Act
+	result, err := svc.GetModule(dockerClient, "mod-missing")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Empty(t, result)
+}
+
+func TestGetModule_DockerError_Propagates(t *testing.T) {
+	// Arrange
+	_, dockerClient := newDockerTestServer(t, nil, http.StatusInternalServerError)
+
+	action := testhelpers.NewMockAction()
+	svc := New(action, nil, nil, nil, nil)
+
+	// Act
+	result, err := svc.GetModule(dockerClient, "mod-test")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Nil(t, result)
 }

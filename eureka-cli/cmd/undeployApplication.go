@@ -91,7 +91,7 @@ func (run *Run) UndeployChildApplication() error {
 			return err
 		}
 
-		return run.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second)
+		return run.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second, false)
 	})
 }
 

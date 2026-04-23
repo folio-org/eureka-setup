@@ -18,6 +18,8 @@ import (
 type KeycloakCapabilitySetManager interface {
 	GetCapabilitySets(headers map[string]string) ([]any, error)
 	GetCapabilitySetsByName(headers map[string]string, capabilityName string) ([]any, error)
+	HasCapabilitySets(tenantName string) (bool, error)
+	CountCapabilitySets(tenantName string) (int, error)
 	AttachCapabilitySetsToRoles(tenantName string) error
 	DetachCapabilitySetsFromRoles(tenantName string) error
 }
@@ -81,6 +83,31 @@ func (ks *KeycloakSvc) GetCapabilitySetsByName(headers map[string]string, capabi
 	return result, nil
 }
 
+func (ks *KeycloakSvc) HasCapabilitySets(tenantName string) (bool, error) {
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	if err != nil {
+		return false, err
+	}
+	sets, err := ks.GetCapabilitySets(headers)
+	if err != nil {
+		return false, err
+	}
+	return len(sets) > 0, nil
+}
+
+func (ks *KeycloakSvc) CountCapabilitySets(tenantName string) (int, error) {
+	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
+	if err != nil {
+		return 0, err
+	}
+	sets, err := ks.GetCapabilitySets(headers)
+	if err != nil {
+		return 0, err
+	}
+
+	return len(sets), nil
+}
+
 func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenantName string) error {
 	headers, err := helpers.SecureOkapiTenantApplicationJSONHeaders(tenantName, ks.Action.KeycloakAccessToken)
 	if err != nil {
@@ -116,6 +143,28 @@ func (ks *KeycloakSvc) AttachCapabilitySetsToRoles(tenantName string) error {
 		}
 		if len(capabilitySets) == 0 {
 			slog.Warn(ks.Action.Name, "text", "No capability sets were attached", "role", roleName, "tenant", tenantName)
+			continue
+		}
+
+		alreadyAttached, err := ks.getRoleCapabilitySetIDs(helpers.GetString(entry, "id"), headers)
+		if err != nil {
+			return err
+		}
+		if len(alreadyAttached) > 0 {
+			attachedSet := make(map[string]struct{}, len(alreadyAttached))
+			for _, id := range alreadyAttached {
+				attachedSet[id] = struct{}{}
+			}
+			var delta []string
+			for _, id := range capabilitySets {
+				if _, exists := attachedSet[id]; !exists {
+					delta = append(delta, id)
+				}
+			}
+			capabilitySets = delta
+		}
+		if len(capabilitySets) == 0 {
+			slog.Info(ks.Action.Name, "text", "All capability sets already attached, skipping", "role", roleName, "tenant", tenantName)
 			continue
 		}
 
@@ -173,6 +222,25 @@ func (ks *KeycloakSvc) populateCapabilitySets(headers map[string]string, rolesCa
 	}
 
 	return capabilitySets, nil
+}
+
+func (ks *KeycloakSvc) getRoleCapabilitySetIDs(roleID string, headers map[string]string) ([]string, error) {
+	requestURL := ks.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/roles/%s/capability-sets?limit=10000", roleID))
+
+	var decodedResponse models.KeycloakCapabilitySetsResponse
+	if err := ks.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
+		if errors.Is(err, apperrors.ErrHTTP404NotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	ids := make([]string, 0, len(decodedResponse.CapabilitySets))
+	for _, cs := range decodedResponse.CapabilitySets {
+		ids = append(ids, cs.ID)
+	}
+
+	return ids, nil
 }
 
 func (ks *KeycloakSvc) DetachCapabilitySetsFromRoles(tenantName string) error {

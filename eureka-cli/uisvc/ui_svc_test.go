@@ -1,6 +1,7 @@
 package uisvc
 
 import (
+	"bytes"
 	"errors"
 	"os/exec"
 	"path/filepath"
@@ -312,6 +313,11 @@ func TestDeployContainer_Success(t *testing.T) {
 	mockExec := new(testhelpers.MockCommandExecutor)
 	svc := New(action, mockExec, nil, nil, nil)
 
+	// Mock docker ps -a (container not found)
+	mockExec.On("ExecReturnOutput", mock.MatchedBy(func(cmd *exec.Cmd) bool {
+		return len(cmd.Args) >= 2 && cmd.Args[0] == "docker" && cmd.Args[1] == "ps"
+	})).Return(bytes.Buffer{}, bytes.Buffer{}, nil).Once()
+
 	// Mock docker run command
 	mockExec.On("Exec", mock.MatchedBy(func(cmd *exec.Cmd) bool {
 		return len(cmd.Args) >= 2 &&
@@ -341,6 +347,11 @@ func TestDeployContainer_RunError(t *testing.T) {
 	mockExec := new(testhelpers.MockCommandExecutor)
 	svc := New(action, mockExec, nil, nil, nil)
 
+	// Mock docker ps -a (container not found)
+	mockExec.On("ExecReturnOutput", mock.MatchedBy(func(cmd *exec.Cmd) bool {
+		return len(cmd.Args) >= 2 && cmd.Args[0] == "docker" && cmd.Args[1] == "ps"
+	})).Return(bytes.Buffer{}, bytes.Buffer{}, nil).Once()
+
 	runErr := errors.New("docker run failed")
 	mockExec.On("Exec", mock.MatchedBy(func(cmd *exec.Cmd) bool {
 		return len(cmd.Args) >= 2 &&
@@ -362,6 +373,11 @@ func TestDeployContainer_NetworkConnectError(t *testing.T) {
 	action := testhelpers.NewMockAction()
 	mockExec := new(testhelpers.MockCommandExecutor)
 	svc := New(action, mockExec, nil, nil, nil)
+
+	// Mock docker ps -a (container not found)
+	mockExec.On("ExecReturnOutput", mock.MatchedBy(func(cmd *exec.Cmd) bool {
+		return len(cmd.Args) >= 2 && cmd.Args[0] == "docker" && cmd.Args[1] == "ps"
+	})).Return(bytes.Buffer{}, bytes.Buffer{}, nil).Once()
 
 	networkErr := errors.New("network connect failed")
 
@@ -395,6 +411,11 @@ func TestDeployContainer_VerifyContainerName(t *testing.T) {
 
 	var capturedContainerName string
 
+	// Mock docker ps -a (container not found)
+	mockExec.On("ExecReturnOutput", mock.MatchedBy(func(cmd *exec.Cmd) bool {
+		return len(cmd.Args) >= 2 && cmd.Args[0] == "docker" && cmd.Args[1] == "ps"
+	})).Return(bytes.Buffer{}, bytes.Buffer{}, nil).Once()
+
 	mockExec.On("Exec", mock.MatchedBy(func(cmd *exec.Cmd) bool {
 		if len(cmd.Args) >= 5 && cmd.Args[1] == "run" && cmd.Args[2] == "--name" {
 			capturedContainerName = cmd.Args[3]
@@ -423,6 +444,11 @@ func TestDeployContainer_VerifyPort(t *testing.T) {
 	svc := New(action, mockExec, nil, nil, nil)
 
 	var capturedPort string
+
+	// Mock docker ps -a (container not found)
+	mockExec.On("ExecReturnOutput", mock.MatchedBy(func(cmd *exec.Cmd) bool {
+		return len(cmd.Args) >= 2 && cmd.Args[0] == "docker" && cmd.Args[1] == "ps"
+	})).Return(bytes.Buffer{}, bytes.Buffer{}, nil).Once()
 
 	mockExec.On("Exec", mock.MatchedBy(func(cmd *exec.Cmd) bool {
 		if len(cmd.Args) >= 7 && cmd.Args[1] == "run" && cmd.Args[6] == "--publish" {
@@ -928,4 +954,25 @@ func TestPreparePackageJSON_EmptyDependencies(t *testing.T) {
 	assert.Equal(t, ">=1.0.0", result.Dependencies["@folio/authorization-roles"])
 	assert.Equal(t, ">=1.0.0", result.Dependencies["@folio/plugin-select-application"])
 	assert.Equal(t, ">=1.0.0", result.Dependencies["@folio/consortia-settings"])
+}
+
+func TestDeployContainer_AlreadyExists_Skipped(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	mockExec := new(testhelpers.MockCommandExecutor)
+	svc := New(action, mockExec, nil, nil, nil)
+
+	// Mock docker ps -a returning the container name (already exists)
+	var existingName bytes.Buffer
+	existingName.WriteString("eureka-platform-complete-ui-test-tenant")
+	mockExec.On("ExecReturnOutput", mock.MatchedBy(func(cmd *exec.Cmd) bool {
+		return len(cmd.Args) >= 2 && cmd.Args[0] == "docker" && cmd.Args[1] == "ps"
+	})).Return(existingName, bytes.Buffer{}, nil).Once()
+
+	// Act
+	err := svc.DeployContainer("test-tenant", "test-image:latest", 8080)
+
+	// Assert — no docker run, no network connect
+	assert.NoError(t, err)
+	mockExec.AssertExpectations(t)
 }
