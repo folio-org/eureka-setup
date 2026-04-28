@@ -110,7 +110,6 @@ func (us *UISvc) PrepareStripesModulesJS(outputDir string) error {
 			result = append(result, line)
 		}
 	}
-
 	finalContent := strings.Join(result, "\n")
 
 	fmt.Println()

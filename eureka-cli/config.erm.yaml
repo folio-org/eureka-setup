@@ -123,8 +123,7 @@ backend-modules:
   # eUsage
   mod-erm-usage:
   mod-erm-usage-harvester:
-    environment:
-      OKAPI_URL: http://mod-erm-usage-harvester-sc.eureka:8081
+    use-okapi-url: true
   mod-eusage-reports:
   # OA
   mod-oa:
