@@ -150,9 +150,9 @@ func TestSetConfigTenantParams_Success(t *testing.T) {
 			Param: &action.Param{},
 			ConfigTenants: map[string]any{
 				"diku": map[string]any{
-					"single-tenant":         true,
-					"enable-ecs-request":    true,
-					"platform-complete-url": "http://localhost:8080",
+					"single-tenant":      true,
+					"enable-ecs-request": true,
+					"platform-lsp-url":   "http://localhost:8080",
 				},
 			},
 		}
@@ -166,7 +166,7 @@ func TestSetConfigTenantParams_Success(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, svc.Action.Param.SingleTenant)
 		assert.True(t, svc.Action.Param.EnableECSRequests)
-		assert.Equal(t, "http://localhost:8080", svc.Action.Param.PlatformCompleteURL)
+		assert.Equal(t, "http://localhost:8080", svc.Action.Param.PlatformLspURL)
 	})
 
 	t.Run("TestSetConfigTenantParams_Success_PartialFieldsSet", func(t *testing.T) {

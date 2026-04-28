@@ -50,7 +50,7 @@ func (ts *TenantSvc) SetConfigTenantParams(tenantName string) error {
 	var configTenant = ts.Action.ConfigTenants[tenantName].(map[string]any)
 	helpers.SetBool(configTenant, field.TenantsSingleTenantEntry, &ts.Action.Param.SingleTenant)
 	helpers.SetBool(configTenant, field.TenantsEnableEcsRequestEntry, &ts.Action.Param.EnableECSRequests)
-	helpers.SetString(configTenant, field.TenantsPlatformCompleteURLEntry, &ts.Action.Param.PlatformCompleteURL)
+	helpers.SetString(configTenant, field.TenantsPlatformLspURLEntry, &ts.Action.Param.PlatformLspURL)
 	slog.Info(ts.Action.Name, "text", "Setting default tenant config params", "tenant", tenantName)
 
 	return nil

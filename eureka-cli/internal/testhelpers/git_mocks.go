@@ -27,7 +27,7 @@ func (m *MockGitClient) KeycloakRepository() (*gitrepository.GitRepository, erro
 	return args.Get(0).(*gitrepository.GitRepository), args.Error(1)
 }
 
-func (m *MockGitClient) PlatformCompleteRepository(branch plumbing.ReferenceName) (*gitrepository.GitRepository, error) {
+func (m *MockGitClient) PlatformLspRepository(branch plumbing.ReferenceName) (*gitrepository.GitRepository, error) {
 	args := m.Called(branch)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)

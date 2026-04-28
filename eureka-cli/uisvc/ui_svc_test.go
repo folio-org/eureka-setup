@@ -74,13 +74,13 @@ func TestCloneAndUpdateRepository_CloneSuccess(t *testing.T) {
 	svc := New(action, nil, mockGitClient, nil, nil)
 
 	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-complete",
-		URL:    "https://github.com/test/platform-complete.git",
-		Dir:    "/home/test/platform-complete",
+		Label:  "platform-lsp",
+		URL:    "https://github.com/test/platform-lsp.git",
+		Dir:    "/home/test/platform-lsp",
 		Branch: plumbing.NewBranchReferenceName("snapshot"),
 	}
 
-	mockGitClient.On("PlatformCompleteRepository", mock.Anything).
+	mockGitClient.On("PlatformLspRepository", mock.Anything).
 		Return(mockRepo, nil)
 	mockGitClient.On("Clone", mockRepo).
 		Return(nil)
@@ -90,7 +90,7 @@ func TestCloneAndUpdateRepository_CloneSuccess(t *testing.T) {
 
 	// Assert
 	assert.NoError(t, err)
-	assert.Equal(t, "/home/test/platform-complete", outputDir)
+	assert.Equal(t, "/home/test/platform-lsp", outputDir)
 	mockGitClient.AssertExpectations(t)
 }
 
@@ -101,13 +101,13 @@ func TestCloneAndUpdateRepository_AlreadyExists(t *testing.T) {
 	svc := New(action, nil, mockGitClient, nil, nil)
 
 	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-complete",
-		URL:    "https://github.com/test/platform-complete.git",
-		Dir:    "/home/test/platform-complete",
+		Label:  "platform-lsp",
+		URL:    "https://github.com/test/platform-lsp.git",
+		Dir:    "/home/test/platform-lsp",
 		Branch: plumbing.NewBranchReferenceName("snapshot"),
 	}
 
-	mockGitClient.On("PlatformCompleteRepository", mock.Anything).
+	mockGitClient.On("PlatformLspRepository", mock.Anything).
 		Return(mockRepo, nil)
 	mockGitClient.On("Clone", mockRepo).
 		Return(git.ErrRepositoryAlreadyExists)
@@ -117,7 +117,7 @@ func TestCloneAndUpdateRepository_AlreadyExists(t *testing.T) {
 
 	// Assert
 	assert.NoError(t, err)
-	assert.Equal(t, "/home/test/platform-complete", outputDir)
+	assert.Equal(t, "/home/test/platform-lsp", outputDir)
 	mockGitClient.AssertExpectations(t)
 }
 
@@ -128,14 +128,14 @@ func TestCloneAndUpdateRepository_CloneError(t *testing.T) {
 	svc := New(action, nil, mockGitClient, nil, nil)
 
 	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-complete",
-		URL:    "https://github.com/test/platform-complete.git",
-		Dir:    "/home/test/platform-complete",
+		Label:  "platform-lsp",
+		URL:    "https://github.com/test/platform-lsp.git",
+		Dir:    "/home/test/platform-lsp",
 		Branch: plumbing.NewBranchReferenceName("snapshot"),
 	}
 	cloneErr := errors.New("clone failed")
 
-	mockGitClient.On("PlatformCompleteRepository", mock.Anything).
+	mockGitClient.On("PlatformLspRepository", mock.Anything).
 		Return(mockRepo, nil)
 	mockGitClient.On("Clone", mockRepo).
 		Return(cloneErr)
@@ -157,13 +157,13 @@ func TestCloneAndUpdateRepository_WithUpdate(t *testing.T) {
 	svc := New(action, nil, mockGitClient, nil, nil)
 
 	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-complete",
-		URL:    "https://github.com/test/platform-complete.git",
-		Dir:    "/home/test/platform-complete",
+		Label:  "platform-lsp",
+		URL:    "https://github.com/test/platform-lsp.git",
+		Dir:    "/home/test/platform-lsp",
 		Branch: plumbing.NewBranchReferenceName("snapshot"),
 	}
 
-	mockGitClient.On("PlatformCompleteRepository", mock.Anything).
+	mockGitClient.On("PlatformLspRepository", mock.Anything).
 		Return(mockRepo, nil)
 	mockGitClient.On("Clone", mockRepo).
 		Return(git.ErrRepositoryAlreadyExists)
@@ -175,7 +175,7 @@ func TestCloneAndUpdateRepository_WithUpdate(t *testing.T) {
 
 	// Assert
 	assert.NoError(t, err)
-	assert.Equal(t, "/home/test/platform-complete", outputDir)
+	assert.Equal(t, "/home/test/platform-lsp", outputDir)
 	mockGitClient.AssertExpectations(t)
 }
 
@@ -186,14 +186,14 @@ func TestCloneAndUpdateRepository_UpdateError(t *testing.T) {
 	svc := New(action, nil, mockGitClient, nil, nil)
 
 	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-complete",
-		URL:    "https://github.com/test/platform-complete.git",
-		Dir:    "/home/test/platform-complete",
+		Label:  "platform-lsp",
+		URL:    "https://github.com/test/platform-lsp.git",
+		Dir:    "/home/test/platform-lsp",
 		Branch: plumbing.NewBranchReferenceName("snapshot"),
 	}
 	updateErr := errors.New("update failed")
 
-	mockGitClient.On("PlatformCompleteRepository", mock.Anything).
+	mockGitClient.On("PlatformLspRepository", mock.Anything).
 		Return(mockRepo, nil)
 	mockGitClient.On("Clone", mockRepo).
 		Return(git.ErrRepositoryAlreadyExists)
@@ -218,7 +218,7 @@ func TestCloneAndUpdateRepository_RepositoryError(t *testing.T) {
 
 	repoErr := errors.New("repository creation failed")
 
-	mockGitClient.On("PlatformCompleteRepository", mock.Anything).
+	mockGitClient.On("PlatformLspRepository", mock.Anything).
 		Return(nil, repoErr)
 
 	// Act
@@ -242,13 +242,13 @@ func TestPrepareImage_BuildImages(t *testing.T) {
 	svc := New(act, nil, mockGitClient, nil, nil)
 
 	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-complete",
-		URL:    "https://github.com/test/platform-complete.git",
-		Dir:    "/home/test/platform-complete",
+		Label:  "platform-lsp",
+		URL:    "https://github.com/test/platform-lsp.git",
+		Dir:    "/home/test/platform-lsp",
 		Branch: plumbing.NewBranchReferenceName("snapshot"),
 	}
 
-	mockGitClient.On("PlatformCompleteRepository", mock.Anything).
+	mockGitClient.On("PlatformLspRepository", mock.Anything).
 		Return(mockRepo, nil)
 	mockGitClient.On("Clone", mockRepo).
 		Return(nil)
@@ -271,8 +271,8 @@ func TestPrepareImage_PullImage(t *testing.T) {
 	mockDockerClient := new(testhelpers.MockDockerClient)
 	svc := New(act, nil, nil, mockDockerClient, nil)
 
-	expectedImageName := "platform-complete-ui-test-tenant:latest"
-	mockDockerClient.On("ForcePullImage", "platform-complete-ui-test-tenant").
+	expectedImageName := "platform-lsp-ui-test-tenant:latest"
+	mockDockerClient.On("ForcePullImage", "platform-lsp-ui-test-tenant").
 		Return(expectedImageName, nil)
 
 	// Act
@@ -294,7 +294,7 @@ func TestPrepareImage_PullImageError(t *testing.T) {
 	svc := New(act, nil, nil, mockDockerClient, nil)
 
 	pullErr := errors.New("pull failed")
-	mockDockerClient.On("ForcePullImage", "platform-complete-ui-test-tenant").
+	mockDockerClient.On("ForcePullImage", "platform-lsp-ui-test-tenant").
 		Return("", pullErr)
 
 	// Act
@@ -433,7 +433,7 @@ func TestDeployContainer_VerifyContainerName(t *testing.T) {
 
 	// Assert
 	assert.NoError(t, err)
-	assert.Equal(t, "eureka-platform-complete-ui-my-tenant", capturedContainerName)
+	assert.Equal(t, "eureka-platform-lsp-ui-my-tenant", capturedContainerName)
 	mockExec.AssertExpectations(t)
 }
 
@@ -496,9 +496,9 @@ func TestPrepareStripesConfigJS_SingleTenant(t *testing.T) {
 	// Arrange
 	act := testhelpers.NewMockAction()
 	act.Param = &action.Param{
-		SingleTenant:        true,
-		PlatformCompleteURL: "http://localhost:8000",
-		EnableECSRequests:   false,
+		SingleTenant:      true,
+		PlatformLspURL:    "http://localhost:8000",
+		EnableECSRequests: false,
 	}
 	act.ConfigGlobalEnv = map[string]string{
 		"kc_login_client_suffix": "-login",
@@ -539,9 +539,9 @@ func TestPrepareStripesConfigJS_MultiTenant(t *testing.T) {
 	// Arrange
 	act := testhelpers.NewMockAction()
 	act.Param = &action.Param{
-		SingleTenant:        false,
-		PlatformCompleteURL: "http://localhost:8000",
-		EnableECSRequests:   true,
+		SingleTenant:      false,
+		PlatformLspURL:    "http://localhost:8000",
+		EnableECSRequests: true,
 	}
 	act.ConfigGlobalEnv = map[string]string{
 		"kc_login_client_suffix": "-app",
@@ -575,16 +575,16 @@ module.exports = {
 	assert.Contains(t, content, "http://localhost:8000")
 	assert.Contains(t, content, `{consortium: {name: "consortium", displayName: "consortium", clientId: "consortium-app"}}`)
 	assert.Contains(t, content, "enableEcsRequests: true")
-	assert.Contains(t, content, "'@folio/consortia-settings'")
+	assert.NotContains(t, content, "'@folio/consortia-settings'")
 }
 
 func TestPrepareStripesConfigJS_AllPlaceholdersReplaced(t *testing.T) {
 	// Arrange
 	act := testhelpers.NewMockAction()
 	act.Param = &action.Param{
-		SingleTenant:        true,
-		PlatformCompleteURL: "http://test-platform.com",
-		EnableECSRequests:   false,
+		SingleTenant:      true,
+		PlatformLspURL:    "http://test-platform.com",
+		EnableECSRequests: false,
 	}
 	act.ConfigGlobalEnv = map[string]string{
 		"kc_login_client_suffix": "-suffix",
@@ -632,8 +632,8 @@ func TestPrepareStripesConfigJS_FileNotFound(t *testing.T) {
 	// Arrange
 	act := testhelpers.NewMockAction()
 	act.Param = &action.Param{
-		SingleTenant:        true,
-		PlatformCompleteURL: "http://localhost:8000",
+		SingleTenant:   true,
+		PlatformLspURL: "http://localhost:8000",
 	}
 	svc := New(act, nil, nil, nil, nil)
 
@@ -648,9 +648,9 @@ func TestPrepareStripesConfigJS_MissingPlaceholder(t *testing.T) {
 	// Arrange
 	act := testhelpers.NewMockAction()
 	act.Param = &action.Param{
-		SingleTenant:        false,
-		PlatformCompleteURL: "http://localhost:8000",
-		EnableECSRequests:   true,
+		SingleTenant:      false,
+		PlatformLspURL:    "http://localhost:8000",
+		EnableECSRequests: true,
 	}
 	act.ConfigGlobalEnv = map[string]string{
 		"kc_login_client_suffix": "-login",
@@ -679,9 +679,9 @@ func TestPrepareStripesConfigJS_EmptyClientIdSuffix(t *testing.T) {
 	// Arrange
 	act := testhelpers.NewMockAction()
 	act.Param = &action.Param{
-		SingleTenant:        true,
-		PlatformCompleteURL: "http://localhost:8000",
-		EnableECSRequests:   false,
+		SingleTenant:      true,
+		PlatformLspURL:    "http://localhost:8000",
+		EnableECSRequests: false,
 	}
 	act.ConfigGlobalEnv = map[string]string{} // No suffix
 	svc := New(act, nil, nil, nil, nil)
@@ -707,9 +707,9 @@ func TestPrepareStripesConfigJS_SpecialCharactersInTenantName(t *testing.T) {
 	// Arrange
 	act := testhelpers.NewMockAction()
 	act.Param = &action.Param{
-		SingleTenant:        true,
-		PlatformCompleteURL: "http://localhost:8000",
-		EnableECSRequests:   false,
+		SingleTenant:      true,
+		PlatformLspURL:    "http://localhost:8000",
+		EnableECSRequests: false,
 	}
 	act.ConfigGlobalEnv = map[string]string{
 		"kc_login_client_suffix": "-app",
@@ -735,11 +735,12 @@ module.exports = {
 
 // ==================== PreparePackageJSON Tests ====================
 
-func TestPreparePackageJSON_SingleTenant(t *testing.T) {
+func TestPreparePackageJSON_SingleTenant_RemovesConsortiaAndLdWrapper(t *testing.T) {
 	// Arrange
 	act := testhelpers.NewMockAction()
 	act.Param = &action.Param{
 		SingleTenant: true,
+		LinkedData:   false,
 	}
 	svc := New(act, nil, nil, nil, nil)
 
@@ -747,12 +748,14 @@ func TestPreparePackageJSON_SingleTenant(t *testing.T) {
 	configPath := tempDir
 
 	packageJSON := map[string]any{
-		"name": "platform-complete",
+		"name": "platform-lsp",
 		"scripts": map[string]any{
-			"build": "stripes build",
+			"build": "stripes-build build",
 		},
 		"dependencies": map[string]any{
-			"@folio/users": "^1.0.0",
+			"@folio/users":              "^1.0.0",
+			"@folio/consortia-settings": "^2.0.0",
+			"@folio/ld-folio-wrapper":   "^1.0.0",
 		},
 	}
 	testhelpers.CreateJSONFileInDir(t, configPath, "package.json", packageJSON)
@@ -767,24 +770,23 @@ func TestPreparePackageJSON_SingleTenant(t *testing.T) {
 	err = helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result)
 	assert.NoError(t, err)
 
-	// Verify build script is updated
-	assert.Contains(t, result.Scripts["build"], "export DEBUG=stripes*")
-	assert.Contains(t, result.Scripts["build"], "--max-old-space-size=8000")
+	// Build script is NOT touched
+	assert.Equal(t, "stripes-build build", result.Scripts["build"])
 
-	// Verify required modules are added
-	assert.Equal(t, ">=1.0.0", result.Dependencies["@folio/authorization-policies"])
-	assert.Equal(t, ">=1.0.0", result.Dependencies["@folio/authorization-roles"])
-	assert.Equal(t, ">=1.0.0", result.Dependencies["@folio/plugin-select-application"])
-
-	// Verify consortia-settings is NOT added for single tenant
+	// Both optional modules removed
 	assert.Empty(t, result.Dependencies["@folio/consortia-settings"])
+	assert.Empty(t, result.Dependencies["@folio/ld-folio-wrapper"])
+
+	// Non-optional dependency preserved
+	assert.Equal(t, "^1.0.0", result.Dependencies["@folio/users"])
 }
 
-func TestPreparePackageJSON_MultiTenant(t *testing.T) {
+func TestPreparePackageJSON_MultiTenant_LinkedData_KeepsAll(t *testing.T) {
 	// Arrange
 	act := testhelpers.NewMockAction()
 	act.Param = &action.Param{
 		SingleTenant: false,
+		LinkedData:   true,
 	}
 	svc := New(act, nil, nil, nil, nil)
 
@@ -792,12 +794,14 @@ func TestPreparePackageJSON_MultiTenant(t *testing.T) {
 	configPath := tempDir
 
 	packageJSON := map[string]any{
-		"name": "platform-complete",
+		"name": "platform-lsp",
 		"scripts": map[string]any{
-			"build": "stripes build",
+			"build": "stripes-build build",
 		},
 		"dependencies": map[string]any{
-			"@folio/users": "^1.0.0",
+			"@folio/users":              "^1.0.0",
+			"@folio/consortia-settings": "^2.0.0",
+			"@folio/ld-folio-wrapper":   "^1.0.0",
 		},
 	}
 	testhelpers.CreateJSONFileInDir(t, configPath, "package.json", packageJSON)
@@ -812,23 +816,20 @@ func TestPreparePackageJSON_MultiTenant(t *testing.T) {
 	err = helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result)
 	assert.NoError(t, err)
 
-	// Verify build script is updated
-	assert.Contains(t, result.Scripts["build"], "export DEBUG=stripes*")
+	// Build script unchanged
+	assert.Equal(t, "stripes-build build", result.Scripts["build"])
 
-	// Verify required modules are added
-	assert.Equal(t, ">=1.0.0", result.Dependencies["@folio/authorization-policies"])
-	assert.Equal(t, ">=1.0.0", result.Dependencies["@folio/authorization-roles"])
-	assert.Equal(t, ">=1.0.0", result.Dependencies["@folio/plugin-select-application"])
-
-	// Verify consortia-settings IS added for multi-tenant
-	assert.Equal(t, ">=1.0.0", result.Dependencies["@folio/consortia-settings"])
+	// Neither optional module removed
+	assert.Equal(t, "^2.0.0", result.Dependencies["@folio/consortia-settings"])
+	assert.Equal(t, "^1.0.0", result.Dependencies["@folio/ld-folio-wrapper"])
 }
 
-func TestPreparePackageJSON_ExistingModules(t *testing.T) {
+func TestPreparePackageJSON_MultiTenant_NoLinkedData_RemovesLdWrapper(t *testing.T) {
 	// Arrange
 	act := testhelpers.NewMockAction()
 	act.Param = &action.Param{
 		SingleTenant: false,
+		LinkedData:   false,
 	}
 	svc := New(act, nil, nil, nil, nil)
 
@@ -836,14 +837,13 @@ func TestPreparePackageJSON_ExistingModules(t *testing.T) {
 	configPath := tempDir
 
 	packageJSON := map[string]any{
-		"name": "platform-complete",
+		"name": "platform-lsp",
 		"scripts": map[string]any{
-			"build": "stripes build",
+			"build": "stripes-build build",
 		},
 		"dependencies": map[string]any{
-			"@folio/users":                  "^1.0.0",
-			"@folio/authorization-policies": "^2.0.0",
-			"@folio/consortia-settings":     "^1.5.0",
+			"@folio/consortia-settings": "^2.0.0",
+			"@folio/ld-folio-wrapper":   "^1.0.0",
 		},
 	}
 	testhelpers.CreateJSONFileInDir(t, configPath, "package.json", packageJSON)
@@ -858,13 +858,9 @@ func TestPreparePackageJSON_ExistingModules(t *testing.T) {
 	err = helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result)
 	assert.NoError(t, err)
 
-	// Verify existing versions are preserved
-	assert.Equal(t, "^2.0.0", result.Dependencies["@folio/authorization-policies"])
-	assert.Equal(t, "^1.5.0", result.Dependencies["@folio/consortia-settings"])
-
-	// Verify missing modules are added
-	assert.Equal(t, ">=1.0.0", result.Dependencies["@folio/authorization-roles"])
-	assert.Equal(t, ">=1.0.0", result.Dependencies["@folio/plugin-select-application"])
+	// consortia-settings kept (multi-tenant), ld-folio-wrapper removed (LinkedData=false)
+	assert.Equal(t, "^2.0.0", result.Dependencies["@folio/consortia-settings"])
+	assert.Empty(t, result.Dependencies["@folio/ld-folio-wrapper"])
 }
 
 func TestPreparePackageJSON_FileNotFound(t *testing.T) {
@@ -882,11 +878,48 @@ func TestPreparePackageJSON_FileNotFound(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestPreparePackageJSON_BuildScriptUpdate(t *testing.T) {
+func TestPreparePackageJSON_BuildScriptNotOverwritten(t *testing.T) {
 	// Arrange
 	act := testhelpers.NewMockAction()
 	act.Param = &action.Param{
 		SingleTenant: true,
+		LinkedData:   false,
+	}
+	svc := New(act, nil, nil, nil, nil)
+
+	tempDir := t.TempDir()
+	configPath := tempDir
+
+	const originalScript = "stripes-build build"
+	packageJSON := map[string]any{
+		"name": "platform-lsp",
+		"scripts": map[string]any{
+			"build": originalScript,
+		},
+		"dependencies": map[string]any{},
+	}
+	testhelpers.CreateJSONFileInDir(t, configPath, "package.json", packageJSON)
+
+	// Act
+	err := svc.PreparePackageJSON(configPath)
+
+	// Assert
+	assert.NoError(t, err)
+
+	var result models.PackageJSON
+	err = helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result)
+	assert.NoError(t, err)
+
+	// Build script must not be overwritten — platform-lsp manages its own script
+	assert.Equal(t, originalScript, result.Scripts["build"])
+}
+
+func TestPreparePackageJSON_NothingToRemove_NoWrite(t *testing.T) {
+	// Arrange: multi-tenant + LinkedData=true means nothing removed; deps don't have the modules anyway
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{
+		SingleTenant: false,
+		LinkedData:   true,
 	}
 	svc := New(act, nil, nil, nil, nil)
 
@@ -894,9 +927,9 @@ func TestPreparePackageJSON_BuildScriptUpdate(t *testing.T) {
 	configPath := tempDir
 
 	packageJSON := map[string]any{
-		"name": "platform-complete",
+		"name": "platform-lsp",
 		"scripts": map[string]any{
-			"build": "original-build-script",
+			"build": "stripes-build build",
 		},
 		"dependencies": map[string]any{
 			"@folio/users": "^1.0.0",
@@ -914,46 +947,10 @@ func TestPreparePackageJSON_BuildScriptUpdate(t *testing.T) {
 	err = helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result)
 	assert.NoError(t, err)
 
-	// Verify build script is completely replaced with the expected script
-	expectedBuildScript := "export DEBUG=stripes*; export NODE_OPTIONS=\"--max-old-space-size=8000 $NODE_OPTIONS\"; stripes build stripes.config.js --languages en --sourcemap=false --no-minify"
-	assert.Equal(t, expectedBuildScript, result.Scripts["build"])
-}
-
-func TestPreparePackageJSON_EmptyDependencies(t *testing.T) {
-	// Arrange
-	act := testhelpers.NewMockAction()
-	act.Param = &action.Param{
-		SingleTenant: false,
-	}
-	svc := New(act, nil, nil, nil, nil)
-
-	tempDir := t.TempDir()
-	configPath := tempDir
-
-	packageJSON := map[string]any{
-		"name": "platform-complete",
-		"scripts": map[string]any{
-			"build": "stripes build",
-		},
-		"dependencies": map[string]any{},
-	}
-	testhelpers.CreateJSONFileInDir(t, configPath, "package.json", packageJSON)
-
-	// Act
-	err := svc.PreparePackageJSON(configPath)
-
-	// Assert
-	assert.NoError(t, err)
-
-	var result models.PackageJSON
-	err = helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result)
-	assert.NoError(t, err)
-
-	// Verify all required modules are added
-	assert.Equal(t, ">=1.0.0", result.Dependencies["@folio/authorization-policies"])
-	assert.Equal(t, ">=1.0.0", result.Dependencies["@folio/authorization-roles"])
-	assert.Equal(t, ">=1.0.0", result.Dependencies["@folio/plugin-select-application"])
-	assert.Equal(t, ">=1.0.0", result.Dependencies["@folio/consortia-settings"])
+	// No modules added, original deps unchanged
+	assert.Equal(t, "^1.0.0", result.Dependencies["@folio/users"])
+	assert.Empty(t, result.Dependencies["@folio/consortia-settings"])
+	assert.Empty(t, result.Dependencies["@folio/ld-folio-wrapper"])
 }
 
 func TestDeployContainer_AlreadyExists_Skipped(t *testing.T) {
@@ -964,7 +961,7 @@ func TestDeployContainer_AlreadyExists_Skipped(t *testing.T) {
 
 	// Mock docker ps -a returning the container name (already exists)
 	var existingName bytes.Buffer
-	existingName.WriteString("eureka-platform-complete-ui-test-tenant")
+	existingName.WriteString("eureka-platform-lsp-ui-test-tenant")
 	mockExec.On("ExecReturnOutput", mock.MatchedBy(func(cmd *exec.Cmd) bool {
 		return len(cmd.Args) >= 2 && cmd.Args[0] == "docker" && cmd.Args[1] == "ps"
 	})).Return(existingName, bytes.Buffer{}, nil).Once()
@@ -975,4 +972,102 @@ func TestDeployContainer_AlreadyExists_Skipped(t *testing.T) {
 	// Assert — no docker run, no network connect
 	assert.NoError(t, err)
 	mockExec.AssertExpectations(t)
+}
+
+// ==================== PrepareStripesModulesJS Tests ====================
+
+func TestPrepareStripesModulesJS_SingleTenant_RemovesConsortia(t *testing.T) {
+	// Arrange
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{SingleTenant: true, LinkedData: true}
+	svc := New(act, nil, nil, nil, nil)
+
+	tempDir := t.TempDir()
+	content := "module.exports = {\n  '@folio/users': {},\n  '@folio/consortia-settings': {},\n};\n"
+	testhelpers.CreateFileInDir(t, tempDir, "stripes.modules.js", content)
+
+	// Act
+	err := svc.PrepareStripesModulesJS(tempDir)
+
+	// Assert
+	assert.NoError(t, err)
+	result := testhelpers.ReadFileContent(t, tempDir, "stripes.modules.js")
+	assert.NotContains(t, result, "'@folio/consortia-settings':")
+	assert.Contains(t, result, "'@folio/users':")
+}
+
+func TestPrepareStripesModulesJS_NoLinkedData_RemovesLdWrapper(t *testing.T) {
+	// Arrange
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{SingleTenant: false, LinkedData: false}
+	svc := New(act, nil, nil, nil, nil)
+
+	tempDir := t.TempDir()
+	content := "module.exports = {\n  '@folio/users': {},\n  '@folio/ld-folio-wrapper': {},\n  '@folio/consortia-settings': {},\n};\n"
+	testhelpers.CreateFileInDir(t, tempDir, "stripes.modules.js", content)
+
+	// Act
+	err := svc.PrepareStripesModulesJS(tempDir)
+
+	// Assert
+	assert.NoError(t, err)
+	result := testhelpers.ReadFileContent(t, tempDir, "stripes.modules.js")
+	assert.NotContains(t, result, "'@folio/ld-folio-wrapper':")
+	assert.Contains(t, result, "'@folio/consortia-settings':")
+	assert.Contains(t, result, "'@folio/users':")
+}
+
+func TestPrepareStripesModulesJS_MultiTenant_LinkedData_NoChanges(t *testing.T) {
+	// Arrange
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{SingleTenant: false, LinkedData: true}
+	svc := New(act, nil, nil, nil, nil)
+
+	tempDir := t.TempDir()
+	content := "module.exports = {\n  '@folio/consortia-settings': {},\n  '@folio/ld-folio-wrapper': {},\n};\n"
+	testhelpers.CreateFileInDir(t, tempDir, "stripes.modules.js", content)
+
+	// Act — nothing to remove, early return before any file I/O on modules.js
+	err := svc.PrepareStripesModulesJS(tempDir)
+
+	// Assert
+	assert.NoError(t, err)
+	// File is not modified — neither module should be removed
+	result := testhelpers.ReadFileContent(t, tempDir, "stripes.modules.js")
+	assert.Contains(t, result, "'@folio/consortia-settings':")
+	assert.Contains(t, result, "'@folio/ld-folio-wrapper':")
+}
+
+func TestPrepareStripesModulesJS_FileNotFound(t *testing.T) {
+	// Arrange
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{SingleTenant: true, LinkedData: false}
+	svc := New(act, nil, nil, nil, nil)
+
+	// Act
+	err := svc.PrepareStripesModulesJS("/nonexistent/path")
+
+	// Assert
+	assert.Error(t, err)
+}
+
+func TestPrepareStripesModulesJS_BothRemoved(t *testing.T) {
+	// Arrange
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{SingleTenant: true, LinkedData: false}
+	svc := New(act, nil, nil, nil, nil)
+
+	tempDir := t.TempDir()
+	content := "module.exports = {\n  '@folio/users': {},\n  '@folio/consortia-settings': {},\n  '@folio/ld-folio-wrapper': {},\n};\n"
+	testhelpers.CreateFileInDir(t, tempDir, "stripes.modules.js", content)
+
+	// Act
+	err := svc.PrepareStripesModulesJS(tempDir)
+
+	// Assert
+	assert.NoError(t, err)
+	result := testhelpers.ReadFileContent(t, tempDir, "stripes.modules.js")
+	assert.NotContains(t, result, "'@folio/consortia-settings':")
+	assert.NotContains(t, result, "'@folio/ld-folio-wrapper':")
+	assert.Contains(t, result, "'@folio/users':")
 }

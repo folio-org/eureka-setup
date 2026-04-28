@@ -55,39 +55,39 @@ func TestKeycloakRepository(t *testing.T) {
 	assert.Equal(t, plumbing.ReferenceName(constant.FolioKongBranch), repo.Branch)
 }
 
-func TestPlatformCompleteRepository_WithCustomBranch(t *testing.T) {
+func TestPlatformLspRepository_WithCustomBranch(t *testing.T) {
 	// Arrange
 	action := testhelpers.NewMockAction()
 	client := New(action)
 	customBranch := plumbing.NewBranchReferenceName("snapshot")
 
 	// Act
-	repo, err := client.PlatformCompleteRepository(customBranch)
+	repo, err := client.PlatformLspRepository(customBranch)
 
 	// Assert
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
-	assert.Equal(t, constant.PlatformCompleteLabel, repo.Label)
-	assert.Equal(t, constant.PlatformCompleteRepositoryURL, repo.URL)
-	assert.Contains(t, repo.Dir, constant.PlatformCompleteOutputDir)
+	assert.Equal(t, constant.PlatformLspLabel, repo.Label)
+	assert.Equal(t, constant.PlatformLspRepositoryURL, repo.URL)
+	assert.Contains(t, repo.Dir, constant.PlatformLspOutputDir)
 	assert.Equal(t, customBranch, repo.Branch)
 }
 
-func TestPlatformCompleteRepository_WithDifferentBranch(t *testing.T) {
+func TestPlatformLspRepository_WithDifferentBranch(t *testing.T) {
 	// Arrange
 	action := testhelpers.NewMockAction()
 	client := New(action)
 	differentBranch := plumbing.NewBranchReferenceName("poppy")
 
 	// Act
-	repo, err := client.PlatformCompleteRepository(differentBranch)
+	repo, err := client.PlatformLspRepository(differentBranch)
 
 	// Assert
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
-	assert.Equal(t, constant.PlatformCompleteLabel, repo.Label)
-	assert.Equal(t, constant.PlatformCompleteRepositoryURL, repo.URL)
-	assert.Contains(t, repo.Dir, constant.PlatformCompleteOutputDir)
+	assert.Equal(t, constant.PlatformLspLabel, repo.Label)
+	assert.Equal(t, constant.PlatformLspRepositoryURL, repo.URL)
+	assert.Contains(t, repo.Dir, constant.PlatformLspOutputDir)
 	assert.Equal(t, differentBranch, repo.Branch)
 }
 
@@ -127,14 +127,14 @@ func TestKeycloakRepository_VerifyConstants(t *testing.T) {
 	assert.NotEqual(t, "", repo.Branch)
 }
 
-func TestPlatformCompleteRepository_VerifyConstants(t *testing.T) {
+func TestPlatformLspRepository_VerifyConstants(t *testing.T) {
 	// Arrange
 	action := testhelpers.NewMockAction()
 	client := New(action)
 	branch := plumbing.NewBranchReferenceName("main")
 
 	// Act
-	repo, err := client.PlatformCompleteRepository(branch)
+	repo, err := client.PlatformLspRepository(branch)
 
 	// Assert
 	assert.NoError(t, err)
@@ -165,7 +165,7 @@ func TestKongRepository_UniqueFromKeycloak(t *testing.T) {
 	assert.NotEqual(t, kongRepo.URL, keycloakRepo.URL)
 }
 
-func TestPlatformCompleteRepository_BranchParameter(t *testing.T) {
+func TestPlatformLspRepository_BranchParameter(t *testing.T) {
 	// Arrange
 	action := testhelpers.NewMockAction()
 	client := New(action)
@@ -182,7 +182,7 @@ func TestPlatformCompleteRepository_BranchParameter(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Act
-			repo, err := client.PlatformCompleteRepository(tc.branch)
+			repo, err := client.PlatformLspRepository(tc.branch)
 
 			// Assert
 			assert.NoError(t, err)
@@ -200,7 +200,7 @@ func TestRepositoryProvisioner_AllMethodsReturnGitRepository(t *testing.T) {
 	// Act
 	kongRepo, kongErr := client.KongRepository()
 	keycloakRepo, keycloakErr := client.KeycloakRepository()
-	platformRepo, platformErr := client.PlatformCompleteRepository(plumbing.NewBranchReferenceName("main"))
+	platformRepo, platformErr := client.PlatformLspRepository(plumbing.NewBranchReferenceName("main"))
 
 	// Assert
 	assert.NoError(t, kongErr)

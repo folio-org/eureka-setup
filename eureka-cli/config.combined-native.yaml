@@ -13,7 +13,7 @@ far:
 registry:
   url: https://folio-registry.dev.folio.org
 namespaces:
-  platform-complete-ui: bkadirkhodjaev
+  platform-lsp-ui: bkadirkhodjaev
 environment:
   # PostgreSQL
   DB_HOST: postgres.eureka
@@ -81,7 +81,7 @@ sidecar-module:
   version: latest
   custom-namespace: true
   native-binary-cmd: [
-    "./application", "-Dquarkus.http.host=0.0.0.0", "-Dquarkus.log.category.'org.apache.kafka'.level=INFO"
+    "./application", "-Dquarkus.http.host=0.0.0.0", "-Dquarkus.log.level=INFO"
   ]
   environment:
     # Kafka
@@ -103,6 +103,7 @@ sidecar-module:
     QUARKUS_REST_CLIENT_CONNECT_TIMEOUT: 180000
     QUARKUS_REST_CLIENT_SEND_TIMEOUT: 180000
     QUARKUS_HTTP_LIMITS_MAX_INITIAL_LINE_LENGTH: 8192
+    QUARKUS_LOG_CATEGORY__ORG_APACHE_KAFKA__LEVEL: INFO
     SC_LOG_LEVEL: INFO
     ROOT_LOG_LEVEL: INFO
     REQUEST_TIMEOUT: 604800000
@@ -182,11 +183,13 @@ backend-modules:
       cpus: 4
       memory: 900
   mod-login-keycloak:
+    version: 3.0.4
     use-vault: true
     port: 9905
     environment:
       X_OKAPI_TOKEN_HEADER_ENABLED: "false"
       LOGIN_COOKIE_SAMESITE: "NONE"
+      KC_ADMIN_TOKEN_TTL: 895s
       KAFKA_PRODUCER_TENANT_COLLECTION: "true"
   mod-roles-keycloak:
     use-vault: true

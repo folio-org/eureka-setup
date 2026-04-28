@@ -24,7 +24,7 @@ type GitClientRunner interface {
 type GitClientRepositoryProvisioner interface {
 	KongRepository() (*gitrepository.GitRepository, error)
 	KeycloakRepository() (*gitrepository.GitRepository, error)
-	PlatformCompleteRepository(branch plumbing.ReferenceName) (*gitrepository.GitRepository, error)
+	PlatformLspRepository(branch plumbing.ReferenceName) (*gitrepository.GitRepository, error)
 }
 
 // GitClientManager defines the interface for Git repository management
@@ -61,11 +61,11 @@ func (gc *GitClient) KeycloakRepository() (*gitrepository.GitRepository, error) 
 	return gitrepository.New(gc.Action, label, url, dir, constant.FolioKongBranch)
 }
 
-func (gc *GitClient) PlatformCompleteRepository(branch plumbing.ReferenceName) (*gitrepository.GitRepository, error) {
+func (gc *GitClient) PlatformLspRepository(branch plumbing.ReferenceName) (*gitrepository.GitRepository, error) {
 	var (
-		label = constant.PlatformCompleteLabel
-		url   = constant.PlatformCompleteRepositoryURL
-		dir   = constant.PlatformCompleteOutputDir
+		label = constant.PlatformLspLabel
+		url   = constant.PlatformLspRepositoryURL
+		dir   = constant.PlatformLspOutputDir
 	)
 	return gitrepository.New(gc.Action, label, url, dir, branch)
 }

@@ -23,7 +23,8 @@ type Param struct {
 	Namespace             string
 	OnlyRequired          bool
 	OverwriteFiles        bool
-	PlatformCompleteURL   string
+	LinkedData            bool
+	PlatformLspURL        string
 	PrivatePort           int
 	Profile               string
 	PurgeSchemas          bool
@@ -81,7 +82,8 @@ var (
 	Namespace             = Flag{"namespace", "", "DockerHub namespace"}
 	OnlyRequired          = Flag{"onlyRequired", "q", "Use only required system containers"}
 	OverwriteFiles        = Flag{"overwriteFiles", "o", "Overwrite files in %s home directory"}
-	PlatformCompleteURL   = Flag{"platformCompleteURL", "", "Platform Complete UI url"}
+	LinkedData            = Flag{"linkedData", "", "Include Linked Data module in UI bundle"}
+	PlatformLspURL        = Flag{"platformLspURL", "", "Platform LSP UI url"}
 	PrivatePort           = Flag{"privatePort", "", "Private port e.g. 8081"}
 	Profile               = Flag{"profile", "p", "Use a specific profile, options: %s"}
 	PurgeSchemas          = Flag{"purgeSchemas", "", "Purge schemas in PostgreSQL on uninstallation"}

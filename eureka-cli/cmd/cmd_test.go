@@ -526,6 +526,11 @@ func (m *MockUISvc) PrepareStripesConfigJS(tenantName string, configPath string)
 	return args.Error(0)
 }
 
+func (m *MockUISvc) PrepareStripesModulesJS(outputDir string) error {
+	args := m.Called(outputDir)
+	return args.Error(0)
+}
+
 // MockSearchSvc is a mock for searchsvc.SearchProcessor
 type MockSearchSvc struct {
 	mock.Mock
@@ -1232,7 +1237,7 @@ func TestDeployUi_Success(t *testing.T) {
 			"deploy-ui": true,
 		},
 	}
-	params.PlatformCompleteURL = "http://localhost:3000"
+	params.PlatformLspURL = "http://localhost:3000"
 
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)

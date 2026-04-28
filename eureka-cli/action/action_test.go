@@ -49,16 +49,16 @@ func TestNewGeneric_AllViperFields(t *testing.T) {
 		// Arrange
 		viper.Reset() // Reset viper state before this test
 		vc := testhelpers.SetupViperForTest(map[string]any{
-			field.ApplicationName:              "full-app",
-			field.ApplicationVersion:           "3.0.0",
-			field.ProfileName:                  "production",
-			field.RegistryURL:                  "https://registry.test.com",
-			field.ApplicationFetchDescriptors:  true,
-			field.ApplicationPortStart:         8000,
-			field.ApplicationPortEnd:           9000,
-			field.ApplicationStripesBranch:     "main",
-			field.ApplicationGatewayHostname:   "gateway.test.com",
-			field.NamespacesPlatformCompleteUI: "platform-ui-namespace",
+			field.ApplicationName:             "full-app",
+			field.ApplicationVersion:          "3.0.0",
+			field.ProfileName:                 "production",
+			field.RegistryURL:                 "https://registry.test.com",
+			field.ApplicationFetchDescriptors: true,
+			field.ApplicationPortStart:        8000,
+			field.ApplicationPortEnd:          9000,
+			field.ApplicationStripesBranch:    "main",
+			field.ApplicationGatewayHostname:  "gateway.test.com",
+			field.NamespacesPlatformLspUI:     "platform-ui-namespace",
 			field.ApplicationDependencies: map[string]any{
 				"dep1": "v1",
 			},
@@ -117,7 +117,7 @@ func TestNewGeneric_AllViperFields(t *testing.T) {
 		assert.Equal(t, 9000, result.ConfigApplicationPortEnd)
 		assert.Equal(t, "main", result.ConfigApplicationStripesBranch)
 		assert.Equal(t, "gateway.test.com", result.ConfigApplicationGatewayHostname)
-		assert.Equal(t, "platform-ui-namespace", result.ConfigNamespacePlatformCompleteUI)
+		assert.Equal(t, "platform-ui-namespace", result.ConfigNamespacePlatformLspUI)
 
 		// Assert - Check maps are loaded
 		assert.NotNil(t, result.ConfigApplicationDependencies)

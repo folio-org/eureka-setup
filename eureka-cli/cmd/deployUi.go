@@ -54,7 +54,7 @@ func (run *Run) DeployUi(consortiumName string, tenantType constant.TenantType) 
 				return err
 			}
 
-			externalPort, err := helpers.GetPortFromURL(params.PlatformCompleteURL)
+			externalPort, err := helpers.GetPortFromURL(params.PlatformLspURL)
 			if err != nil {
 				return err
 			}
@@ -73,4 +73,5 @@ func init() {
 	deployUiCmd.PersistentFlags().BoolVarP(&params.UpdateCloned, action.UpdateCloned.Long, action.UpdateCloned.Short, false, action.UpdateCloned.Description)
 	deployUiCmd.PersistentFlags().BoolVarP(&params.SingleTenant, action.SingleTenant.Long, action.SingleTenant.Short, true, action.SingleTenant.Description)
 	deployUiCmd.PersistentFlags().BoolVarP(&params.EnableECSRequests, action.EnableECSRequests.Long, action.EnableECSRequests.Short, false, action.EnableECSRequests.Description)
+	deployUiCmd.PersistentFlags().BoolVarP(&params.LinkedData, action.LinkedData.Long, action.LinkedData.Short, false, action.LinkedData.Description)
 }

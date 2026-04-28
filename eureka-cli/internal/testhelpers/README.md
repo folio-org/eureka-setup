@@ -15,7 +15,7 @@ Reusable testing utilities for eureka-cli. Import path: `github.com/folio-org/eu
 
 ## Key mocks
 
-**`NewMockAction()`** — returns `*action.Action` with name `"test-action"` and empty `Param`. Set fields directly after construction (e.g. `action.ConfigProfileName = "platform-complete"`).
+**`NewMockAction()`** — returns `*action.Action` with name `"test-action"` and empty `Param`. Set fields directly after construction (e.g. `action.ConfigProfileName = "platform-lsp"`).
 
 **`MockCommandExecutor`** — implements `execsvc.CommandRunner`: `Exec`, `ExecReturnOutput`, `ExecFromDir`. Also has `ExecIgnoreError` as an extra method not present in the interface — do not stub it unless the code under test calls it directly. When mocking `ExecReturnOutput`, always return `(bytes.Buffer, bytes.Buffer, error)`.
 

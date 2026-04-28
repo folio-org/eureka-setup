@@ -71,13 +71,13 @@ func (dc *DockerClient) PushImage(namespace string, imageName string) error {
 }
 
 func (dc *DockerClient) ForcePullImage(imageName string) (finalImageName string, err error) {
-	slog.Info(dc.Action.Name, "text", "PULLING PLATFORM COMPLETE UI IMAGE FROM DOCKER HUB")
-	if !action.IsSet(field.NamespacesPlatformCompleteUI) {
-		return "", errors.ImageKeyNotSet(imageName, field.NamespacesPlatformCompleteUI)
+	slog.Info(dc.Action.Name, "text", "PULLING PLATFORM LSP UI IMAGE FROM DOCKER HUB")
+	if !action.IsSet(field.NamespacesPlatformLspUI) {
+		return "", errors.ImageKeyNotSet(imageName, field.NamespacesPlatformLspUI)
 	}
 
-	finalImageName = fmt.Sprintf("%s/%s", dc.Action.ConfigNamespacePlatformCompleteUI, imageName)
-	slog.Info(dc.Action.Name, "text", "Removing old platform complete UI image")
+	finalImageName = fmt.Sprintf("%s/%s", dc.Action.ConfigNamespacePlatformLspUI, imageName)
+	slog.Info(dc.Action.Name, "text", "Removing old platform lsp UI image")
 	err = dc.ExecSvc.Exec(exec.Command("docker", "image", "rm", "--force", finalImageName))
 	if err != nil {
 		return "", err

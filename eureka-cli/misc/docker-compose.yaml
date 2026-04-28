@@ -63,18 +63,22 @@ services:
     image: postgres:${POSTGRES_VERSION}
     restart: unless-stopped
     command: [
-      "-c", "max_connections=500", 
+      "-c", "max_connections=200",
       "-c", "shared_buffers=768MB",
-      "-c", "log_duration=on", 
-      "-c", "log_min_duration_statement=0ms",
+      "-c", "effective_cache_size=1536MB",
+      "-c", "work_mem=16MB",
+      "-c", "maintenance_work_mem=256MB",
+      "-c", "random_page_cost=1.1",
+      "-c", "synchronous_commit=off",
+      "-c", "log_min_duration_statement=2000ms",
       "-c", "shared_preload_libraries=pg_stat_statements",
-      "-c", "max_locks_per_transaction=1024", 
-      "-c", "jit=off" 
+      "-c", "max_locks_per_transaction=1024",
+      "-c", "jit=off"
     ]
     cpus: 2
     mem_limit: 2048m
     memswap_limit: -1
-    shm_size: 768m
+    shm_size: 1g
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
@@ -121,8 +125,8 @@ services:
     container_name: kafka
     image: apache/kafka-native:${KAFKA_VERSION}
     restart: unless-stopped
-    cpus: 6
-    mem_limit: "1.5g"
+    cpus: 2
+    mem_limit: 1g
     memswap_limit: -1
     environment:
       CLUSTER_ID: kafka-local
@@ -139,6 +143,8 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_NUM_PARTITIONS: 1
+      KAFKA_LOG_RETENTION_HOURS: "24"
+      KAFKA_LOG_SEGMENT_BYTES: "104857600"
     volumes:
       - kafka-data:/var/lib/kafka/data
     networks:
@@ -236,7 +242,7 @@ services:
     build:
       context: ${HOME}/.eureka/misc/folio-keycloak
       dockerfile: Dockerfile
-    cpus: 4
+    cpus: 2
     mem_limit: 2g
     memswap_limit: -1
     depends_on:
@@ -259,7 +265,9 @@ services:
       KC_HTTP_ENABLED: true
       KC_HOSTNAME_STRICT: true
       KC_LOG_LEVEL: INFO
-      JAVA_OPTS_APPEND: "-Xms768m -Xmx1024m"
+      KC_CACHE: local
+      KC_HTTP_MAX_QUEUED_REQUESTS: "100"
+      JAVA_OPTS_APPEND: "-Xms512m -Xmx1024m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
     networks:
       - eureka-net
 

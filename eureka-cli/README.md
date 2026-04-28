@@ -177,6 +177,7 @@ Available flags:
 | `--id`                    | `-i`  | Module ID (e.g. mod-orders:13.1.0-SNAPSHOT.1021)          | listModuleVersions                     |
 | `--ids`                   |       | Tenant ids                                                | purgeTenants                           |
 | `--length`                | `-l`  | Salt length for edge API key                              | getEdgeApiKey                          |
+| `--linkedData`            |       | Include Linked Data module in UI bundle                   | buildAndPushUi, deployUi               |
 | `--moduleName`            | `-n`  | Module name (e.g. mod-orders)                             | interceptModule, listModules,          |
 |                           |       |                                                           | listModuleVersions,                    |
 |                           |       |                                                           | undeployModule, updateModuleDiscovery, |
@@ -186,7 +187,8 @@ Available flags:
 | `--moduleUrl`             | `-m`  | Module URL                                                | interceptModule                        |
 | `--moduleVersion`         |       | Module version (e.g. 13.1.0-SNAPSHOT.1093)                | upgradeModule                          |
 | `--namespace`             |       | DockerHub namespace                                       | buildAndPushUi, upgradeModule          |
-| `--platformCompleteURL`   |       | Platform Complete UI URL                                  | buildAndPushUi                         |
+| `--platformLspURL`        |       | Platform LSP UI URL                                       | buildAndPushUi, deployUi,              |
+|                           |       |                                                           | updateKeycloakPublicClients            |
 | `--privatePort`           |       | Private port                                              | updateModuleDiscovery                  |
 | `--purgeSchemas`          |       | Purge PostgreSQL schemas on uninstallation                | removeTenantEntitlements,              |
 |                           |       |                                                           | undeployApplication                    |
@@ -250,7 +252,7 @@ eureka-cli deployApplication -oq
 
 > Deploys the system without optional containers depending on the profile, such as _netcat_, _kafka-ui_, _minio_, _createbuckets_, _opensearch_, _opensearch dashboards_ and _ftp-server_.
 
-- In case you want to update your local repositories of _folio-kong_, _folio-keycloak_ and _platform-complete_ (UI), you can do so with the combined `-bu` flags
+- In case you want to update your local repositories of _folio-kong_, _folio-keycloak_ and _platform-lsp_ (UI), you can do so with the combined `-bu` flags
 
 ```bash
 eureka-cli deployApplication -bu
@@ -725,13 +727,13 @@ eureka-cli deployApplication
 
 ## Using the UI
 
-The environment depends on the [platform-complete](https://github.com/folio-org/platform-complete) project to combine and assemble frontend and backend modules into a single UI package. By default, the CLI uses a pre-built Docker image of _platform-complete_ from DockerHub to deploy the UI container.
+The environment depends on the [platform-lsp](https://github.com/folio-org/platform-lsp) project to combine and assemble frontend and backend modules into a single UI package. By default, the CLI uses a pre-built Docker image of _platform-lsp_ from DockerHub to deploy the UI container.
 
-- To use a different namespace, override the `namespaces.platform-complete-ui` key in the config, for example in `config.combined.yaml`
+- To use a different namespace, override the `namespaces.platform-lsp-ui` key in the config, for example in `config.combined.yaml`
 
 ```yaml
 namespaces:
-  platform-complete-ui: bkadirkhodjaev # Change to pull from a different namespace if necessary
+  platform-lsp-ui: bkadirkhodjaev # Change to pull from a different namespace if necessary
 ```
 
 - If you haven't built the image yet, the CLI has a dedicated command to build the UI image separately from the deployment lifecycle
@@ -754,10 +756,10 @@ eureka-cli deployUi
 The CLI also supports building and deploying the UI image in-place, during either `deployApplication` execution or with `deployUi` command.
 
 ```bash
-# Will build and deploy every image including folio-kong, folio-keycloak and platform-complete itself
+# Will build and deploy every image including folio-kong, folio-keycloak and platform-lsp itself
 eureka-cli deployApplication -b -u
 
-# Will only build and deploy the platform-complete image
+# Will only build and deploy the platform-lsp image
 eureka-cli deployUi -b -u
 ```
 

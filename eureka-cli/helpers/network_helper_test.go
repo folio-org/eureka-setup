@@ -198,9 +198,10 @@ func TestSecureApplicationJSONHeaders_ValidToken(t *testing.T) {
 
 	// Assert
 	assert.NoError(t, err)
-	assert.Len(t, result, 2)
+	assert.Len(t, result, 3)
 	assert.Equal(t, "application/json", result["Content-Type"])
 	assert.Equal(t, "Bearer token123", result["Authorization"])
+	assert.Equal(t, "token123", result["X-Okapi-Token"])
 }
 
 func TestSecureApplicationJSONHeaders_BlankToken(t *testing.T) {

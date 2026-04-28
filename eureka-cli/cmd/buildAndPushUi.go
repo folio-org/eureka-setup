@@ -46,7 +46,7 @@ func (run *Run) BuildAndPushUi() error {
 		return err
 	}
 
-	slog.Info(run.Config.Action.Name, "text", "BUILDING AND PUSHING PLATFORM COMPLETE UI IMAGE TO DOCKER HUB")
+	slog.Info(run.Config.Action.Name, "text", "BUILDING AND PUSHING PLATFORM LSP UI IMAGE TO DOCKER HUB")
 	outputDir, err := run.Config.UISvc.CloneAndUpdateRepository(params.UpdateCloned)
 	if err != nil {
 		return err
@@ -68,7 +68,8 @@ func init() {
 	rootCmd.AddCommand(buildAndPushUiCmd)
 	buildAndPushUiCmd.PersistentFlags().StringVarP(&params.Namespace, action.Namespace.Long, action.Namespace.Short, "", action.Namespace.Description)
 	buildAndPushUiCmd.PersistentFlags().StringVarP(&params.Tenant, action.Tenant.Long, action.Tenant.Short, "", action.Tenant.Description)
-	buildAndPushUiCmd.PersistentFlags().StringVarP(&params.PlatformCompleteURL, action.PlatformCompleteURL.Long, action.PlatformCompleteURL.Short, "http://localhost:3000", action.PlatformCompleteURL.Description)
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&params.PlatformLspURL, action.PlatformLspURL.Long, action.PlatformLspURL.Short, "http://localhost:3000", action.PlatformLspURL.Description)
+	buildAndPushUiCmd.PersistentFlags().BoolVarP(&params.LinkedData, action.LinkedData.Long, action.LinkedData.Short, false, action.LinkedData.Description)
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&params.SingleTenant, action.SingleTenant.Long, action.SingleTenant.Short, true, action.SingleTenant.Description)
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&params.EnableECSRequests, action.EnableECSRequests.Long, action.EnableECSRequests.Short, false, action.EnableECSRequests.Description)
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&params.UpdateCloned, action.UpdateCloned.Long, action.UpdateCloned.Short, false, action.UpdateCloned.Description)

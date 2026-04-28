@@ -55,7 +55,7 @@ func (run *Run) UpdateKeycloakPublicClients(consortiumName string, tenantType co
 			}
 
 			slog.Info(run.Config.Action.Name, "text", "Updating keycloak public client")
-			if err := run.Config.KeycloakSvc.UpdatePublicClientSettings(configTenant, params.PlatformCompleteURL); err != nil {
+			if err := run.Config.KeycloakSvc.UpdatePublicClientSettings(configTenant, params.PlatformLspURL); err != nil {
 				return err
 			}
 		}

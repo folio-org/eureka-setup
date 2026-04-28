@@ -66,19 +66,19 @@ const (
 	SidecarProjectName = "folio-module-sidecar"
 
 	// Folio source Git repository URLs
-	FolioKongRepositoryURL        = "https://github.com/folio-org/folio-kong"
-	FolioKeycloakRepositoryURL    = "https://github.com/folio-org/folio-keycloak"
-	PlatformCompleteRepositoryURL = "https://github.com/folio-org/platform-complete.git"
+	FolioKongRepositoryURL     = "https://github.com/folio-org/folio-kong"
+	FolioKeycloakRepositoryURL = "https://github.com/folio-org/folio-keycloak"
+	PlatformLspRepositoryURL   = "https://github.com/folio-org/platform-lsp.git"
 
 	// Folio source Git repository labels
-	FolioKongLabel        = "folio-kong"
-	FolioKeycloakLabel    = "folio-keycloak"
-	PlatformCompleteLabel = "platform-complete"
+	FolioKongLabel     = "folio-kong"
+	FolioKeycloakLabel = "folio-keycloak"
+	PlatformLspLabel   = "platform-lsp"
 
 	// Folio source Git local repository output directories
-	FolioKongOutputDir        = "folio-kong"
-	FolioKeycloakOutputDir    = "folio-keycloak"
-	PlatformCompleteOutputDir = "platform-complete"
+	FolioKongOutputDir     = "folio-kong"
+	FolioKeycloakOutputDir = "folio-keycloak"
+	PlatformLspOutputDir   = "platform-lsp"
 
 	// Branch names
 	FolioKongBranch     = "master"
@@ -155,7 +155,7 @@ const (
 	ModuleContainerPattern                = "^eureka-%s-[a-z]+-[a-z]+(-[a-z]{3,})?$"
 	SidecarContainerPattern               = "^eureka-%s-[a-z]+-[a-z]+(-[a-z]{3,})?-sc$"
 	SingleModuleOrSidecarContainerPattern = "^(eureka-%s-)(%[2]s|%[2]s-sc)$"
-	SingleUiContainerPattern              = "eureka-platform-complete-ui-%s"
+	SingleUiContainerPattern              = "eureka-platform-lsp-ui-%s"
 
 	// Other regexp patterns
 	VaultRootTokenPattern = "init.sh: Root VAULT TOKEN is:"
