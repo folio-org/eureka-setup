@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
@@ -13,7 +12,6 @@ import (
 	"github.com/folio-org/eureka-setup/eureka-cli/dockerclient"
 	"github.com/folio-org/eureka-setup/eureka-cli/execsvc"
 	"github.com/folio-org/eureka-setup/eureka-cli/gitclient"
-	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/tenantsvc"
 	"github.com/go-git/go-git/v5"
 )
@@ -63,9 +61,9 @@ func New(action *action.Action,
 }
 
 func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
-	slog.Info(us.Action.Name, "text", "CLONING & UPDATING PLATFORM COMPLETE UI REPOSITORY")
+	slog.Info(us.Action.Name, "text", "CLONING & UPDATING PLATFORM LSP UI REPOSITORY")
 	branch := us.GetStripesBranch()
-	repository, err := us.GitClient.PlatformCompleteRepository(branch)
+	repository, err := us.GitClient.PlatformLspRepository(branch)
 	if err != nil {
 		return "", err
 	}
@@ -86,7 +84,7 @@ func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
 }
 
 func (us *UISvc) PrepareImage(tenantName string) (string, error) {
-	imageName := fmt.Sprintf("platform-complete-ui-%s", tenantName)
+	imageName := fmt.Sprintf("platform-lsp-ui-%s", tenantName)
 	if us.Action.Param.BuildImages {
 		outputDir, err := us.CloneAndUpdateRepository(us.Action.Param.UpdateCloned)
 		if err != nil {
@@ -105,15 +103,14 @@ func (us *UISvc) PrepareImage(tenantName string) (string, error) {
 }
 
 func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error) {
-	slog.Info(us.Action.Name, "text", "Copying UI configs")
-	configName := "stripes.config.js"
-	err := helpers.CopySingleFile(filepath.Join(outputDir, "eureka-tpl", configName), filepath.Join(outputDir, configName))
+	slog.Info(us.Action.Name, "text", "Preparing UI configs")
+	err := us.PrepareStripesConfigJS(tenantName, outputDir)
 	if err != nil {
 		return "", err
 	}
 
-	slog.Info(us.Action.Name, "text", "Preparing UI configs")
-	err = us.PrepareStripesConfigJS(tenantName, outputDir)
+	slog.Info(us.Action.Name, "text", "Removing optional modules from stripes.modules.js")
+	err = us.PrepareStripesModulesJS(outputDir)
 	if err != nil {
 		return "", err
 	}
@@ -124,7 +121,7 @@ func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error)
 	}
 
 	slog.Info(us.Action.Name, "text", "Building UI image")
-	finalImageName := fmt.Sprintf("platform-complete-ui-%s", tenantName)
+	finalImageName := fmt.Sprintf("platform-lsp-ui-%s", tenantName)
 	err = us.ExecSvc.ExecFromDir(exec.Command("docker", "build", "--tag", finalImageName,
 		"--build-arg", fmt.Sprintf("OKAPI_URL=%s", constant.KongExternalHTTP),
 		"--build-arg", fmt.Sprintf("TENANT_ID=%s", tenantName),
@@ -142,7 +139,7 @@ func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error)
 
 func (us *UISvc) DeployContainer(tenantName string, imageName string, externalPort int) error {
 	slog.Info(us.Action.Name, "text", "Deploying UI container for tenant", "tenant", tenantName)
-	containerName := fmt.Sprintf("eureka-platform-complete-ui-%s", tenantName)
+	containerName := fmt.Sprintf("eureka-platform-lsp-ui-%s", tenantName)
 
 	stdout, _, err := us.ExecSvc.ExecReturnOutput(exec.Command("docker", "ps", "-a",
 		"--filter", fmt.Sprintf("name=^%s$", containerName),

@@ -80,9 +80,12 @@ func SecureApplicationJSONHeaders(accessToken string) (map[string]string, error)
 		return nil, errors.AccessTokenBlank()
 	}
 
+	// Access Token passed as a bearer token is required for authentication with Keycloak while token
+	// passed as x-okapi-token is require for the intra-module communication post-authentication
 	return map[string]string{
 		constant.ContentTypeHeader:   constant.ApplicationJSON,
 		constant.AuthorizationHeader: fmt.Sprintf("Bearer %s", accessToken),
+		constant.OkapiTokenHeader:    accessToken,
 	}, nil
 }
 

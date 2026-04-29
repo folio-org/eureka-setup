@@ -21,13 +21,18 @@ on:
         required: true
         type: string
         default: diku
-      platformCompleteURL:
-        description: "Platform Complete UI url"
+      platformLspURL:
+        description: "Platform LSP UI url"
         required: true
         type: string
         default: http://localhost:3000
       singleTenant:
         description: "Use for Single Tenant workflow"
+        required: true
+        type: boolean
+        default: true
+      linkedData:
+        description: "Include Linked Data module in UI bundle"
         required: true
         type: boolean
         default: true
@@ -45,8 +50,9 @@ jobs:
       DEPLOYMENT_PROFILE: ${{ inputs.profile || 'combined' }}
       DOCKERHUB_NAMESPACE: ${{ inputs.namespace || 'bkadirkhodjaev' }}
       TENANT_NAME: ${{ inputs.tenant || 'diku' }}
-      PLATFORM_COMPLETE_URL: ${{ inputs.platformCompleteURL || 'http://localhost:3000' }}
+      PLATFORM_LSP_URL: ${{ inputs.platformLspURL || 'http://localhost:3000' }}
       SINGLE_TENANT_MODE: ${{ inputs.singleTenant != false && 'true' || 'false' }}
+      LINKED_DATA: ${{ inputs.linkedData != false && 'true' || 'false' }}
       ENABLE_ECS_REQUESTS: ${{ inputs.enableEcsRequests == true && 'true' || 'false' }}
     steps:
       - name: Using inputs
@@ -54,8 +60,9 @@ jobs:
           echo "profile: $DEPLOYMENT_PROFILE"
           echo "namespace: $DOCKERHUB_NAMESPACE"
           echo "tenant: $TENANT_NAME"
-          echo "platformCompleteURL: $PLATFORM_COMPLETE_URL"
+          echo "platformLspURL: $PLATFORM_LSP_URL"
           echo "singleTenant: $SINGLE_TENANT_MODE"
+          echo "linkedData: $LINKED_DATA"
           echo "enableEcsRequests: $ENABLE_ECS_REQUESTS"
 
       - name: Login to Docker Hub
@@ -86,6 +93,7 @@ jobs:
             --profile $DEPLOYMENT_PROFILE \
             --namespace $DOCKERHUB_NAMESPACE \
             --tenant $TENANT_NAME \
-            --platformCompleteURL $PLATFORM_COMPLETE_URL \
+            --platformLspURL $PLATFORM_LSP_URL \
             --singleTenant $SINGLE_TENANT_MODE \
+            --linkedData $LINKED_DATA \
             --enableEcsRequests $ENABLE_ECS_REQUESTS

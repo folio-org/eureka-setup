@@ -7,7 +7,7 @@ tmp_dir = "bin"
 [build]
   args_bin = []
   bin = ""
-  cmd = "bash build_cli.sh"
+  cmd = "bash misc/scripts/build_cli.sh"
   delay = 2500
   entrypoint = ["bin\\eureka-cli.exe", "-v"]
   exclude_dir = ["assets", "bin", "vendor", "testdata", "images", "tmp"]

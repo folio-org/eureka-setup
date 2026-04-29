@@ -151,16 +151,16 @@ func TestPushImage_PushError(t *testing.T) {
 func TestForcePullImage_Success(t *testing.T) {
 	// Arrange
 	viperCfg := testhelpers.NewViperTestConfig()
-	viperCfg.Set(field.NamespacesPlatformCompleteUI, "test-namespace")
+	viperCfg.Set(field.NamespacesPlatformLspUI, "test-namespace")
 	defer viperCfg.Reset()
 
 	action := testhelpers.NewMockAction()
-	action.ConfigNamespacePlatformCompleteUI = "test-namespace"
+	action.ConfigNamespacePlatformLspUI = "test-namespace"
 	mockExec := new(testhelpers.MockCommandExecutor)
 	client := New(action, mockExec)
 
 	imageName := "platform-complete:1.0.0"
-	expectedFinalImageName := fmt.Sprintf("%s/%s", action.ConfigNamespacePlatformCompleteUI, imageName)
+	expectedFinalImageName := fmt.Sprintf("%s/%s", action.ConfigNamespacePlatformLspUI, imageName)
 
 	// Mock the rm command
 	mockExec.On("Exec", mock.MatchedBy(func(cmd *exec.Cmd) bool {
@@ -197,11 +197,11 @@ func TestForcePullImage_NamespaceNotSet(t *testing.T) {
 func TestForcePullImage_RemoveError(t *testing.T) {
 	// Arrange
 	viperCfg := testhelpers.NewViperTestConfig()
-	viperCfg.Set(field.NamespacesPlatformCompleteUI, "test-namespace")
+	viperCfg.Set(field.NamespacesPlatformLspUI, "test-namespace")
 	defer viperCfg.Reset()
 
 	action := testhelpers.NewMockAction()
-	action.ConfigNamespacePlatformCompleteUI = "test-namespace"
+	action.ConfigNamespacePlatformLspUI = "test-namespace"
 	mockExec := new(testhelpers.MockCommandExecutor)
 	client := New(action, mockExec)
 
@@ -226,11 +226,11 @@ func TestForcePullImage_RemoveError(t *testing.T) {
 func TestForcePullImage_PullError(t *testing.T) {
 	// Arrange
 	viperCfg := testhelpers.NewViperTestConfig()
-	viperCfg.Set(field.NamespacesPlatformCompleteUI, "test-namespace")
+	viperCfg.Set(field.NamespacesPlatformLspUI, "test-namespace")
 	defer viperCfg.Reset()
 
 	action := testhelpers.NewMockAction()
-	action.ConfigNamespacePlatformCompleteUI = "test-namespace"
+	action.ConfigNamespacePlatformLspUI = "test-namespace"
 	mockExec := new(testhelpers.MockCommandExecutor)
 	client := New(action, mockExec)
 
@@ -285,11 +285,11 @@ func TestForcePullImage_MultipleImages(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Arrange
 			viperCfg := testhelpers.NewViperTestConfig()
-			viperCfg.Set(field.NamespacesPlatformCompleteUI, tt.namespace)
+			viperCfg.Set(field.NamespacesPlatformLspUI, tt.namespace)
 			defer viperCfg.Reset()
 
 			action := testhelpers.NewMockAction()
-			action.ConfigNamespacePlatformCompleteUI = tt.namespace
+			action.ConfigNamespacePlatformLspUI = tt.namespace
 			mockExec := new(testhelpers.MockCommandExecutor)
 			client := New(action, mockExec)
 

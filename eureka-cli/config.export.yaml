@@ -81,6 +81,7 @@ sidecar-module:
     QUARKUS_REST_CLIENT_CONNECT_TIMEOUT: 180000
     QUARKUS_REST_CLIENT_SEND_TIMEOUT: 180000
     QUARKUS_HTTP_LIMITS_MAX_INITIAL_LINE_LENGTH: 8192
+    QUARKUS_LOG_CATEGORY__ORG_APACHE_KAFKA__LEVEL: INFO
     SC_LOG_LEVEL: INFO
     ROOT_LOG_LEVEL: INFO
     REQUEST_TIMEOUT: 604800000
@@ -89,7 +90,7 @@ sidecar-module:
     JAVA_OPTIONS: >-
       -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
       -XX:+UseZGC -XX:MaxRAMPercentage=80.0 -Xms64m -Xmx64m
-      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=INFO -Dquarkus.log.category.'org.apache.kafka'.level=INFO 
+      -Dquarkus.http.host=0.0.0.0 -Dquarkus.log.level=INFO
       -Djava.util.logging.manager=org.jboss.logmanager.LogManager
 backend-modules:
   mod-data-export-spring:

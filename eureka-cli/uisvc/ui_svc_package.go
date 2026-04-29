@@ -1,7 +1,9 @@
 package uisvc
 
 import (
+	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
@@ -21,31 +23,37 @@ func (us *UISvc) PreparePackageJSON(configPath string) error {
 	if err != nil {
 		return err
 	}
-	packageJSON.Scripts["build"] = "export DEBUG=stripes*; export NODE_OPTIONS=\"--max-old-space-size=8000 $NODE_OPTIONS\"; stripes build stripes.config.js --languages en --sourcemap=false --no-minify"
 
-	modules := []string{
-		"@folio/authorization-policies",
-		"@folio/authorization-roles",
-		"@folio/plugin-select-application",
+	var modulesToRemove []string
+	if us.Action.Param.SingleTenant {
+		modulesToRemove = append(modulesToRemove, "@folio/consortia-settings")
 	}
-	if !us.Action.Param.SingleTenant {
-		modules = append(modules, "@folio/consortia-settings")
+	if !us.Action.Param.LinkedData {
+		modulesToRemove = append(modulesToRemove, "@folio/ld-folio-wrapper")
 	}
 
-	updates := 0
-	for _, module := range modules {
-		if packageJSON.Dependencies[module] == "" {
-			packageJSON.Dependencies[module] = ">=1.0.0"
-			updates++
+	removed := 0
+	for _, mod := range modulesToRemove {
+		if _, exists := packageJSON.Dependencies[mod]; exists {
+			delete(packageJSON.Dependencies, mod)
+			removed++
 		}
 	}
-	if updates > 0 {
-		slog.Info(us.Action.Name, "text", "Added extra modules to package.json", "count", len(modules))
-		err = helpers.WriteJSONToFile(packageJSONPath, packageJSON)
-		if err != nil {
+	if removed > 0 {
+		slog.Info(us.Action.Name, "text", "Removed optional modules from package.json", "count", removed)
+		if err = helpers.WriteJSONToFile(packageJSONPath, packageJSON); err != nil {
 			return err
 		}
 	}
+
+	dumpBytes, err := os.ReadFile(packageJSONPath)
+	if err != nil {
+		return err
+	}
+	fmt.Println()
+	fmt.Println("DUMPING package.json")
+	fmt.Println(string(dumpBytes))
+	fmt.Println()
 
 	return nil
 }

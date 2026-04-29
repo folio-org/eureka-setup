@@ -43,7 +43,7 @@ type Action struct {
 	ConfigApplicationDependencies      map[string]any
 	ConfigApplicationStripesBranch     string
 	ConfigApplicationGatewayHostname   string
-	ConfigNamespacePlatformCompleteUI  string
+	ConfigNamespacePlatformLspUI       string
 	ConfigGlobalEnv                    map[string]string
 	ConfigEnvFolio                     string
 	ConfigSidecarModule                map[string]any
@@ -85,7 +85,7 @@ func New(name string, gatewayURL string, actionParam *Param) *Action {
 		ConfigApplicationDependencies:      viper.GetStringMap(field.ApplicationDependencies),
 		ConfigApplicationStripesBranch:     viper.GetString(field.ApplicationStripesBranch),
 		ConfigApplicationGatewayHostname:   viper.GetString(field.ApplicationGatewayHostname),
-		ConfigNamespacePlatformCompleteUI:  viper.GetString(field.NamespacesPlatformCompleteUI),
+		ConfigNamespacePlatformLspUI:       viper.GetString(field.NamespacesPlatformLspUI),
 		ConfigGlobalEnv:                    viper.GetStringMapString(field.Env),
 		ConfigEnvFolio:                     viper.GetString(field.EnvFolio),
 		ConfigSidecarModule:                viper.GetStringMap(field.SidecarModule),

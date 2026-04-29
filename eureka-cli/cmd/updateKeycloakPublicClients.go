@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 Open Library Foundation
+Copyright © 2026 Open Library Foundation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ func (run *Run) UpdateKeycloakPublicClients(consortiumName string, tenantType co
 			}
 
 			slog.Info(run.Config.Action.Name, "text", "Updating keycloak public client")
-			if err := run.Config.KeycloakSvc.UpdatePublicClientSettings(configTenant, params.PlatformCompleteURL); err != nil {
+			if err := run.Config.KeycloakSvc.UpdatePublicClientSettings(configTenant, params.PlatformLspURL); err != nil {
 				return err
 			}
 		}

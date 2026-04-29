@@ -1,6 +1,12 @@
 #!/bin/bash
 
-# Script to restart all Docker containers with "eureka-" prefix
+# Script to restart all running Docker containers with the "eureka-" prefix
+# Restarts containers two at a time in parallel to reduce total restart time
+# Usage: ./restart-containers.sh
+
+set -euo pipefail
+
+# Discover containers with eureka- prefix
 echo "Finding containers with 'eureka-' prefix..."
 
 # Get all container IDs that start with "eureka-"
@@ -46,6 +52,8 @@ done
 
 echo ""
 echo "All eureka- containers have been restarted successfully"
+
+# Wait for containers to stabilize after restart
 echo "Waiting 3 minutes for containers to stabilize..."
 sleep 180
 echo "Wait complete"

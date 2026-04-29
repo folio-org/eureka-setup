@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 Open Library Foundation
+Copyright © 2026 Open Library Foundation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ var deployUiCmd = &cobra.Command{
 }
 
 func (run *Run) DeployUi(consortiumName string, tenantType constant.TenantType) error {
-	slog.Info(run.Config.Action.Name, "text", "DEPLOYING UI")
+	slog.Info(run.Config.Action.Name, "text", "DEPLOYING UI", "consortium", consortiumName)
 	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
 		if helpers.IsUIEnabled(configTenant, run.Config.Action.ConfigTenants) {
 			if err := run.Config.TenantSvc.SetConfigTenantParams(configTenant); err != nil {
@@ -54,13 +54,15 @@ func (run *Run) DeployUi(consortiumName string, tenantType constant.TenantType) 
 				return err
 			}
 
-			externalPort, err := helpers.GetPortFromURL(params.PlatformCompleteURL)
+			externalPort, err := helpers.GetPortFromURL(params.PlatformLspURL)
 			if err != nil {
 				return err
 			}
 			if err := run.Config.UISvc.DeployContainer(configTenant, finalImageName, externalPort); err != nil {
 				return err
 			}
+		} else {
+			slog.Info(run.Config.Action.Name, "text", "UI is not required for tenant", "tenant", configTenant, "type", tenantType)
 		}
 
 		return nil
@@ -73,4 +75,5 @@ func init() {
 	deployUiCmd.PersistentFlags().BoolVarP(&params.UpdateCloned, action.UpdateCloned.Long, action.UpdateCloned.Short, false, action.UpdateCloned.Description)
 	deployUiCmd.PersistentFlags().BoolVarP(&params.SingleTenant, action.SingleTenant.Long, action.SingleTenant.Short, true, action.SingleTenant.Description)
 	deployUiCmd.PersistentFlags().BoolVarP(&params.EnableECSRequests, action.EnableECSRequests.Long, action.EnableECSRequests.Short, false, action.EnableECSRequests.Description)
+	deployUiCmd.PersistentFlags().BoolVarP(&params.LinkedData, action.LinkedData.Long, action.LinkedData.Short, false, action.LinkedData.Description)
 }

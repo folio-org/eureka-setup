@@ -65,7 +65,7 @@ sidecar-module:
   version: latest
   custom-namespace: true
   native-binary-cmd: [
-    "./application", "-Dquarkus.http.host=0.0.0.0", "-Dquarkus.log.category.'org.apache.kafka'.level=INFO"
+    "./application", "-Dquarkus.http.host=0.0.0.0", "-Dquarkus.log.level=INFO"
   ]
   environment:
     # Kafka
@@ -87,6 +87,7 @@ sidecar-module:
     QUARKUS_REST_CLIENT_CONNECT_TIMEOUT: 180000
     QUARKUS_REST_CLIENT_SEND_TIMEOUT: 180000
     QUARKUS_HTTP_LIMITS_MAX_INITIAL_LINE_LENGTH: 8192
+    QUARKUS_LOG_CATEGORY__ORG_APACHE_KAFKA__LEVEL: INFO
     SC_LOG_LEVEL: INFO
     ROOT_LOG_LEVEL: INFO
     REQUEST_TIMEOUT: 604800000
@@ -104,8 +105,8 @@ backend-modules:
     resources:
       memory: 2560
     environment:
-      # uncomment to use PushKB (requires separate deployment) instead of Harvest
-      #INGRESS_TYPE: PushKB
+      # Uncomment to use PushKB (requires separate deployment) instead of Harvest
+      # INGRESS_TYPE: PushKB
       JAVA_OPTIONS: >-
         -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
         -XX:MaxRAMPercentage=80.0 -Xms256m -Xmx1792m
@@ -122,8 +123,7 @@ backend-modules:
   # eUsage
   mod-erm-usage:
   mod-erm-usage-harvester:
-    environment:
-      OKAPI_URL: http://mod-erm-usage-harvester-sc.eureka:8081
+    use-okapi-url: true
   mod-eusage-reports:
   # OA
   mod-oa:
