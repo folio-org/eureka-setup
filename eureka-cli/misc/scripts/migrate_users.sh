@@ -1,12 +1,18 @@
 #!/bin/bash
 
+# Script to create or delete IDP users in Keycloak for ECS consortium member tenants
+# Runs tenant migration tasks in parallel via background jobs
+# Usage: ./migrate_users.sh [OPTIONS]
+
 set -euo pipefail
 
+# Default values
 ACTION="create"
 CENTRAL_TENANT="ecs"
 CONSORTIUM_ID=""
 GATEWAY="http://localhost:8000"
 
+# Parse command line arguments
 while [[ $# -gt 0 ]]; do
   case $1 in
     -a|--action)
@@ -50,6 +56,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Validate required arguments
 if [[ "$ACTION" != "create" && "$ACTION" != "delete" ]]; then
   echo "Error: Action must be 'create' or 'delete'"
   exit 1
@@ -60,11 +67,14 @@ if [ -z "$CONSORTIUM_ID" ]; then
   exit 1
 fi
 
+# Create temp directory for task output
 mkdir -p tmp
 
+# Retrieve authentication token from central tenant
 echo "Retrieving token from $CENTRAL_TENANT central tenant"
 TOKEN=$(eureka-cli -p ecs-migration getKeycloakAccessToken -t $CENTRAL_TENANT)
 
+# Define per-tenant migration task
 run_task() {
   local TENANT=$1
   local OUTPUT=$2
@@ -85,6 +95,7 @@ run_task() {
   fi
 }
 
+# Run all tenant tasks in parallel
 echo -e "\nPreparing to run tasks"
 for i in {1..8}; do
   run_task "university${i}" "tmp/university${i}_${ACTION}_users.json" &

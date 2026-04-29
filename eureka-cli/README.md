@@ -80,8 +80,8 @@ On Windows, it is recommended to work exclusively in Windows Terminal running Gi
 Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc\hosts`):
 
 - **Option 1 - Automated (recommended):**
-  - **Linux/macOS:** `sudo ./misc/add-hosts.sh`
-  - **Windows:** Open PowerShell as Administrator and run: `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process; .\misc\add-hosts.ps1`
+  - **Linux/macOS:** `sudo ./misc/scripts/add-hosts.sh`
+  - **Windows:** Open PowerShell as Administrator and run: `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process; .\misc\scripts\add-hosts.ps1`
 - **Option 2 - Manual:** Add the following entries:
   - `127.0.0.1 postgres.eureka`
   - `127.0.0.1 kafka.eureka`
@@ -344,7 +344,7 @@ eureka-cli -p ecs-migration undeployApplication
 
 ```bash
 # Create/remove IDP users in Keycloak
-./migrate_users.sh -a {{create OR delete}} --consortium-id {{consortium uuid}}
+./misc/scripts/migrate_users.sh -a {{create OR delete}} --consortium-id {{consortium uuid}}
 ```
 
 > The migration progress can be monitored from the `federated_identity` table in the Keycloak DB.
@@ -954,10 +954,10 @@ The environment may fail to add Vault secrets during tenant entitlement. If a se
 
 ```bash
 # Single user
-./add_missing_secret.sh -t diku -u admin
+./misc/scripts/add_missing_secret.sh -t diku -u admin
 
 # Multiple users (space-delimited)
-./add_missing_secret.sh -t diku -u "mod-users mod-roles-keycloak mod-inventory"
+./misc/scripts/add_missing_secret.sh -t diku -u "mod-users mod-roles-keycloak mod-inventory"
 ```
 
 > This script upserts the secret to Vault and resets the associated Keycloak user password in the specified realm (it is idempotent).

@@ -4,7 +4,7 @@
 # This script is idempotent - it can be run multiple times safely
 # Usage: sudo ./add-hosts.sh
 
-set -e
+set -euo pipefail
 
 # Define hostnames to add
 HOSTNAMES=(

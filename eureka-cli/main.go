@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 Open Library Foundation
+Copyright © 2026 Open Library Foundation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,8 +29,6 @@ var (
 	//go:embed misc/folio-vault
 	//go:embed misc/postgres
 	//go:embed misc/.env
-	//go:embed misc/*.ps1
-	//go:embed misc/*.sh
 	//go:embed misc/docker-compose.*
 	//go:embed *.yaml
 	fs embed.FS

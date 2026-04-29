@@ -1,9 +1,10 @@
 #!/bin/bash
 
-set -euo pipefail
-
-# Script to set Vault secret and reset Keycloak user password
+# Script to upsert a Vault secret and reset the associated Keycloak user password
+# This script is idempotent - it can be run multiple times safely
 # Usage: ./add_missing_secret.sh [OPTIONS]
+
+set -euo pipefail
 
 # Default values
 KEYCLOAK_URL="http://keycloak.eureka:8080"

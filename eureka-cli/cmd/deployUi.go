@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 Open Library Foundation
+Copyright © 2026 Open Library Foundation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ var deployUiCmd = &cobra.Command{
 }
 
 func (run *Run) DeployUi(consortiumName string, tenantType constant.TenantType) error {
-	slog.Info(run.Config.Action.Name, "text", "DEPLOYING UI")
+	slog.Info(run.Config.Action.Name, "text", "DEPLOYING UI", "consortium", consortiumName)
 	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
 		if helpers.IsUIEnabled(configTenant, run.Config.Action.ConfigTenants) {
 			if err := run.Config.TenantSvc.SetConfigTenantParams(configTenant); err != nil {
@@ -61,6 +61,8 @@ func (run *Run) DeployUi(consortiumName string, tenantType constant.TenantType) 
 			if err := run.Config.UISvc.DeployContainer(configTenant, finalImageName, externalPort); err != nil {
 				return err
 			}
+		} else {
+			slog.Info(run.Config.Action.Name, "text", "UI is not required for tenant", "tenant", configTenant, "type", tenantType)
 		}
 
 		return nil
