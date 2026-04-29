@@ -1,4 +1,7 @@
-# Script to restart all Docker containers with "eureka-" prefix
+# Script to restart all running Docker containers with the "eureka-" prefix
+# Restarts containers two at a time in parallel to reduce total restart time
+# Usage: .\misc\scripts\restart-containers.ps1
+
 Write-Host "Finding containers with 'eureka-' prefix..." -ForegroundColor Cyan
 
 # Get all container IDs that start with "eureka-"
