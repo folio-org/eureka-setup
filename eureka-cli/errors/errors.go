@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 // FlagReader interface allows us to accept flag structs without importing the flags package
@@ -233,6 +234,14 @@ func KongAdminAPIFailed(statusCode int, status string) error {
 
 func ApplicationNotFound(applicationName string) error {
 	return fmt.Errorf("%w: failed to find the latest application for %s profile", ErrNotFound, applicationName)
+}
+
+func ParentApplicationNotFound(missing []string) error {
+	return fmt.Errorf("%w: parent application(s) not registered in mgr-applications: %s", ErrDeploymentFailed, strings.Join(missing, ", "))
+}
+
+func ParentApplicationNotReachable(required []string, err error) error {
+	return fmt.Errorf("%w: parent application services unreachable (required: %s) - deploy parent application first: %w", ErrDeploymentFailed, strings.Join(required, ", "), err)
 }
 
 // ==================== Module Errors ====================

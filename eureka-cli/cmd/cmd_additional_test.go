@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"errors"
+	"net"
 	"os"
 	"testing"
 
@@ -497,4 +499,190 @@ func TestCheckDeployedModuleReadiness_WithModules(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 	mockModule.AssertExpectations(t)
+}
+
+// ==================== ValidateParentApplications Tests ====================
+
+func TestValidateParentApplications_AllPresent(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.DeployApplication)
+	run.Config.Action.ConfigApplicationDependencies = map[string]any{
+		"name":    "app-combined",
+		"version": "1.0.0",
+	}
+
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("token", nil)
+	mockManagement.On("GetApplications").Return(models.ApplicationsResponse{
+		ApplicationDescriptors: []map[string]any{
+			{"id": "app-combined-1.0.0", "name": "app-combined"},
+		},
+		TotalRecords: 1,
+	}, nil)
+
+	// Act
+	err := run.ValidateParentApplications()
+
+	// Assert
+	assert.NoError(t, err)
+	mockKeycloak.AssertExpectations(t)
+	mockManagement.AssertExpectations(t)
+}
+
+func TestValidateParentApplications_ParentMissing(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.DeployApplication)
+	run.Config.Action.ConfigApplicationDependencies = map[string]any{
+		"name":    "app-combined",
+		"version": "1.0.0",
+	}
+
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("token", nil)
+	mockManagement.On("GetApplications").Return(models.ApplicationsResponse{
+		ApplicationDescriptors: []map[string]any{},
+		TotalRecords:           0,
+	}, nil)
+
+	// Act
+	err := run.ValidateParentApplications()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "app-combined-1.0.0")
+	mockKeycloak.AssertExpectations(t)
+	mockManagement.AssertExpectations(t)
+}
+
+func TestValidateParentApplications_MultipleParentsMissing(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.DeployApplication)
+	run.Config.Action.ConfigApplicationDependencies = map[string]any{
+		"dep1": map[string]any{"name": "app-combined", "version": "1.0.0"},
+		"dep2": map[string]any{"name": "app-platform", "version": "2.0.0"},
+	}
+
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("token", nil)
+	mockManagement.On("GetApplications").Return(models.ApplicationsResponse{
+		ApplicationDescriptors: []map[string]any{},
+		TotalRecords:           0,
+	}, nil)
+
+	// Act
+	err := run.ValidateParentApplications()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "parent application(s) not registered in mgr-applications")
+	mockKeycloak.AssertExpectations(t)
+	mockManagement.AssertExpectations(t)
+}
+
+func TestValidateParentApplications_MultipleParentsOnePresent(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.DeployApplication)
+	run.Config.Action.ConfigApplicationDependencies = map[string]any{
+		"dep1": map[string]any{"name": "app-combined", "version": "1.0.0"},
+		"dep2": map[string]any{"name": "app-platform", "version": "2.0.0"},
+	}
+
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("token", nil)
+	mockManagement.On("GetApplications").Return(models.ApplicationsResponse{
+		ApplicationDescriptors: []map[string]any{
+			{"id": "app-combined-1.0.0", "name": "app-combined"},
+		},
+		TotalRecords: 1,
+	}, nil)
+
+	// Act
+	err := run.ValidateParentApplications()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "app-platform-2.0.0")
+	assert.NotContains(t, err.Error(), "app-combined-1.0.0")
+	mockKeycloak.AssertExpectations(t)
+	mockManagement.AssertExpectations(t)
+}
+
+func TestValidateParentApplications_GetApplicationsError(t *testing.T) {
+	t.Run("NetworkError_WrapsWithNotReachable", func(t *testing.T) {
+		// Arrange
+		run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.DeployApplication)
+		run.Config.Action.ConfigApplicationDependencies = map[string]any{
+			"name": "app-combined", "version": "1.0.0",
+		}
+		netErr := &net.OpError{Op: "dial", Net: "tcp", Err: errors.New("connection refused")}
+
+		mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("token", nil)
+		mockManagement.On("GetApplications").Return(models.ApplicationsResponse{}, netErr)
+
+		// Act
+		err := run.ValidateParentApplications()
+
+		// Assert
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, netErr))
+		assert.Contains(t, err.Error(), "parent application services unreachable")
+		mockKeycloak.AssertExpectations(t)
+		mockManagement.AssertExpectations(t)
+	})
+
+	t.Run("NonNetworkError_PassesThrough", func(t *testing.T) {
+		// Arrange
+		run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.DeployApplication)
+		run.Config.Action.ConfigApplicationDependencies = map[string]any{
+			"name": "app-combined", "version": "1.0.0",
+		}
+		expectedError := errors.New("mgr-applications returned 500")
+
+		mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("token", nil)
+		mockManagement.On("GetApplications").Return(models.ApplicationsResponse{}, expectedError)
+
+		// Act
+		err := run.ValidateParentApplications()
+
+		// Assert
+		assert.Equal(t, expectedError, err)
+		mockKeycloak.AssertExpectations(t)
+		mockManagement.AssertExpectations(t)
+	})
+}
+
+func TestValidateParentApplications_TokenError(t *testing.T) {
+	t.Run("NetworkError_WrapsWithNotReachable", func(t *testing.T) {
+		// Arrange
+		run, _, mockKeycloak, _, _, _ := newTestRun(action.DeployApplication)
+		run.Config.Action.ConfigApplicationDependencies = map[string]any{
+			"name": "app-combined", "version": "1.0.0",
+		}
+		netErr := &net.OpError{Op: "dial", Net: "tcp", Err: errors.New("connection refused")}
+
+		mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", netErr)
+
+		// Act
+		err := run.ValidateParentApplications()
+
+		// Assert
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, netErr))
+		assert.Contains(t, err.Error(), "parent application services unreachable")
+		mockKeycloak.AssertExpectations(t)
+	})
+
+	t.Run("NonNetworkError_PassesThrough", func(t *testing.T) {
+		// Arrange
+		run, _, mockKeycloak, _, _, _ := newTestRun(action.DeployApplication)
+		run.Config.Action.ConfigApplicationDependencies = map[string]any{
+			"name": "app-combined", "version": "1.0.0",
+		}
+		expectedError := errors.New("keycloak returned 401")
+
+		mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("", expectedError)
+
+		// Act
+		err := run.ValidateParentApplications()
+
+		// Assert
+		assert.Equal(t, expectedError, err)
+		mockKeycloak.AssertExpectations(t)
+	})
 }
