@@ -817,6 +817,89 @@ func TestIsChildApp(t *testing.T) {
 
 // ==================== GetTemplateEnvVars Tests ====================
 
+func TestGetParentAppIDs(t *testing.T) {
+	tests := []struct {
+		name         string
+		dependencies map[string]any
+		expected     []string
+	}{
+		{
+			name:         "TestGetParentAppIDs_NilDependencies",
+			dependencies: nil,
+			expected:     nil,
+		},
+		{
+			name:         "TestGetParentAppIDs_EmptyDependencies",
+			dependencies: map[string]any{},
+			expected:     nil,
+		},
+		{
+			name: "TestGetParentAppIDs_SingleDepFormat",
+			dependencies: map[string]any{
+				"name":    "app-combined",
+				"version": "1.0.0",
+			},
+			expected: []string{"app-combined-1.0.0"},
+		},
+		{
+			name: "TestGetParentAppIDs_SingleDepMissingVersion",
+			dependencies: map[string]any{
+				"name": "app-combined",
+			},
+			expected: nil,
+		},
+		{
+			name: "TestGetParentAppIDs_MultiDepFormat",
+			dependencies: map[string]any{
+				"app-combined": map[string]any{
+					"name":    "app-combined",
+					"version": "1.0.0",
+				},
+				"app-platform": map[string]any{
+					"name":    "app-platform",
+					"version": "2.0.0",
+				},
+			},
+			expected: []string{"app-combined-1.0.0", "app-platform-2.0.0"},
+		},
+		{
+			name: "TestGetParentAppIDs_MultiDepSkipsInvalidEntries",
+			dependencies: map[string]any{
+				"valid": map[string]any{
+					"name":    "app-combined",
+					"version": "1.0.0",
+				},
+				"invalid": "not-a-map",
+			},
+			expected: []string{"app-combined-1.0.0"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			vc := testhelpers.SetupViperForTest(map[string]any{
+				field.ApplicationDependencies: tt.dependencies,
+			})
+			defer vc.Reset()
+
+			act := action.New("test", "http://localhost:%s", &action.Param{})
+
+			// Act
+			result := act.GetParentAppIDs()
+
+			// Assert
+			if tt.expected == nil {
+				assert.Nil(t, result)
+			} else {
+				assert.ElementsMatch(t, tt.expected, result)
+			}
+		})
+	}
+}
+
+// ==================== GetTemplateEnvVars Tests ====================
+
 func TestGetTemplateEnvVars(t *testing.T) {
 	t.Run("TestGetTemplateEnvVars_ReplacesModuleNamePlaceholder", func(t *testing.T) {
 		// Arrange

@@ -63,7 +63,7 @@ services:
     image: postgres:${POSTGRES_VERSION}
     restart: unless-stopped
     command: [
-      "-c", "max_connections=200",
+      "-c", "max_connections=300",
       "-c", "shared_buffers=768MB",
       "-c", "effective_cache_size=1536MB",
       "-c", "work_mem=16MB",

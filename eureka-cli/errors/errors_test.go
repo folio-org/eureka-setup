@@ -607,6 +607,53 @@ func TestApplicationNotFound(t *testing.T) {
 	})
 }
 
+func TestParentApplicationNotFound(t *testing.T) {
+	t.Run("TestParentApplicationNotFound_SingleMissing", func(t *testing.T) {
+		// Arrange
+		missing := []string{"app-combined-1.0.0"}
+
+		// Act
+		result := apperrors.ParentApplicationNotFound(missing)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "parent application(s) not registered in mgr-applications: app-combined-1.0.0")
+		assert.True(t, errors.Is(result, apperrors.ErrDeploymentFailed))
+	})
+
+	t.Run("TestParentApplicationNotFound_MultipleMissing", func(t *testing.T) {
+		// Arrange
+		missing := []string{"app-combined-1.0.0", "app-platform-2.0.0"}
+
+		// Act
+		result := apperrors.ParentApplicationNotFound(missing)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "app-combined-1.0.0, app-platform-2.0.0")
+		assert.True(t, errors.Is(result, apperrors.ErrDeploymentFailed))
+	})
+}
+
+func TestParentApplicationNotReachable(t *testing.T) {
+	t.Run("TestParentApplicationNotReachable_WrapsRootCause", func(t *testing.T) {
+		// Arrange
+		rootCause := errors.New("connection refused")
+		required := []string{"app-platform-minimal-1.0.0", "app-platform-full-1.0.0"}
+
+		// Act
+		result := apperrors.ParentApplicationNotReachable(required, rootCause)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "parent application services unreachable")
+		assert.Contains(t, result.Error(), "app-platform-minimal-1.0.0, app-platform-full-1.0.0")
+		assert.Contains(t, result.Error(), "deploy parent application first")
+		assert.True(t, errors.Is(result, apperrors.ErrDeploymentFailed))
+		assert.True(t, errors.Is(result, rootCause))
+	})
+}
+
 // ==================== Module Errors Tests ====================
 
 func TestModulesNotDeployed(t *testing.T) {

@@ -16,11 +16,14 @@ limitations under the License.
 package cmd
 
 import (
+	"errors"
 	"log/slog"
+	"net"
 	"time"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	apperrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
@@ -132,6 +135,9 @@ func (run *Run) DeployApplication() error {
 }
 
 func (run *Run) DeployChildApplication() error {
+	if err := run.ValidateParentApplications(); err != nil {
+		return err
+	}
 	if err := run.DeployAdditionalSystem(); err != nil {
 		return err
 	}
@@ -148,6 +154,45 @@ func (run *Run) DeployChildApplication() error {
 
 		return run.AttachCapabilitySets(consortiumName, tenantType, 0*time.Second, true)
 	})
+}
+
+func (run *Run) ValidateParentApplications() error {
+	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.ClientCredentials); err != nil {
+		var netErr net.Error
+		if errors.As(err, &netErr) {
+			return apperrors.ParentApplicationNotReachable(run.Config.Action.GetParentAppIDs(), err)
+		}
+		return err
+	}
+
+	apps, err := run.Config.ManagementSvc.GetApplications()
+	if err != nil {
+		var netErr net.Error
+		if errors.As(err, &netErr) {
+			return apperrors.ParentApplicationNotReachable(run.Config.Action.GetParentAppIDs(), err)
+		}
+		return err
+	}
+
+	existing := make(map[string]struct{}, len(apps.ApplicationDescriptors))
+	for _, descriptor := range apps.ApplicationDescriptors {
+		if id := helpers.GetString(descriptor, "id"); id != "" {
+			existing[id] = struct{}{}
+		}
+	}
+	required := run.Config.Action.GetParentAppIDs()
+
+	var missing []string
+	for _, id := range required {
+		if _, found := existing[id]; !found {
+			missing = append(missing, id)
+		}
+	}
+	if len(missing) > 0 {
+		return apperrors.ParentApplicationNotFound(missing)
+	}
+
+	return nil
 }
 
 func init() {

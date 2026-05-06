@@ -115,6 +115,37 @@ func (a *Action) IsChildApp() bool {
 	return len(a.ConfigApplicationDependencies) > 0
 }
 
+func (a *Action) GetParentAppIDs() []string {
+	deps := a.ConfigApplicationDependencies
+	if len(deps) == 0 {
+		return nil
+	}
+
+	// Single-dep format: flat map with "name" and "version" string keys
+	if name, ok := deps["name"].(string); ok && name != "" {
+		version, _ := deps["version"].(string)
+		if version != "" {
+			return []string{name + "-" + version}
+		}
+	}
+
+	// Multi-dep format: each value is a nested map with "name" and "version"
+	var ids []string
+	for _, v := range deps {
+		entry, ok := v.(map[string]any)
+		if !ok {
+			continue
+		}
+		name, _ := entry["name"].(string)
+		version, _ := entry["version"].(string)
+		if name != "" && version != "" {
+			ids = append(ids, name+"-"+version)
+		}
+	}
+
+	return ids
+}
+
 // ==================== Environment ====================
 
 func GetSidecarModuleCmd() []string {
