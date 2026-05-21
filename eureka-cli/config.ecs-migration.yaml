@@ -5729,3 +5729,4 @@ frontend-modules:
   folio_authorization-roles:
   folio_authorization-policies:
   folio_plugin-select-application:
+  folio_consortia-settings:
