@@ -111,3 +111,48 @@
 > Must undeploy previously deployed application before starting
 
 - The `args` can be modified to reflect which CLI command is to be debugged, e.g. `"args": ["createUsers", "-d"]` will run `createUsers` command in the debugged mode with verbose logs
+
+## Add new CLI command
+
+- To add a new CLI command install the latest versions of Cobra and Viper auxiliary CLIs
+
+```bash
+go get -u github.com/spf13/cobra@latest
+go get -u github.com/spf13/viper@lates
+```
+
+- After that you can create a new Eureka CLI command (also know as an **action**) with the Cobra CLI
+
+```bash
+cd eureka-cli
+cobra-cli add [my_new_command_name] --viper --author "Open Library Foundation" --license "Apache"
+```
+
+> The new command file will be created in the cmd/ package folder
+
+- Once created, register the new command action name in `action/action_name.go`
+- If the command receives arguments, register each new param in `action/action_param.go`
+
+## Update system components
+
+At the moment most system components, like _Keycloak_, _Kong_, and others, are not automatically updated, and must be regularly manually rebuilt and uploaded to keep up-to-date with the FOLIO development process.
+
+- Run the following set of commands to the rebuild and upload each system component manually to a specified Docker Hub registry namespace
+
+```bash
+cd eureka-cli
+docker build -t [my_namespace]/folio-netcat:latest ~/.eureka/misc/folio-netcat --no-cache
+docker build -t [my_namespace]/folio-vault:latest ~/.eureka/misc/folio-vault --no-cache
+docker build -t [my_namespace]/folio-kafka-tools:latest ~/.eureka/misc/folio-kafka-tools --no-cache
+docker build -t [my_namespace]/folio-keycloak:latest ~/.eureka/misc/folio-keycloak --no-cache
+docker build -t [my_namespace]/folio-kong:latest ~/.eureka/misc/folio-kong --no-cache
+
+docker push [my_namespace]/folio-netcat:latest
+docker push [my_namespace]/folio-vault:latest
+docker push [my_namespace]/folio-kafka-tools:latest
+docker push [my_namespace]/folio-keycloak:latest
+docker push [my_namespace]/folio-kong:latest
+```
+
+> The current registry namespace points to `bkadirkhodjaev`, but can be changed to use your own namspace once all file dependencies are updated
+
