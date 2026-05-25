@@ -89,6 +89,8 @@ Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc
   - `127.0.0.1 keycloak.eureka`
   - `127.0.0.1 kong.eureka`
 
+> **WARNING:** JVM sidecar images published on FOLIO Docker Hub are built with an invalid entrypoint and will fail to start. If you intend to use sidecars, you must build a native sidecar image locally — see [Using a native folio-module-sidecar](#using-a-native-folio-module-sidecar).
+
 ## Monitor system components
 
 - [Dozzle](http://localhost:8888) UI: No auth
@@ -671,7 +673,7 @@ sidecar-module:
   ]
 ```
 
-> The `version` must be set explicitly.
+> The `version` must be set explicitly. If the `sidecar-module` block is already configured for your profile, then disregard this last step.
 
 - Deploy the environment using the _combined-native_ profile that already has `JAVA_OPTIONS` env var removed from the `sidecar-module` in the config, as this is not interpreted by the substrate VM in the image
 
