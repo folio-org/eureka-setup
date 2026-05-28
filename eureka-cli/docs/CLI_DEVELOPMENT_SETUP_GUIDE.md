@@ -2,7 +2,7 @@
 
 ## Purpose
 
-- Auxiliary CLI development setup commands to aid developers with enabling live Compilation, and debugging source code in VSCode
+- Provide development setup commands for working on the CLI source code — live compilation, VS Code debugging, adding new commands, and updating system component images
 
 ## Enable Live Compilation (air binary)
 
@@ -101,6 +101,21 @@
       },
       "args": ["--profile", "combined", "upgradeModule", "-n", "mod-orders", "--moduleVersion", "13.1.0-SNAPSHOT.1093", "--namespace", "folioci", "--modulePath", "~/Folio/folio-modules/mod-orders"],
       "showLog": true
+    },
+
+    {
+      "name": "Eureka CLI upgradeModule (Gradle upgrade)",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${cwd}/eureka-cli",
+      "output": "${cwd}/bin/eureka-cli-debug.exe",
+      "env": {
+        "GOOS": "windows",
+        "GOARCH": "amd64"
+      },
+      "args": ["--profile", "combined", "upgradeModule", "-n", "mod-inventory", "--gradle", "--modulePath", "~/Folio/folio-modules/mod-inventory"],
+      "showLog": true
     }
   ]
 }
@@ -118,7 +133,7 @@
 
 ```bash
 go get -u github.com/spf13/cobra@latest
-go get -u github.com/spf13/viper@lates
+go get -u github.com/spf13/viper@latest
 ```
 
 - After that you can create a new Eureka CLI command (also know as an **action**) with the Cobra CLI
@@ -154,5 +169,4 @@ docker push [my_namespace]/folio-keycloak:latest
 docker push [my_namespace]/folio-kong:latest
 ```
 
-> The current registry namespace points to `bkadirkhodjaev`, but can be changed to use your own namspace once all file dependencies are updated
-
+> The current registry namespace points to `bkadirkhodjaev`, but can be changed to use your own namespace once all file dependencies are updated

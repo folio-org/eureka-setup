@@ -60,7 +60,8 @@ roles:
     tenant: diku
     capability-sets: ["all"]
 sidecar-module:
-  # Must build locally for your OS and CPU
+  # Requires a local native build targeting the host OS and CPU architecture
+  # See: https://github.com/folio-org/eureka-setup/blob/master/eureka-cli/README.md#using-a-native-folio-module-sidecar
   image: folio-module-sidecar-native
   version: latest
   custom-namespace: true
