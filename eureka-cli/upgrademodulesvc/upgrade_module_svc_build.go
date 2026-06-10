@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
@@ -30,11 +31,8 @@ func (um *UpgradeModuleSvc) moduleDescriptorPath(modulePath string) string {
 }
 
 func (um *UpgradeModuleSvc) isGradleProject(modulePath string) bool {
-	if um.Action.Param.Gradle {
-		return true
-	}
-	for _, f := range []string{"build.gradle", "build.gradle.kts"} {
-		if _, err := os.Stat(filepath.Join(modulePath, f)); err == nil {
+	for _, buildFile := range []string{"build.gradle", "build.gradle.kts"} {
+		if _, err := os.Stat(filepath.Join(modulePath, buildFile)); err == nil {
 			return true
 		}
 	}
@@ -42,9 +40,19 @@ func (um *UpgradeModuleSvc) isGradleProject(modulePath string) bool {
 	return false
 }
 
+// Detects via the grails-app directory, not grailsw: some Grails modules, e.g. mod-agreements, ship without the Grails wrapper
 func (um *UpgradeModuleSvc) isGrailsProject(modulePath string) bool {
-	_, err := os.Stat(filepath.Join(modulePath, "grailsw"))
-	return err == nil
+	fileInfo, err := os.Stat(filepath.Join(modulePath, "grails-app"))
+	return err == nil && fileInfo.IsDir()
+}
+
+func gradlewCommand(args ...string) *exec.Cmd {
+	gradlew := "./gradlew"
+	if runtime.GOOS == "windows" {
+		gradlew = ".\\gradlew.bat"
+	}
+
+	return exec.Command(gradlew, args...)
 }
 
 func (um *UpgradeModuleSvc) BuildModuleArtifact(moduleName, newModuleVersion, modulePath string) error {
@@ -60,8 +68,8 @@ func (um *UpgradeModuleSvc) buildMavenArtifact(moduleName, newModuleVersion, mod
 	if err := um.ExecSvc.ExecFromDir(exec.Command("mvn", "clean", "-DskipTests"), modulePath); err != nil {
 		return err
 	}
-	slog.Info(um.Action.Name, "text", "Setting new artifact version", "module", moduleName, "version", newModuleVersion)
 
+	slog.Info(um.Action.Name, "text", "Setting new artifact version", "module", moduleName, "version", newModuleVersion)
 	if err := um.ExecSvc.ExecFromDir(exec.Command("mvn", "versions:set", fmt.Sprintf("-DnewVersion=%s", newModuleVersion)), modulePath); err != nil {
 		return err
 	}
@@ -72,17 +80,18 @@ func (um *UpgradeModuleSvc) buildMavenArtifact(moduleName, newModuleVersion, mod
 
 func (um *UpgradeModuleSvc) buildGradleArtifact(moduleName, newModuleVersion, modulePath string) error {
 	slog.Info(um.Action.Name, "text", "Cleaning build directory", "module", moduleName, "path", modulePath)
-	if err := um.ExecSvc.ExecFromDir(exec.Command("./gradlew", "clean"), modulePath); err != nil {
+	if err := um.ExecSvc.ExecFromDir(gradlewCommand("clean"), modulePath); err != nil {
 		return err
 	}
-	slog.Info(um.Action.Name, "text", "Packaging new artifact", "module", moduleName, "version", newModuleVersion)
 
+	// Grails modules derive their version from the appVersion property instead
 	versionFlag := fmt.Sprintf("-Pversion=%s", newModuleVersion)
 	if um.isGrailsProject(modulePath) {
 		versionFlag = fmt.Sprintf("-PappVersion=%s", newModuleVersion)
 	}
+	slog.Info(um.Action.Name, "text", "Packaging new artifact", "module", moduleName, "version", newModuleVersion)
 
-	return um.ExecSvc.ExecFromDir(exec.Command("./gradlew", "build", "-x", "test", versionFlag), modulePath)
+	return um.ExecSvc.ExecFromDir(gradlewCommand("build", "-x", "test", versionFlag), modulePath)
 }
 
 func (um *UpgradeModuleSvc) CleanModuleArtifact(moduleName, modulePath string) error {
@@ -102,7 +111,7 @@ func (um *UpgradeModuleSvc) cleanMavenArtifact(modulePath string) error {
 }
 
 func (um *UpgradeModuleSvc) cleanGradleArtifact(modulePath string) error {
-	return um.ExecSvc.ExecFromDir(exec.Command("./gradlew", "clean"), modulePath)
+	return um.ExecSvc.ExecFromDir(gradlewCommand("clean"), modulePath)
 }
 
 func (um *UpgradeModuleSvc) BuildModuleImage(namespace, moduleName, newModuleVersion, modulePath string) error {

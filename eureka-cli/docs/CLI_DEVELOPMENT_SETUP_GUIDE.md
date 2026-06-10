@@ -2,7 +2,7 @@
 
 ## Purpose
 
-- Provide development setup commands for working on the CLI source code — live compilation, VS Code debugging, adding new commands, and updating system component images
+- Auxiliary CLI development setup commands to aid developers with enabling live Compilation, and debugging source code in VSCode
 
 ## Enable Live Compilation (air binary)
 
@@ -114,7 +114,7 @@
         "GOOS": "windows",
         "GOARCH": "amd64"
       },
-      "args": ["--profile", "combined", "upgradeModule", "-n", "mod-inventory", "--gradle", "--modulePath", "~/Folio/folio-modules/mod-inventory"],
+      "args": ["--profile", "erm", "upgradeModule", "-n", "mod-agreements", "--modulePath", "~/Folio/folio-modules/mod-agreements/service"],
       "showLog": true
     }
   ]
