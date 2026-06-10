@@ -101,21 +101,6 @@
       },
       "args": ["--profile", "combined", "upgradeModule", "-n", "mod-orders", "--moduleVersion", "13.1.0-SNAPSHOT.1093", "--namespace", "folioci", "--modulePath", "~/Folio/folio-modules/mod-orders"],
       "showLog": true
-    },
-
-    {
-      "name": "Eureka CLI upgradeModule (Gradle upgrade)",
-      "type": "go",
-      "request": "launch",
-      "mode": "auto",
-      "program": "${cwd}/eureka-cli",
-      "output": "${cwd}/bin/eureka-cli-debug.exe",
-      "env": {
-        "GOOS": "windows",
-        "GOARCH": "amd64"
-      },
-      "args": ["--profile", "erm", "upgradeModule", "-n", "mod-agreements", "--modulePath", "~/Folio/folio-modules/mod-agreements"],
-      "showLog": true
     }
   ]
 }
