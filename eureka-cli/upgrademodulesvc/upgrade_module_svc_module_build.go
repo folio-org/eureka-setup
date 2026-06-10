@@ -30,7 +30,7 @@ func (t buildTool) String() string {
 }
 
 // moduleBuild describes which build tool a module uses and from which directory it is built.
-// The build directory is the module repository root or its service subdirectory, where Grails-based ERM modules keep their build files;
+// The build directory is the module repository root or its service subdirectory, where Grails-based modules keep their build files;
 // the Dockerfile used by BuildModuleImage always resides in the repository root.
 type moduleBuild struct {
 	tool buildTool
