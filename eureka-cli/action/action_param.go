@@ -13,7 +13,6 @@ type Param struct {
 	EnableECSRequests     bool
 	GatewayHostname       string
 	GatewayURL            string
-	Gradle                bool
 	ID                    string
 	Length                int
 	ModuleName            string
@@ -73,7 +72,6 @@ var (
 	EnableECSRequests     = Flag{"enableEcsRequests", "", "Enable ECS requests"}
 	GatewayHostname       = Flag{"gatewayHostname", "", "Gateway hostname"}
 	GatewayURL            = Flag{"gatewayURL", "", "Gateway URL"}
-	Gradle                = Flag{"gradle", "", "Use Gradle to build the module artifact (auto-detected from build.gradle / build.gradle.kts when not set)"}
 	ID                    = Flag{"id", "i", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021"}
 	Length                = Flag{"length", "l", "Salt length"}
 	ModuleName            = Flag{"moduleName", "n", "Module name, e.g. mod-orders"}

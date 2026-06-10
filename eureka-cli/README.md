@@ -176,7 +176,6 @@ Available flags:
 | `--enableEcsRequests`     |       | Enable ECS requests                                       | deployUi, buildAndPushUi               |
 | `--gatewayHostname`       |       | Gateway Hostname                                          | createPortProxy                        |
 | `--gatewayURL`            |       | Gateway URL                                               | purgeTenants                           |
-| `--gradle`                |       | Use Gradle to build the module artifact (auto-detected from build.gradle / build.gradle.kts when not set) | upgradeModule |
 | `--id`                    | `-i`  | Module ID (e.g. mod-orders:13.1.0-SNAPSHOT.1021)          | listModuleVersions                     |
 | `--ids`                   |       | Tenant ids                                                | purgeTenants                           |
 | `--length`                | `-l`  | Salt length for edge API key                              | getEdgeApiKey                          |
@@ -507,14 +506,11 @@ eureka-cli -p combined-native upgradeModule -n mod-orders --moduleVersion 13.1.0
 
 In both cases, the application patch version will be incremented, as this does not have any functional reason for the CLI to roll back. Additionally, if the application is associated with multiple tenant entitlements, all of them will be upgraded to the latest version.
 
-- For Gradle-based modules, the build tool is auto-detected; use `--gradle` to force it explicitly. Grails-based ERM modules (_mod-agreements_, _mod-licenses_, _mod-oa_, _mod-serials-management_) must point `--modulePath` to the `service/` subdirectory, as that is where `gradlew` and `build.gradle` reside
+- Gradle-based modules are built with the Gradle Wrapper (`gradlew`) of the module repository, so no global Gradle installation is needed. Grails-based ERM modules (_mod-agreements_, _mod-licenses_, _mod-oa_, _mod-serials-management_) must point `--modulePath` to the `service/` subdirectory, as that is where `gradlew` and `build.gradle` reside
 
 ```bash
-# Upgrade a Grails (Gradle auto-detected via build.gradle in service/)
+# Here we upgrade mod-agreements, a Grails module built with Gradle (auto-detected via build.gradle in service/)
 eureka-cli -p erm upgradeModule -n mod-agreements --modulePath ~/Folio/folio-modules/mod-agreements/service
-
-# Force Gradle explicitly when auto-detection is not sufficient
-eureka-cli -p erm upgradeModule -n mod-oa --gradle --modulePath ~/Folio/folio-modules/mod-oa/service
 ```
 
 - The upgrade command also has other flags that can be passed in order to skip a certain step in the process.

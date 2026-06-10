@@ -272,7 +272,6 @@ func init() {
 	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipModuleDiscovery, action.SkipModuleDiscovery.Long, action.SkipModuleDiscovery.Short, false, action.SkipModuleDiscovery.Description)
 	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipTenantEntitlement, action.SkipTenantEntitlement.Long, action.SkipTenantEntitlement.Short, false, action.SkipTenantEntitlement.Description)
 	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.SkipRegistry, action.SkipRegistry.Long, action.SkipRegistry.Short, false, action.SkipRegistry.Description)
-	upgradeModuleCmd.PersistentFlags().BoolVarP(&params.Gradle, action.Gradle.Long, action.Gradle.Short, false, action.Gradle.Description)
 
 	if err := upgradeModuleCmd.MarkPersistentFlagRequired(action.ModuleName.Long); err != nil {
 		slog.Error(errors.MarkFlagRequiredFailed(action.ModuleName, err).Error())
