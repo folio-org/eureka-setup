@@ -246,6 +246,10 @@ func ParentApplicationNotReachable(required []string, err error) error {
 
 // ==================== Module Errors ====================
 
+func ModuleBuildToolNotFound(modulePath string) error {
+	return fmt.Errorf("%w: no pom.xml, build.gradle or build.gradle.kts found in %s, check that modulePath points to the directory containing the module build files", ErrInvalidInput, modulePath)
+}
+
 func ModulesNotDeployed(expectedModules int) error {
 	return fmt.Errorf("%d modules not deployed", expectedModules)
 }

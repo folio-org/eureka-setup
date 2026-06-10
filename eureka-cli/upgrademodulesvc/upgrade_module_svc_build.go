@@ -9,6 +9,7 @@ import (
 	"runtime"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 )
 
@@ -20,30 +21,51 @@ type UpgradeModuleBuildManager interface {
 	ReadModuleDescriptor(moduleName, newModuleVersion, modulePath string) (newModuleDescriptor map[string]any, err error)
 }
 
-func (um *UpgradeModuleSvc) moduleDescriptorPath(modulePath string) string {
-	if um.isGrailsProject(modulePath) {
-		return filepath.Join(modulePath, "build", "resources", "main", "okapi", constant.ModuleDescriptor)
-	} else if um.isGradleProject(modulePath) {
-		return filepath.Join(modulePath, "build", "resources", "main", constant.ModuleDescriptor)
-	}
+type buildTool int
 
-	return filepath.Join(modulePath, "target", constant.ModuleDescriptor)
+const (
+	mavenBuild buildTool = iota
+	gradleBuild
+	grailsBuild
+)
+
+func (tool buildTool) String() string {
+	switch tool {
+	case gradleBuild:
+		return "gradle"
+	case grailsBuild:
+		return "grails"
+	default:
+		return "maven"
+	}
 }
 
-func (um *UpgradeModuleSvc) isGradleProject(modulePath string) bool {
+// Grails is detected via the grails-app directory, not grailsw: some Grails modules, e.g. mod-agreements, ship without the Grails wrapper
+func detectBuildTool(modulePath string) (buildTool, error) {
+	if fileInfo, err := os.Stat(filepath.Join(modulePath, "grails-app")); err == nil && fileInfo.IsDir() {
+		return grailsBuild, nil
+	}
 	for _, buildFile := range []string{"build.gradle", "build.gradle.kts"} {
 		if _, err := os.Stat(filepath.Join(modulePath, buildFile)); err == nil {
-			return true
+			return gradleBuild, nil
 		}
 	}
+	if _, err := os.Stat(filepath.Join(modulePath, "pom.xml")); err == nil {
+		return mavenBuild, nil
+	}
 
-	return false
+	return mavenBuild, errors.ModuleBuildToolNotFound(modulePath)
 }
 
-// Detects via the grails-app directory, not grailsw: some Grails modules, e.g. mod-agreements, ship without the Grails wrapper
-func (um *UpgradeModuleSvc) isGrailsProject(modulePath string) bool {
-	fileInfo, err := os.Stat(filepath.Join(modulePath, "grails-app"))
-	return err == nil && fileInfo.IsDir()
+func moduleDescriptorPath(modulePath string, tool buildTool) string {
+	switch tool {
+	case grailsBuild:
+		return filepath.Join(modulePath, "build", "resources", "main", "okapi", constant.ModuleDescriptor)
+	case gradleBuild:
+		return filepath.Join(modulePath, "build", "resources", "main", constant.ModuleDescriptor)
+	default:
+		return filepath.Join(modulePath, "target", constant.ModuleDescriptor)
+	}
 }
 
 func gradlewCommand(args ...string) *exec.Cmd {
@@ -57,10 +79,16 @@ func gradlewCommand(args ...string) *exec.Cmd {
 
 func (um *UpgradeModuleSvc) BuildModuleArtifact(moduleName, newModuleVersion, modulePath string) error {
 	slog.Info(um.Action.Name, "text", "BUILDING MODULE ARTIFACT", "module", moduleName, "version", newModuleVersion)
-	if um.isGradleProject(modulePath) {
-		return um.buildGradleArtifact(moduleName, newModuleVersion, modulePath)
+	tool, err := detectBuildTool(modulePath)
+	if err != nil {
+		return err
 	}
-	return um.buildMavenArtifact(moduleName, newModuleVersion, modulePath)
+
+	slog.Info(um.Action.Name, "text", "Detected build tool", "module", moduleName, "tool", tool.String())
+	if tool == mavenBuild {
+		return um.buildMavenArtifact(moduleName, newModuleVersion, modulePath)
+	}
+	return um.buildGradleArtifact(moduleName, newModuleVersion, modulePath, tool)
 }
 
 func (um *UpgradeModuleSvc) buildMavenArtifact(moduleName, newModuleVersion, modulePath string) error {
@@ -78,7 +106,7 @@ func (um *UpgradeModuleSvc) buildMavenArtifact(moduleName, newModuleVersion, mod
 	return um.ExecSvc.ExecFromDir(exec.Command("mvn", "package", "-DskipTests"), modulePath)
 }
 
-func (um *UpgradeModuleSvc) buildGradleArtifact(moduleName, newModuleVersion, modulePath string) error {
+func (um *UpgradeModuleSvc) buildGradleArtifact(moduleName, newModuleVersion, modulePath string, tool buildTool) error {
 	slog.Info(um.Action.Name, "text", "Cleaning build directory", "module", moduleName, "path", modulePath)
 	if err := um.ExecSvc.ExecFromDir(gradlewCommand("clean"), modulePath); err != nil {
 		return err
@@ -86,7 +114,7 @@ func (um *UpgradeModuleSvc) buildGradleArtifact(moduleName, newModuleVersion, mo
 
 	// Grails modules derive their version from the appVersion property instead
 	versionFlag := fmt.Sprintf("-Pversion=%s", newModuleVersion)
-	if um.isGrailsProject(modulePath) {
+	if tool == grailsBuild {
 		versionFlag = fmt.Sprintf("-PappVersion=%s", newModuleVersion)
 	}
 	slog.Info(um.Action.Name, "text", "Packaging new artifact", "module", moduleName, "version", newModuleVersion)
@@ -96,10 +124,15 @@ func (um *UpgradeModuleSvc) buildGradleArtifact(moduleName, newModuleVersion, mo
 
 func (um *UpgradeModuleSvc) CleanModuleArtifact(moduleName, modulePath string) error {
 	slog.Info(um.Action.Name, "text", "CLEANING MODULE ARTIFACT", "module", moduleName)
-	if um.isGradleProject(modulePath) {
-		return um.cleanGradleArtifact(modulePath)
+	tool, err := detectBuildTool(modulePath)
+	if err != nil {
+		return err
 	}
-	return um.cleanMavenArtifact(modulePath)
+
+	if tool == mavenBuild {
+		return um.cleanMavenArtifact(modulePath)
+	}
+	return um.cleanGradleArtifact(modulePath)
 }
 
 func (um *UpgradeModuleSvc) cleanMavenArtifact(modulePath string) error {
@@ -127,7 +160,11 @@ func (um *UpgradeModuleSvc) BuildModuleImage(namespace, moduleName, newModuleVer
 
 func (um *UpgradeModuleSvc) ReadModuleDescriptor(moduleName, newModuleVersion, modulePath string) (newModuleDescriptor map[string]any, err error) {
 	slog.Info(um.Action.Name, "text", "READING NEW MODULE DESCRIPTOR", "module", moduleName, "path", modulePath)
-	if err := helpers.ReadJSONFromFile(um.moduleDescriptorPath(modulePath), &newModuleDescriptor); err != nil {
+	tool, err := detectBuildTool(modulePath)
+	if err != nil {
+		return nil, err
+	}
+	if err := helpers.ReadJSONFromFile(moduleDescriptorPath(modulePath, tool), &newModuleDescriptor); err != nil {
 		return nil, err
 	}
 	if len(newModuleDescriptor) == 0 {
