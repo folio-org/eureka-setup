@@ -32,17 +32,17 @@ func (um *UpgradeModuleSvc) BuildModuleArtifact(moduleName, newModuleVersion, mo
 
 func (um *UpgradeModuleSvc) buildMavenArtifact(moduleName, newModuleVersion, buildDir string) error {
 	slog.Info(um.Action.Name, "text", "Cleaning target directory", "module", moduleName, "path", buildDir)
-	if err := um.ExecSvc.ExecFromDir(exec.Command("mvn", "clean", "-DskipTests"), buildDir); err != nil {
+	if err := um.ExecSvc.ExecFromDir(mvnCommand("clean", "-DskipTests"), buildDir); err != nil {
 		return err
 	}
 
 	slog.Info(um.Action.Name, "text", "Setting new artifact version", "module", moduleName, "version", newModuleVersion)
-	if err := um.ExecSvc.ExecFromDir(exec.Command("mvn", "versions:set", fmt.Sprintf("-DnewVersion=%s", newModuleVersion)), buildDir); err != nil {
+	if err := um.ExecSvc.ExecFromDir(mvnCommand("versions:set", fmt.Sprintf("-DnewVersion=%s", newModuleVersion)), buildDir); err != nil {
 		return err
 	}
 	slog.Info(um.Action.Name, "text", "Packaging new artifact", "module", moduleName, "version", newModuleVersion)
 
-	return um.ExecSvc.ExecFromDir(exec.Command("mvn", "package", "-DskipTests"), buildDir)
+	return um.ExecSvc.ExecFromDir(mvnCommand("package", "-DskipTests"), buildDir)
 }
 
 func (um *UpgradeModuleSvc) buildGradleArtifact(moduleName, newModuleVersion string, build moduleBuild) error {
@@ -75,11 +75,11 @@ func (um *UpgradeModuleSvc) CleanModuleArtifact(moduleName, modulePath string) e
 }
 
 func (um *UpgradeModuleSvc) cleanMavenArtifact(buildDir string) error {
-	if err := um.ExecSvc.ExecFromDir(exec.Command("mvn", "versions:revert"), buildDir); err != nil {
+	if err := um.ExecSvc.ExecFromDir(mvnCommand("versions:revert"), buildDir); err != nil {
 		return err
 	}
 
-	return um.ExecSvc.ExecFromDir(exec.Command("mvn", "clean", "package", "-DskipTests"), buildDir)
+	return um.ExecSvc.ExecFromDir(mvnCommand("clean", "package", "-DskipTests"), buildDir)
 }
 
 func (um *UpgradeModuleSvc) cleanGradleArtifact(buildDir string) error {

@@ -75,6 +75,10 @@ func detectBuildToolIn(dir string) (tool buildTool, found bool) {
 	return mavenBuild, false
 }
 
+func mvnCommand(args ...string) *exec.Cmd {
+	return exec.Command("mvn", args...)
+}
+
 func gradlewCommand(args ...string) *exec.Cmd {
 	gradlew := "./gradlew"
 	if runtime.GOOS == "windows" {
