@@ -29,32 +29,50 @@ func (t buildTool) String() string {
 	}
 }
 
-// Grails is detected via the grails-app directory, not grailsw: some Grails modules, e.g. mod-agreements, ship without the Grails wrapper
-func detectBuildTool(modulePath string) (buildTool, error) {
-	if fileInfo, err := os.Stat(filepath.Join(modulePath, "grails-app")); err == nil && fileInfo.IsDir() {
-		return grailsBuild, nil
-	}
-	for _, buildFile := range []string{"build.gradle", "build.gradle.kts"} {
-		if _, err := os.Stat(filepath.Join(modulePath, buildFile)); err == nil {
-			return gradleBuild, nil
-		}
-	}
-	if _, err := os.Stat(filepath.Join(modulePath, "pom.xml")); err == nil {
-		return mavenBuild, nil
-	}
-
-	return mavenBuild, errors.ModuleBuildToolNotFound(modulePath)
+// moduleBuild describes which build tool a module uses and from which directory it is built.
+// The build directory is the module repository root or its service subdirectory, where Grails-based ERM modules keep their build files;
+// the Dockerfile used by BuildModuleImage always resides in the repository root.
+type moduleBuild struct {
+	tool buildTool
+	dir  string
 }
 
-func moduleDescriptorPath(modulePath string, tool buildTool) string {
-	switch tool {
+func (b moduleBuild) descriptorPath() string {
+	switch b.tool {
 	case grailsBuild:
-		return filepath.Join(modulePath, "build", "resources", "main", "okapi", constant.ModuleDescriptor)
+		return filepath.Join(b.dir, "build", "resources", "main", "okapi", constant.ModuleDescriptor)
 	case gradleBuild:
-		return filepath.Join(modulePath, "build", "resources", "main", constant.ModuleDescriptor)
+		return filepath.Join(b.dir, "build", "resources", "main", constant.ModuleDescriptor)
 	default:
-		return filepath.Join(modulePath, "target", constant.ModuleDescriptor)
+		return filepath.Join(b.dir, "target", constant.ModuleDescriptor)
 	}
+}
+
+func detectModuleBuild(modulePath string) (moduleBuild, error) {
+	for _, dir := range []string{modulePath, filepath.Join(modulePath, "service")} {
+		if tool, found := detectBuildToolIn(dir); found {
+			return moduleBuild{tool: tool, dir: dir}, nil
+		}
+	}
+
+	return moduleBuild{}, errors.ModuleBuildToolNotFound(modulePath)
+}
+
+// Grails is detected via the grails-app directory, not grailsw: some Grails modules, e.g. mod-agreements, ship without the Grails wrapper
+func detectBuildToolIn(dir string) (tool buildTool, found bool) {
+	if fileInfo, err := os.Stat(filepath.Join(dir, "grails-app")); err == nil && fileInfo.IsDir() {
+		return grailsBuild, true
+	}
+	for _, buildFile := range []string{"build.gradle", "build.gradle.kts"} {
+		if _, err := os.Stat(filepath.Join(dir, buildFile)); err == nil {
+			return gradleBuild, true
+		}
+	}
+	if _, err := os.Stat(filepath.Join(dir, "pom.xml")); err == nil {
+		return mavenBuild, true
+	}
+
+	return mavenBuild, false
 }
 
 func gradlewCommand(args ...string) *exec.Cmd {

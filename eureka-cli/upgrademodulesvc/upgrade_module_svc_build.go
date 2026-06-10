@@ -18,72 +18,72 @@ type UpgradeModuleBuildManager interface {
 
 func (um *UpgradeModuleSvc) BuildModuleArtifact(moduleName, newModuleVersion, modulePath string) error {
 	slog.Info(um.Action.Name, "text", "BUILDING MODULE ARTIFACT", "module", moduleName, "version", newModuleVersion)
-	tool, err := detectBuildTool(modulePath)
+	build, err := detectModuleBuild(modulePath)
 	if err != nil {
 		return err
 	}
 
-	slog.Info(um.Action.Name, "text", "Detected build tool", "module", moduleName, "tool", tool.String())
-	if tool == mavenBuild {
-		return um.buildMavenArtifact(moduleName, newModuleVersion, modulePath)
+	slog.Info(um.Action.Name, "text", "Detected build tool", "module", moduleName, "tool", build.tool.String(), "path", build.dir)
+	if build.tool == mavenBuild {
+		return um.buildMavenArtifact(moduleName, newModuleVersion, build.dir)
 	}
-	return um.buildGradleArtifact(moduleName, newModuleVersion, modulePath, tool)
+	return um.buildGradleArtifact(moduleName, newModuleVersion, build)
 }
 
-func (um *UpgradeModuleSvc) buildMavenArtifact(moduleName, newModuleVersion, modulePath string) error {
-	slog.Info(um.Action.Name, "text", "Cleaning target directory", "module", moduleName, "path", modulePath)
-	if err := um.ExecSvc.ExecFromDir(exec.Command("mvn", "clean", "-DskipTests"), modulePath); err != nil {
+func (um *UpgradeModuleSvc) buildMavenArtifact(moduleName, newModuleVersion, buildDir string) error {
+	slog.Info(um.Action.Name, "text", "Cleaning target directory", "module", moduleName, "path", buildDir)
+	if err := um.ExecSvc.ExecFromDir(exec.Command("mvn", "clean", "-DskipTests"), buildDir); err != nil {
 		return err
 	}
 
 	slog.Info(um.Action.Name, "text", "Setting new artifact version", "module", moduleName, "version", newModuleVersion)
-	if err := um.ExecSvc.ExecFromDir(exec.Command("mvn", "versions:set", fmt.Sprintf("-DnewVersion=%s", newModuleVersion)), modulePath); err != nil {
+	if err := um.ExecSvc.ExecFromDir(exec.Command("mvn", "versions:set", fmt.Sprintf("-DnewVersion=%s", newModuleVersion)), buildDir); err != nil {
 		return err
 	}
 	slog.Info(um.Action.Name, "text", "Packaging new artifact", "module", moduleName, "version", newModuleVersion)
 
-	return um.ExecSvc.ExecFromDir(exec.Command("mvn", "package", "-DskipTests"), modulePath)
+	return um.ExecSvc.ExecFromDir(exec.Command("mvn", "package", "-DskipTests"), buildDir)
 }
 
-func (um *UpgradeModuleSvc) buildGradleArtifact(moduleName, newModuleVersion, modulePath string, tool buildTool) error {
-	slog.Info(um.Action.Name, "text", "Cleaning build directory", "module", moduleName, "path", modulePath)
-	if err := um.ExecSvc.ExecFromDir(gradlewCommand("clean"), modulePath); err != nil {
+func (um *UpgradeModuleSvc) buildGradleArtifact(moduleName, newModuleVersion string, build moduleBuild) error {
+	slog.Info(um.Action.Name, "text", "Cleaning build directory", "module", moduleName, "path", build.dir)
+	if err := um.ExecSvc.ExecFromDir(gradlewCommand("clean"), build.dir); err != nil {
 		return err
 	}
 
 	// Grails modules derive their version from the appVersion property instead
 	versionFlag := fmt.Sprintf("-Pversion=%s", newModuleVersion)
-	if tool == grailsBuild {
+	if build.tool == grailsBuild {
 		versionFlag = fmt.Sprintf("-PappVersion=%s", newModuleVersion)
 	}
 	slog.Info(um.Action.Name, "text", "Packaging new artifact", "module", moduleName, "version", newModuleVersion)
 
-	return um.ExecSvc.ExecFromDir(gradlewCommand("build", "-x", "test", versionFlag), modulePath)
+	return um.ExecSvc.ExecFromDir(gradlewCommand("build", "-x", "test", versionFlag), build.dir)
 }
 
 func (um *UpgradeModuleSvc) CleanModuleArtifact(moduleName, modulePath string) error {
 	slog.Info(um.Action.Name, "text", "CLEANING MODULE ARTIFACT", "module", moduleName)
-	tool, err := detectBuildTool(modulePath)
+	build, err := detectModuleBuild(modulePath)
 	if err != nil {
 		return err
 	}
 
-	if tool == mavenBuild {
-		return um.cleanMavenArtifact(modulePath)
+	if build.tool == mavenBuild {
+		return um.cleanMavenArtifact(build.dir)
 	}
-	return um.cleanGradleArtifact(modulePath)
+	return um.cleanGradleArtifact(build.dir)
 }
 
-func (um *UpgradeModuleSvc) cleanMavenArtifact(modulePath string) error {
-	if err := um.ExecSvc.ExecFromDir(exec.Command("mvn", "versions:revert"), modulePath); err != nil {
+func (um *UpgradeModuleSvc) cleanMavenArtifact(buildDir string) error {
+	if err := um.ExecSvc.ExecFromDir(exec.Command("mvn", "versions:revert"), buildDir); err != nil {
 		return err
 	}
 
-	return um.ExecSvc.ExecFromDir(exec.Command("mvn", "clean", "package", "-DskipTests"), modulePath)
+	return um.ExecSvc.ExecFromDir(exec.Command("mvn", "clean", "package", "-DskipTests"), buildDir)
 }
 
-func (um *UpgradeModuleSvc) cleanGradleArtifact(modulePath string) error {
-	return um.ExecSvc.ExecFromDir(gradlewCommand("clean"), modulePath)
+func (um *UpgradeModuleSvc) cleanGradleArtifact(buildDir string) error {
+	return um.ExecSvc.ExecFromDir(gradlewCommand("clean"), buildDir)
 }
 
 func (um *UpgradeModuleSvc) BuildModuleImage(namespace, moduleName, newModuleVersion, modulePath string) error {
@@ -99,11 +99,11 @@ func (um *UpgradeModuleSvc) BuildModuleImage(namespace, moduleName, newModuleVer
 
 func (um *UpgradeModuleSvc) ReadModuleDescriptor(moduleName, newModuleVersion, modulePath string) (newModuleDescriptor map[string]any, err error) {
 	slog.Info(um.Action.Name, "text", "READING NEW MODULE DESCRIPTOR", "module", moduleName, "path", modulePath)
-	tool, err := detectBuildTool(modulePath)
+	build, err := detectModuleBuild(modulePath)
 	if err != nil {
 		return nil, err
 	}
-	if err := helpers.ReadJSONFromFile(moduleDescriptorPath(modulePath, tool), &newModuleDescriptor); err != nil {
+	if err := helpers.ReadJSONFromFile(build.descriptorPath(), &newModuleDescriptor); err != nil {
 		return nil, err
 	}
 	if len(newModuleDescriptor) == 0 {

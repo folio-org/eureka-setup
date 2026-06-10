@@ -480,7 +480,7 @@ eureka-cli createPortProxy -n mod-inventory-storage -s 37002
 
 ### Upgrade a module
 
-The upgrade command can upgrade or downgrade a module to any SNAPSHOT or released version. Maven-based modules require the [Maven CLI](https://maven.apache.org/install.html) to be configured globally; Gradle-based modules are auto-detected from `build.gradle` or `build.gradle.kts`.
+The upgrade command can upgrade or downgrade a module to any SNAPSHOT or released version. Maven-based modules require the [Maven CLI](https://maven.apache.org/install.html) to be configured globally; Gradle-based modules (including the Grails-based ERM modules, which keep their build files in a `service/` subdirectory) are auto-detected and built with the Gradle Wrapper of the module repository. In all cases `--modulePath` points to the root of the cloned module repository.
 
 - To upgrade a module, pass the module name together with the path to the cloned repository, which we will use to build the artifact before making the container image
 
@@ -505,13 +505,6 @@ eureka-cli -p combined-native upgradeModule -n mod-orders --moduleVersion 13.1.0
 ![CLI Upgrade Module](images/cli_upgrade_module_2.png)
 
 In both cases, the application patch version will be incremented, as this does not have any functional reason for the CLI to roll back. Additionally, if the application is associated with multiple tenant entitlements, all of them will be upgraded to the latest version.
-
-- Gradle-based modules are built with the Gradle Wrapper (`gradlew`) of the module repository, so no global Gradle installation is needed. Grails-based ERM modules (_mod-agreements_, _mod-licenses_, _mod-oa_, _mod-serials-management_) must point `--modulePath` to the `service/` subdirectory, as that is where `gradlew` and `build.gradle` reside
-
-```bash
-# Here we upgrade mod-agreements, a Grails module built with Gradle (auto-detected via build.gradle in service/)
-eureka-cli -p erm upgradeModule -n mod-agreements --modulePath ~/Folio/folio-modules/mod-agreements/service
-```
 
 - The upgrade command also has other flags that can be passed in order to skip a certain step in the process.
 

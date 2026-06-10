@@ -114,7 +114,7 @@
         "GOOS": "windows",
         "GOARCH": "amd64"
       },
-      "args": ["--profile", "erm", "upgradeModule", "-n", "mod-agreements", "--modulePath", "~/Folio/folio-modules/mod-agreements/service"],
+      "args": ["--profile", "erm", "upgradeModule", "-n", "mod-agreements", "--modulePath", "~/Folio/folio-modules/mod-agreements"],
       "showLog": true
     }
   ]
