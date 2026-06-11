@@ -338,6 +338,17 @@ func TestGetConfiguredPrivatePort_PortServerAliasTakesPrecedence(t *testing.T) {
 	assert.Equal(t, helpers.IntPtr(9090), result)
 }
 
+func TestGetConfiguredPrivatePort_PortServerAliasWithoutPrivatePort(t *testing.T) {
+	// Arrange
+	entry := map[string]any{field.ModulePortServerEntry: 9090}
+
+	// Act
+	result := helpers.GetConfiguredPrivatePort(entry)
+
+	// Assert
+	assert.Equal(t, helpers.IntPtr(9090), result)
+}
+
 func TestGetConfiguredPrivatePort_NotConfigured(t *testing.T) {
 	// Act
 	result := helpers.GetConfiguredPrivatePort(map[string]any{})
