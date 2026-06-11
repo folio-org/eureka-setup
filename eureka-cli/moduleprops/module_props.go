@@ -224,23 +224,10 @@ func (mp *ModuleProps) getDefaultPort() (*int, error) {
 }
 
 func (mp *ModuleProps) getPrivatePort(entry map[string]any) *int {
-	// Check if private-port key exists (even if nil)
-	rawPrivatePort, privatePortExists := entry[field.ModulePrivatePortEntry]
-	if !privatePortExists || rawPrivatePort == nil {
-		return mp.getDefaultPrivatePort()
+	if privatePort := helpers.GetConfiguredPrivatePort(entry); privatePort != nil {
+		return privatePort
 	}
 
-	// Check for port-server (compatibility alias) first
-	if portServerPtr := helpers.GetIntPtr(entry, field.ModulePortServerEntry); portServerPtr != nil {
-		return portServerPtr
-	}
-
-	// Fall back to private-port
-	if privatePortPtr := helpers.GetIntPtr(entry, field.ModulePrivatePortEntry); privatePortPtr != nil {
-		return privatePortPtr
-	}
-
-	// If type assertion failed, return default
 	return mp.getDefaultPrivatePort()
 }
 

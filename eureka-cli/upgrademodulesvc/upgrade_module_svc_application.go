@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
-	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 )
 
@@ -73,10 +72,10 @@ func (um *UpgradeModuleSvc) UpdateBackendModules(moduleName, newModuleVersion st
 }
 
 // getConfiguredPrivatePort resolves the sidecar discovery port from the module's private-port config entry,
-// matching the port the deploy flow registered; falls back to the default private server port
+// matching the port the deploy flow registered
 func (um *UpgradeModuleSvc) getConfiguredPrivatePort(moduleName string) (int, error) {
 	if entry, ok := um.Action.ConfigBackendModules[moduleName].(map[string]any); ok {
-		if privatePort := helpers.GetIntPtr(entry, field.ModulePrivatePortEntry); privatePort != nil {
+		if privatePort := helpers.GetConfiguredPrivatePort(entry); privatePort != nil {
 			return *privatePort, nil
 		}
 	}

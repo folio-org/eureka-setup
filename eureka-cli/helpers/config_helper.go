@@ -47,6 +47,23 @@ func HasTenant(tenantName string, configTenants map[string]any) bool {
 	return slices.Contains(tenants, tenantName)
 }
 
+// GetConfiguredPrivatePort resolves a module's private port from its config entry, preferring the
+// port-server compatibility alias over private-port; returns nil when no private port is configured
+func GetConfiguredPrivatePort(entry map[string]any) *int {
+	// Check if private-port key exists (even if nil)
+	rawPrivatePort, privatePortExists := entry[field.ModulePrivatePortEntry]
+	if !privatePortExists || rawPrivatePort == nil {
+		return nil
+	}
+
+	// Check for port-server (compatibility alias) first
+	if portServerPtr := GetIntPtr(entry, field.ModulePortServerEntry); portServerPtr != nil {
+		return portServerPtr
+	}
+
+	return GetIntPtr(entry, field.ModulePrivatePortEntry)
+}
+
 func GetBackendModuleNames(configBackendModules map[string]any) []string {
 	var names []string
 	for name := range configBackendModules {
