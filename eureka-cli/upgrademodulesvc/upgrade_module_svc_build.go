@@ -46,6 +46,10 @@ func (um *UpgradeModuleSvc) buildMavenArtifact(moduleName, newModuleVersion, bui
 }
 
 func (um *UpgradeModuleSvc) buildGradleArtifact(moduleName, newModuleVersion string, build moduleBuild) error {
+	if err := checkGradleWrapper(build.dir); err != nil {
+		return err
+	}
+
 	slog.Info(um.Action.Name, "text", "Cleaning build directory", "module", moduleName, "path", build.dir)
 	if err := um.ExecSvc.ExecFromDir(gradlewCommand("clean"), build.dir); err != nil {
 		return err
@@ -98,12 +102,14 @@ func (um *UpgradeModuleSvc) BuildModuleImage(namespace, moduleName, newModuleVer
 }
 
 func (um *UpgradeModuleSvc) ReadModuleDescriptor(moduleName, newModuleVersion, modulePath string) (newModuleDescriptor map[string]any, err error) {
-	slog.Info(um.Action.Name, "text", "READING NEW MODULE DESCRIPTOR", "module", moduleName, "path", modulePath)
 	build, err := detectModuleBuild(modulePath)
 	if err != nil {
 		return nil, err
 	}
-	if err := helpers.ReadJSONFromFile(build.descriptorPath(), &newModuleDescriptor); err != nil {
+
+	descriptorPath := build.descriptorPath()
+	slog.Info(um.Action.Name, "text", "READING NEW MODULE DESCRIPTOR", "module", moduleName, "path", descriptorPath)
+	if err := helpers.ReadJSONFromFile(descriptorPath, &newModuleDescriptor); err != nil {
 		return nil, err
 	}
 	if len(newModuleDescriptor) == 0 {

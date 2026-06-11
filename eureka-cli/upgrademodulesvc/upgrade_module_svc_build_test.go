@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"testing"
 
+	apperrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -32,6 +33,7 @@ func TestBuildModuleArtifact_GradleUsesVersionProperty(t *testing.T) {
 	// Arrange
 	modulePath := t.TempDir()
 	createFile(t, modulePath, "build.gradle")
+	createFile(t, modulePath, gradlewScriptName())
 	svc, commands := newSvcWithRecordedCommands(t, modulePath)
 
 	// Act
@@ -50,6 +52,7 @@ func TestBuildModuleArtifact_GrailsUsesAppVersionProperty(t *testing.T) {
 	modulePath := t.TempDir()
 	createDir(t, modulePath, "grails-app")
 	createFile(t, modulePath, "build.gradle")
+	createFile(t, modulePath, gradlewScriptName())
 	svc, commands := newSvcWithRecordedCommands(t, modulePath)
 
 	// Act
@@ -77,6 +80,21 @@ func TestCleanModuleArtifact_GradleCleansWithoutRebuild(t *testing.T) {
 	assert.Equal(t, [][]string{
 		{expectedGradlew(), "clean"},
 	}, *commands)
+}
+
+func TestBuildModuleArtifact_MissingGradleWrapper(t *testing.T) {
+	// Arrange
+	modulePath := t.TempDir()
+	createFile(t, modulePath, "build.gradle")
+	svc, commands := newSvcWithRecordedCommands(t, modulePath)
+
+	// Act
+	err := svc.BuildModuleArtifact("mod-test", "1.1.0", modulePath)
+
+	// Assert
+	assert.ErrorIs(t, err, apperrors.ErrInvalidInput)
+	assert.Contains(t, err.Error(), gradlewScriptName())
+	assert.Empty(t, *commands)
 }
 
 func TestCleanModuleArtifact_MavenRevertsVersionAndRebuilds(t *testing.T) {

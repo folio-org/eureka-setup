@@ -79,11 +79,22 @@ func mvnCommand(args ...string) *exec.Cmd {
 	return exec.Command("mvn", args...)
 }
 
-func gradlewCommand(args ...string) *exec.Cmd {
-	gradlew := "./gradlew"
+func gradlewScriptName() string {
 	if runtime.GOOS == "windows" {
-		gradlew = ".\\gradlew.bat"
+		return "gradlew.bat"
+	}
+	return "gradlew"
+}
+
+func checkGradleWrapper(dir string) error {
+	gradlewPath := filepath.Join(dir, gradlewScriptName())
+	if _, err := os.Stat(gradlewPath); err != nil {
+		return errors.GradleWrapperNotFound(gradlewPath)
 	}
 
-	return exec.Command(gradlew, args...)
+	return nil
+}
+
+func gradlewCommand(args ...string) *exec.Cmd {
+	return exec.Command("."+string(filepath.Separator)+gradlewScriptName(), args...)
 }
