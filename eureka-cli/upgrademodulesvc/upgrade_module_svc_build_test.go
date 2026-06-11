@@ -43,7 +43,7 @@ func TestBuildModuleArtifact_GradleUsesVersionProperty(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, [][]string{
 		{expectedGradlew(), "clean"},
-		{expectedGradlew(), "build", "-x", "test", "-Pversion=1.1.0"},
+		{expectedGradlew(), "assemble", "-Pversion=1.1.0"},
 	}, *commands)
 }
 
@@ -62,7 +62,7 @@ func TestBuildModuleArtifact_GrailsUsesAppVersionProperty(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, [][]string{
 		{expectedGradlew(), "clean"},
-		{expectedGradlew(), "build", "-x", "test", "-PappVersion=1.1.0"},
+		{expectedGradlew(), "assemble", "-PappVersion=1.1.0"},
 	}, *commands)
 }
 
