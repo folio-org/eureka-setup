@@ -62,7 +62,6 @@ func (um *UpgradeModuleSvc) buildGradleArtifact(moduleName, newModuleVersion str
 	}
 	slog.Info(um.Action.Name, "text", "Packaging new artifact", "module", moduleName, "version", newModuleVersion)
 
-	// assemble instead of build: skips unit and integration tests, like the Maven path's -DskipTests
 	return um.ExecSvc.ExecFromDir(gradlewCommand("assemble", versionFlag), build.dir)
 }
 
@@ -88,6 +87,10 @@ func (um *UpgradeModuleSvc) cleanMavenArtifact(buildDir string) error {
 }
 
 func (um *UpgradeModuleSvc) cleanGradleArtifact(buildDir string) error {
+	if err := checkGradleWrapper(buildDir); err != nil {
+		return err
+	}
+
 	return um.ExecSvc.ExecFromDir(gradlewCommand("clean"), buildDir)
 }
 

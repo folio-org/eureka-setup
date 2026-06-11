@@ -70,6 +70,7 @@ func TestCleanModuleArtifact_GradleCleansWithoutRebuild(t *testing.T) {
 	// Arrange
 	modulePath := t.TempDir()
 	createFile(t, modulePath, "build.gradle")
+	createFile(t, modulePath, gradlewScriptName())
 	svc, commands := newSvcWithRecordedCommands(t, modulePath)
 
 	// Act
@@ -80,6 +81,21 @@ func TestCleanModuleArtifact_GradleCleansWithoutRebuild(t *testing.T) {
 	assert.Equal(t, [][]string{
 		{expectedGradlew(), "clean"},
 	}, *commands)
+}
+
+func TestCleanModuleArtifact_MissingGradleWrapper(t *testing.T) {
+	// Arrange
+	modulePath := t.TempDir()
+	createFile(t, modulePath, "build.gradle")
+	svc, commands := newSvcWithRecordedCommands(t, modulePath)
+
+	// Act
+	err := svc.CleanModuleArtifact("mod-test", modulePath)
+
+	// Assert
+	assert.ErrorIs(t, err, apperrors.ErrInvalidInput)
+	assert.Contains(t, err.Error(), gradlewScriptName())
+	assert.Empty(t, *commands)
 }
 
 func TestBuildModuleArtifact_MissingGradleWrapper(t *testing.T) {
