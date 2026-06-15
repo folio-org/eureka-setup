@@ -480,7 +480,7 @@ eureka-cli createPortProxy -n mod-inventory-storage -s 37002
 
 ### Upgrade a module
 
-The upgrade command opens up the possibility to either upgrade or downgrade a particular module to a specific SNAPHOT or other versions, including the released ones. In order for it to work, we need to have the Maven CLI configured globally (see how to [install](https://maven.apache.org/install.html) and [configure](https://maven.apache.org/configure.html) Maven for your OS).
+The upgrade command can upgrade or downgrade a module to any SNAPSHOT or released version. Maven-based modules require the [Maven CLI](https://maven.apache.org/install.html) to be configured globally; Gradle-based modules are auto-detected and built with the Gradle Wrapper of the module repository.
 
 - To upgrade a module, pass the module name together with the path to the cloned repository, which we will use to build the artifact before making the container image
 

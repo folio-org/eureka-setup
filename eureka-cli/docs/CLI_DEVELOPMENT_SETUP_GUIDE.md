@@ -118,7 +118,7 @@
 
 ```bash
 go get -u github.com/spf13/cobra@latest
-go get -u github.com/spf13/viper@lates
+go get -u github.com/spf13/viper@latest
 ```
 
 - After that you can create a new Eureka CLI command (also know as an **action**) with the Cobra CLI
@@ -154,5 +154,4 @@ docker push [my_namespace]/folio-keycloak:latest
 docker push [my_namespace]/folio-kong:latest
 ```
 
-> The current registry namespace points to `bkadirkhodjaev`, but can be changed to use your own namspace once all file dependencies are updated
-
+> The current registry namespace points to `bkadirkhodjaev`, but can be changed to use your own namespace once all file dependencies are updated

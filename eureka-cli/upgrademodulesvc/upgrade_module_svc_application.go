@@ -47,7 +47,7 @@ func (um *UpgradeModuleSvc) UpdateBackendModules(moduleName, newModuleVersion st
 				}
 			}
 
-			privatePort, err := strconv.Atoi(constant.PrivateServerPort)
+			privatePort, err := um.getConfiguredPrivatePort(moduleName)
 			if err != nil {
 				return nil, nil, "", err
 			}
@@ -69,6 +69,18 @@ func (um *UpgradeModuleSvc) UpdateBackendModules(moduleName, newModuleVersion st
 	}
 
 	return newBackendModules, newDiscoveryModules, oldModuleID, nil
+}
+
+// getConfiguredPrivatePort resolves the sidecar discovery port from the module's private-port config entry,
+// matching the port the deploy flow registered
+func (um *UpgradeModuleSvc) getConfiguredPrivatePort(moduleName string) (int, error) {
+	if entry, ok := um.Action.ConfigBackendModules[moduleName].(map[string]any); ok {
+		if privatePort := helpers.GetConfiguredPrivatePort(entry); privatePort != nil {
+			return *privatePort, nil
+		}
+	}
+
+	return strconv.Atoi(constant.PrivateServerPort)
 }
 
 func (um *UpgradeModuleSvc) UpdateFrontendModules(shouldBuild bool, modules []any) (newFrontendModules []map[string]any) {

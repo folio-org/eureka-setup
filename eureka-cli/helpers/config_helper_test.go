@@ -310,3 +310,71 @@ func TestGetBackendModuleNames_ModulesWithDifferentValues(t *testing.T) {
 	assert.Len(t, result, 4)
 	assert.ElementsMatch(t, []string{"mod-users", "mod-orders", "mod-audit", "mod-notes"}, result)
 }
+
+// ==================== GetConfiguredPrivatePort Tests ====================
+
+func TestGetConfiguredPrivatePort_PrivatePort(t *testing.T) {
+	// Arrange
+	entry := map[string]any{field.ModulePrivatePortEntry: 8080}
+
+	// Act
+	result := helpers.GetConfiguredPrivatePort(entry)
+
+	// Assert
+	assert.Equal(t, helpers.IntPtr(8080), result)
+}
+
+func TestGetConfiguredPrivatePort_PortServerAliasTakesPrecedence(t *testing.T) {
+	// Arrange
+	entry := map[string]any{
+		field.ModulePrivatePortEntry: 8080,
+		field.ModulePortServerEntry:  9090,
+	}
+
+	// Act
+	result := helpers.GetConfiguredPrivatePort(entry)
+
+	// Assert
+	assert.Equal(t, helpers.IntPtr(9090), result)
+}
+
+func TestGetConfiguredPrivatePort_PortServerAliasWithoutPrivatePort(t *testing.T) {
+	// Arrange
+	entry := map[string]any{field.ModulePortServerEntry: 9090}
+
+	// Act
+	result := helpers.GetConfiguredPrivatePort(entry)
+
+	// Assert
+	assert.Equal(t, helpers.IntPtr(9090), result)
+}
+
+func TestGetConfiguredPrivatePort_NotConfigured(t *testing.T) {
+	// Act
+	result := helpers.GetConfiguredPrivatePort(map[string]any{})
+
+	// Assert
+	assert.Nil(t, result)
+}
+
+func TestGetConfiguredPrivatePort_NilPrivatePort(t *testing.T) {
+	// Arrange
+	entry := map[string]any{field.ModulePrivatePortEntry: nil}
+
+	// Act
+	result := helpers.GetConfiguredPrivatePort(entry)
+
+	// Assert
+	assert.Nil(t, result)
+}
+
+func TestGetConfiguredPrivatePort_NonIntPrivatePort(t *testing.T) {
+	// Arrange
+	entry := map[string]any{field.ModulePrivatePortEntry: "8080"}
+
+	// Act
+	result := helpers.GetConfiguredPrivatePort(entry)
+
+	// Assert
+	assert.Nil(t, result)
+}

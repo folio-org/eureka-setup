@@ -246,6 +246,14 @@ func ParentApplicationNotReachable(required []string, err error) error {
 
 // ==================== Module Errors ====================
 
+func ModuleBuildToolNotFound(modulePath string) error {
+	return fmt.Errorf("%w: no pom.xml, build.gradle, build.gradle.kts or grails-app directory found in %s or its service subdirectory, check that modulePath points to the cloned module repository root", ErrInvalidInput, modulePath)
+}
+
+func GradleWrapperNotFound(gradlewPath string) error {
+	return fmt.Errorf("%w: Gradle Wrapper not found at %s, generate it by running 'gradle wrapper' in the module repository", ErrInvalidInput, gradlewPath)
+}
+
 func ModulesNotDeployed(expectedModules int) error {
 	return fmt.Errorf("%d modules not deployed", expectedModules)
 }
