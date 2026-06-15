@@ -148,6 +148,7 @@ func TestDetectModuleBuild_NoBuildFiles(t *testing.T) {
 
 func TestBuildToolString_AllValues(t *testing.T) {
 	// Assert
+	assert.Equal(t, "unknown", unknownBuild.String())
 	assert.Equal(t, "maven", mavenBuild.String())
 	assert.Equal(t, "gradle", gradleBuild.String())
 	assert.Equal(t, "grails", grailsBuild.String())

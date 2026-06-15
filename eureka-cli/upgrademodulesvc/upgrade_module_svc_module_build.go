@@ -13,19 +13,22 @@ import (
 type buildTool int
 
 const (
-	mavenBuild buildTool = iota
+	unknownBuild buildTool = iota
+	mavenBuild
 	gradleBuild
 	grailsBuild
 )
 
 func (t buildTool) String() string {
 	switch t {
+	case mavenBuild:
+		return "maven"
 	case gradleBuild:
 		return "gradle"
 	case grailsBuild:
 		return "grails"
 	default:
-		return "maven"
+		return "unknown"
 	}
 }
 
@@ -50,7 +53,7 @@ func (b moduleBuild) descriptorPath() string {
 
 func detectModuleBuild(modulePath string) (moduleBuild, error) {
 	for _, dir := range []string{modulePath, filepath.Join(modulePath, "service")} {
-		if tool, found := detectBuildToolIn(dir); found {
+		if tool := detectBuildToolIn(dir); tool != unknownBuild {
 			return moduleBuild{tool: tool, dir: dir}, nil
 		}
 	}
@@ -59,20 +62,20 @@ func detectModuleBuild(modulePath string) (moduleBuild, error) {
 }
 
 // Grails is detected via the grails-app directory, not grailsw: some Grails modules, e.g. mod-agreements, ship without the Grails wrapper
-func detectBuildToolIn(dir string) (tool buildTool, found bool) {
+func detectBuildToolIn(dir string) buildTool {
 	if fileInfo, err := os.Stat(filepath.Join(dir, "grails-app")); err == nil && fileInfo.IsDir() {
-		return grailsBuild, true
+		return grailsBuild
 	}
 	for _, buildFile := range []string{"build.gradle", "build.gradle.kts"} {
 		if _, err := os.Stat(filepath.Join(dir, buildFile)); err == nil {
-			return gradleBuild, true
+			return gradleBuild
 		}
 	}
 	if _, err := os.Stat(filepath.Join(dir, "pom.xml")); err == nil {
-		return mavenBuild, true
+		return mavenBuild
 	}
 
-	return mavenBuild, false
+	return unknownBuild
 }
 
 func mvnCommand(args ...string) *exec.Cmd {
