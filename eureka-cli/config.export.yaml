@@ -101,6 +101,7 @@ backend-modules:
     use-okapi-url: true
     disable-system-user: true
   mod-data-export-worker:
+    use-okapi-url: true
     environment:
       PLATFORM: eureka
       AWS_URL: http://minio.eureka:9000
