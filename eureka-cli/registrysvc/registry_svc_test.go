@@ -16,6 +16,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestMain redirects the user home directory to a temporary directory so tests never touch the real ~/.eureka
+func TestMain(m *testing.M) {
+	tempHome, err := os.MkdirTemp("", "eureka-test-home")
+	if err != nil {
+		panic(err)
+	}
+	_ = os.Setenv("HOME", tempHome)
+	_ = os.Setenv("USERPROFILE", tempHome)
+	code := m.Run()
+	_ = os.RemoveAll(tempHome)
+	os.Exit(code)
+}
+
 // MockAWSSvc is a mock for awssvc.AWSProcessor
 type MockAWSSvc struct {
 	mock.Mock

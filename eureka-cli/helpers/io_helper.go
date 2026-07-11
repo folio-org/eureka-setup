@@ -152,7 +152,7 @@ func GetHomeDirPath() (string, error) {
 	}
 
 	homeDir := filepath.Join(userHome, constant.ConfigDir)
-	if err = os.MkdirAll(homeDir, 0644); err != nil {
+	if err = os.MkdirAll(homeDir, 0700); err != nil {
 		return "", err
 	}
 
