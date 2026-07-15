@@ -7,6 +7,17 @@ import (
 	"testing"
 )
 
+// SetTempHome redirects the user home directory to a per-test temporary directory so tests never touch the real ~/.eureka
+func SetTempHome(t *testing.T) string {
+	t.Helper()
+
+	tempHome := t.TempDir()
+	t.Setenv("HOME", tempHome)
+	t.Setenv("USERPROFILE", tempHome)
+
+	return tempHome
+}
+
 // CreateTempJSONFile creates a temporary JSON file with the given data
 func CreateTempJSONFile(t *testing.T, data any) string {
 	t.Helper()

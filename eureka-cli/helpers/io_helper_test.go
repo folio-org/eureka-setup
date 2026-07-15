@@ -7,7 +7,9 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -386,9 +388,7 @@ func TestGetCurrentWorkDirPath_Success(t *testing.T) {
 
 func TestGetHomeDirPath_CreatesDirectoryWithOwnerOnlyPermissions(t *testing.T) {
 	// Arrange
-	tempHome := t.TempDir()
-	t.Setenv("HOME", tempHome)
-	t.Setenv("USERPROFILE", tempHome)
+	tempHome := testhelpers.SetTempHome(t)
 
 	// Act
 	result, err := helpers.GetHomeDirPath()
@@ -402,16 +402,14 @@ func TestGetHomeDirPath_CreatesDirectoryWithOwnerOnlyPermissions(t *testing.T) {
 	if assert.NotNil(t, info) {
 		assert.True(t, info.IsDir())
 		if runtime.GOOS != "windows" {
-			assert.Equal(t, os.FileMode(0700), info.Mode().Perm())
+			assert.Equal(t, constant.DirPerm, info.Mode().Perm())
 		}
 	}
 }
 
 func TestGetHomeMiscDir_Success(t *testing.T) {
 	// Arrange
-	tempHome := t.TempDir()
-	t.Setenv("HOME", tempHome)
-	t.Setenv("USERPROFILE", tempHome)
+	testhelpers.SetTempHome(t)
 
 	// Act
 	result, err := helpers.GetHomeMiscDir()

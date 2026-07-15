@@ -22,6 +22,8 @@ func TestNew(t *testing.T) {
 }
 
 func TestKongRepository(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := testhelpers.NewMockAction()
 	client := New(action)
@@ -39,6 +41,8 @@ func TestKongRepository(t *testing.T) {
 }
 
 func TestKeycloakRepository(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := testhelpers.NewMockAction()
 	client := New(action)
@@ -56,6 +60,8 @@ func TestKeycloakRepository(t *testing.T) {
 }
 
 func TestPlatformLspRepository_WithCustomBranch(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := testhelpers.NewMockAction()
 	client := New(action)
@@ -74,6 +80,8 @@ func TestPlatformLspRepository_WithCustomBranch(t *testing.T) {
 }
 
 func TestPlatformLspRepository_WithDifferentBranch(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := testhelpers.NewMockAction()
 	client := New(action)
@@ -92,6 +100,8 @@ func TestPlatformLspRepository_WithDifferentBranch(t *testing.T) {
 }
 
 func TestKongRepository_VerifyConstants(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := testhelpers.NewMockAction()
 	client := New(action)
@@ -110,6 +120,8 @@ func TestKongRepository_VerifyConstants(t *testing.T) {
 }
 
 func TestKeycloakRepository_VerifyConstants(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := testhelpers.NewMockAction()
 	client := New(action)
@@ -128,6 +140,8 @@ func TestKeycloakRepository_VerifyConstants(t *testing.T) {
 }
 
 func TestPlatformLspRepository_VerifyConstants(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := testhelpers.NewMockAction()
 	client := New(action)
@@ -147,6 +161,8 @@ func TestPlatformLspRepository_VerifyConstants(t *testing.T) {
 }
 
 func TestKongRepository_UniqueFromKeycloak(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := testhelpers.NewMockAction()
 	client := New(action)
@@ -166,6 +182,8 @@ func TestKongRepository_UniqueFromKeycloak(t *testing.T) {
 }
 
 func TestPlatformLspRepository_BranchParameter(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := testhelpers.NewMockAction()
 	client := New(action)
@@ -193,6 +211,8 @@ func TestPlatformLspRepository_BranchParameter(t *testing.T) {
 }
 
 func TestRepositoryProvisioner_AllMethodsReturnGitRepository(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := testhelpers.NewMockAction()
 	client := New(action)

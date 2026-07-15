@@ -95,7 +95,7 @@ func CopyMultipleFiles(homeDir string, srcFs *embed.FS) error {
 
 		dstPath := filepath.Join(homeDir, path)
 		if dir.IsDir() {
-			if err := os.MkdirAll(dstPath, 0755); err != nil {
+			if err := os.MkdirAll(dstPath, constant.DirPerm); err != nil {
 				return err
 			}
 		} else {
@@ -152,7 +152,7 @@ func GetHomeDirPath() (string, error) {
 	}
 
 	homeDir := filepath.Join(userHome, constant.ConfigDir)
-	if err = os.MkdirAll(homeDir, 0700); err != nil {
+	if err = os.MkdirAll(homeDir, constant.DirPerm); err != nil {
 		return "", err
 	}
 

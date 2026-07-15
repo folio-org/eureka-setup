@@ -9,6 +9,7 @@ import (
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/moduleprops"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -521,6 +522,8 @@ func TestReadBackendModules_LocalDescriptor(t *testing.T) {
 }
 
 func TestReadBackendModules_Volumes(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	t.Run("TestReadBackendModules_Volumes_ValidVolume", func(t *testing.T) {
 		// Arrange
 		tmpDir := t.TempDir()
@@ -613,10 +616,6 @@ func TestReadBackendModules_Volumes(t *testing.T) {
 		}
 
 		// Arrange
-		tempHome := t.TempDir()
-		t.Setenv("HOME", tempHome)
-		t.Setenv("USERPROFILE", tempHome)
-
 		homeDir, err := helpers.GetHomeDirPath()
 		require.NoError(t, err)
 

@@ -16,19 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestMain redirects the user home directory to a temporary directory so tests never touch the real ~/.eureka
-func TestMain(m *testing.M) {
-	tempHome, err := os.MkdirTemp("", "eureka-test-home")
-	if err != nil {
-		panic(err)
-	}
-	_ = os.Setenv("HOME", tempHome)
-	_ = os.Setenv("USERPROFILE", tempHome)
-	code := m.Run()
-	_ = os.RemoveAll(tempHome)
-	os.Exit(code)
-}
-
 // MockAWSSvc is a mock for awssvc.AWSProcessor
 type MockAWSSvc struct {
 	mock.Mock
@@ -194,6 +181,8 @@ func stubFARWithUI(mockHTTP *testhelpers.MockHTTPClient, farBase string, appName
 }
 
 func TestGetModules_Success(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
 	act := testhelpers.NewMockAction()
@@ -221,6 +210,8 @@ func TestGetModules_Success(t *testing.T) {
 }
 
 func TestGetModules_Verbose(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
 	act := testhelpers.NewMockAction()
@@ -245,6 +236,8 @@ func TestGetModules_Verbose(t *testing.T) {
 }
 
 func TestGetModules_LSPFetchError(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
 	act := testhelpers.NewMockAction()
@@ -264,6 +257,8 @@ func TestGetModules_LSPFetchError(t *testing.T) {
 }
 
 func TestGetModules_FARFetchError(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
 	act := testhelpers.NewMockAction()
@@ -290,6 +285,8 @@ func TestGetModules_FARFetchError(t *testing.T) {
 }
 
 func TestGetModules_EurekaComponentsIncluded(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
 	act := testhelpers.NewMockAction()
@@ -312,6 +309,8 @@ func TestGetModules_EurekaComponentsIncluded(t *testing.T) {
 }
 
 func TestGetModules_ModulePartitioning(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
 	act := testhelpers.NewMockAction()
@@ -343,6 +342,8 @@ func TestGetModules_ModulePartitioning(t *testing.T) {
 }
 
 func TestGetModules_RequiredAndOptionalMerged(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
 	act := testhelpers.NewMockAction()
@@ -371,6 +372,8 @@ func TestGetModules_RequiredAndOptionalMerged(t *testing.T) {
 }
 
 func TestGetModules_ExperimentalAppsIncluded(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
 	act := testhelpers.NewMockAction()
@@ -402,6 +405,8 @@ func TestGetModules_ExperimentalAppsIncluded(t *testing.T) {
 }
 
 func TestGetModules_UIModulesIncluded(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
 	act := testhelpers.NewMockAction()
@@ -433,6 +438,8 @@ func TestGetModules_UIModulesIncluded(t *testing.T) {
 }
 
 func TestGetModules_EmptyApplications(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
 	act := testhelpers.NewMockAction()
@@ -456,6 +463,8 @@ func TestGetModules_EmptyApplications(t *testing.T) {
 // ==================== isEurekaModule Tests ====================
 
 func TestIsEurekaModule_KeycloakSuffix(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
 	act := testhelpers.NewMockAction()
@@ -479,6 +488,8 @@ func TestIsEurekaModule_KeycloakSuffix(t *testing.T) {
 }
 
 func TestIsEurekaModule_MgrPrefix(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
 	act := testhelpers.NewMockAction()
@@ -503,6 +514,8 @@ func TestIsEurekaModule_MgrPrefix(t *testing.T) {
 }
 
 func TestIsEurekaModule_ExactMatches(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
 	act := testhelpers.NewMockAction()
@@ -528,6 +541,8 @@ func TestIsEurekaModule_ExactMatches(t *testing.T) {
 }
 
 func TestIsEurekaModule_RegularFolioModuleNotEureka(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	mockHTTP := &testhelpers.MockHTTPClient{}
 	mockAWS := &MockAWSSvc{}
 	act := testhelpers.NewMockAction()
@@ -836,6 +851,8 @@ func modulesFilePath(t *testing.T) string {
 }
 
 func TestGetModules_SkipRegistry_ReadsLocalFile(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	filePath := modulesFilePath(t)
 
 	known := []models.ApplicationModule{
@@ -863,6 +880,8 @@ func TestGetModules_SkipRegistry_ReadsLocalFile(t *testing.T) {
 }
 
 func TestGetModules_SkipRegistry_MissingFile(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	filePath := modulesFilePath(t)
 
 	// Temporarily move the file aside if it exists so we get a clean miss
@@ -887,6 +906,8 @@ func TestGetModules_SkipRegistry_MissingFile(t *testing.T) {
 }
 
 func TestGetModules_FetchAndPersistWritesFile(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	filePath := modulesFilePath(t)
 	t.Cleanup(func() { _ = os.Remove(filePath) })
 
@@ -921,6 +942,8 @@ func TestGetModules_FetchAndPersistWritesFile(t *testing.T) {
 }
 
 func TestGetModules_PreferLocalWhenFileExists(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	filePath := modulesFilePath(t)
 
 	known := []models.ApplicationModule{
