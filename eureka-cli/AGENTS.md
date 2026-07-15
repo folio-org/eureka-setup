@@ -136,7 +136,8 @@ Pre-allocated slice with per-goroutine index — no mutex needed.
 - `stubLSP` / `stubFAR` helpers in `registrysvc/registry_svc_test.go` for LSP/FAR stubs
 - FAR module slices must be `[]any{map[string]any{...}, ...}` — not `[]map[string]any` — because `GetAnySlice` does `rawValue.([]any)`
 - `MockRegistrySvc` in `cmd/cmd_test.go` and `internal/testhelpers/mocks.go` must implement `RegistryProcessor` interface exactly: `GetModules(verbose bool, forceRefresh bool)`
-- Persistence tests write/read `~/modules.json` directly; use `t.Cleanup(func() { _ = os.Remove(filePath) })` — note the `_ =` to satisfy errcheck
+- Tests must never read from or write to a real directory such as `~/.eureka`. Any test whose code path resolves the home directory (`os.UserHomeDir`, `helpers.GetHomeDirPath`, `helpers.GetHomeMiscDir`) must call `testhelpers.SetTempHome(t)` first, which redirects `HOME`/`USERPROFILE` to a per-test temp directory
+- Persistence tests write/read `modules.json` under the temp home from `testhelpers.SetTempHome(t)`; use `t.Cleanup(func() { _ = os.Remove(filePath) })` — note the `_ =` to satisfy errcheck
 - Do NOT run `go test ./...` (RAM constrained) — target only affected packages
 - Run `golangci-lint run ./...` once as a finishing move, not after every edit
 
