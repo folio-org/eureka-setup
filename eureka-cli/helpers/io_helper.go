@@ -156,6 +156,11 @@ func GetHomeDirPath() (string, error) {
 		return "", err
 	}
 
+	// MkdirAll does not change the mode of an existing directory, so repair installations created by older releases with wrong permissions
+	if err = os.Chmod(homeDir, constant.DirPerm); err != nil {
+		return "", err
+	}
+
 	return homeDir, nil
 }
 

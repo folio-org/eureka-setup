@@ -407,6 +407,26 @@ func TestGetHomeDirPath_CreatesDirectoryWithOwnerOnlyPermissions(t *testing.T) {
 	}
 }
 
+func TestGetHomeDirPath_RepairsExistingDirectoryPermissions(t *testing.T) {
+	// Arrange
+	tempHome := testhelpers.SetTempHome(t)
+	homeDir := filepath.Join(tempHome, ".eureka")
+	assert.NoError(t, os.Mkdir(homeDir, 0644))
+
+	// Act
+	result, err := helpers.GetHomeDirPath()
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, homeDir, result)
+
+	info, statErr := os.Stat(homeDir)
+	assert.NoError(t, statErr)
+	if runtime.GOOS != "windows" {
+		assert.Equal(t, constant.DirPerm, info.Mode().Perm())
+	}
+}
+
 func TestGetHomeMiscDir_Success(t *testing.T) {
 	// Arrange
 	testhelpers.SetTempHome(t)
