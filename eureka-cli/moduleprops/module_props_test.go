@@ -613,6 +613,10 @@ func TestReadBackendModules_Volumes(t *testing.T) {
 		}
 
 		// Arrange
+		tempHome := t.TempDir()
+		t.Setenv("HOME", tempHome)
+		t.Setenv("USERPROFILE", tempHome)
+
 		homeDir, err := helpers.GetHomeDirPath()
 		require.NoError(t, err)
 

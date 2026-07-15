@@ -4,6 +4,7 @@ import (
 	"embed"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
@@ -383,16 +384,35 @@ func TestGetCurrentWorkDirPath_Success(t *testing.T) {
 	assert.NotEmpty(t, result)
 }
 
-func TestGetHomeDirPath_Success(t *testing.T) {
+func TestGetHomeDirPath_CreatesDirectoryWithOwnerOnlyPermissions(t *testing.T) {
+	// Arrange
+	tempHome := t.TempDir()
+	t.Setenv("HOME", tempHome)
+	t.Setenv("USERPROFILE", tempHome)
+
 	// Act
 	result, err := helpers.GetHomeDirPath()
 
 	// Assert
 	assert.NoError(t, err)
-	assert.NotEmpty(t, result)
+	assert.Equal(t, filepath.Join(tempHome, ".eureka"), result)
+
+	info, statErr := os.Stat(result)
+	assert.NoError(t, statErr)
+	if assert.NotNil(t, info) {
+		assert.True(t, info.IsDir())
+		if runtime.GOOS != "windows" {
+			assert.Equal(t, os.FileMode(0700), info.Mode().Perm())
+		}
+	}
 }
 
 func TestGetHomeMiscDir_Success(t *testing.T) {
+	// Arrange
+	tempHome := t.TempDir()
+	t.Setenv("HOME", tempHome)
+	t.Setenv("USERPROFILE", tempHome)
+
 	// Act
 	result, err := helpers.GetHomeMiscDir()
 
