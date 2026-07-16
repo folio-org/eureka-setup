@@ -1006,6 +1006,8 @@ func TestCloneUpdateRepositories_KeycloakRepoError(t *testing.T) {
 }
 
 func TestBuildSystem_Success(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.BuildSystem)
 	mockExecSvc := &MockExecSvc{}
@@ -1022,6 +1024,8 @@ func TestBuildSystem_Success(t *testing.T) {
 }
 
 func TestBuildSystem_Error(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.BuildSystem)
 	mockExecSvc := &MockExecSvc{}
@@ -1386,6 +1390,8 @@ func TestCreateFilter_SingleModule(t *testing.T) {
 // ==================== CheckPorts Tests ====================
 
 func TestCheckPorts_Success(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	run, _, _, _, mockDocker, mockModule := newTestRun(action.CheckPorts)
 	mockExecSvc := &MockExecSvc{}
@@ -1405,6 +1411,8 @@ func TestCheckPorts_Success(t *testing.T) {
 }
 
 func TestCheckPorts_ExecError(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.CheckPorts)
 	mockExecSvc := &MockExecSvc{}
@@ -1629,6 +1637,8 @@ func TestAttachCapabilitySets_Success(t *testing.T) {
 	mockKafkaSvc := &MockKafkaSvc{}
 	run.Config.KafkaSvc = mockKafkaSvc
 
+	testhelpers.SetTempHome(t)
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		t.Fatal(err)
@@ -1666,12 +1676,14 @@ func TestAttachCapabilitySets_Success(t *testing.T) {
 
 func TestAttachCapabilitySets_FilePersisted_SkipsPoll(t *testing.T) {
 	// Arrange — pre-create persistence file; live count matches → skip poll
+	testhelpers.SetTempHome(t)
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		t.Fatal(err)
 	}
 	filePath := filepath.Join(homeDir, ".eureka", fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
-	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(filePath), constant.DirPerm); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filePath, []byte(`{"tenant":"test-tenant","total":530}`), 0644); err != nil {
@@ -1749,6 +1761,8 @@ func TestAttachCapabilitySets_UpdateRealmError(t *testing.T) {
 }
 
 func TestAttachCapabilitySets_AttachError(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.AttachCapabilitySets)
 	mockKafkaSvc := &MockKafkaSvc{}
@@ -1777,12 +1791,14 @@ func TestAttachCapabilitySets_AttachError(t *testing.T) {
 
 func TestAttachCapabilitySets_ForceRefresh_DeletesFile(t *testing.T) {
 	// Arrange — pre-create file; forceRefresh=true deletes it, forcing a full poll
+	testhelpers.SetTempHome(t)
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		t.Fatal(err)
 	}
 	filePath := filepath.Join(homeDir, ".eureka", fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
-	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(filePath), constant.DirPerm); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filePath, []byte(`{"tenant":"test-tenant","total":200}`), 0644); err != nil {
@@ -1823,12 +1839,14 @@ func TestAttachCapabilitySets_ForceRefresh_DeletesFile(t *testing.T) {
 
 func TestAttachCapabilitySets_CountChanged_Polls(t *testing.T) {
 	// Arrange — persisted total doesn't match live count; poll is required
+	testhelpers.SetTempHome(t)
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		t.Fatal(err)
 	}
 	filePath := filepath.Join(homeDir, ".eureka", fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
-	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(filePath), constant.DirPerm); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filePath, []byte(`{"tenant":"test-tenant","total":100}`), 0644); err != nil {
@@ -1870,12 +1888,14 @@ func TestAttachCapabilitySets_CountChanged_Polls(t *testing.T) {
 
 func TestAttachCapabilitySets_PreCheckCountError_Polls(t *testing.T) {
 	// Arrange — CountCapabilitySets errors during pre-check; falls through to poll
+	testhelpers.SetTempHome(t)
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		t.Fatal(err)
 	}
 	filePath := filepath.Join(homeDir, ".eureka", fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
-	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(filePath), constant.DirPerm); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filePath, []byte(`{"tenant":"test-tenant","total":300}`), 0644); err != nil {
@@ -1913,6 +1933,8 @@ func TestAttachCapabilitySets_PostAttachCountError_ReturnsNil(t *testing.T) {
 	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.AttachCapabilitySets)
 	mockKafkaSvc := &MockKafkaSvc{}
 	run.Config.KafkaSvc = mockKafkaSvc
+
+	testhelpers.SetTempHome(t)
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -2577,6 +2599,8 @@ func TestDeployModules_AllAlreadyDeployed_SkipsHealthcheck(t *testing.T) {
 }
 
 func TestDeploySystem_Success(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.DeploySystem)
 	mockGitClient := &testhelpers.MockGitClient{}
@@ -2599,6 +2623,8 @@ func TestDeploySystem_Success(t *testing.T) {
 }
 
 func TestDeploySystem_AlreadyRunning_SkipsSleep(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.DeploySystem)
 	mockGitClient := &testhelpers.MockGitClient{}
@@ -2623,6 +2649,8 @@ func TestDeploySystem_AlreadyRunning_SkipsSleep(t *testing.T) {
 }
 
 func TestDeploySystem_ExecError(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.DeploySystem)
 	mockGitClient := &testhelpers.MockGitClient{}
@@ -2663,6 +2691,8 @@ func TestDeployAdditionalSystem_NoContainers_Skips(t *testing.T) {
 }
 
 func TestDeployAdditionalSystem_NewContainers_Sleeps(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.DeployAdditionalSystem)
 	mockExecSvc := &MockExecSvc{}
@@ -2684,6 +2714,8 @@ func TestDeployAdditionalSystem_NewContainers_Sleeps(t *testing.T) {
 }
 
 func TestDeployAdditionalSystem_AlreadyRunning_SkipsSleep(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.DeployAdditionalSystem)
 	mockExecSvc := &MockExecSvc{}
@@ -2705,6 +2737,8 @@ func TestDeployAdditionalSystem_AlreadyRunning_SkipsSleep(t *testing.T) {
 }
 
 func TestDeployAdditionalSystem_ExecError(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.DeployAdditionalSystem)
 	mockExecSvc := &MockExecSvc{}

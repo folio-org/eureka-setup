@@ -63,11 +63,6 @@ jobs:
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
 
-      - name: Prepare .eureka config directory
-        run: |
-          mkdir -p /home/runner/.eureka
-          chmod -R 0700 /home/runner/.eureka
-
       - name: Run tests with coverage
         working-directory: ./eureka-cli
         run: |
@@ -94,18 +89,6 @@ jobs:
 
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
-
-      - name: Set up .eureka directory permissions
-        shell: bash
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            mkdir -p "$USERPROFILE\.eureka"
-          else
-            mkdir -p "$HOME/.eureka"
-            chmod -R 0700 "$HOME/.eureka"
-          fi
-        env:
-          RUNNER_OS: ${{ runner.os }}
 
       - name: Build CLI
         working-directory: ./eureka-cli

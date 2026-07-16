@@ -1,6 +1,9 @@
 package constant
 
-import "time"
+import (
+	"os"
+	"time"
+)
 
 const (
 	// Command wait durations
@@ -121,6 +124,9 @@ const (
 	ConfigPrefix = "config"
 	ConfigDir    = ".eureka"
 	ConfigType   = "yaml"
+
+	// DirPerm is the mode for all directories created under the ~/.eureka config directory (owner-only)
+	DirPerm os.FileMode = 0700
 
 	// Logs
 	LogDir             = "logs"

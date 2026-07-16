@@ -97,13 +97,13 @@ func setDefaultLogger() (*slog.Logger, error) {
 		logLevel = slog.LevelDebug
 	}
 
-	home, err := os.UserHomeDir()
+	homeDir, err := helpers.GetHomeDirPath()
 	if err != nil {
 		return nil, err
 	}
 
-	logDir := filepath.Join(home, constant.ConfigDir, constant.LogDir)
-	if err := os.MkdirAll(logDir, 0755); err != nil {
+	logDir := filepath.Join(homeDir, constant.LogDir)
+	if err := os.MkdirAll(logDir, constant.DirPerm); err != nil {
 		return nil, err
 	}
 	timestamp := time.Now().Format(constant.LogTimestampFormat)

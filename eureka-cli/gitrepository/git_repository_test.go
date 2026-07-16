@@ -1,10 +1,12 @@
-package gitrepository
+package gitrepository_test
 
 import (
 	"path/filepath"
 	"testing"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
+	"github.com/folio-org/eureka-setup/eureka-cli/gitrepository"
+	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,6 +22,8 @@ func newMockAction() *action.Action {
 }
 
 func TestNew_Success(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := newMockAction()
 	label := "test-repo"
@@ -28,7 +32,7 @@ func TestNew_Success(t *testing.T) {
 	branch := plumbing.NewBranchReferenceName("main")
 
 	// Act
-	repo, err := New(action, label, url, dir, branch)
+	repo, err := gitrepository.New(action, label, url, dir, branch)
 
 	// Assert
 	assert.NoError(t, err)
@@ -40,6 +44,8 @@ func TestNew_Success(t *testing.T) {
 }
 
 func TestNew_WithDifferentBranch(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := newMockAction()
 	label := "feature-repo"
@@ -48,7 +54,7 @@ func TestNew_WithDifferentBranch(t *testing.T) {
 	branch := plumbing.NewBranchReferenceName("feature-branch")
 
 	// Act
-	repo, err := New(action, label, url, dir, branch)
+	repo, err := gitrepository.New(action, label, url, dir, branch)
 
 	// Assert
 	assert.NoError(t, err)
@@ -60,6 +66,8 @@ func TestNew_WithDifferentBranch(t *testing.T) {
 }
 
 func TestNew_DirectoryPathConstruction(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := newMockAction()
 	label := "path-test-repo"
@@ -68,7 +76,7 @@ func TestNew_DirectoryPathConstruction(t *testing.T) {
 	branch := plumbing.NewBranchReferenceName("develop")
 
 	// Act
-	repo, err := New(action, label, url, dir, branch)
+	repo, err := gitrepository.New(action, label, url, dir, branch)
 
 	// Assert
 	assert.NoError(t, err)
@@ -79,6 +87,8 @@ func TestNew_DirectoryPathConstruction(t *testing.T) {
 }
 
 func TestString_ReturnsLabel(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := newMockAction()
 	label := "stringify-repo"
@@ -86,7 +96,7 @@ func TestString_ReturnsLabel(t *testing.T) {
 	dir := "stringify-dir"
 	branch := plumbing.NewBranchReferenceName("main")
 
-	repo, err := New(action, label, url, dir, branch)
+	repo, err := gitrepository.New(action, label, url, dir, branch)
 	assert.NoError(t, err)
 
 	// Act
@@ -97,6 +107,8 @@ func TestString_ReturnsLabel(t *testing.T) {
 }
 
 func TestNew_WithTagReference(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := newMockAction()
 	label := "tag-repo"
@@ -105,7 +117,7 @@ func TestNew_WithTagReference(t *testing.T) {
 	branch := plumbing.NewTagReferenceName("v1.0.0")
 
 	// Act
-	repo, err := New(action, label, url, dir, branch)
+	repo, err := gitrepository.New(action, label, url, dir, branch)
 
 	// Assert
 	assert.NoError(t, err)
@@ -117,6 +129,8 @@ func TestNew_WithTagReference(t *testing.T) {
 }
 
 func TestNew_VerifyFieldValues(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := newMockAction()
 	expectedLabel := "verify-repo"
@@ -125,7 +139,7 @@ func TestNew_VerifyFieldValues(t *testing.T) {
 	expectedBranch := plumbing.NewBranchReferenceName("snapshot")
 
 	// Act
-	repo, err := New(action, expectedLabel, expectedURL, expectedDir, expectedBranch)
+	repo, err := gitrepository.New(action, expectedLabel, expectedURL, expectedDir, expectedBranch)
 
 	// Assert
 	assert.NoError(t, err)
@@ -136,6 +150,8 @@ func TestNew_VerifyFieldValues(t *testing.T) {
 }
 
 func TestNew_EmptyValues(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := newMockAction()
 	label := ""
@@ -144,7 +160,7 @@ func TestNew_EmptyValues(t *testing.T) {
 	branch := plumbing.ReferenceName("")
 
 	// Act
-	repo, err := New(action, label, url, dir, branch)
+	repo, err := gitrepository.New(action, label, url, dir, branch)
 
 	// Assert
 	assert.NoError(t, err)
@@ -155,6 +171,8 @@ func TestNew_EmptyValues(t *testing.T) {
 }
 
 func TestGitRepository_AllFieldsAccessible(t *testing.T) {
+	testhelpers.SetTempHome(t)
+
 	// Arrange
 	action := newMockAction()
 	label := "access-test"
@@ -163,7 +181,7 @@ func TestGitRepository_AllFieldsAccessible(t *testing.T) {
 	branch := plumbing.NewBranchReferenceName("master")
 
 	// Act
-	repo, err := New(action, label, url, dir, branch)
+	repo, err := gitrepository.New(action, label, url, dir, branch)
 
 	// Assert
 	assert.NoError(t, err)

@@ -95,7 +95,7 @@ func CopyMultipleFiles(homeDir string, srcFs *embed.FS) error {
 
 		dstPath := filepath.Join(homeDir, path)
 		if dir.IsDir() {
-			if err := os.MkdirAll(dstPath, 0755); err != nil {
+			if err := os.MkdirAll(dstPath, constant.DirPerm); err != nil {
 				return err
 			}
 		} else {
@@ -152,7 +152,12 @@ func GetHomeDirPath() (string, error) {
 	}
 
 	homeDir := filepath.Join(userHome, constant.ConfigDir)
-	if err = os.MkdirAll(homeDir, 0644); err != nil {
+	if err = os.MkdirAll(homeDir, constant.DirPerm); err != nil {
+		return "", err
+	}
+
+	// MkdirAll does not change the mode of an existing directory, so repair installations created by older releases with wrong permissions
+	if err = os.Chmod(homeDir, constant.DirPerm); err != nil {
 		return "", err
 	}
 
