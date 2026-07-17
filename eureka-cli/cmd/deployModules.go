@@ -95,7 +95,7 @@ func (run *Run) DeployModules() error {
 				pristineVersion = *bMod.ModuleVersion
 				slog.Debug(run.Config.Action.Name, "text", "Module injection engine: picked explicit configuration version", "module", name, "version", pristineVersion)
 			} else {
-				// Dynamic Auto-Discovery returns the pristine version containing the '+' metadata delimiter
+				// Auto-Discovery yields tracking version containing '+'
 				discoveredVersion, lookupErr := run.discoverLatestRegistryVersion(name)
 				if lookupErr == nil && discoveredVersion != "" {
 					pristineVersion = discoveredVersion
@@ -110,11 +110,11 @@ func (run *Run) DeployModules() error {
 				continue
 			}
 
-			// Sanitize the metadata string boundary for gateway/routing engine compatibility (+ converted to -)
+			// Format unique ID to be compliant with gateway routing conventions (+ replaced with -)
 			gatewayVersion := strings.ReplaceAll(pristineVersion, "+", "-")
 			syntheticID := fmt.Sprintf("%s-%s", name, gatewayVersion)
 
-			// Fetch the pristine descriptor file directly over the wire from Okapi proxy registries map
+			// Pre-populate Descriptor Map directly via original pristine lookups
 			if baseRegistryURL != "" {
 				descURL := fmt.Sprintf("%s/_/proxy/modules/%s-%s", strings.TrimSuffix(baseRegistryURL, "/"), name, pristineVersion)
 				ctxClient := &http.Client{Timeout: 5 * time.Second}
@@ -122,7 +122,6 @@ func (run *Run) DeployModules() error {
 				if descErr == nil && descResp.StatusCode == http.StatusOK {
 					var descriptorData map[string]any
 					if err := json.NewDecoder(descResp.Body).Decode(&descriptorData); err == nil {
-						// Mutate internal description ID reference to match gateway sanitation tags
 						descriptorData["id"] = syntheticID
 						prepopulatedDescriptors[syntheticID] = descriptorData
 						slog.Debug(run.Config.Action.Name, "text", "Descriptor Pre-population Engine cached record successfully", "module", name, "id", syntheticID)
@@ -203,10 +202,11 @@ func (run *Run) DeployModules() error {
 		Modules:           modules,
 		BackendModules:    backendModules,
 		FrontendModules:   frontendModules,
-		ModuleDescriptors: prepopulatedDescriptors, // Swap cache injection payload over
+		ModuleDescriptors: prepopulatedDescriptors,
 	})
 }
 
+// Ensures module matching behaves strictly by verifying the remainder starts with a semantic digit
 func isStrictModuleID(id string, name string) bool {
 	prefix := name + "-"
 	if !strings.HasPrefix(id, prefix) {
@@ -243,7 +243,10 @@ func (run *Run) discoverLatestRegistryVersion(moduleName string) (string, error)
 		return "", err
 	}
 
+	// Default to the bare module name instead of a hardcoded namespace prefix
 	repoPath := moduleName
+	var moduleSpecificRegistry string
+
 	if rawModuleConfig, exists := run.Config.Action.ConfigBackendModules[moduleName]; exists {
 		if moduleMap, ok := rawModuleConfig.(map[string]any); ok {
 			if img, imgExists := moduleMap["image"]; imgExists {
@@ -251,29 +254,20 @@ func (run *Run) discoverLatestRegistryVersion(moduleName string) (string, error)
 					repoPath = strings.TrimSpace(imgStr)
 				}
 			}
+			if reg, regExists := moduleMap["registry"]; regExists {
+				if regStr, isStr := reg.(string); isStr && strings.TrimSpace(regStr) != "" {
+					moduleSpecificRegistry = strings.TrimSpace(regStr)
+				}
+			}
 		}
 	}
 
+	// Strip explicit registry domain prefixes if they are embedded inside the image property
 	if idx := strings.Index(repoPath, "/"); idx != -1 {
 		firstPart := repoPath[:idx]
 		if strings.Contains(firstPart, ".") || strings.Contains(firstPart, ":") {
 			repoPath = repoPath[idx+1:]
 		}
-	}
-
-	var paths []string
-	if strings.Contains(repoPath, "/") {
-		paths = []string{repoPath}
-	} else {
-		paths = []string{repoPath}
-		for _, ns := range constant.GetNamespaces() {
-			paths = append(paths, ns+"/"+repoPath)
-		}
-	}
-
-	registries := run.Config.Action.ConfigDockerRegistries
-	if len(registries) == 0 {
-		registries = []string{"docker.io"}
 	}
 
 	for i := len(items) - 1; i >= 0; i-- {
@@ -282,41 +276,30 @@ func (run *Run) discoverLatestRegistryVersion(moduleName string) (string, error)
 			rawVersion := strings.TrimPrefix(item.ID, moduleName+"-")
 			cleanTag := strings.Split(rawVersion, "+")[0]
 
-			for _, path := range paths {
-				for _, registry := range registries {
-					var privateRegistryURL string
-					if registry == "docker.io" || registry == "registry-1.docker.io" {
-						if !strings.Contains(path, "/") {
-							continue
-						}
-						privateRegistryURL = fmt.Sprintf("https://registry-1.docker.io/v2/%s/manifests/%s", path, cleanTag)
-					} else {
-						privateRegistryURL = fmt.Sprintf("https://%s/v2/%s/manifests/%s", registry, path, cleanTag)
-					}
+			if moduleSpecificRegistry != "" {
+				privateRegistryURL := fmt.Sprintf("https://%s/v2/%s/manifests/%s", moduleSpecificRegistry, repoPath, cleanTag)
+				req, err := http.NewRequest(http.MethodHead, privateRegistryURL, nil)
+				if err != nil {
+					continue
+				}
+				req.Header.Set("Accept", "application/vnd.docker.distribution.manifest.v2+json")
 
-					req, err := http.NewRequest(http.MethodHead, privateRegistryURL, nil)
-					if err != nil {
-						continue
-					}
-					req.Header.Set("Accept", "application/vnd.docker.distribution.manifest.v2+json")
-
-					hubResp, hubErr := ctxClient.Do(req)
-					if hubErr == nil {
-						statusCode := hubResp.StatusCode
-						hubResp.Body.Close()
-
-						if statusCode == http.StatusOK {
-							slog.Debug(run.Config.Action.Name, "text", "Private Registry Carousel: tag verified live via manifest probe", "module", moduleName, "registry", registry, "path", path, "tag", cleanTag)
-							return rawVersion, nil // Return full raw version containing '+' for accurate remote lookups
-						}
+				hubResp, hubErr := ctxClient.Do(req)
+				if hubErr == nil {
+					hubResp.Body.Close()
+					if hubResp.StatusCode == http.StatusOK {
+						slog.Debug(run.Config.Action.Name, "text", "Module Override Discovery Match", "module", moduleName, "registry", moduleSpecificRegistry, "path", repoPath, "tag", cleanTag)
+						return rawVersion, nil
 					}
 				}
+				continue
 			}
-			slog.Debug(run.Config.Action.Name, "text", "Private Registry Carousel: tag missing across layout variants (fallback pass)", "module", moduleName, "tag", cleanTag)
+
+			return rawVersion, nil
 		}
 	}
 
-	return "", fmt.Errorf("no live verified container tags found inside the registry carousel loop for %s", moduleName)
+	return "", fmt.Errorf("no live verified container tags found for module %s", moduleName)
 }
 
 func init() {

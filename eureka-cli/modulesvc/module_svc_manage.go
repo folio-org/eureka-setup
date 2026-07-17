@@ -7,10 +7,8 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net/http"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types/container"
@@ -140,7 +138,7 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 			version := ms.GetModuleImageVersion(backendModule, module)
 			module.Metadata.Version = &version
 
-			// --- AUTOMATED IMAGE & TIMESTAMPS SANITIZATION ENGINE ---
+			// --- AUTOMATED IMAGE SANITIZATION ENGINE ---
 			imageName := ms.GetModuleImage(module)
 			pullImage := backendModule.LocalDescriptorPath == ""
 
@@ -159,12 +157,20 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 									tagSource := version
 									if tagSource == "" && module.Metadata.Version != nil {
 										tagSource = *module.Metadata.Version
-										slog.Debug(ms.Action.Name, "text", "Sanitization Engine: framework regex version failed; recovered version from injection metadata", "module", module.Metadata.Name, "tagSource", tagSource)
 									}
 
-									cleanTag := strings.Split(tagSource, "+")[0]
-									repoPath := customImage
+									// Isolate clean tag parameters regardless of + metadata conversions
+									cleanTag := tagSource
+									if strings.Contains(cleanTag, "+") {
+										cleanTag = strings.Split(cleanTag, "+")[0]
+									} else if strings.Contains(cleanTag, "-SNAPSHOT.") {
+										parts := strings.Split(cleanTag, "-SNAPSHOT.")
+										if len(parts) > 1 {
+											cleanTag = parts[0] + "-SNAPSHOT." + strings.Split(parts[1], "-")[0]
+										}
+									}
 
+									repoPath := customImage
 									if idx := strings.Index(repoPath, "/"); idx != -1 {
 										firstPart := repoPath[:idx]
 										if strings.Contains(firstPart, ".") || strings.Contains(firstPart, ":") {
@@ -172,64 +178,20 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 										}
 									}
 
-									var paths []string
-									if strings.Contains(repoPath, "/") {
-										paths = []string{repoPath}
+									// Extract module-level repository mapping
+									var moduleSpecificRegistry string
+									if reg, regExists := moduleMap["registry"]; regExists {
+										if regStr, isStr := reg.(string); isStr && strings.TrimSpace(regStr) != "" {
+											moduleSpecificRegistry = strings.TrimSpace(regStr)
+										}
+									}
+
+									if moduleSpecificRegistry != "" {
+										imageName = fmt.Sprintf("%s/%s:%s", moduleSpecificRegistry, repoPath, cleanTag)
 									} else {
-										paths = []string{repoPath}
-										for _, ns := range constant.GetNamespaces() {
-											paths = append(paths, ns+"/"+repoPath)
-										}
+										imageName = fmt.Sprintf("%s:%s", repoPath, cleanTag)
 									}
-
-									registries := ms.Action.ConfigDockerRegistries
-									if len(registries) == 0 {
-										registries = []string{"docker.io"}
-									}
-
-									chosenRegistry := registries[0]
-									chosenPath := paths[0]
-									found := false
-
-									for _, path := range paths {
-										for _, registry := range registries {
-											var testURL string
-											if registry == "docker.io" || registry == "registry-1.docker.io" {
-												if !strings.Contains(path, "/") {
-													continue
-												}
-												testURL = fmt.Sprintf("https://registry-1.docker.io/v2/%s/manifests/%s", path, cleanTag)
-											} else {
-												testURL = fmt.Sprintf("https://%s/v2/%s/manifests/%s", registry, path, cleanTag)
-											}
-
-											req, _ := http.NewRequest(http.MethodHead, testURL, nil)
-											req.Header.Set("Accept", "application/vnd.docker.distribution.manifest.v2+json")
-
-											ctxClient := &http.Client{Timeout: 3 * time.Second}
-											resp, err := ctxClient.Do(req)
-											if err == nil {
-												status := resp.StatusCode
-												resp.Body.Close()
-												if status == http.StatusOK {
-													chosenRegistry = registry
-													chosenPath = path
-													found = true
-													break
-												}
-											}
-										}
-										if found {
-											break
-										}
-									}
-
-									if chosenRegistry == "docker.io" || chosenRegistry == "registry-1.docker.io" {
-										imageName = fmt.Sprintf("%s:%s", chosenPath, cleanTag)
-									} else {
-										imageName = fmt.Sprintf("%s/%s:%s", chosenRegistry, chosenPath, cleanTag)
-									}
-									slog.Debug(ms.Action.Name, "text", "Sanitization Engine output resolved details", "module", module.Metadata.Name, "selected_registry", chosenRegistry, "final_image_string", imageName)
+									slog.Debug(ms.Action.Name, "text", "Sanitization Engine output resolved details", "module", module.Metadata.Name, "module_specific_registry", moduleSpecificRegistry, "final_image_string", imageName)
 								}
 								pullImage = true
 							}
@@ -302,33 +264,36 @@ func (ms *ModuleSvc) shouldDeployModule(module *models.ProxyModule, backendModul
 }
 
 func (ms *ModuleSvc) deploySidecarAsync(wg *sync.WaitGroup, errCh chan<- error, r *models.SidecarRequest) {
-	defer wg.Done()
+	defer wg.Done() // Clears the deadlock blocker
 
-	container := &models.Container{
-		Name: r.Module.Metadata.SidecarName,
-		Config: &container.Config{
-			Image:        r.SidecarImage,
-			Hostname:     r.Module.Metadata.SidecarName,
-			Env:          ms.GetSidecarEnv(r.Containers, r.Module, r.BackendModule, "", ""),
-			ExposedPorts: *r.BackendModule.SidecarExposedPorts,
-			Cmd:          helpers.GetConfigSidecarCmd(ms.Action.ConfigSidecarModuleNativeBinaryCmd),
-		},
-		HostConfig: &container.HostConfig{
-			PortBindings:  *r.BackendModule.SidecarPortBindings,
-			RestartPolicy: *helpers.GetRestartPolicy(),
-			Resources:     *r.SidecarResources,
-		},
-		NetworkConfig: helpers.GetModuleNetworkConfig(),
-		Platform:      helpers.GetPlatform(),
-		PullImage:     false,
+	ctx, cancel := context.WithTimeout(context.Background(), constant.ContextTimeoutDockerDeploy)
+	defer cancel()
+
+	containerName := ms.getContainerName(&models.Container{Name: r.Module.Metadata.SidecarName})
+
+	createResp, err := r.Client.ContainerCreate(ctx, &container.Config{
+		Image:        r.SidecarImage,
+		Hostname:     r.Module.Metadata.SidecarName,
+		Env:          ms.GetSidecarEnv(r.Containers, r.Module, r.BackendModule, "", ""),
+		ExposedPorts: *r.BackendModule.SidecarExposedPorts,
+		Cmd:          helpers.GetConfigSidecarCmd(ms.Action.ConfigSidecarModuleNativeBinaryCmd),
+	}, &container.HostConfig{
+		PortBindings:  *r.BackendModule.SidecarPortBindings,
+		RestartPolicy: *helpers.GetRestartPolicy(),
+		Resources:     *r.SidecarResources,
+	}, helpers.GetModuleNetworkConfig(), helpers.GetPlatform(), containerName)
+	if err != nil {
+		errCh <- appErrors.SidecarDeployFailed(r.Module.Metadata.SidecarName, err)
+		return
 	}
-	if err := ms.DeployModule(r.Client, container); err != nil {
-		err := appErrors.SidecarDeployFailed(r.Module.Metadata.SidecarName, err)
-		select {
-		case errCh <- err:
-		default:
-		}
+
+	err = r.Client.ContainerStart(ctx, createResp.ID, container.StartOptions{})
+	if err != nil {
+		errCh <- appErrors.SidecarDeployFailed(r.Module.Metadata.SidecarName, err)
+		return
 	}
+
+	slog.Info(ms.Action.Name, "text", "Deployed module sidecar", "module", containerName)
 }
 
 func (ms *ModuleSvc) DeployModule(client *client.Client, c *models.Container) error {
