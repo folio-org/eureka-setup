@@ -16,6 +16,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Flag tracking targeted builds
+var uiOnly bool
+var noCache bool
+
 // buildSystemCmd represents the buildSystem command
 var buildSystemCmd = &cobra.Command{
 	Use:   "buildSystem",
@@ -28,6 +32,21 @@ var buildSystemCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		if uiOnly {
+            slog.Info(run.Config.Action.Name, "text", "ISOLATED FRONTEND TARGET DETECTED - Skipping infrastructure steps")
+
+            // ⚡ AUTOMATIC NO-CACHE: Merge CLI flag with profile config option
+            forceNoCache := noCache || run.Config.Action.ConfigFrontendAlwaysBuild
+
+            if err := run.BuildCustomFrontendOnly(forceNoCache); err != nil {
+                return err
+            }
+            slog.Info(run.Config.Action.Name, "text", "Isolated custom frontend build completed", "duration", time.Since(start))
+            return nil
+        }
+
+		// Default Complete Sweep
 		if err := run.CloneUpdateRepositories(); err != nil {
 			return err
 		}
@@ -77,59 +96,84 @@ func (run *Run) CloneUpdateRepositories() error {
 	return nil
 }
 
-func (run *Run) BuildSystem() error {
+func (run *Run) BuildCustomFrontendOnly(forceNoCache bool) error {
 	homeDir, err := helpers.GetHomeMiscDir()
 	if err != nil {
 		return err
 	}
 
-	// --- DYNAMIC FRONTEND PLATFORM CONTAINER GENERATOR ---
-	if run.Config.Action.ConfigFrontendPlatform != "" && run.Config.Action.ConfigFrontendURL != "" {
-		slog.Info(run.Config.Action.Name, "text", "DYNAMIC FRONTEND PLATFORM SETUP", "platform", run.Config.Action.ConfigFrontendPlatform)
+	if run.Config.Action.ConfigFrontendPlatform == "" || run.Config.Action.ConfigFrontendURL == "" {
+		return fmt.Errorf("frontend configuration missing from active profile config keys")
+	}
 
-		branchName := run.Config.Action.ConfigFrontendBranch
-		if branchName == "" {
-			branchName = "main"
-		}
+	branchName := run.Config.Action.ConfigFrontendBranch
+	if branchName == "" {
+		branchName = "main"
+	}
 
-		startScript := run.Config.Action.ConfigFrontendStartScript
-		if startScript == "" {
-			startScript = "start"
-		}
+	startScript := run.Config.Action.ConfigFrontendStartScript
+	if startScript == "" {
+		startScript = "start"
+	}
 
-        // Generate the specification dynamically
-		dockerfileContent := fmt.Sprintf(`FROM node:20
+	dockerfileContent := fmt.Sprintf(`FROM node:20
 WORKDIR /app
 RUN git clone -b %s %s .
 ENV HUSKY=0
+ENV NODE_OPTIONS=--max-old-space-size=4096
 RUN npm install --legacy-peer-deps
 EXPOSE 3000
-CMD ["npm", "run", "%s"]`, branchName, run.Config.Action.ConfigFrontendURL, startScript)
+CMD ["npm", "run", "%s", "--", "--host", "0.0.0.0"]`, branchName, run.Config.Action.ConfigFrontendURL, startScript)
 
-		dockerfilePath := filepath.Join(homeDir, "Dockerfile.custom-frontend")
-		if err := os.WriteFile(dockerfilePath, []byte(dockerfileContent), 0644); err != nil {
-			return fmt.Errorf("failed to write dynamic frontend Dockerfile: %w", err)
-		}
+	dockerfilePath := filepath.Join(homeDir, "Dockerfile.custom-frontend")
+	if err := os.WriteFile(dockerfilePath, []byte(dockerfileContent), 0644); err != nil {
+		return fmt.Errorf("failed to write dynamic frontend Dockerfile: %w", err)
+	}
+	defer os.Remove(dockerfilePath)
 
-		// Resolve targeted application workspace tags (e.g. bkadirkhodjaev/platform-lsp-ui-ill:latest)
-		var tenantName string
-		for k := range run.Config.Action.ConfigTenants {
-			tenantName = k // Resolves target mapping key (e.g., "ill")
-			break
-		}
-		if tenantName == "" {
-			tenantName = "diku" // Graceful default fallback
-		}
+	var tenantName string
+	for k := range run.Config.Action.ConfigTenants {
+		tenantName = k
+		break
+	}
+	if tenantName == "" {
+		tenantName = "diku"
+	}
 
-		targetTag := fmt.Sprintf("%s/platform-lsp-ui-%s:latest", run.Config.Action.ConfigNamespacePlatformLspUI, tenantName)
-		slog.Info(run.Config.Action.Name, "text", "Compiling custom frontend platform via container engine layer", "tag", targetTag)
+	targetTag := fmt.Sprintf("%s/platform-lsp-ui-%s:latest", run.Config.Action.ConfigNamespacePlatformLspUI, tenantName)
+	slog.Info(run.Config.Action.Name, "text", "Compiling custom frontend platform dynamically", "tag", targetTag)
 
-		buildCmd := exec.Command("docker", "build", "-t", targetTag, "-f", "Dockerfile.custom-frontend", ".")
-		if err := run.Config.ExecSvc.ExecFromDir(buildCmd, homeDir); err != nil {
-			return fmt.Errorf("failed compiling custom workspace image container: %w", err)
+	// ⚡ CACHE CONTROL
+	buildArgs := []string{"build"}
+	if forceNoCache {
+		buildArgs = append(buildArgs, "--no-cache")
+	}
+	buildArgs = append(buildArgs, "-t", targetTag, "-f", "Dockerfile.custom-frontend", ".")
+
+	buildCmd := exec.Command("docker", buildArgs...)
+	if err := run.Config.ExecSvc.ExecFromDir(buildCmd, homeDir); err != nil {
+		return fmt.Errorf("failed compiling custom workspace image container: %w", err)
+	}
+
+	return nil
+}
+
+func (run *Run) BuildSystem() error {
+	if run.Config.Action.ConfigFrontendPlatform != "" && run.Config.Action.ConfigFrontendURL != "" {
+		slog.Info(run.Config.Action.Name, "text", "DYNAMIC FRONTEND PLATFORM DETECTED IN FULL SWEEP")
+
+		// ⚡ AUTOMATIC NO-CACHE: Merge CLI flag with profile config option here too
+		forceNoCache := noCache || run.Config.Action.ConfigFrontendAlwaysBuild
+
+		if err := run.BuildCustomFrontendOnly(forceNoCache); err != nil {
+			return err
 		}
 	}
-	// --- END OF PATCH ---
+
+	homeDir, err := helpers.GetHomeMiscDir()
+	if err != nil {
+		return err
+	}
 
 	slog.Info(run.Config.Action.Name, "text", "BUILDING SYSTEM IMAGES")
 	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache"}
@@ -139,4 +183,6 @@ CMD ["npm", "run", "%s"]`, branchName, run.Config.Action.ConfigFrontendURL, star
 func init() {
 	rootCmd.AddCommand(buildSystemCmd)
 	buildSystemCmd.PersistentFlags().BoolVarP(&params.UpdateCloned, action.UpdateCloned.Long, action.UpdateCloned.Short, false, action.UpdateCloned.Description)
+	buildSystemCmd.Flags().BoolVar(&uiOnly, "ui-only", false, "Compile only the dynamic custom frontend platform image")
+	buildSystemCmd.Flags().BoolVar(&noCache, action.NoCache.Long, false, action.NoCache.Description)
 }

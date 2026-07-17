@@ -28,6 +28,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var deployBuildUI bool
+var deployNoCache bool
+
 // deployApplicationCmd represents the deployApplication command
 var deployApplicationCmd = &cobra.Command{
 	Use:     "deployApplication",
@@ -42,6 +45,9 @@ var deployApplicationCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		run.Config.Action.Param.BuildUI = deployBuildUI
+		run.Config.Action.Param.NoCache = deployNoCache
 
 		if params.Cleanup {
 			err = run.DeployApplicationWithCleanup()
@@ -202,4 +208,7 @@ func init() {
 	deployApplicationCmd.PersistentFlags().BoolVarP(&params.OnlyRequired, action.OnlyRequired.Long, action.OnlyRequired.Short, false, action.OnlyRequired.Description)
 	deployApplicationCmd.PersistentFlags().BoolVarP(&params.Cleanup, action.Cleanup.Long, action.Cleanup.Short, false, action.Cleanup.Description)
 	deployApplicationCmd.PersistentFlags().BoolVarP(&params.SkipRegistry, action.SkipRegistry.Long, action.SkipRegistry.Short, false, action.SkipRegistry.Description)
+
+	deployApplicationCmd.Flags().BoolVar(&deployBuildUI, action.BuildUI.Long, false, action.BuildUI.Description)
+    deployApplicationCmd.Flags().BoolVar(&deployNoCache, action.NoCache.Long, false, action.NoCache.Description)
 }

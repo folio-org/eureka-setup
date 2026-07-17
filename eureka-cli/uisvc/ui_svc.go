@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -83,6 +84,46 @@ func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
 	return repository.Dir, nil
 }
 
+func (us *UISvc) PrepareImage(tenantName string) (string, error) {
+	if us.Action.ConfigFrontendPlatform != "" {
+        targetTag := fmt.Sprintf("%s/platform-lsp-ui-%s:latest", us.Action.ConfigNamespacePlatformLspUI, tenantName)
+
+        // Trigger compilation if global build (-b), targeted build UI flag, OR always-build config is active
+        if us.Action.Param.BuildImages || us.Action.Param.BuildUI || us.Action.ConfigFrontendAlwaysBuild {
+            slog.Info(us.Action.Name, "text", "Compiling custom frontend platform via native deploy hook", "tag", targetTag)
+
+            // ⚡ AUTOMATIC NO-CACHE: Force no-cache if flag is passed OR always-build is true in configuration
+            forceNoCache := us.Action.Param.NoCache || us.Action.ConfigFrontendAlwaysBuild
+
+            if err := us.CompileCustomImage(tenantName, forceNoCache); err != nil {
+                return "", err
+            }
+            return targetTag, nil
+        }
+
+		slog.Info(us.Action.Name, "text", "Using cached custom platform image target", "tag", targetTag)
+		return targetTag, nil
+	}
+
+	// Legacy Native Fallback
+	imageName := fmt.Sprintf("platform-lsp-ui-%s", tenantName)
+	if us.Action.Param.BuildImages {
+		outputDir, err := us.CloneAndUpdateRepository(us.Action.Param.UpdateCloned)
+		if err != nil {
+			return "", err
+		}
+
+		return us.BuildImage(tenantName, outputDir)
+	}
+
+	finalImageName, err := us.DockerClient.ForcePullImage(imageName)
+	if err != nil {
+		return "", err
+	}
+
+	return finalImageName, nil
+}
+
 func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error) {
 	slog.Info(us.Action.Name, "text", "Preparing UI configs")
 	err := us.PrepareStripesConfigJS(tenantName, outputDir)
@@ -118,33 +159,6 @@ func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error)
 	return finalImageName, nil
 }
 
-func (us *UISvc) PrepareImage(tenantName string) (string, error) {
-	// --- Injected Custom Frontend Patch ---
-	if us.Action.ConfigFrontendPlatform != "" {
-		localImageTag := fmt.Sprintf("%s/platform-lsp-ui-%s:latest", us.Action.ConfigNamespacePlatformLspUI, tenantName)
-		slog.Info(us.Action.Name, "text", "Custom external frontend defined; skipping pull and using locally compiled image target", "tag", localImageTag)
-		return localImageTag, nil
-	}
-	// --- End of Patch ---
-
-	imageName := fmt.Sprintf("platform-lsp-ui-%s", tenantName)
-	if us.Action.Param.BuildImages {
-		outputDir, err := us.CloneAndUpdateRepository(us.Action.Param.UpdateCloned)
-		if err != nil {
-			return "", err
-		}
-
-		return us.BuildImage(tenantName, outputDir)
-	}
-
-	finalImageName, err := us.DockerClient.ForcePullImage(imageName)
-	if err != nil {
-		return "", err
-	}
-
-	return finalImageName, nil
-}
-
 func (us *UISvc) DeployContainer(tenantName string, imageName string, externalPort int) error {
 	slog.Info(us.Action.Name, "text", "Deploying UI container for tenant", "tenant", tenantName)
 	containerName := fmt.Sprintf("eureka-platform-lsp-ui-%s", tenantName)
@@ -161,32 +175,86 @@ func (us *UISvc) DeployContainer(tenantName string, imageName string, externalPo
 		return nil
 	}
 
-	// --- DYNAMIC PORTS AND RESOURCE ALLOCATION OVERRIDES ---
-	publishPorts := fmt.Sprintf("%d:80", externalPort)
+	internalPort := 80
 	memoryLimit := "35m"
 
+	// If this is a custom node platform development box, expand boundaries
 	if us.Action.ConfigFrontendPlatform != "" {
-		// Map host 3000 to container 3000 to satisfy Keycloak redirect parameters
-		publishPorts = "3000:3000"
-		// Give Node server room to breathe (35m will OOM crash a live node process instantly)
-		memoryLimit = "1g"
+		internalPort = 3000
+		memoryLimit = "1024m" // Give the Node container 1GB of headroom to build/watch assets
 	}
-	// --- END OF OVERRIDES ---
 
 	err = us.ExecSvc.Exec(exec.Command("docker", "run", "--name", containerName,
-		"--hostname", containerName,
-		"--publish", publishPorts,
-		"--restart", "unless-stopped",
-		"--cpus", "1",
-		"--memory", memoryLimit,
-		"--memory-swap", "-1",
-		"--detach",
-		imageName,
-	))
+        "--hostname", containerName,
+        "--publish", fmt.Sprintf("%d:%d", externalPort, internalPort),
+        "--restart", "unless-stopped",
+        "--cpus", "1",
+        "--memory", memoryLimit,
+        "--memory-swap", "-1",
+        "--detach",
+        imageName,
+    ))
 	if err != nil {
 		return err
 	}
 	slog.Info(us.Action.Name, "text", "Connecting UI container for tenant to network", "tenant", tenantName, "network", constant.NetworkID)
 
 	return us.ExecSvc.Exec(exec.Command("docker", "network", "connect", constant.NetworkID, containerName))
+}
+
+func (us *UISvc) CompileCustomImage(tenantName string, noCache bool) error {
+	repoURL := us.Action.ConfigFrontendURL
+	platformName := us.Action.ConfigFrontendPlatform
+	namespace := us.Action.ConfigNamespacePlatformLspUI
+
+	if repoURL == "" || platformName == "" {
+		return fmt.Errorf("frontend configuration missing from active profile config keys")
+	}
+
+	branchName := us.Action.ConfigFrontendBranch
+	if branchName == "" {
+		branchName = "main"
+	}
+
+	startScript := us.Action.ConfigFrontendStartScript
+	if startScript == "" {
+		startScript = "start"
+	}
+
+	localImageTag := fmt.Sprintf("%s/platform-lsp-ui-%s:latest", namespace, tenantName)
+
+	dockerfileLines := []string{
+		"FROM node:20",
+		"WORKDIR /app",
+		fmt.Sprintf("RUN git clone -b %s %s .", branchName, repoURL),
+	}
+
+	dockerfileLines = append(dockerfileLines,
+		"ENV HUSKY=0",
+		"ENV NODE_OPTIONS=--max-old-space-size=4096",
+		"RUN npm install --legacy-peer-deps",
+		"EXPOSE 3000",
+        fmt.Sprintf(`CMD ["npm", "run", "%s", "--", "--host", "0.0.0.0"]`, startScript),
+	)
+
+	dockerfileContent := strings.Join(dockerfileLines, "\n")
+
+	dockerfilePath := "Dockerfile.custom-frontend"
+	if err := os.WriteFile(dockerfilePath, []byte(dockerfileContent), 0644); err != nil {
+		return fmt.Errorf("failed creating transient dockerfile spec: %w", err)
+	}
+	defer os.Remove(dockerfilePath)
+
+	// ⚡ CACHE CONTROL: Dynamically build out arguments array
+	buildArgs := []string{"build"}
+	if noCache {
+		buildArgs = append(buildArgs, "--no-cache")
+	}
+	buildArgs = append(buildArgs, "-t", localImageTag, "-f", dockerfilePath, ".")
+
+	cmd := exec.Command("docker", buildArgs...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return us.ExecSvc.Exec(cmd)
 }

@@ -6,6 +6,7 @@ type Param struct {
 	All                   bool
 	ApplicationNames      []string
 	BuildImages           bool
+	BuildUI               bool
 	Cleanup               bool
 	ConfigFile            string
 	DefaultGateway        bool
@@ -21,6 +22,7 @@ type Param struct {
 	ModuleURL             string
 	ModuleVersion         string
 	Namespace             string
+    NoCache               bool
 	OnlyRequired          bool
 	OverwriteFiles        bool
 	LinkedData            bool
@@ -65,6 +67,7 @@ var (
 	All                   = Flag{"all", "a", "All modules for all profiles"}
 	ApplicationNames      = Flag{"apps", "", "Application names"}
 	BuildImages           = Flag{"buildImages", "b", "Build Docker images"}
+	BuildUI               = Flag{"build-ui", "", "Compile only the dynamic custom frontend platform image during deployment"}
 	Cleanup               = Flag{"cleanup", "", "Perform a cleanup operation"}
 	ConfigFile            = Flag{"configFile", "c", "Use a specific config file"}
 	DefaultGateway        = Flag{"defaultGateway", "g", "Use default gateway in URLs, .e.g. http://host.docker.internal:{{port}} will be set automatically"}
@@ -80,6 +83,7 @@ var (
 	ModuleURL             = Flag{"moduleUrl", "m", "Module URL, e.g. http://host.docker.internal:36002 or 36002 (if -g is used)"}
 	ModuleVersion         = Flag{"moduleVersion", "", "Module version, e.g. 13.1.0-SNAPSHOT.1093"}
 	Namespace             = Flag{"namespace", "", "DockerHub namespace"}
+	NoCache               = Flag{"no-cache", "", "Force docker build to skip layer cache optimization loops for UI images"}
 	OnlyRequired          = Flag{"onlyRequired", "q", "Use only required system containers"}
 	OverwriteFiles        = Flag{"overwriteFiles", "o", "Overwrite files in %s home directory"}
 	LinkedData            = Flag{"linkedData", "", "Include Linked Data module in UI bundle"}

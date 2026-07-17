@@ -62,6 +62,7 @@ type Action struct {
     ConfigFrontendURL                  string
     ConfigFrontendBranch               string
     ConfigFrontendStartScript          string
+    ConfigFrontendAlwaysBuild          bool
 }
 
 func New(name string, gatewayURL string, actionParam *Param) *Action {
@@ -109,6 +110,7 @@ func New(name string, gatewayURL string, actionParam *Param) *Action {
         ConfigFrontendURL:                  viper.GetString("frontend.url"),
         ConfigFrontendBranch:               viper.GetString("frontend.branch"),
         ConfigFrontendStartScript:          viper.GetString("frontend.start-script"),
+        ConfigFrontendAlwaysBuild:          viper.GetBool("frontend.always-build"),
 	}
 }
 
