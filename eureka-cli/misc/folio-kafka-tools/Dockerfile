@@ -2,7 +2,7 @@ ARG ALPINE_VERSION=3.23
 
 FROM alpine:${ALPINE_VERSION}
 
-ARG KAFKA_VERSION=4.1.1
+ARG KAFKA_VERSION=4.3.1
 ARG SCALA_VERSION=2.13
 
 RUN apk update && apk add --no-cache wget openjdk17-jre-headless coreutils bash procps-ng && \
