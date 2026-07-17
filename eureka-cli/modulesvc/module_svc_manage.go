@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types/container"
@@ -138,31 +140,103 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 			version := ms.GetModuleImageVersion(backendModule, module)
 			module.Metadata.Version = &version
 
-            // --- AUTOMATED IMAGE & TIMESTAMPS SANITIZATION ENGINE ---
-            imageName := ms.GetModuleImage(module)
-            pullImage := backendModule.LocalDescriptorPath == ""
+			// --- AUTOMATED IMAGE & TIMESTAMPS SANITIZATION ENGINE ---
+			imageName := ms.GetModuleImage(module)
+			pullImage := backendModule.LocalDescriptorPath == ""
 
-            // Safely read the raw unmarshaled map out of the profile memory space
-            if rawModuleConfig, exists := ms.Action.ConfigBackendModules[module.Metadata.Name]; exists {
-                if moduleMap, ok := rawModuleConfig.(map[string]any); ok {
-                    if img, imgExists := moduleMap["image"]; imgExists {
-                        if imgStr, isStr := img.(string); isStr {
-                            customImage := strings.TrimSpace(imgStr)
-                            if customImage != "" {
-                                if strings.Contains(customImage, ":") {
-                                    // If you type an explicit tag, respect it exactly
-                                    imageName = customImage
-                                } else {
-                                    // Automatically drop anything after '+' to perfectly match valid Docker snapshot tags
-                                    cleanTag := strings.Split(version, "+")[0]
-                                    imageName = fmt.Sprintf("%s:%s", customImage, cleanTag)
-                                }
-                                pullImage = true // Force an external network pull check for latest snapshot layers
-                            }
-                        }
-                    }
-                }
-            }
+			slog.Debug(ms.Action.Name, "text", "Sanitization Engine trace init", "module", module.Metadata.Name, "framework_regex_resolved_version", version)
+
+			if rawModuleConfig, exists := ms.Action.ConfigBackendModules[module.Metadata.Name]; exists {
+				if moduleMap, ok := rawModuleConfig.(map[string]any); ok {
+					if img, imgExists := moduleMap["image"]; imgExists {
+						if imgStr, isStr := img.(string); isStr {
+							customImage := strings.TrimSpace(imgStr)
+							if customImage != "" {
+								if strings.Contains(customImage, ":") {
+									imageName = customImage
+									slog.Debug(ms.Action.Name, "text", "Sanitization Engine: using exact static custom image reference", "module", module.Metadata.Name, "imageName", imageName)
+								} else {
+									tagSource := version
+									if tagSource == "" && module.Metadata.Version != nil {
+										tagSource = *module.Metadata.Version
+										slog.Debug(ms.Action.Name, "text", "Sanitization Engine: framework regex version failed; recovered version from injection metadata", "module", module.Metadata.Name, "tagSource", tagSource)
+									}
+
+									cleanTag := strings.Split(tagSource, "+")[0]
+									repoPath := customImage
+
+									if idx := strings.Index(repoPath, "/"); idx != -1 {
+										firstPart := repoPath[:idx]
+										if strings.Contains(firstPart, ".") || strings.Contains(firstPart, ":") {
+											repoPath = repoPath[idx+1:]
+										}
+									}
+
+									var paths []string
+									if strings.Contains(repoPath, "/") {
+										paths = []string{repoPath}
+									} else {
+										paths = []string{repoPath}
+										for _, ns := range constant.GetNamespaces() {
+											paths = append(paths, ns+"/"+repoPath)
+										}
+									}
+
+									registries := ms.Action.ConfigDockerRegistries
+									if len(registries) == 0 {
+										registries = []string{"docker.io"}
+									}
+
+									chosenRegistry := registries[0]
+									chosenPath := paths[0]
+									found := false
+
+									for _, path := range paths {
+										for _, registry := range registries {
+											var testURL string
+											if registry == "docker.io" || registry == "registry-1.docker.io" {
+												if !strings.Contains(path, "/") {
+													continue
+												}
+												testURL = fmt.Sprintf("https://registry-1.docker.io/v2/%s/manifests/%s", path, cleanTag)
+											} else {
+												testURL = fmt.Sprintf("https://%s/v2/%s/manifests/%s", registry, path, cleanTag)
+											}
+
+											req, _ := http.NewRequest(http.MethodHead, testURL, nil)
+											req.Header.Set("Accept", "application/vnd.docker.distribution.manifest.v2+json")
+
+											ctxClient := &http.Client{Timeout: 3 * time.Second}
+											resp, err := ctxClient.Do(req)
+											if err == nil {
+												status := resp.StatusCode
+												resp.Body.Close()
+												if status == http.StatusOK {
+													chosenRegistry = registry
+													chosenPath = path
+													found = true
+													break
+												}
+											}
+										}
+										if found {
+											break
+										}
+									}
+
+									if chosenRegistry == "docker.io" || chosenRegistry == "registry-1.docker.io" {
+										imageName = fmt.Sprintf("%s:%s", chosenPath, cleanTag)
+									} else {
+										imageName = fmt.Sprintf("%s/%s:%s", chosenRegistry, chosenPath, cleanTag)
+									}
+									slog.Debug(ms.Action.Name, "text", "Sanitization Engine output resolved details", "module", module.Metadata.Name, "selected_registry", chosenRegistry, "final_image_string", imageName)
+								}
+								pullImage = true
+							}
+						}
+					}
+				}
+			}
 
 			slog.Info(ms.Action.Name, "text", "Deploying module", "module", module.Metadata.Name,
 				"port1", backendModule.ModuleExposedServerPort,
