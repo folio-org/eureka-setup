@@ -3,53 +3,63 @@
 ## Table of Contents
 
 - [Eureka CLI](#eureka-cli)
-  - [Table of Contents](#table-of-contents)
-  - [Purpose](#purpose)
-  - [Architecture](#architecture)
-  - [Prerequisites](#prerequisites)
-  - [Monitor system components](#monitor-system-components)
-  - [Commands](#commands)
-    - [Build the binary](#build-the-binary)
-    - [Install binary](#install-binary)
-    - [(Optional) Enable autocompletion](#optional-enable-autocompletion)
-    - [Deploy the _combined_ application](#deploy-the-combined-application)
-    - [Undeploy the _combined_ application](#undeploy-the-combined-application)
-    - [Deploy the _combined_ application from AWS ECR](#deploy-the-combined-application-from-aws-ecr)
-    - [Deploy the _ecs_ application](#deploy-the-ecs-application)
-    - [Undeploy the _ecs_ application](#undeploy-the-ecs-application)
-    - [Deploy the _ecs-single_ application](#deploy-the-ecs-single-application)
-    - [Undeploy the _ecs-single_ application](#undeploy-the-ecs-single-application)
-    - [Deploy the _ecs-migration_ application](#deploy-the-ecs-migration-application)
-    - [Undeploy the _ecs-migration_ application](#undeploy-the-ecs-migration-application)
-    - [Run IDP migration](#run-idp-migration)
-    - [Deploy the import application](#deploy-the-import-application)
-    - [Undeploy the import application](#undeploy-the-import-application)
-    - [Deploy child applications](#deploy-child-applications)
-      - [Deploy the export application](#deploy-the-export-application)
-      - [Deploy the search application](#deploy-the-search-application)
-      - [Deploy the edge application](#deploy-the-edge-application)
-      - [Deploy the erm application](#deploy-the-erm-application)
-    - [Undeploy child applications](#undeploy-child-applications)
-    - [Intercept a module](#intercept-a-module)
-    - [Create a port proxy](#create-a-port-proxy)
-    - [Upgrade a module](#upgrade-a-module)
-    - [Other commands](#other-commands)
-  - [Using a custom folio-module-sidecar](#using-a-custom-folio-module-sidecar)
-  - [Using a native folio-module-sidecar](#using-a-native-folio-module-sidecar)
-  - [Using local backend module images](#using-local-backend-module-images)
-  - [Using local frontend module descriptors](#using-local-frontend-module-descriptors)
-  - [Using the UI](#using-the-ui)
-  - [Using Single Tenant UX](#using-single-tenant-ux)
-  - [Using the environment](#using-the-environment)
-  - [Using template environment variables](#using-template-environment-variables)
-  - [Using per-sidecar environment variables](#using-per-sidecar-environment-variables)
-  - [Using extra volumes](#using-extra-volumes)
-  - [Using OpenTelemetry LGTM stack](#using-opentelemetry-lgtm-stack)
-  - [Add missing Vault secrets](#add-missing-vault-secrets)
-  - [Troubleshooting](#troubleshooting)
-    - [General](#general)
-    - [Command-based](#command-based)
-  - [Additional Resources](#additional-resources)
+    - [Table of Contents](#table-of-contents)
+    - [Purpose](#purpose)
+    - [Architecture](#architecture)
+    - [Prerequisites](#prerequisites)
+    - [Monitor system components](#monitor-system-components)
+    - [Commands](#commands)
+        - [Build the binary](#build-the-binary)
+        - [Install binary](#install-binary)
+        - [(Optional) Enable autocompletion](#optional-enable-autocompletion)
+        - [Deploy the _combined_ application](#deploy-the-combined-application)
+        - [Undeploy the _combined_ application](#undeploy-the-combined-application)
+        - [Deploy the _combined_ application from AWS ECR](#deploy-the-combined-application-from-aws-ecr)
+        - [Deploy the _ecs_ application](#deploy-the-ecs-application)
+        - [Undeploy the _ecs_ application](#undeploy-the-ecs-application)
+        - [Deploy the _ecs-single_ application](#deploy-the-ecs-single-application)
+        - [Undeploy the _ecs-single_ application](#undeploy-the-ecs-single-application)
+        - [Deploy the _ecs-migration_ application](#deploy-the-ecs-migration-application)
+        - [Undeploy the _ecs-migration_ application](#undeploy-the-ecs-migration-application)
+        - [Run IDP migration](#run-idp-migration)
+        - [Deploy the import application](#deploy-the-import-application)
+        - [Undeploy the import application](#undeploy-the-import-application)
+        - [Deploy child applications](#deploy-child-applications)
+            - [Deploy the export application](#deploy-the-export-application)
+            - [Deploy the search application](#deploy-the-search-application)
+            - [Deploy the edge application](#deploy-the-edge-application)
+            - [Deploy the erm application](#deploy-the-erm-application)
+        - [Undeploy child applications](#undeploy-child-applications)
+        - [Intercept a module](#intercept-a-module)
+        - [Create a port proxy](#create-a-port-proxy)
+        - [Upgrade a module](#upgrade-a-module)
+        - [Other commands](#other-commands)
+    - [Using a custom folio-module-sidecar](#using-a-custom-folio-module-sidecar)
+    - [Using a native folio-module-sidecar](#using-a-native-folio-module-sidecar)
+    - [Using local backend module images](#using-local-backend-module-images)
+    - [Using local frontend module descriptors](#using-local-frontend-module-descriptors)
+    - [Using a custom module registry](#using-a-custom-module-registry)
+        - [Using a custom Docker image for a module](#using-a-custom-docker-image-for-a-module)
+    - [Using the UI](#using-the-ui)
+    - [Using Single Tenant UX](#using-single-tenant-ux)
+    - [Using the environment](#using-the-environment)
+    - [Using template environment variables](#using-template-environment-variables)
+    - [Using per-sidecar environment variables](#using-per-sidecar-environment-variables)
+    - [Using extra volumes](#using-extra-volumes)
+    - [Using OpenTelemetry LGTM stack](#using-opentelemetry-lgtm-stack)
+    - [Add missing Vault secrets](#add-missing-vault-secrets)
+    - [Troubleshooting](#troubleshooting)
+        - [General](#general)
+        - [Command-based](#command-based)
+    - [Ubuntu-Specific Setup Notes](#ubuntu-specific-setup-notes)
+        - [Docker Environment](#docker-environment)
+        - [System Toolchains](#system-toolchains)
+        - [Building the Native Sidecar on Ubuntu](#building-the-native-sidecar-on-ubuntu)
+            - [Known build issue: native-image "object in the image heap" errors](#known-build-issue-native-image-object-in-the-image-heap-errors)
+        - [Running the Frontend UI Locally Against a Containerized Backend](#running-the-frontend-ui-locally-against-a-containerized-backend)
+        - [Module Interception on Ubuntu](#module-interception-on-ubuntu)
+        - [Cleanup & Teardown Notes](#cleanup--teardown-notes)
+    - [Additional Resources](#additional-resources)
 
 ## Purpose
 
@@ -68,28 +78,30 @@ Install dependencies:
 
 - [Go](https://go.dev/doc/install) compiler: last development-tested version is `go1.25.3 windows/amd64`
 - [Rancher Desktop](https://rancherdesktop.io/) container daemon: last development-tested version is `v1.20.1`
-  - Enable **dockerd (Moby)** container engine
-  - Disable **Check for updates automatically**
-  - Disable **Enable Kubernetes**
+    - Enable **dockerd (Moby)** container engine
+    - Disable **Check for updates automatically**
+    - Disable **Enable Kubernetes**
 
 On Windows, it is recommended to work exclusively in Windows Terminal running Git Bash:
 
 - [Windows Terminal](https://learn.microsoft.com/en-us/windows/terminal/install): Install for better shell experience when paired with Git Bash
 - [Git Bash](https://gitforwindows.org/): Add to Windows Terminal as new default profile & Unix-like shell environment that supports Bash commands
 
+> **Ubuntu users:** see [Ubuntu-Specific Setup Notes](#ubuntu-specific-setup-notes) at the end of this document for additional platform requirements and known issues (Docker daemon conflicts, native sidecar build errors, `host.docker.internal` routing, etc.).
+
 Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc\hosts`):
 
 - **Option 1 - Automated (recommended):**
-  - **Linux/macOS:** `sudo ./misc/scripts/add-hosts.sh`
-  - **Windows:** Open PowerShell as Administrator and run: `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process; .\misc\scripts\add-hosts.ps1`
+    - **Linux/macOS:** `sudo ./misc/scripts/add-hosts.sh`
+    - **Windows:** Open PowerShell as Administrator and run: `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process; .\misc\scripts\add-hosts.ps1`
 - **Option 2 - Manual:** Add the following entries:
-  - `127.0.0.1 postgres.eureka`
-  - `127.0.0.1 kafka.eureka`
-  - `127.0.0.1 vault.eureka`
-  - `127.0.0.1 keycloak.eureka`
-  - `127.0.0.1 kong.eureka`
+    - `127.0.0.1 postgres.eureka`
+    - `127.0.0.1 kafka.eureka`
+    - `127.0.0.1 vault.eureka`
+    - `127.0.0.1 keycloak.eureka`
+    - `127.0.0.1 kong.eureka`
 
-> **WARNING:** JVM sidecar images published on FOLIO Docker Hub are built with an invalid entrypoint and will fail to start. If you intend to use sidecars, you must build a native sidecar image locally — see [Using a native folio-module-sidecar](#using-a-native-folio-module-sidecar).
+> **WARNING:** JVM sidecar images published on FOLIO Docker Hub are built with an invalid entrypoint and will fail to start. If you intend to use sidecars, you must build a native sidecar image locally — see [Using a native folio-module-sidecar](#using-a-native-folio-module-sidecar) (Ubuntu users should also check [Building the Native Sidecar on Ubuntu](#building-the-native-sidecar-on-ubuntu) for a common GraalVM build error and its fix).
 
 ## Monitor system components
 
@@ -157,7 +169,7 @@ Available flags:
 **Global flags (available for all commands):**
 
 | Long                    | Short | Description                                                                                                                         |
-|-------------------------|-------|-------------------------------------------------------------------------------------------------------------------------------------|
+|-------------------------|-------|---------------------------------------------------------------------------------------------------------------------------------------|
 | `--buildImages`         | `-b`  | Build Docker images                                                                                                                 |
 | `--configFile`          | `-c`  | Specify config file path                                                                                                            |
 | `--enableDebug`         | `-d`  | Enable debug mode                                                                                                                   |
@@ -168,7 +180,7 @@ Available flags:
 **Command-specific flags:**
 
 | Long                      | Short | Description                                               | Command(s)                             |
-|---------------------------|-------|-----------------------------------------------------------|----------------------------------------|
+|---------------------------|-------|-------------------------------------------------------------|----------------------------------------|
 | `--all`                   | `-a`  | All modules for all profiles                              | listModules                            |
 | `--apps`                  |       | Application names                                         | purgeTenants                           |
 | `--cleanup`               |       | Perform a cleanup operation                               | deployApplication, upgradeModule       |
@@ -438,6 +450,8 @@ eureka-cli interceptModule -n mod-orders -gm 36002 -s 37002
 eureka-cli -p import interceptModule -n mod-orders -gm 36002 -s 37002
 ```
 
+> **Ubuntu note:** `host.docker.internal` and the `-gm <port>` shorthand frequently fail to route correctly on Linux. See [Module Interception on Ubuntu](#module-interception-on-ubuntu) for a reliable alternative using the Docker network gateway IP directly.
+
 ![CLI Intercept Module](images/cli_intercept_module_2.png)
 
 - Create and open a new order in the Orders app
@@ -653,7 +667,7 @@ mvn clean install -Pnative -DskipTests \
   -Dquarkus.native.builder-image=quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-21
 ```
 
-> This builds a native binary using a container-based GraalVM with a Linux toolchain.
+> This builds a native binary using a container-based GraalVM with a Linux toolchain. **If this fails with an "object in the image heap" error**, see [Known build issue: native-image "object in the image heap" errors](#known-build-issue-native-image-object-in-the-image-heap-errors) in the Ubuntu-Specific Setup Notes — the fix applies on any platform.
 
 - Build a custom local Docker image
 
@@ -726,6 +740,61 @@ frontend-modules:
 ```bash
 eureka-cli deployApplication
 ```
+
+## Using a custom module registry
+
+By default, module versions and descriptors are resolved from the official FOLIO registry. To point the CLI at a different registry — for example an internal, fork-specific, or third-party registry — set `registry.url` in your profile config:
+
+```yaml
+registry:
+  url: https://folio-registry.k-int.com
+```
+
+- Any `backend-modules` entry that does **not** match a known module ID in the standard Folio or Eureka registry listings is treated as a custom/standalone module and injected directly into the deployment and application-registration flow, rather than being rejected.
+- For such a custom module, if no `version` is pinned in the config, the CLI automatically queries `{registry.url}/_/proxy/modules` to discover the latest published version whose ID matches the module name:
+
+```yaml
+backend-modules:
+  mod-ill:
+    # version omitted -> latest version is auto-discovered from registry.url
+```
+
+- To skip discovery and pin an exact version instead, set it explicitly:
+
+```yaml
+backend-modules:
+  mod-ill:
+    version: "1.2.3"
+```
+
+- If discovery fails for any reason (registry unreachable, module never published to that registry, network timeout, etc.), the CLI falls back to `1.0.0` so the module can still be injected and deployment can proceed rather than hard-failing.
+- Use the global `--skipRegistry` flag on `deployApplication`, `deployModules`, `deployManagement`, and `interceptModule` if you want to bypass registry lookups entirely (e.g. when working fully offline against locally pinned versions and images).
+
+You can similarly point individual profiles at custom platform descriptor and CI artifact locations, independent of `registry.url`:
+
+```yaml
+lsp:
+  url: https://raw.githubusercontent.com/folio-org/platform-lsp/refs/heads/snapshot/platform-descriptor.json
+far:
+  url: https://far.ci.folio.org
+```
+
+> `lsp.url` controls where the platform descriptor used to assemble the UI bundle is fetched from (see [Using the UI](#using-the-ui)); `far.url` controls the CI artifact repository used for module descriptor lookups. Both are independent of `registry.url` and can be mixed and matched per profile.
+
+### Using a custom Docker image for a module
+
+Combine a custom registry with a per-module `image` override to source a module's container image from somewhere other than the standard `folioci`/`folioorg` DockerHub namespaces (see also [Using local backend module images](#using-local-backend-module-images) for the fully-local, no-registry alternative):
+
+```yaml
+backend-modules:
+  mod-ill:
+    image: knowledgeintegration/mod-ill
+    private-port: 8080
+```
+
+- If `image` omits an explicit tag, the CLI appends the resolved module version as the tag, stripping any `+` build-metadata suffix so the result is a valid Docker tag (e.g. a resolved version of `13.1.0-SNAPSHOT.1093+abc123` is tagged as `13.1.0-SNAPSHOT.1093`).
+- If `image` already includes a tag (i.e. it contains a `:`), that exact tag is respected and used as-is, with no modification.
+- Setting a custom `image` always forces a pull check for that module against the registry/namespace it belongs to, even if a matching image already exists locally.
 
 ## Using the UI
 
@@ -996,6 +1065,7 @@ Module readiness checks are failing
 
 - Verify that the module descriptor for the latest snapshot version already exists in the registry (can check with `eureka-cli listModuleVersions` command)
 - Or set a fixed module version in the config (i.e. using `<module>.version`)
+- If you're using a [custom module registry](#using-a-custom-module-registry), double-check `registry.url` points at a reachable `/_/proxy/modules` endpoint
 
 `"The module is not entitled on tenant ..."`
 
@@ -1010,6 +1080,148 @@ ERROR: unable to select packages:
 ```
 
 - Update your local CLI git repository and rebuild the binary; our Dockerfiles in the `misc` folder are no longer dependent on pinned and non-deterministic package versions of Alpine Linux
+
+---
+
+## Ubuntu-Specific Setup Notes
+
+The following notes apply specifically when running the Eureka CLI environment on Ubuntu. Review them alongside the general [Prerequisites](#prerequisites) above — they cover platform quirks that can otherwise cause silent build errors or container networking conflicts.
+
+### Docker Environment
+
+- **Single Version Enforcement:** You must have only **one** version of Docker installed on your host machine. Mixing Docker installations (such as having both standard APT packages and Snap packages active) will conflict and break the underlying container networking layer.
+
+### System Toolchains
+
+- **Java:** Java 21 must be installed and set as your active default JDK (`java -version`).
+- **Maven:** Ensure Maven is installed and accessible via your system path (`mvn -v`).
+- **Go Path Configuration:** Ensure Go is installed, properly linked to your system path, with directory permissions set:
+
+```bash
+# Add Go binary path to bashrc to allow global execution of installed binaries
+echo 'export PATH=$PATH:$HOME/go/bin' >> ~/.bashrc
+source ~/.bashrc
+```
+
+- You may need to explicitly mark the hosts-configuration script as executable, and grant execute permission on the `.eureka` home directory once it exists:
+
+```bash
+chmod u+x ./misc/scripts/add-hosts.sh
+sudo ./misc/scripts/add-hosts.sh
+
+# NOTE: ~/.eureka may not exist until after you first install/run the CLI
+chmod u+x ~/.eureka
+```
+
+### Building the Native Sidecar on Ubuntu
+
+Follow the steps in [Using a native folio-module-sidecar](#using-a-native-folio-module-sidecar) to clone and build the artifact, then build the native-micro Docker image:
+
+```bash
+git clone https://github.com/folio-org/folio-module-sidecar.git
+cd folio-module-sidecar
+docker build -f docker/Dockerfile.native-micro -t folio-module-sidecar-native .
+```
+
+#### Known build issue: native-image "object in the image heap" errors
+
+If `mvn ... -Pnative` fails with `Error: Detected a[n] ... object in the image heap` or `Error: An object of type 'X' was found in the image heap`, this is a GraalVM/Mandrel class-initialization issue, not Ubuntu-specific. It tends to happen when the pinned Mandrel builder image is behind the version Quarkus expects (check the build log for a `You are using an older version of GraalVM or Mandrel` warning).
+
+**Preferred fix — use a builder image matching Quarkus's expected version:**
+
+```bash
+mvn clean install -Pnative -DskipTests \
+  -Dquarkus.native.remote-container-build=true \
+  -Dquarkus.native.builder-image=quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-25
+```
+
+> The build output is a self-contained native binary — it does not require a matching JDK at runtime, so building with a newer JDK-based Mandrel image (e.g. `jdk-25`) is safe even though the project's source/target level is Java 21.
+
+**Fallback — if you must stay on `jdk-21` and hit this error:** identify the offending class from the `Trace: Object was reached by ... static field X.Y` section of the error (add the class `X` that owns the field, not the object's type), and add it to `--initialize-at-run-time`:
+
+```bash
+mvn clean install -Pnative -DskipTests \
+  -Dquarkus.native.remote-container-build=true \
+  -Dquarkus.native.builder-image=quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-21 \
+  -Dquarkus.native.additional-build-args=--initialize-at-run-time=sun.security.pkcs11.wrapper.PKCS11\,sun.security.pkcs11.P11Util\,com.bettercloud.vault.rest.Rest\,org.apache.http.impl.auth.NTLMEngineImpl
+```
+
+### Running the Frontend UI Locally Against a Containerized Backend
+
+If you choose to run the UI locally while communicating with your local containerized Eureka backend:
+
+- Undeploy the containerized UI instance:
+
+```bash
+eureka-cli undeployUi
+```
+
+- Initialize and start your local UI/Frontend repository pointing directly at the local Eureka endpoints, e.g. in `stripes.config.js`:
+
+```javascript
+okapi: {
+  url: 'http://localhost:8000',
+  uiUrl: 'https://localhost:3000',
+  authnUrl: 'http://keycloak.eureka:8080'
+},
+config: {
+  useOkapiInterfaces: false,
+  logCategories: 'core,path,action,xhr',
+  showPerms: true,
+  tenantOptions: {
+    diku: { name: 'diku', clientId: 'diku-application' }
+  },
+  useSecureTokens: true,
+  rtr: {
+    idleSessionTTL: '4h',
+    idleModalTTL: '2m',
+  }
+},
+```
+
+### Module Interception on Ubuntu
+
+> ⚠️ The standard internal Docker DNS mapping (`host.docker.internal`) frequently fails to route properly out of the box on Ubuntu/Linux. Avoid the short `-gm <port>` shorthand of [`interceptModule`](#intercept-a-module) and use explicit HTTP URLs built from the real Docker network gateway IP instead.
+
+- Extract the literal network gateway IP address associated with the Eureka Docker network:
+
+```bash
+docker network inspect eureka | grep Gateway
+```
+
+*(This typically yields something like `172.19.0.1`)*
+
+- Run your module locally (example: `mod-agreements` via its dedicated Grails environment target, launched on port `36005`):
+
+```bash
+./gradlew bootRun -Dgrails.env=eureka-cli
+```
+
+- Execute the interception route using that gateway IP and explicit HTTP URLs:
+
+```bash
+  eureka-cli -p erm interceptModule -n mod-agreements -m http://172.19.0.1:36005 -s http://172.19.0.1:37002
+```
+
+- To stop intercepting traffic and return the module to its standard containerized state, pass the remove (`-r`) flag as usual:
+
+```bash
+eureka-cli -p erm interceptModule -n mod-agreements -r
+```
+
+### Cleanup & Teardown Notes
+
+> ⚠️ **WARNING:** Leaving these applications active across system reboots, deep sleep cycles, or suspend states can cause severe network adapter instability and Docker bridge conflicts on Ubuntu.
+
+Always undeploy your environments completely when finished working. **Undeployment must occur in the exact reverse order of deployment** to ensure resources are properly cleaned up — undeploy any child/dependent application before its base application. For example, if you deployed _combined-native_ and then _erm_ on top of it:
+
+```bash
+# 1. Undeploy the dependent (child) application first
+eureka-cli -p erm undeployApplication
+
+# 2. Then undeploy the base application
+eureka-cli -p combined-native undeployApplication
+```
 
 ---
 
