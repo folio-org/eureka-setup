@@ -17,8 +17,8 @@ type ProxyModulesResponse []ProxyModule
 
 // ProxyModule represents a proxy module with ID and metadata
 type ProxyModule struct {
-	ID       string              `json:"id"`
-	Action   string              `json:"action,omitempty"`
+	ID     string               `json:"id"`
+	Action string               `json:"action,omitempty"`
 	Metadata ProxyModuleMetadata `json:"-"`
 }
 
@@ -44,6 +44,7 @@ type BackendModule struct {
 	UseOkapiURL              bool
 	DisableSystemUser        bool
 	LocalDescriptorPath      string
+	Image                    string // <-- Added: Custom image string container mapping
 	ModuleName               string
 	ModuleVersion            *string
 	ModuleExposedServerPort  int
@@ -70,6 +71,7 @@ type BackendModuleProperties struct {
 	UseOkapiURL         bool
 	DisableSystemUser   bool
 	LocalDescriptorPath string
+	Image               string  `yaml:"image" mapstructure:"image"` // <-- Added: Dynamic unmarshal property mapping
 	Name                string
 	Version             *string
 	Port                *int
@@ -113,6 +115,7 @@ func NewBackendModuleWithSidecar(action *action.Action, p BackendModulePropertie
 		UseOkapiURL:              p.UseOkapiURL,
 		DisableSystemUser:        p.DisableSystemUser,
 		LocalDescriptorPath:      p.LocalDescriptorPath,
+		Image:                    p.Image, // <-- Added: Pass parameter values through
 		ModuleName:               p.Name,
 		ModuleVersion:            p.Version,
 		ModuleExposedServerPort:  moduleServerPort,
@@ -146,6 +149,7 @@ func NewBackendModule(action *action.Action, p BackendModuleProperties) (*Backen
 		UseOkapiURL:             p.UseOkapiURL,
 		DisableSystemUser:       p.DisableSystemUser,
 		LocalDescriptorPath:     p.LocalDescriptorPath,
+		Image:                   p.Image, // <-- Added: Pass parameter values through
 		ModuleName:              p.Name,
 		ModuleVersion:           p.Version,
 		ModuleExposedServerPort: serverPort,

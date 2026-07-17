@@ -16,7 +16,11 @@ limitations under the License.
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
 	"log/slog"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
@@ -60,7 +64,56 @@ func (run *Run) DeployModules() error {
 	if err != nil {
 		return err
 	}
+
+	// Resolve native framework metadata first
 	run.Config.RegistrySvc.ResolveModuleMetadata(modules)
+
+	// --- UNIVERSAL PROFILE MODULE INJECTION PATCH START ---
+	// Safely inject custom registry modules AFTER metadata resolution to bypass strict regex limitations
+	for name, bMod := range backendModules {
+		found := false
+		// Match against names cleanly resolved by the framework
+		for _, fm := range modules.FolioModules {
+			if fm.Metadata.Name == name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			for _, em := range modules.EurekaModules {
+				if em.Metadata.Name == name {
+					found = true
+					break
+				}
+			}
+		}
+
+		if !found {
+			version := "1.0.0"
+			if bMod.ModuleVersion != nil && *bMod.ModuleVersion != "" {
+				version = *bMod.ModuleVersion
+			} else {
+				discoveredVersion, lookupErr := run.discoverLatestRegistryVersion(name)
+				if lookupErr == nil && discoveredVersion != "" {
+					version = discoveredVersion
+				}
+			}
+
+			syntheticID := fmt.Sprintf("%s-%s", name, version)
+			syntheticProxy := &models.ProxyModule{
+				ID:     syntheticID,
+				Action: "enable",
+				Metadata: models.ProxyModuleMetadata{
+					Name:        name,
+					SidecarName: name + "-sc",
+					Version:     &version,
+				},
+			}
+			modules.FolioModules = append(modules.FolioModules, syntheticProxy)
+			slog.Info(run.Config.Action.Name, "text", "Injected custom proxy module into registry orchestration layer", "module", name, "id", syntheticID)
+		}
+	}
+	// --- UNIVERSAL PROFILE MODULE INJECTION PATCH END ---
 
 	client, err := run.Config.DockerClient.Create()
 	if err != nil {
@@ -121,6 +174,42 @@ func (run *Run) DeployModules() error {
 		FrontendModules:   frontendModules,
 		ModuleDescriptors: make(map[string]any),
 	})
+}
+
+func (run *Run) discoverLatestRegistryVersion(moduleName string) (string, error) {
+	type RegistryItem struct {
+		ID string `json:"id"`
+	}
+
+	baseRegistryURL := strings.TrimSpace(run.Config.Action.ConfigRegistryURL)
+	if baseRegistryURL == "" {
+		return "", fmt.Errorf("registry URL is unconfigured in profile")
+	}
+
+	endpoint := fmt.Sprintf("%s/_/proxy/modules", strings.TrimSuffix(baseRegistryURL, "/"))
+
+	ctxClient := &http.Client{Timeout: 10 * time.Second}
+	resp, err := ctxClient.Get(endpoint)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var items []RegistryItem
+	if err := json.NewDecoder(resp.Body).Decode(&items); err != nil {
+		return "", err
+	}
+
+	prefix := moduleName + "-"
+	latestVersion := ""
+
+	for _, item := range items {
+		if strings.HasPrefix(item.ID, prefix) {
+			latestVersion = strings.TrimPrefix(item.ID, prefix)
+		}
+	}
+
+	return latestVersion, nil
 }
 
 func init() {

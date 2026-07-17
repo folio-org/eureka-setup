@@ -137,6 +137,33 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 
 			version := ms.GetModuleImageVersion(backendModule, module)
 			module.Metadata.Version = &version
+
+            // --- AUTOMATED IMAGE & TIMESTAMPS SANITIZATION ENGINE ---
+            imageName := ms.GetModuleImage(module)
+            pullImage := backendModule.LocalDescriptorPath == ""
+
+            // Safely read the raw unmarshaled map out of the profile memory space
+            if rawModuleConfig, exists := ms.Action.ConfigBackendModules[module.Metadata.Name]; exists {
+                if moduleMap, ok := rawModuleConfig.(map[string]any); ok {
+                    if img, imgExists := moduleMap["image"]; imgExists {
+                        if imgStr, isStr := img.(string); isStr {
+                            customImage := strings.TrimSpace(imgStr)
+                            if customImage != "" {
+                                if strings.Contains(customImage, ":") {
+                                    // If you type an explicit tag, respect it exactly
+                                    imageName = customImage
+                                } else {
+                                    // Automatically drop anything after '+' to perfectly match valid Docker snapshot tags
+                                    cleanTag := strings.Split(version, "+")[0]
+                                    imageName = fmt.Sprintf("%s:%s", customImage, cleanTag)
+                                }
+                                pullImage = true // Force an external network pull check for latest snapshot layers
+                            }
+                        }
+                    }
+                }
+            }
+
 			slog.Info(ms.Action.Name, "text", "Deploying module", "module", module.Metadata.Name,
 				"port1", backendModule.ModuleExposedServerPort,
 				"port2", backendModule.ModuleExposedDebugPort,
@@ -146,7 +173,7 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 			if err := ms.DeployModule(client, &models.Container{
 				Name: module.Metadata.Name,
 				Config: &container.Config{
-					Image:        ms.GetModuleImage(module),
+					Image:        imageName,
 					Hostname:     module.Metadata.Name,
 					Env:          ms.GetModuleEnv(containers, module, backendModule),
 					ExposedPorts: *backendModule.ModuleExposedPorts,
@@ -159,7 +186,7 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 				},
 				NetworkConfig: helpers.GetModuleNetworkConfig(),
 				Platform:      helpers.GetPlatform(),
-				PullImage:     backendModule.LocalDescriptorPath == "",
+				PullImage:     pullImage,
 			}); err != nil {
 				return nil, 0, err
 			}
