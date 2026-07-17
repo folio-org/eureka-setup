@@ -1,24 +1,12 @@
-/*
-Copyright © 2026 Open Library Foundation
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package cmd
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
@@ -65,6 +53,7 @@ func (run *Run) CloneUpdateRepositories() error {
 	}
 
 	repositories := []*gitrepository.GitRepository{kongRepository, keycloakRepository}
+
 	slog.Info(run.Config.Action.Name, "text", "Cloning repositories", "repositories", repositories)
 	for _, repository := range repositories {
 		if err := run.Config.GitClient.Clone(repository); err != nil {
@@ -89,13 +78,61 @@ func (run *Run) CloneUpdateRepositories() error {
 }
 
 func (run *Run) BuildSystem() error {
-	slog.Info(run.Config.Action.Name, "text", "BUILDING SYSTEM IMAGES")
-	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache"}
 	homeDir, err := helpers.GetHomeMiscDir()
 	if err != nil {
 		return err
 	}
 
+	// --- DYNAMIC FRONTEND PLATFORM CONTAINER GENERATOR ---
+	if run.Config.Action.ConfigFrontendPlatform != "" && run.Config.Action.ConfigFrontendURL != "" {
+		slog.Info(run.Config.Action.Name, "text", "DYNAMIC FRONTEND PLATFORM SETUP", "platform", run.Config.Action.ConfigFrontendPlatform)
+
+		branchName := run.Config.Action.ConfigFrontendBranch
+		if branchName == "" {
+			branchName = "main"
+		}
+
+		startScript := run.Config.Action.ConfigFrontendStartScript
+		if startScript == "" {
+			startScript = "start"
+		}
+
+        // Generate the specification dynamically
+		dockerfileContent := fmt.Sprintf(`FROM node:20
+WORKDIR /app
+RUN git clone -b %s %s .
+ENV HUSKY=0
+RUN npm install --legacy-peer-deps
+EXPOSE 3000
+CMD ["npm", "run", "%s"]`, branchName, run.Config.Action.ConfigFrontendURL, startScript)
+
+		dockerfilePath := filepath.Join(homeDir, "Dockerfile.custom-frontend")
+		if err := os.WriteFile(dockerfilePath, []byte(dockerfileContent), 0644); err != nil {
+			return fmt.Errorf("failed to write dynamic frontend Dockerfile: %w", err)
+		}
+
+		// Resolve targeted application workspace tags (e.g. bkadirkhodjaev/platform-lsp-ui-ill:latest)
+		var tenantName string
+		for k := range run.Config.Action.ConfigTenants {
+			tenantName = k // Resolves target mapping key (e.g., "ill")
+			break
+		}
+		if tenantName == "" {
+			tenantName = "diku" // Graceful default fallback
+		}
+
+		targetTag := fmt.Sprintf("%s/platform-lsp-ui-%s:latest", run.Config.Action.ConfigNamespacePlatformLspUI, tenantName)
+		slog.Info(run.Config.Action.Name, "text", "Compiling custom frontend platform via container engine layer", "tag", targetTag)
+
+		buildCmd := exec.Command("docker", "build", "-t", targetTag, "-f", "Dockerfile.custom-frontend", ".")
+		if err := run.Config.ExecSvc.ExecFromDir(buildCmd, homeDir); err != nil {
+			return fmt.Errorf("failed compiling custom workspace image container: %w", err)
+		}
+	}
+	// --- END OF PATCH ---
+
+	slog.Info(run.Config.Action.Name, "text", "BUILDING SYSTEM IMAGES")
+	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache"}
 	return run.Config.ExecSvc.ExecFromDir(exec.Command("docker", subCommand...), homeDir)
 }
 

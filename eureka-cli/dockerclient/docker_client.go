@@ -71,6 +71,23 @@ func (dc *DockerClient) PushImage(namespace string, imageName string) error {
 }
 
 func (dc *DockerClient) ForcePullImage(imageName string) (finalImageName string, err error) {
+	// --- Injected Custom Frontend Pull Guard Patch ---
+	if dc.Action.ConfigFrontendPlatform != "" {
+		// Resolve the exact target tag matching the built image
+		var tenantName string
+		for k := range dc.Action.ConfigTenants {
+			tenantName = k
+			break
+		}
+		if tenantName == "" {
+			tenantName = "diku"
+		}
+		localImageTag := fmt.Sprintf("%s/platform-lsp-ui-%s:latest", dc.Action.ConfigNamespacePlatformLspUI, tenantName)
+		slog.Info(dc.Action.Name, "text", "Custom frontend configuration profile detected. Utilizing locally generated cache layout target.", "tag", localImageTag)
+		return localImageTag, nil
+	}
+	// --- End of Patch ---
+
 	slog.Info(dc.Action.Name, "text", "PULLING PLATFORM LSP UI IMAGE FROM DOCKER HUB")
 	if !action.IsSet(field.NamespacesPlatformLspUI) {
 		return "", errors.ImageKeyNotSet(imageName, field.NamespacesPlatformLspUI)

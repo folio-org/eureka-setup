@@ -83,25 +83,6 @@ func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
 	return repository.Dir, nil
 }
 
-func (us *UISvc) PrepareImage(tenantName string) (string, error) {
-	imageName := fmt.Sprintf("platform-lsp-ui-%s", tenantName)
-	if us.Action.Param.BuildImages {
-		outputDir, err := us.CloneAndUpdateRepository(us.Action.Param.UpdateCloned)
-		if err != nil {
-			return "", err
-		}
-
-		return us.BuildImage(tenantName, outputDir)
-	}
-
-	finalImageName, err := us.DockerClient.ForcePullImage(imageName)
-	if err != nil {
-		return "", err
-	}
-
-	return finalImageName, nil
-}
-
 func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error) {
 	slog.Info(us.Action.Name, "text", "Preparing UI configs")
 	err := us.PrepareStripesConfigJS(tenantName, outputDir)
@@ -137,6 +118,33 @@ func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error)
 	return finalImageName, nil
 }
 
+func (us *UISvc) PrepareImage(tenantName string) (string, error) {
+	// --- Injected Custom Frontend Patch ---
+	if us.Action.ConfigFrontendPlatform != "" {
+		localImageTag := fmt.Sprintf("%s/platform-lsp-ui-%s:latest", us.Action.ConfigNamespacePlatformLspUI, tenantName)
+		slog.Info(us.Action.Name, "text", "Custom external frontend defined; skipping pull and using locally compiled image target", "tag", localImageTag)
+		return localImageTag, nil
+	}
+	// --- End of Patch ---
+
+	imageName := fmt.Sprintf("platform-lsp-ui-%s", tenantName)
+	if us.Action.Param.BuildImages {
+		outputDir, err := us.CloneAndUpdateRepository(us.Action.Param.UpdateCloned)
+		if err != nil {
+			return "", err
+		}
+
+		return us.BuildImage(tenantName, outputDir)
+	}
+
+	finalImageName, err := us.DockerClient.ForcePullImage(imageName)
+	if err != nil {
+		return "", err
+	}
+
+	return finalImageName, nil
+}
+
 func (us *UISvc) DeployContainer(tenantName string, imageName string, externalPort int) error {
 	slog.Info(us.Action.Name, "text", "Deploying UI container for tenant", "tenant", tenantName)
 	containerName := fmt.Sprintf("eureka-platform-lsp-ui-%s", tenantName)
@@ -153,12 +161,24 @@ func (us *UISvc) DeployContainer(tenantName string, imageName string, externalPo
 		return nil
 	}
 
+	// --- DYNAMIC PORTS AND RESOURCE ALLOCATION OVERRIDES ---
+	publishPorts := fmt.Sprintf("%d:80", externalPort)
+	memoryLimit := "35m"
+
+	if us.Action.ConfigFrontendPlatform != "" {
+		// Map host 3000 to container 3000 to satisfy Keycloak redirect parameters
+		publishPorts = "3000:3000"
+		// Give Node server room to breathe (35m will OOM crash a live node process instantly)
+		memoryLimit = "1g"
+	}
+	// --- END OF OVERRIDES ---
+
 	err = us.ExecSvc.Exec(exec.Command("docker", "run", "--name", containerName,
 		"--hostname", containerName,
-		"--publish", fmt.Sprintf("%d:80", externalPort),
+		"--publish", publishPorts,
 		"--restart", "unless-stopped",
 		"--cpus", "1",
-		"--memory", "35m",
+		"--memory", memoryLimit,
 		"--memory-swap", "-1",
 		"--detach",
 		imageName,

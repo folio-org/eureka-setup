@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-
 	"github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/spf13/viper"
@@ -59,6 +58,10 @@ type Action struct {
 	ConfigConsortiums                  map[string]any
 	ConfigExtraVolumes                 []string
 	ConfigDockerRegistries             []string
+	ConfigFrontendPlatform             string
+    ConfigFrontendURL                  string
+    ConfigFrontendBranch               string
+    ConfigFrontendStartScript          string
 }
 
 func New(name string, gatewayURL string, actionParam *Param) *Action {
@@ -102,6 +105,10 @@ func New(name string, gatewayURL string, actionParam *Param) *Action {
 		ConfigConsortiums:                  viper.GetStringMap(field.Consortiums),
 		ConfigExtraVolumes:                 viper.GetStringSlice(field.ExtraVolumes),
 		ConfigDockerRegistries:             viper.GetStringSlice("docker-registries"),
+		ConfigFrontendPlatform:             viper.GetString("frontend.platform"),
+        ConfigFrontendURL:                  viper.GetString("frontend.url"),
+        ConfigFrontendBranch:               viper.GetString("frontend.branch"),
+        ConfigFrontendStartScript:          viper.GetString("frontend.start-script"),
 	}
 }
 
