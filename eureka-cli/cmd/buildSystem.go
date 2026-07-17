@@ -116,31 +116,17 @@ func (run *Run) BuildCustomFrontendOnly(forceNoCache bool) error {
 		startScript = "start"
 	}
 
-	dockerfileContent := fmt.Sprintf(`FROM node:20
-WORKDIR /app
-RUN git clone -b %s %s .
-ENV HUSKY=0
-ENV NODE_OPTIONS=--max-old-space-size=4096
-RUN npm install --legacy-peer-deps
-EXPOSE 3000
-CMD ["npm", "run", "%s", "--", "--host", "0.0.0.0"]`, branchName, run.Config.Action.ConfigFrontendURL, startScript)
+    dockerfileContent, err := helpers.GenerateFrontendDockerfile(branchName, run.Config.Action.ConfigFrontendURL, startScript)
+    if err != nil {
+        return err
+    }
 
-	dockerfilePath := filepath.Join(homeDir, "Dockerfile.custom-frontend")
-	if err := os.WriteFile(dockerfilePath, []byte(dockerfileContent), 0644); err != nil {
-		return fmt.Errorf("failed to write dynamic frontend Dockerfile: %w", err)
-	}
+    dockerfilePath := filepath.Join(homeDir, "Dockerfile.custom-frontend")
+    if err := os.WriteFile(dockerfilePath, []byte(dockerfileContent), 0644); err != nil {
+        return fmt.Errorf("failed to write dynamic frontend Dockerfile: %w", err)
+    }
 	defer os.Remove(dockerfilePath)
-
-	var tenantName string
-	for k := range run.Config.Action.ConfigTenants {
-		tenantName = k
-		break
-	}
-	if tenantName == "" {
-		tenantName = "diku"
-	}
-
-	targetTag := fmt.Sprintf("%s/platform-lsp-ui-%s:latest", run.Config.Action.ConfigNamespacePlatformLspUI, tenantName)
+    targetTag := helpers.ResolveUIPlatformTag(helpers.GetDefaultTenant(run.Config.Action.ConfigTenants), run.Config.Action.ConfigNamespacePlatformLspUI)
 	slog.Info(run.Config.Action.Name, "text", "Compiling custom frontend platform dynamically", "tag", targetTag)
 
 	// ⚡ CACHE CONTROL

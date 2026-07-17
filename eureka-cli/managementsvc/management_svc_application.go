@@ -130,76 +130,83 @@ func (ms *ManagementSvc) CreateApplication(extract *models.RegistryExtract) erro
 
 	allModules := [][]*models.ProxyModule{extract.Modules.FolioModules, extract.Modules.EurekaModules}
 	for _, modules := range allModules {
-		for _, module := range modules {
-			if strings.Contains(module.Metadata.Name, constant.ManagementModulePattern) {
-				continue
-			}
+    	for _, module := range modules {
+    		if strings.Contains(module.Metadata.Name, constant.ManagementModulePattern) {
+    			continue
+    		}
 
-			backendModule, existsBackend := extract.BackendModules[module.Metadata.Name]
-			frontendModule, existsFrontend := extract.FrontendModules[module.Metadata.Name]
-			if (!existsBackend && !existsFrontend) || (existsBackend && !backendModule.DeployModule || existsFrontend && !frontendModule.DeployModule) {
-				continue
-			}
-			if existsBackend && backendModule.ModuleVersion != nil || existsFrontend && frontendModule.ModuleVersion != nil {
-				if backendModule.ModuleVersion != nil {
-					module.Metadata.Version = backendModule.ModuleVersion
-				} else if frontendModule.ModuleVersion != nil {
-					module.Metadata.Version = frontendModule.ModuleVersion
-				}
-				module.ID = fmt.Sprintf("%s-%s", module.Metadata.Name, *module.Metadata.Version)
-			}
+    		backendModule, existsBackend := extract.BackendModules[module.Metadata.Name]
+    		frontendModule, existsFrontend := extract.FrontendModules[module.Metadata.Name]
+    		if (!existsBackend && !existsFrontend) || (existsBackend && !backendModule.DeployModule || existsFrontend && !frontendModule.DeployModule) {
+    			continue
+    		}
 
-			moduleDescriptorURL := ms.Action.GetModuleURL(module.ID)
-			isLocalBackendModule := existsBackend && backendModule.LocalDescriptorPath != ""
-			isLocalFrontendModule := existsFrontend && frontendModule.LocalDescriptorPath != ""
-			isLocalModule := isLocalBackendModule || isLocalFrontendModule
-			if ms.Action.ConfigApplicationFetchDescriptors || isLocalModule {
-				var descriptorPath string
-				if isLocalBackendModule {
-					descriptorPath = backendModule.LocalDescriptorPath
-				} else if isLocalFrontendModule {
-					descriptorPath = frontendModule.LocalDescriptorPath
-				}
-				if err := ms.FetchModuleDescriptor(extract, module.ID, moduleDescriptorURL, descriptorPath, isLocalModule); err != nil {
-					return err
-				}
-			}
+    		// Ensure explicit config versions map cleanly
+    		if existsBackend && backendModule.ModuleVersion != nil {
+    			module.Metadata.Version = backendModule.ModuleVersion
+    			module.ID = helpers.ToSyntheticID(module.Metadata.Name, *module.Metadata.Version)
+    		} else if existsFrontend && frontendModule.ModuleVersion != nil {
+    			module.Metadata.Version = frontendModule.ModuleVersion
+    			module.ID = helpers.ToSyntheticID(module.Metadata.Name, *module.Metadata.Version)
+    		}
 
-			if existsBackend {
-				newBackendModule := map[string]string{
-					"id":      module.ID,
-					"name":    module.Metadata.Name,
-					"version": *module.Metadata.Version,
-				}
-				if ms.Action.ConfigApplicationFetchDescriptors || isLocalModule {
-					backendModuleDescriptors = append(backendModuleDescriptors, extract.ModuleDescriptors[module.ID])
-				} else {
-					newBackendModule["url"] = moduleDescriptorURL
-				}
-				backendModules = append(backendModules, newBackendModule)
+    		moduleDescriptorURL := ms.Action.GetModuleURL(module.ID)
+    		isLocalBackend := existsBackend && backendModule.LocalDescriptorPath != ""
+    		isLocalFrontend := existsFrontend && frontendModule.LocalDescriptorPath != ""
+    		isLocal := isLocalBackend || isLocalFrontend
 
-				sidecarURL := fmt.Sprintf("http://%s.eureka:%d", module.Metadata.SidecarName, backendModule.PrivatePort)
-				discoveryModules = append(discoveryModules, map[string]string{
-					"id":       module.ID,
-					"name":     module.Metadata.Name,
-					"version":  *module.Metadata.Version,
-					"location": sidecarURL,
-				})
-			} else if existsFrontend {
-				newFrontendModule := map[string]string{
-					"id":      module.ID,
-					"name":    module.Metadata.Name,
-					"version": *module.Metadata.Version,
-				}
-				if ms.Action.ConfigApplicationFetchDescriptors || isLocalModule {
-					frontendModuleDescriptors = append(frontendModuleDescriptors, extract.ModuleDescriptors[module.ID])
-				} else {
-					newFrontendModule["url"] = moduleDescriptorURL
-				}
-				frontendModules = append(frontendModules, newFrontendModule)
-			}
-		}
-	}
+    		// ⚡ Using our centralized architectural helper
+    		embedDescriptor := helpers.ShouldEmbedDescriptor(
+    			ms.Action.ConfigApplicationFetchDescriptors,
+    			isLocal,
+    			module.ID,
+    			extract.ModuleDescriptors,
+    		)
+
+    		if embedDescriptor {
+                if _, cached := extract.ModuleDescriptors[module.ID]; !cached {
+                    var descriptorPath string
+                    if isLocalBackend {
+                        descriptorPath = backendModule.LocalDescriptorPath
+                    } else if isLocalFrontend {
+                        descriptorPath = frontendModule.LocalDescriptorPath // ⚡ Fix typo from LocalFrontendPath
+                    }
+                    if err := ms.FetchModuleDescriptor(extract, module.ID, moduleDescriptorURL, descriptorPath, isLocal); err != nil {
+                        return err
+                    }
+                }
+            }
+
+    		// Compile the payload fragments safely
+    		moduleMap := map[string]string{
+    			"id":      module.ID,
+    			"name":    module.Metadata.Name,
+    			"version": *module.Metadata.Version,
+    		}
+
+    		if embedDescriptor {
+    			if existsBackend {
+    				backendModuleDescriptors = append(backendModuleDescriptors, extract.ModuleDescriptors[module.ID])
+    			} else if existsFrontend {
+    				frontendModuleDescriptors = append(frontendModuleDescriptors, extract.ModuleDescriptors[module.ID])
+    			}
+    		} else {
+    			moduleMap["url"] = moduleDescriptorURL
+    		}
+
+    		if existsBackend {
+    			backendModules = append(backendModules, moduleMap)
+    			discoveryModules = append(discoveryModules, map[string]string{
+    				"id":       module.ID,
+    				"name":     module.Metadata.Name,
+    				"version":  *module.Metadata.Version,
+    				"location": fmt.Sprintf("http://%s.eureka:%d", module.Metadata.SidecarName, backendModule.PrivatePort),
+    			})
+    		} else if existsFrontend {
+    			frontendModules = append(frontendModules, moduleMap)
+    		}
+    	}
+    }
 
 	payload1, err := json.Marshal(map[string]any{
 		"id":                  ms.Action.ConfigApplicationID,

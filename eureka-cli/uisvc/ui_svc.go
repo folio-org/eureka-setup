@@ -13,6 +13,7 @@ import (
 	"github.com/folio-org/eureka-setup/eureka-cli/dockerclient"
 	"github.com/folio-org/eureka-setup/eureka-cli/execsvc"
 	"github.com/folio-org/eureka-setup/eureka-cli/gitclient"
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/tenantsvc"
 	"github.com/go-git/go-git/v5"
 )
@@ -86,20 +87,20 @@ func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
 
 func (us *UISvc) PrepareImage(tenantName string) (string, error) {
 	if us.Action.ConfigFrontendPlatform != "" {
-        targetTag := fmt.Sprintf("%s/platform-lsp-ui-%s:latest", us.Action.ConfigNamespacePlatformLspUI, tenantName)
+        targetTag := helpers.ResolveUIPlatformTag(us.Action.ConfigNamespacePlatformLspUI, tenantName)
 
-        // Trigger compilation if global build (-b), targeted build UI flag, OR always-build config is active
-        if us.Action.Param.BuildImages || us.Action.Param.BuildUI || us.Action.ConfigFrontendAlwaysBuild {
-            slog.Info(us.Action.Name, "text", "Compiling custom frontend platform via native deploy hook", "tag", targetTag)
+		// Trigger compilation if global build (-b), targeted build UI flag, OR always-build config is active
+		if us.Action.Param.BuildImages || us.Action.Param.BuildUI || us.Action.ConfigFrontendAlwaysBuild {
+			slog.Info(us.Action.Name, "text", "Compiling custom frontend platform via native deploy hook", "tag", targetTag)
 
-            // ⚡ AUTOMATIC NO-CACHE: Force no-cache if flag is passed OR always-build is true in configuration
-            forceNoCache := us.Action.Param.NoCache || us.Action.ConfigFrontendAlwaysBuild
+			// ⚡ AUTOMATIC NO-CACHE: Force no-cache if flag is passed OR always-build is true in configuration
+			forceNoCache := us.Action.Param.NoCache || us.Action.ConfigFrontendAlwaysBuild
 
-            if err := us.CompileCustomImage(tenantName, forceNoCache); err != nil {
-                return "", err
-            }
-            return targetTag, nil
-        }
+			if err := us.CompileCustomImage(tenantName, forceNoCache); err != nil {
+				return "", err
+			}
+			return targetTag, nil
+		}
 
 		slog.Info(us.Action.Name, "text", "Using cached custom platform image target", "tag", targetTag)
 		return targetTag, nil
@@ -185,15 +186,15 @@ func (us *UISvc) DeployContainer(tenantName string, imageName string, externalPo
 	}
 
 	err = us.ExecSvc.Exec(exec.Command("docker", "run", "--name", containerName,
-        "--hostname", containerName,
-        "--publish", fmt.Sprintf("%d:%d", externalPort, internalPort),
-        "--restart", "unless-stopped",
-        "--cpus", "1",
-        "--memory", memoryLimit,
-        "--memory-swap", "-1",
-        "--detach",
-        imageName,
-    ))
+		"--hostname", containerName,
+		"--publish", fmt.Sprintf("%d:%d", externalPort, internalPort),
+		"--restart", "unless-stopped",
+		"--cpus", "1",
+		"--memory", memoryLimit,
+		"--memory-swap", "-1",
+		"--detach",
+		imageName,
+	))
 	if err != nil {
 		return err
 	}
@@ -221,23 +222,12 @@ func (us *UISvc) CompileCustomImage(tenantName string, noCache bool) error {
 		startScript = "start"
 	}
 
-	localImageTag := fmt.Sprintf("%s/platform-lsp-ui-%s:latest", namespace, tenantName)
+    localImageTag := helpers.ResolveUIPlatformTag(namespace, tenantName)
 
-	dockerfileLines := []string{
-		"FROM node:20",
-		"WORKDIR /app",
-		fmt.Sprintf("RUN git clone -b %s %s .", branchName, repoURL),
+	dockerfileContent, err := helpers.GenerateFrontendDockerfile(branchName, repoURL, startScript)
+	if err != nil {
+		return fmt.Errorf("failed compiling custom frontend payload configurations: %w", err)
 	}
-
-	dockerfileLines = append(dockerfileLines,
-		"ENV HUSKY=0",
-		"ENV NODE_OPTIONS=--max-old-space-size=4096",
-		"RUN npm install --legacy-peer-deps",
-		"EXPOSE 3000",
-        fmt.Sprintf(`CMD ["npm", "run", "%s", "--", "--host", "0.0.0.0"]`, startScript),
-	)
-
-	dockerfileContent := strings.Join(dockerfileLines, "\n")
 
 	dockerfilePath := "Dockerfile.custom-frontend"
 	if err := os.WriteFile(dockerfilePath, []byte(dockerfileContent), 0644); err != nil {
@@ -245,7 +235,6 @@ func (us *UISvc) CompileCustomImage(tenantName string, noCache bool) error {
 	}
 	defer os.Remove(dockerfilePath)
 
-	// ⚡ CACHE CONTROL: Dynamically build out arguments array
 	buildArgs := []string{"build"}
 	if noCache {
 		buildArgs = append(buildArgs, "--no-cache")

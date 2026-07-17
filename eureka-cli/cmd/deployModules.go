@@ -16,11 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
-	"fmt"
 	"log/slog"
-	"net/http"
-	"strings"
 	"time"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
@@ -68,82 +64,10 @@ func (run *Run) DeployModules() error {
 	// Resolve native framework metadata first
 	run.Config.RegistrySvc.ResolveModuleMetadata(modules)
 
-	prepopulatedDescriptors := make(map[string]any)
-	baseRegistryURL := strings.TrimSpace(run.Config.Action.ConfigRegistryURL)
-
-	// --- UNIVERSAL PROFILE MODULE INJECTION PATCH START ---
-	for name, bMod := range backendModules {
-		found := false
-		for _, fm := range modules.FolioModules {
-			if fm.Metadata.Name == name || isStrictModuleID(fm.ID, name) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			for _, em := range modules.EurekaModules {
-				if em.Metadata.Name == name || isStrictModuleID(em.ID, name) {
-					found = true
-					break
-				}
-			}
-		}
-
-		if !found {
-			var pristineVersion string
-			if bMod.ModuleVersion != nil && *bMod.ModuleVersion != "" {
-				pristineVersion = *bMod.ModuleVersion
-				slog.Debug(run.Config.Action.Name, "text", "Module injection engine: picked explicit configuration version", "module", name, "version", pristineVersion)
-			} else {
-				// Auto-Discovery yields tracking version containing '+'
-				discoveredVersion, lookupErr := run.discoverLatestRegistryVersion(name)
-				if lookupErr == nil && discoveredVersion != "" {
-					pristineVersion = discoveredVersion
-					slog.Debug(run.Config.Action.Name, "text", "Module injection engine: successfully auto-discovered target tag from private registry", "module", name, "version", pristineVersion)
-				} else if lookupErr != nil {
-					slog.Debug(run.Config.Action.Name, "text", "Module injection engine: registry discovery lookup error occurred", "module", name, "error", lookupErr.Error())
-				}
-			}
-
-			if pristineVersion == "" {
-				slog.Warn(run.Config.Action.Name, "text", "Module declared in profile backend-modules but not found in active deployment tree or registry discovery endpoint, skipping injection", "module", name)
-				continue
-			}
-
-			// Format unique ID to be compliant with gateway routing conventions (+ replaced with -)
-			gatewayVersion := strings.ReplaceAll(pristineVersion, "+", "-")
-			syntheticID := fmt.Sprintf("%s-%s", name, gatewayVersion)
-
-			// Pre-populate Descriptor Map directly via original pristine lookups
-			if baseRegistryURL != "" {
-				descURL := fmt.Sprintf("%s/_/proxy/modules/%s-%s", strings.TrimSuffix(baseRegistryURL, "/"), name, pristineVersion)
-				ctxClient := &http.Client{Timeout: 5 * time.Second}
-				descResp, descErr := ctxClient.Get(descURL)
-				if descErr == nil && descResp.StatusCode == http.StatusOK {
-					var descriptorData map[string]any
-					if err := json.NewDecoder(descResp.Body).Decode(&descriptorData); err == nil {
-						descriptorData["id"] = syntheticID
-						prepopulatedDescriptors[syntheticID] = descriptorData
-						slog.Debug(run.Config.Action.Name, "text", "Descriptor Pre-population Engine cached record successfully", "module", name, "id", syntheticID)
-					}
-					descResp.Body.Close()
-				}
-			}
-
-			syntheticProxy := &models.ProxyModule{
-				ID:     syntheticID,
-				Action: "enable",
-				Metadata: models.ProxyModuleMetadata{
-					Name:        name,
-					SidecarName: name + "-sc",
-					Version:     &gatewayVersion,
-				},
-			}
-			modules.FolioModules = append(modules.FolioModules, syntheticProxy)
-			slog.Info(run.Config.Action.Name, "text", "Injected custom proxy module into registry orchestration layer", "module", name, "id", syntheticID)
-		}
+	prepopulatedDescriptors, err := run.Config.RegistrySvc.InjectProfileModules(modules, backendModules)
+	if err != nil {
+		return err
 	}
-	// --- UNIVERSAL PROFILE MODULE INJECTION PATCH END ---
 
 	client, err := run.Config.DockerClient.Create()
 	if err != nil {
@@ -204,102 +128,6 @@ func (run *Run) DeployModules() error {
 		FrontendModules:   frontendModules,
 		ModuleDescriptors: prepopulatedDescriptors,
 	})
-}
-
-// Ensures module matching behaves strictly by verifying the remainder starts with a semantic digit
-func isStrictModuleID(id string, name string) bool {
-	prefix := name + "-"
-	if !strings.HasPrefix(id, prefix) {
-		return false
-	}
-	remainder := strings.TrimPrefix(id, prefix)
-	if len(remainder) == 0 {
-		return false
-	}
-	return remainder[0] >= '0' && remainder[0] <= '9'
-}
-
-func (run *Run) discoverLatestRegistryVersion(moduleName string) (string, error) {
-	type RegistryItem struct {
-		ID string `json:"id"`
-	}
-
-	baseRegistryURL := strings.TrimSpace(run.Config.Action.ConfigRegistryURL)
-	if baseRegistryURL == "" {
-		return "", fmt.Errorf("registry URL is unconfigured in profile")
-	}
-
-	endpoint := fmt.Sprintf("%s/_/proxy/modules", strings.TrimSuffix(baseRegistryURL, "/"))
-
-	ctxClient := &http.Client{Timeout: 10 * time.Second}
-	resp, err := ctxClient.Get(endpoint)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	var items []RegistryItem
-	if err := json.NewDecoder(resp.Body).Decode(&items); err != nil {
-		return "", err
-	}
-
-	// Default to the bare module name instead of a hardcoded namespace prefix
-	repoPath := moduleName
-	var moduleSpecificRegistry string
-
-	if rawModuleConfig, exists := run.Config.Action.ConfigBackendModules[moduleName]; exists {
-		if moduleMap, ok := rawModuleConfig.(map[string]any); ok {
-			if img, imgExists := moduleMap["image"]; imgExists {
-				if imgStr, isStr := img.(string); isStr && strings.TrimSpace(imgStr) != "" {
-					repoPath = strings.TrimSpace(imgStr)
-				}
-			}
-			if reg, regExists := moduleMap["registry"]; regExists {
-				if regStr, isStr := reg.(string); isStr && strings.TrimSpace(regStr) != "" {
-					moduleSpecificRegistry = strings.TrimSpace(regStr)
-				}
-			}
-		}
-	}
-
-	// Strip explicit registry domain prefixes if they are embedded inside the image property
-	if idx := strings.Index(repoPath, "/"); idx != -1 {
-		firstPart := repoPath[:idx]
-		if strings.Contains(firstPart, ".") || strings.Contains(firstPart, ":") {
-			repoPath = repoPath[idx+1:]
-		}
-	}
-
-	for i := len(items) - 1; i >= 0; i-- {
-		item := items[i]
-		if isStrictModuleID(item.ID, moduleName) {
-			rawVersion := strings.TrimPrefix(item.ID, moduleName+"-")
-			cleanTag := strings.Split(rawVersion, "+")[0]
-
-			if moduleSpecificRegistry != "" {
-				privateRegistryURL := fmt.Sprintf("https://%s/v2/%s/manifests/%s", moduleSpecificRegistry, repoPath, cleanTag)
-				req, err := http.NewRequest(http.MethodHead, privateRegistryURL, nil)
-				if err != nil {
-					continue
-				}
-				req.Header.Set("Accept", "application/vnd.docker.distribution.manifest.v2+json")
-
-				hubResp, hubErr := ctxClient.Do(req)
-				if hubErr == nil {
-					hubResp.Body.Close()
-					if hubResp.StatusCode == http.StatusOK {
-						slog.Debug(run.Config.Action.Name, "text", "Module Override Discovery Match", "module", moduleName, "registry", moduleSpecificRegistry, "path", repoPath, "tag", cleanTag)
-						return rawVersion, nil
-					}
-				}
-				continue
-			}
-
-			return rawVersion, nil
-		}
-	}
-
-	return "", fmt.Errorf("no live verified container tags found for module %s", moduleName)
 }
 
 func init() {

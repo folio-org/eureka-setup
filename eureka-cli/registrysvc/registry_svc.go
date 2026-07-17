@@ -1,12 +1,15 @@
 package registrysvc
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/awssvc"
@@ -23,6 +26,7 @@ type RegistryProcessor interface {
 	GetModules(verbose bool, forceRefresh bool) (*models.ProxyModulesByRegistry, error)
 	ResolveModuleMetadata(modules *models.ProxyModulesByRegistry)
 	GetAuthorizationToken() (string, error)
+	InjectProfileModules(modules *models.ProxyModulesByRegistry, backendModules map[string]models.BackendModule) (map[string]any, error)
 }
 
 // RegistrySvc provides functionality for interacting with module registries
@@ -105,6 +109,188 @@ func (rs *RegistrySvc) GetModules(verbose bool, forceRefresh bool) (*models.Prox
 	}, nil
 }
 
+func (rs *RegistrySvc) InjectProfileModules(modules *models.ProxyModulesByRegistry, backendModules map[string]models.BackendModule) (map[string]any, error) {
+	prepopulatedDescriptors := make(map[string]any)
+
+	// 1. Process Backend Modules
+	backendNames := make([]string, 0, len(backendModules))
+	for name := range backendModules {
+		backendNames = append(backendNames, name)
+	}
+	rs.injectModules(modules, backendNames, prepopulatedDescriptors, func(name string) string {
+		if bMod, ok := backendModules[name]; ok && bMod.ModuleVersion != nil {
+			return *bMod.ModuleVersion
+		}
+		return ""
+	}, false)
+
+	// 2. Process Frontend/UI Modules
+	frontendNames := make([]string, 0, len(rs.Action.ConfigFrontendModules))
+	for name := range rs.Action.ConfigFrontendModules {
+		frontendNames = append(frontendNames, name)
+	}
+	rs.injectModules(modules, frontendNames, prepopulatedDescriptors, func(name string) string {
+		if rawMap, ok := rs.Action.ConfigFrontendModules[name].(map[string]any); ok {
+			if v, ok := rawMap["version"].(string); ok {
+				return v
+			}
+		}
+		return ""
+	}, true)
+
+	return prepopulatedDescriptors, nil
+}
+
+// Private helper to isolate the shared registry orchestration and injection layer
+func (rs *RegistrySvc) injectModules(
+	modules *models.ProxyModulesByRegistry,
+	names []string,
+	prepopulatedDescriptors map[string]any,
+	versionExtractor func(string) string,
+	isUI bool,
+) {
+	baseRegistryURL := strings.TrimSpace(rs.Action.ConfigRegistryURL)
+	label := "Backend"
+	profileKey := "backend-modules"
+	if isUI {
+		label = "UI"
+		profileKey = "frontend-modules"
+	}
+
+	for _, name := range names {
+		// Check if the module is already tracked in active deployment trees
+		found := false
+		for _, fm := range modules.FolioModules {
+			if fm.Metadata.Name == name || helpers.IsStrictModuleID(fm.ID, name) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			for _, em := range modules.EurekaModules {
+				if em.Metadata.Name == name || helpers.IsStrictModuleID(em.ID, name) {
+					found = true
+					break
+				}
+			}
+		}
+
+		if found {
+			continue
+		}
+
+		var pristineVersion string
+		if explicitVersion := versionExtractor(name); explicitVersion != "" {
+			pristineVersion = explicitVersion
+			slog.Debug(rs.Action.Name, "text", fmt.Sprintf("%s module injection engine: picked explicit configuration version", label), "module", name, "version", pristineVersion)
+		} else {
+			// Fallback to active registry discovery if unpinned
+			discoveredVersion, lookupErr := rs.discoverLatestRegistryVersion(name)
+			if lookupErr == nil && discoveredVersion != "" {
+				pristineVersion = discoveredVersion
+				slog.Debug(rs.Action.Name, "text", fmt.Sprintf("%s module injection engine: auto-discovered version from registry", label), "module", name, "version", pristineVersion)
+			} else if lookupErr != nil {
+				slog.Debug(rs.Action.Name, "text", "Module injection engine: registry discovery lookup error occurred", "module", name, "error", lookupErr.Error())
+			}
+		}
+
+		if pristineVersion == "" {
+			slog.Warn(rs.Action.Name, "text", fmt.Sprintf("%s Module declared in profile %s but not found anywhere, skipping injection", label, profileKey), "module", name)
+			continue
+		}
+
+        gatewayVersion := helpers.ToGatewayVersion(pristineVersion)
+		syntheticID := helpers.ToSyntheticID(name, pristineVersion)
+
+		// Descriptor Pre-population Engine
+		if baseRegistryURL != "" {
+            moduleDescriptorURL := rs.Action.GetModuleURL(syntheticID)
+            var descriptorData map[string]any
+
+            descErr := rs.HTTPClient.GetRetryReturnStruct(moduleDescriptorURL, map[string]string{}, &descriptorData)
+            if descErr == nil && descriptorData != nil {
+                descriptorData["id"] = syntheticID
+                prepopulatedDescriptors[syntheticID] = descriptorData
+                slog.Debug(rs.Action.Name, "text", fmt.Sprintf("%s Descriptor Pre-population Engine cached record successfully", label), "module", name, "id", syntheticID)
+            } else if descErr != nil {
+                slog.Debug(rs.Action.Name, "text", fmt.Sprintf("%s Descriptor Pre-population Engine skipped remote URL fallback", label), "module", name, "error", descErr.Error())
+            }
+        }
+
+		syntheticProxy := &models.ProxyModule{
+			ID:      syntheticID,
+			Action:  "enable",
+			Metadata: models.ProxyModuleMetadata{
+				Name:        name,
+				SidecarName: name + "-sc",
+				Version:     &gatewayVersion,
+			},
+		}
+		modules.FolioModules = append(modules.FolioModules, syntheticProxy)
+		slog.Info(rs.Action.Name, "text", fmt.Sprintf("Injected custom %s proxy module into registry orchestration layer", label), "module", name, "id", syntheticID)
+	}
+}
+
+func (rs *RegistrySvc) discoverLatestRegistryVersion(moduleName string) (string, error) {
+	type RegistryItem struct {
+		ID string `json:"id"`
+	}
+
+	baseRegistryURL := strings.TrimSpace(rs.Action.ConfigRegistryURL)
+	if baseRegistryURL == "" {
+		return "", fmt.Errorf("registry URL is unconfigured in profile")
+	}
+
+	endpoint := fmt.Sprintf("%s/_/proxy/modules", strings.TrimSuffix(baseRegistryURL, "/"))
+
+	ctxClient := &http.Client{Timeout: 10 * time.Second}
+	resp, err := ctxClient.Get(endpoint)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var items []RegistryItem
+	if err := json.NewDecoder(resp.Body).Decode(&items); err != nil {
+        return "", err
+    }
+
+    override := helpers.ExtractImageOverride(rs.Action.ConfigBackendModules, moduleName)
+    repoPath := helpers.ResolveRepoPath(moduleName, override.Image)
+    moduleSpecificRegistry := override.Registry
+
+	for i := len(items) - 1; i >= 0; i-- {
+		item := items[i]
+		if helpers.IsStrictModuleID(item.ID, moduleName) {
+			rawVersion := strings.TrimPrefix(item.ID, moduleName+"-")
+			cleanTag := strings.Split(rawVersion, "+")[0]
+
+			if moduleSpecificRegistry != "" {
+				privateRegistryURL := fmt.Sprintf("https://%s/v2/%s/manifests/%s", moduleSpecificRegistry, repoPath, cleanTag)
+				req, err := http.NewRequest(http.MethodHead, privateRegistryURL, nil)
+				if err != nil {
+					continue
+				}
+				req.Header.Set("Accept", "application/vnd.docker.distribution.manifest.v2+json")
+
+				hubResp, hubErr := ctxClient.Do(req)
+				if hubErr == nil {
+					hubResp.Body.Close()
+					if hubResp.StatusCode == http.StatusOK {
+						slog.Debug(rs.Action.Name, "text", "Module Override Discovery Match", "module", moduleName, "registry", moduleSpecificRegistry, "path", repoPath, "tag", cleanTag)
+						return rawVersion, nil
+					}
+				}
+				continue
+			}
+
+			return rawVersion, nil
+		}
+	}
+
+	return "", fmt.Errorf("no live verified container tags found for module %s", moduleName)
+}
+
 func (rs *RegistrySvc) getFlattenedModuleVersions(forceRefresh bool) ([]models.ApplicationModule, error) {
 	homeDir, err := helpers.GetHomeDirPath()
 	if err != nil {
@@ -154,7 +340,7 @@ func (rs *RegistrySvc) fetchAndPersistModuleVersions(filePath string) ([]models.
 	var modules []models.ApplicationModule
 	for _, component := range descriptor.EurekaComponents {
 		modules = append(modules, models.ApplicationModule{
-			ID:      fmt.Sprintf("%s-%s", component.Name, component.Version),
+			ID:      helpers.ToSyntheticID(component.Name, component.Version),
 			Name:    component.Name,
 			Version: component.Version,
 		})

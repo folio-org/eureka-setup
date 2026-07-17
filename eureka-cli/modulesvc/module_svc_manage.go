@@ -138,94 +138,45 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 			version := ms.GetModuleImageVersion(backendModule, module)
 			module.Metadata.Version = &version
 
-			// --- AUTOMATED IMAGE SANITIZATION ENGINE ---
-			imageName := ms.GetModuleImage(module)
-			pullImage := backendModule.LocalDescriptorPath == ""
+            slog.Debug(ms.Action.Name, "text", "Sanitization Engine trace init", "module", module.Metadata.Name, "framework_regex_resolved_version", version)
 
-			slog.Debug(ms.Action.Name, "text", "Sanitization Engine trace init", "module", module.Metadata.Name, "framework_regex_resolved_version", version)
+            // Safely convert map structure records to our target config shape
+            override := helpers.ExtractImageOverride(ms.Action.ConfigBackendModules, module.Metadata.Name)
+            fallbackImage := ms.GetModuleImage(module)
+            imageName, isOverridden := helpers.SanitizeModuleImage(fallbackImage, version, module.Metadata.Version, override)
 
-			if rawModuleConfig, exists := ms.Action.ConfigBackendModules[module.Metadata.Name]; exists {
-				if moduleMap, ok := rawModuleConfig.(map[string]any); ok {
-					if img, imgExists := moduleMap["image"]; imgExists {
-						if imgStr, isStr := img.(string); isStr {
-							customImage := strings.TrimSpace(imgStr)
-							if customImage != "" {
-								if strings.Contains(customImage, ":") {
-									imageName = customImage
-									slog.Debug(ms.Action.Name, "text", "Sanitization Engine: using exact static custom image reference", "module", module.Metadata.Name, "imageName", imageName)
-								} else {
-									tagSource := version
-									if tagSource == "" && module.Metadata.Version != nil {
-										tagSource = *module.Metadata.Version
-									}
+            pullImage := backendModule.LocalDescriptorPath == ""
+            if isOverridden {
+                pullImage = true
+                slog.Debug(ms.Action.Name, "text", "Sanitization Engine matched image mapping details override", "module", module.Metadata.Name, "final_image_string", imageName)
+            }
 
-									// Isolate clean tag parameters regardless of + metadata conversions
-									cleanTag := tagSource
-									if strings.Contains(cleanTag, "+") {
-										cleanTag = strings.Split(cleanTag, "+")[0]
-									} else if strings.Contains(cleanTag, "-SNAPSHOT.") {
-										parts := strings.Split(cleanTag, "-SNAPSHOT.")
-										if len(parts) > 1 {
-											cleanTag = parts[0] + "-SNAPSHOT." + strings.Split(parts[1], "-")[0]
-										}
-									}
+            slog.Info(ms.Action.Name, "text", "Deploying module", "module", module.Metadata.Name,
+                "port1", backendModule.ModuleExposedServerPort,
+                "port2", backendModule.ModuleExposedDebugPort,
+                "port3", backendModule.SidecarExposedServerPort,
+                "port4", backendModule.SidecarExposedDebugPort)
 
-									repoPath := customImage
-									if idx := strings.Index(repoPath, "/"); idx != -1 {
-										firstPart := repoPath[:idx]
-										if strings.Contains(firstPart, ".") || strings.Contains(firstPart, ":") {
-											repoPath = repoPath[idx+1:]
-										}
-									}
-
-									// Extract module-level repository mapping
-									var moduleSpecificRegistry string
-									if reg, regExists := moduleMap["registry"]; regExists {
-										if regStr, isStr := reg.(string); isStr && strings.TrimSpace(regStr) != "" {
-											moduleSpecificRegistry = strings.TrimSpace(regStr)
-										}
-									}
-
-									if moduleSpecificRegistry != "" {
-										imageName = fmt.Sprintf("%s/%s:%s", moduleSpecificRegistry, repoPath, cleanTag)
-									} else {
-										imageName = fmt.Sprintf("%s:%s", repoPath, cleanTag)
-									}
-									slog.Debug(ms.Action.Name, "text", "Sanitization Engine output resolved details", "module", module.Metadata.Name, "module_specific_registry", moduleSpecificRegistry, "final_image_string", imageName)
-								}
-								pullImage = true
-							}
-						}
-					}
-				}
-			}
-
-			slog.Info(ms.Action.Name, "text", "Deploying module", "module", module.Metadata.Name,
-				"port1", backendModule.ModuleExposedServerPort,
-				"port2", backendModule.ModuleExposedDebugPort,
-				"port3", backendModule.SidecarExposedServerPort,
-				"port4", backendModule.SidecarExposedDebugPort)
-
-			if err := ms.DeployModule(client, &models.Container{
-				Name: module.Metadata.Name,
-				Config: &container.Config{
-					Image:        imageName,
-					Hostname:     module.Metadata.Name,
-					Env:          ms.GetModuleEnv(containers, module, backendModule),
-					ExposedPorts: *backendModule.ModuleExposedPorts,
-				},
-				HostConfig: &container.HostConfig{
-					PortBindings:  *backendModule.ModulePortBindings,
-					RestartPolicy: *helpers.GetRestartPolicy(),
-					Resources:     backendModule.ModuleResources,
-					Binds:         backendModule.ModuleVolumes,
-				},
-				NetworkConfig: helpers.GetModuleNetworkConfig(),
-				Platform:      helpers.GetPlatform(),
-				PullImage:     pullImage,
-			}); err != nil {
-				return nil, 0, err
-			}
+            if err := ms.DeployModule(client, &models.Container{
+                Name: module.Metadata.Name,
+                Config: &container.Config{
+                    Image:        imageName, // Uses computed sanitized value
+                    Hostname:     module.Metadata.Name,
+                    Env:          ms.GetModuleEnv(containers, module, backendModule),
+                    ExposedPorts: *backendModule.ModuleExposedPorts,
+                },
+                HostConfig: &container.HostConfig{
+                    PortBindings:  *backendModule.ModulePortBindings,
+                    RestartPolicy: *helpers.GetRestartPolicy(),
+                    Resources:     backendModule.ModuleResources,
+                    Binds:         backendModule.ModuleVolumes,
+                },
+                NetworkConfig: helpers.GetModuleNetworkConfig(),
+                Platform:      helpers.GetPlatform(),
+                PullImage:     pullImage,
+            }); err != nil {
+                return nil, 0, err
+            }
 			newlyDeployed[module.Metadata.Name] = backendModule.ModuleExposedServerPort
 
 			if backendModule.DeploySidecar && sidecarImage != "" {

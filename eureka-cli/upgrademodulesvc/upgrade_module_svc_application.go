@@ -30,7 +30,7 @@ func (um *UpgradeModuleSvc) UpdateBackendModules(moduleName, newModuleVersion st
 		entry := value.(map[string]any)
 		if helpers.GetString(entry, "name") == moduleName {
 			oldModuleID = helpers.GetString(entry, "id")
-			moduleID := fmt.Sprintf("%s-%s", moduleName, newModuleVersion)
+			moduleID := helpers.ToSyntheticID(moduleName, newModuleVersion)
 			if shouldBuild {
 				entry = map[string]any{
 					"id":      moduleID,
@@ -74,10 +74,9 @@ func (um *UpgradeModuleSvc) UpdateBackendModules(moduleName, newModuleVersion st
 // getConfiguredPrivatePort resolves the sidecar discovery port from the module's private-port config entry,
 // matching the port the deploy flow registered
 func (um *UpgradeModuleSvc) getConfiguredPrivatePort(moduleName string) (int, error) {
-	if entry, ok := um.Action.ConfigBackendModules[moduleName].(map[string]any); ok {
-		if privatePort := helpers.GetConfiguredPrivatePort(entry); privatePort != nil {
-			return *privatePort, nil
-		}
+	// Type assertion moved safely into the helper package
+	if privatePort := helpers.ExtractPrivatePort(um.Action.ConfigBackendModules, moduleName); privatePort != nil {
+		return *privatePort, nil
 	}
 
 	return strconv.Atoi(constant.PrivateServerPort)
