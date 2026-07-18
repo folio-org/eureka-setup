@@ -17,8 +17,8 @@ type ProxyModulesResponse []ProxyModule
 
 // ProxyModule represents a proxy module with ID and metadata
 type ProxyModule struct {
-	ID     string               `json:"id"`
-	Action string               `json:"action,omitempty"`
+	ID       string              `json:"id"`
+	Action   string              `json:"action,omitempty"`
 	Metadata ProxyModuleMetadata `json:"-"`
 }
 
@@ -35,6 +35,18 @@ type ProxyModulesByRegistry struct {
 	EurekaModules []*ProxyModule
 }
 
+// NewSynthesizedProxyModule acts as a centralized factory for building proxy modules on the fly
+func NewSynthesizedProxyModule(id string, name string, version *string) *ProxyModule {
+	return &ProxyModule{
+		ID: id,
+		Metadata: ProxyModuleMetadata{
+			Name:        name,
+			SidecarName: helpers.GetSidecarName(name),
+			Version:     version,
+		},
+	}
+}
+
 // ==================== Backend Module ====================
 
 // BackendModule represents configuration for a backend module and its optional sidecar
@@ -44,7 +56,9 @@ type BackendModule struct {
 	UseOkapiURL              bool
 	DisableSystemUser        bool
 	LocalDescriptorPath      string
-	Image                    string // <-- Added: Custom image string container mapping
+	Image                    string
+	ImageRegistry            string
+	DescriptorRegistry       string `yaml:"registry" mapstructure:"registry"`
 	ModuleName               string
 	ModuleVersion            *string
 	ModuleExposedServerPort  int
@@ -71,7 +85,9 @@ type BackendModuleProperties struct {
 	UseOkapiURL         bool
 	DisableSystemUser   bool
 	LocalDescriptorPath string
-	Image               string  `yaml:"image" mapstructure:"image"` // <-- Added: Dynamic unmarshal property mapping
+	Image               string  `yaml:"image" mapstructure:"image"`
+	ImageRegistry       string  `yaml:"image-registry" mapstructure:"image-registry"`
+	DescriptorRegistry  string  `yaml:"registry" mapstructure:"registry"`
 	Name                string
 	Version             *string
 	Port                *int
@@ -115,7 +131,9 @@ func NewBackendModuleWithSidecar(action *action.Action, p BackendModulePropertie
 		UseOkapiURL:              p.UseOkapiURL,
 		DisableSystemUser:        p.DisableSystemUser,
 		LocalDescriptorPath:      p.LocalDescriptorPath,
-		Image:                    p.Image, // <-- Added: Pass parameter values through
+		Image:                    p.Image,
+		ImageRegistry:            p.ImageRegistry,
+		DescriptorRegistry:       p.DescriptorRegistry,
 		ModuleName:               p.Name,
 		ModuleVersion:            p.Version,
 		ModuleExposedServerPort:  moduleServerPort,
@@ -144,26 +162,28 @@ func NewBackendModule(action *action.Action, p BackendModuleProperties) (*Backen
 	}
 
 	return &BackendModule{
-		DeployModule:            p.DeployModule,
-		UseVault:                p.UseVault,
-		UseOkapiURL:             p.UseOkapiURL,
-		DisableSystemUser:       p.DisableSystemUser,
-		LocalDescriptorPath:     p.LocalDescriptorPath,
-		Image:                   p.Image, // <-- Added: Pass parameter values through
-		ModuleName:              p.Name,
-		ModuleVersion:           p.Version,
-		ModuleExposedServerPort: serverPort,
-		ModuleExposedDebugPort:  debugPort,
-		PrivatePort:             *p.PrivatePort,
-		ModuleExposedPorts:      helpers.CreateExposedPorts(*p.PrivatePort),
-		ModulePortBindings:      helpers.CreatePortBindings(serverPort, debugPort, *p.PrivatePort),
-		ModuleEnv:               p.Env,
-		SidecarEnv:              p.SidecarEnv,
-		ModuleResources:         *helpers.CreateResources(true, p.Resources),
-		ModuleVolumes:           p.Volumes,
-		DeploySidecar:           false,
-		SidecarExposedPorts:     nil,
-		SidecarPortBindings:     nil,
+		DeployModule:             p.DeployModule,
+		UseVault:                 p.UseVault,
+		UseOkapiURL:              p.UseOkapiURL,
+		DisableSystemUser:        p.DisableSystemUser,
+		LocalDescriptorPath:      p.LocalDescriptorPath,
+		Image:                    p.Image,
+		ImageRegistry:            p.ImageRegistry,
+		DescriptorRegistry:       p.DescriptorRegistry,
+		ModuleName:               p.Name,
+		ModuleVersion:            p.Version,
+		ModuleExposedServerPort:  serverPort,
+		ModuleExposedDebugPort:   debugPort,
+		PrivatePort:              *p.PrivatePort,
+		ModuleExposedPorts:       helpers.CreateExposedPorts(*p.PrivatePort),
+		ModulePortBindings:       helpers.CreatePortBindings(serverPort, debugPort, *p.PrivatePort),
+		ModuleEnv:                p.Env,
+		SidecarEnv:               p.SidecarEnv,
+		ModuleResources:          *helpers.CreateResources(true, p.Resources),
+		ModuleVolumes:            p.Volumes,
+		DeploySidecar:            false,
+		SidecarExposedPorts:      nil,
+		SidecarPortBindings:      nil,
 	}, nil
 }
 
@@ -171,10 +191,11 @@ func NewBackendModule(action *action.Action, p BackendModuleProperties) (*Backen
 
 // FrontendModule represents configuration for a frontend module
 type FrontendModule struct {
-	DeployModule        bool
-	ModuleVersion       *string
-	ModuleName          string
+	DeployModule       bool
+	ModuleVersion      *string
+	ModuleName         string
 	LocalDescriptorPath string
+	DescriptorRegistry  string  `yaml:"registry" mapstructure:"registry"`
 }
 
 // ==================== Container ====================

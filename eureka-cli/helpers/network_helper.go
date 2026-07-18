@@ -95,12 +95,13 @@ func ApplicationFormURLEncodedHeaders() map[string]string {
 	}
 }
 
-// ==================== Sidecar URL ====================
+// ==================== Sidecar Conventions ====================
 
+// GetSidecarURL computes the internal gateway resolution path for a proxy bound target
 func GetSidecarURL(moduleName string, privatePort int) string {
 	if strings.HasPrefix(moduleName, "edge") {
 		return fmt.Sprintf("http://%s.eureka:%d", moduleName, privatePort)
 	}
 
-	return fmt.Sprintf("http://%s-sc.eureka:%d", moduleName, privatePort)
+	return fmt.Sprintf("http://%s.eureka:%d", GetSidecarName(moduleName), privatePort)
 }

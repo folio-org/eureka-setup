@@ -60,7 +60,11 @@ func (l *LoggingRoundTripper) RoundTrip(httpRequest *http.Request) (*http.Respon
 	// --- Response Normalization: Enforce safe routing hyphen structure inside the payload ---
 	if httpResponse.StatusCode == http.StatusOK && targetPristine != "" && httpResponse.Body != nil {
 		bodyBytes, readErr := io.ReadAll(httpResponse.Body)
-		httpResponse.Body.Close()
+		defer func() {
+        	if err := httpResponse.Body.Close(); err != nil {
+        		slog.Warn("system", "text", "Failed to close HTTP response body stream", "error", err.Error())
+        	}
+        }()
 		if readErr == nil {
 			bodyStr := string(bodyBytes)
 			// Align descriptor interior ID with module manifest declarations

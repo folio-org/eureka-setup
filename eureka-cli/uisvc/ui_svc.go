@@ -179,12 +179,6 @@ func (us *UISvc) DeployContainer(tenantName string, imageName string, externalPo
 	internalPort := 80
 	memoryLimit := "35m"
 
-	// If this is a custom node platform development box, expand boundaries
-	if us.Action.ConfigFrontendPlatform != "" {
-		internalPort = 3000
-		memoryLimit = "1024m" // Give the Node container 1GB of headroom to build/watch assets
-	}
-
 	err = us.ExecSvc.Exec(exec.Command("docker", "run", "--name", containerName,
 		"--hostname", containerName,
 		"--publish", fmt.Sprintf("%d:%d", externalPort, internalPort),
@@ -217,14 +211,14 @@ func (us *UISvc) CompileCustomImage(tenantName string, noCache bool) error {
 		branchName = "main"
 	}
 
-	startScript := us.Action.ConfigFrontendStartScript
-	if startScript == "" {
-		startScript = "start"
+	eurekaConfig := us.Action.ConfigFrontendConfig
+	if eurekaConfig == "" {
+		eurekaConfig = "stripes.config.js"
 	}
 
-    localImageTag := helpers.ResolveUIPlatformTag(namespace, tenantName)
+	localImageTag := helpers.ResolveUIPlatformTag(namespace, tenantName)
 
-	dockerfileContent, err := helpers.GenerateFrontendDockerfile(branchName, repoURL, startScript)
+	dockerfileContent, err := helpers.GenerateFrontendDockerfile(branchName, repoURL, eurekaConfig)
 	if err != nil {
 		return fmt.Errorf("failed compiling custom frontend payload configurations: %w", err)
 	}
@@ -233,7 +227,11 @@ func (us *UISvc) CompileCustomImage(tenantName string, noCache bool) error {
 	if err := os.WriteFile(dockerfilePath, []byte(dockerfileContent), 0644); err != nil {
 		return fmt.Errorf("failed creating transient dockerfile spec: %w", err)
 	}
-	defer os.Remove(dockerfilePath)
+	defer func() {
+    	if err := os.Remove(dockerfilePath); err != nil {
+    		slog.Warn(us.Action.Name, "text", "Failed to remove transient dockerfile workspace asset", "path", dockerfilePath, "error", err.Error())
+    	}
+    }()
 
 	buildArgs := []string{"build"}
 	if noCache {

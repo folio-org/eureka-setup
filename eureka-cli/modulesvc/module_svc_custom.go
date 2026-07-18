@@ -38,17 +38,21 @@ func (ms *ModuleSvc) DeployCustomModule(client *client.Client, pair *ModulePair)
 		imageName = ms.GetLocalModuleImage(pair.Namespace, pair.ModuleName, version)
 	} else {
 		pair.Module.Metadata.Version = &version
-		imageName = ms.GetModuleImage(pair.Module)
+
+		// Extract profile overrides and sanitize the restoration image path
+		override := helpers.ExtractImageOverride(ms.Action.ConfigBackendModules, pair.ModuleName)
+		fallbackImage := ms.GetModuleImage(pair.Module)
+		imageName, _ = helpers.SanitizeModuleImage(fallbackImage, version, pair.Module.Metadata.Version, override)
 	}
 	slog.Info(ms.Action.Name, "text", "Using module image", "image", imageName)
 
 	return ms.DeployModule(client, &models.Container{
 		Name: pair.Module.Metadata.Name,
 		Config: &container.Config{
-			Image:        imageName,
-			Hostname:     pair.Module.Metadata.Name,
-			Env:          ms.GetModuleEnv(pair.Containers, pair.Module, *pair.BackendModule),
-			ExposedPorts: *pair.BackendModule.ModuleExposedPorts,
+			Image:         imageName,
+			Hostname:      pair.Module.Metadata.Name,
+			Env:           ms.GetModuleEnv(pair.Containers, pair.Module, *pair.BackendModule),
+			ExposedPorts:  *pair.BackendModule.ModuleExposedPorts,
 		},
 		HostConfig: &container.HostConfig{
 			PortBindings:  *pair.BackendModule.ModulePortBindings,

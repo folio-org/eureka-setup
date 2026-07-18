@@ -12,18 +12,19 @@ var customFrontendTemplateRaw string
 
 // FrontendTemplateParams defines the data contract for our dynamic Dockerfile
 type FrontendTemplateParams struct {
-	Branch      string
-	URL         string
-	StartScript string
+	Branch       string
+	URL          string
+	EurekaConfig string
 }
 
 // GenerateFrontendDockerfile compiles the embedded asset into a valid string payload
-func GenerateFrontendDockerfile(branch, url, startScript string) (string, error) {
+func GenerateFrontendDockerfile(branch, url, eurekaConfig string) (string, error) {
 	if branch == "" {
 		branch = "main"
 	}
-	if startScript == "" {
-		startScript = "start"
+
+	if eurekaConfig == "" {
+		eurekaConfig = "stripes.config.js"
 	}
 
 	tmpl, err := template.New("custom-frontend").Parse(customFrontendTemplateRaw)
@@ -32,9 +33,9 @@ func GenerateFrontendDockerfile(branch, url, startScript string) (string, error)
 	}
 
 	params := FrontendTemplateParams{
-		Branch:      branch,
-		URL:         url,
-		StartScript: startScript,
+		Branch:       branch,
+		URL:          url,
+		EurekaConfig: eurekaConfig,
 	}
 
 	var buffer bytes.Buffer

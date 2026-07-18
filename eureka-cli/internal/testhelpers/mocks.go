@@ -160,6 +160,10 @@ func (m *MockRegistrySvc) GetModules(verbose bool, forceRefresh bool) (*models.P
 	return args.Get(0).(*models.ProxyModulesByRegistry), args.Error(1)
 }
 
+func (m *MockRegistrySvc) InjectProfileModules(modules *models.ProxyModulesByRegistry, backendModules map[string]models.BackendModule, frontendModules map[string]models.FrontendModule) (map[string]any, error) {
+	return make(map[string]any), nil
+}
+
 // MockModuleEnv is a mock implementation of moduleenv.ModuleEnvProcessor
 type MockModuleEnv struct {
 	mock.Mock

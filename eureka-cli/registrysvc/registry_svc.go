@@ -26,7 +26,7 @@ type RegistryProcessor interface {
 	GetModules(verbose bool, forceRefresh bool) (*models.ProxyModulesByRegistry, error)
 	ResolveModuleMetadata(modules *models.ProxyModulesByRegistry)
 	GetAuthorizationToken() (string, error)
-	InjectProfileModules(modules *models.ProxyModulesByRegistry, backendModules map[string]models.BackendModule) (map[string]any, error)
+	InjectProfileModules(modules *models.ProxyModulesByRegistry, backendModules map[string]models.BackendModule, frontendModules map[string]models.FrontendModule) (map[string]any, error)
 }
 
 // RegistrySvc provides functionality for interacting with module registries
@@ -109,7 +109,7 @@ func (rs *RegistrySvc) GetModules(verbose bool, forceRefresh bool) (*models.Prox
 	}, nil
 }
 
-func (rs *RegistrySvc) InjectProfileModules(modules *models.ProxyModulesByRegistry, backendModules map[string]models.BackendModule) (map[string]any, error) {
+func (rs *RegistrySvc) InjectProfileModules(modules *models.ProxyModulesByRegistry, backendModules map[string]models.BackendModule, frontendModules map[string]models.FrontendModule) (map[string]any, error) {
 	prepopulatedDescriptors := make(map[string]any)
 
 	// 1. Process Backend Modules
@@ -117,26 +117,42 @@ func (rs *RegistrySvc) InjectProfileModules(modules *models.ProxyModulesByRegist
 	for name := range backendModules {
 		backendNames = append(backendNames, name)
 	}
-	rs.injectModules(modules, backendNames, prepopulatedDescriptors, func(name string) string {
-		if bMod, ok := backendModules[name]; ok && bMod.ModuleVersion != nil {
-			return *bMod.ModuleVersion
-		}
-		return ""
-	}, false)
+	rs.injectModules(modules, backendNames, prepopulatedDescriptors,
+		func(name string) string {
+			if bMod, ok := backendModules[name]; ok && bMod.ModuleVersion != nil {
+				return *bMod.ModuleVersion
+			}
+			return ""
+		},
+		func(name string) string {
+			if bMod, ok := backendModules[name]; ok {
+				return bMod.DescriptorRegistry
+			}
+			return ""
+		},
+		false,
+	)
 
 	// 2. Process Frontend/UI Modules
-	frontendNames := make([]string, 0, len(rs.Action.ConfigFrontendModules))
-	for name := range rs.Action.ConfigFrontendModules {
+	frontendNames := make([]string, 0, len(frontendModules))
+	for name := range frontendModules {
 		frontendNames = append(frontendNames, name)
 	}
-	rs.injectModules(modules, frontendNames, prepopulatedDescriptors, func(name string) string {
-		if rawMap, ok := rs.Action.ConfigFrontendModules[name].(map[string]any); ok {
-			if v, ok := rawMap["version"].(string); ok {
-				return v
+	rs.injectModules(modules, frontendNames, prepopulatedDescriptors,
+		func(name string) string {
+			if fMod, ok := frontendModules[name]; ok && fMod.ModuleVersion != nil {
+				return *fMod.ModuleVersion
 			}
-		}
-		return ""
-	}, true)
+			return ""
+		},
+		func(name string) string {
+			if fMod, ok := frontendModules[name]; ok {
+				return fMod.DescriptorRegistry
+			}
+			return ""
+		},
+		true,
+	)
 
 	return prepopulatedDescriptors, nil
 }
@@ -147,6 +163,7 @@ func (rs *RegistrySvc) injectModules(
 	names []string,
 	prepopulatedDescriptors map[string]any,
 	versionExtractor func(string) string,
+	registryExtractor func(string) string,
 	isUI bool,
 ) {
 	baseRegistryURL := strings.TrimSpace(rs.Action.ConfigRegistryURL)
@@ -179,13 +196,24 @@ func (rs *RegistrySvc) injectModules(
 			continue
 		}
 
+		// Figure out target registry context first so discovery works
+		targetRegistry := baseRegistryURL
+		if customReg := registryExtractor(name); customReg != "" {
+			targetRegistry = customReg
+		}
+
+        slog.Debug(rs.Action.Name, "text", "Resolved module descriptor registry",
+            "module", name,
+            "targetDescriptorRegistry", targetRegistry,
+        )
+
 		var pristineVersion string
 		if explicitVersion := versionExtractor(name); explicitVersion != "" {
 			pristineVersion = explicitVersion
 			slog.Debug(rs.Action.Name, "text", fmt.Sprintf("%s module injection engine: picked explicit configuration version", label), "module", name, "version", pristineVersion)
 		} else {
-			// Fallback to active registry discovery if unpinned
-			discoveredVersion, lookupErr := rs.discoverLatestRegistryVersion(name)
+			// Pass the localized target registry down into the tag discovery layer
+			discoveredVersion, lookupErr := rs.discoverLatestRegistryVersion(name, targetRegistry)
 			if lookupErr == nil && discoveredVersion != "" {
 				pristineVersion = discoveredVersion
 				slog.Debug(rs.Action.Name, "text", fmt.Sprintf("%s module injection engine: auto-discovered version from registry", label), "module", name, "version", pristineVersion)
@@ -203,27 +231,28 @@ func (rs *RegistrySvc) injectModules(
 		syntheticID := helpers.ToSyntheticID(name, pristineVersion)
 
 		// Descriptor Pre-population Engine
-		if baseRegistryURL != "" {
-            moduleDescriptorURL := rs.Action.GetModuleURL(syntheticID)
-            var descriptorData map[string]any
+		if targetRegistry != "" {
+			targetRegistry = strings.TrimSuffix(strings.TrimSpace(targetRegistry), "/")
+			moduleDescriptorURL := fmt.Sprintf("%s/_/proxy/modules/%s", targetRegistry, syntheticID)
 
-            descErr := rs.HTTPClient.GetRetryReturnStruct(moduleDescriptorURL, map[string]string{}, &descriptorData)
-            if descErr == nil && descriptorData != nil {
-                descriptorData["id"] = syntheticID
-                prepopulatedDescriptors[syntheticID] = descriptorData
-                slog.Debug(rs.Action.Name, "text", fmt.Sprintf("%s Descriptor Pre-population Engine cached record successfully", label), "module", name, "id", syntheticID)
-            } else if descErr != nil {
-                slog.Debug(rs.Action.Name, "text", fmt.Sprintf("%s Descriptor Pre-population Engine skipped remote URL fallback", label), "module", name, "error", descErr.Error())
-            }
-        }
+			var descriptorData map[string]any
+			descErr := rs.HTTPClient.GetRetryReturnStruct(moduleDescriptorURL, map[string]string{}, &descriptorData)
+			if descErr == nil && descriptorData != nil {
+				descriptorData["id"] = syntheticID
+				prepopulatedDescriptors[syntheticID] = descriptorData
+				slog.Debug(rs.Action.Name, "text", fmt.Sprintf("%s Descriptor Pre-population Engine cached record successfully", label), "module", name, "id", syntheticID)
+			} else if descErr != nil {
+				slog.Debug(rs.Action.Name, "text", fmt.Sprintf("%s Descriptor Pre-population Engine skipped remote URL fallback", label), "module", name, "error", descErr.Error())
+			}
+		}
 
 		syntheticProxy := &models.ProxyModule{
-			ID:      syntheticID,
-			Action:  "enable",
-			Metadata: models.ProxyModuleMetadata{
-				Name:        name,
-				SidecarName: name + "-sc",
-				Version:     &gatewayVersion,
+            ID:          syntheticID,
+            Action:      "enable",
+			Metadata:    models.ProxyModuleMetadata{
+            Name:        name,
+            SidecarName: name + "-sc",
+            Version:     &gatewayVersion,
 			},
 		}
 		modules.FolioModules = append(modules.FolioModules, syntheticProxy)
@@ -231,33 +260,41 @@ func (rs *RegistrySvc) injectModules(
 	}
 }
 
-func (rs *RegistrySvc) discoverLatestRegistryVersion(moduleName string) (string, error) {
+func (rs *RegistrySvc) discoverLatestRegistryVersion(moduleName string, targetRegistryURL string) (string, error) {
 	type RegistryItem struct {
 		ID string `json:"id"`
 	}
 
-	baseRegistryURL := strings.TrimSpace(rs.Action.ConfigRegistryURL)
-	if baseRegistryURL == "" {
+	if targetRegistryURL == "" {
 		return "", fmt.Errorf("registry URL is unconfigured in profile")
 	}
 
-	endpoint := fmt.Sprintf("%s/_/proxy/modules", strings.TrimSuffix(baseRegistryURL, "/"))
+	endpoint := fmt.Sprintf("%s/_/proxy/modules", strings.TrimSuffix(targetRegistryURL, "/"))
+
+	slog.Debug(rs.Action.Name, "text", "Hitting descriptor registry endpoint to load version lists",
+        "module", moduleName,
+        "endpointUrl", endpoint,
+    )
 
 	ctxClient := &http.Client{Timeout: 10 * time.Second}
 	resp, err := ctxClient.Get(endpoint)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			slog.Debug(rs.Action.Name, "text", "Failed to close remote registry response body stream", "error", err.Error())
+		}
+	}()
 
 	var items []RegistryItem
 	if err := json.NewDecoder(resp.Body).Decode(&items); err != nil {
-        return "", err
-    }
+		return "", err
+	}
 
-    override := helpers.ExtractImageOverride(rs.Action.ConfigBackendModules, moduleName)
-    repoPath := helpers.ResolveRepoPath(moduleName, override.Image)
-    moduleSpecificRegistry := override.Registry
+	override := helpers.ExtractImageOverride(rs.Action.ConfigBackendModules, moduleName)
+	repoPath := helpers.ResolveRepoPath(moduleName, override.Image)
+	moduleSpecificRegistry := override.ImageRegistry
 
 	for i := len(items) - 1; i >= 0; i-- {
 		item := items[i]
@@ -267,6 +304,15 @@ func (rs *RegistrySvc) discoverLatestRegistryVersion(moduleName string) (string,
 
 			if moduleSpecificRegistry != "" {
 				privateRegistryURL := fmt.Sprintf("https://%s/v2/%s/manifests/%s", moduleSpecificRegistry, repoPath, cleanTag)
+
+				slog.Debug(rs.Action.Name, "text", "Verifying image artifact against Docker registry",
+                    "module", moduleName,
+                    "targetRegistry", moduleSpecificRegistry,
+                    "targetImagePath", repoPath,
+                    "transformedCleanTag", cleanTag,
+                    "fullVerificationUrl", privateRegistryURL,
+                )
+
 				req, err := http.NewRequest(http.MethodHead, privateRegistryURL, nil)
 				if err != nil {
 					continue
@@ -275,14 +321,36 @@ func (rs *RegistrySvc) discoverLatestRegistryVersion(moduleName string) (string,
 
 				hubResp, hubErr := ctxClient.Do(req)
 				if hubErr == nil {
-					hubResp.Body.Close()
+				    slog.Debug(rs.Action.Name, "text", "Docker registry manifest query result received",
+                        "module", moduleName,
+                        "httpStatus", hubResp.Status,
+                        "statusCode", hubResp.StatusCode,
+                    )
 					if hubResp.StatusCode == http.StatusOK {
 						slog.Debug(rs.Action.Name, "text", "Module Override Discovery Match", "module", moduleName, "registry", moduleSpecificRegistry, "path", repoPath, "tag", cleanTag)
+
+						if closeErr := hubResp.Body.Close(); closeErr != nil {
+							slog.Debug(rs.Action.Name, "text", "Failed to close manifest response stream", "error", closeErr.Error())
+						}
 						return rawVersion, nil
 					}
+
+					if closeErr := hubResp.Body.Close(); closeErr != nil {
+						slog.Debug(rs.Action.Name, "text", "Failed to close registry manifest response stream", "error", closeErr.Error())
+					}
+				} else {
+				    slog.Warn(rs.Action.Name, "text", "Failed to dispatch check request frame to Docker registry",
+                        "module", moduleName,
+                        "error", hubErr.Error(),
+                    )
 				}
 				continue
 			}
+
+            slog.Info(rs.Action.Name, "text", "No image path defined, bypassing container verification loop",
+                "module", moduleName,
+                "assumedVersion", rawVersion,
+            )
 
 			return rawVersion, nil
 		}

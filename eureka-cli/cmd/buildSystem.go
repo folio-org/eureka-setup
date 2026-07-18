@@ -111,22 +111,26 @@ func (run *Run) BuildCustomFrontendOnly(forceNoCache bool) error {
 		branchName = "main"
 	}
 
-	startScript := run.Config.Action.ConfigFrontendStartScript
-	if startScript == "" {
-		startScript = "start"
+	eurekaConfig := run.Config.Action.ConfigFrontendConfig
+	if eurekaConfig == "" {
+		eurekaConfig = "stripes.config.js"
 	}
 
-    dockerfileContent, err := helpers.GenerateFrontendDockerfile(branchName, run.Config.Action.ConfigFrontendURL, startScript)
-    if err != nil {
-        return err
-    }
+	dockerfileContent, err := helpers.GenerateFrontendDockerfile(branchName, run.Config.Action.ConfigFrontendURL, eurekaConfig)
+	if err != nil {
+		return err
+	}
 
-    dockerfilePath := filepath.Join(homeDir, "Dockerfile.custom-frontend")
-    if err := os.WriteFile(dockerfilePath, []byte(dockerfileContent), 0644); err != nil {
-        return fmt.Errorf("failed to write dynamic frontend Dockerfile: %w", err)
-    }
-	defer os.Remove(dockerfilePath)
-    targetTag := helpers.ResolveUIPlatformTag(helpers.GetDefaultTenant(run.Config.Action.ConfigTenants), run.Config.Action.ConfigNamespacePlatformLspUI)
+	dockerfilePath := filepath.Join(homeDir, "Dockerfile.custom-frontend")
+	if err := os.WriteFile(dockerfilePath, []byte(dockerfileContent), 0644); err != nil {
+		return fmt.Errorf("failed to write dynamic frontend Dockerfile: %w", err)
+	}
+	defer func() {
+    	if err := os.Remove(dockerfilePath); err != nil {
+    		slog.Warn(run.Config.Action.Name, "text", "Failed to remove transient dockerfile workspace asset", "path", dockerfilePath, "error", err.Error())
+    	}
+    }()
+	targetTag := helpers.ResolveUIPlatformTag(helpers.GetDefaultTenant(run.Config.Action.ConfigTenants), run.Config.Action.ConfigNamespacePlatformLspUI)
 	slog.Info(run.Config.Action.Name, "text", "Compiling custom frontend platform dynamically", "tag", targetTag)
 
 	// ⚡ CACHE CONTROL

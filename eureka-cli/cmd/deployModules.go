@@ -64,7 +64,7 @@ func (run *Run) DeployModules() error {
 	// Resolve native framework metadata first
 	run.Config.RegistrySvc.ResolveModuleMetadata(modules)
 
-	prepopulatedDescriptors, err := run.Config.RegistrySvc.InjectProfileModules(modules, backendModules)
+	prepopulatedDescriptors, err := run.Config.RegistrySvc.InjectProfileModules(modules, backendModules, frontendModules)
 	if err != nil {
 		return err
 	}
