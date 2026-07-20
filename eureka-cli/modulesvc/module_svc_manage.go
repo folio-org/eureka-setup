@@ -321,7 +321,7 @@ func (ms *ModuleSvc) undeployModule(client *client.Client, deployedModule contai
 
 	err = client.ContainerRemove(ctx, deployedModule.ID, container.RemoveOptions{
 		Force:         true,
-		RemoveVolumes: true,
+		RemoveVolumes: !ms.Action.Param.KeepVolumes,
 	})
 	if err != nil {
 		slog.Error(ms.Action.Name, "error", err, "module", deployedModule.ID, "operation", "container remove")

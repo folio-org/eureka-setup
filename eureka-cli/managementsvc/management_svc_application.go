@@ -155,7 +155,7 @@ func (ms *ManagementSvc) CreateApplication(extract *models.RegistryExtract) erro
     		isLocalFrontend := existsFrontend && frontendModule.LocalDescriptorPath != ""
     		isLocal := isLocalBackend || isLocalFrontend
 
-    		// ⚡ Using our centralized architectural helper
+    		// Using centralized architectural helper
     		embedDescriptor := helpers.ShouldEmbedDescriptor(
     			ms.Action.ConfigApplicationFetchDescriptors,
     			isLocal,
@@ -169,7 +169,7 @@ func (ms *ManagementSvc) CreateApplication(extract *models.RegistryExtract) erro
                     if isLocalBackend {
                         descriptorPath = backendModule.LocalDescriptorPath
                     } else if isLocalFrontend {
-                        descriptorPath = frontendModule.LocalDescriptorPath // ⚡ Fix typo from LocalFrontendPath
+                        descriptorPath = frontendModule.LocalDescriptorPath
                     }
                     if err := ms.FetchModuleDescriptor(extract, module.ID, moduleDescriptorURL, descriptorPath, isLocal); err != nil {
                         return err

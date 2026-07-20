@@ -15,6 +15,7 @@ type Param struct {
 	GatewayHostname       string
 	GatewayURL            string
 	ID                    string
+	KeepVolumes           bool
 	Length                int
 	ModuleName            string
 	ModulePath            string
@@ -22,6 +23,7 @@ type Param struct {
 	ModuleURL             string
 	ModuleVersion         string
 	Namespace             string
+	NewVolumes            bool // Internal execution flag used to track if we've created new volumes at startup, used with RefreshGateway
     NoCache               bool
 	OnlyRequired          bool
 	OverwriteFiles        bool
@@ -30,6 +32,7 @@ type Param struct {
 	PrivatePort           int
 	Profile               string
 	PurgeSchemas          bool
+	RefreshGateway        bool   // Internal execution flag. If !NewVolumes then we have existing volumes and need to refresh the gateway.
 	RemoveApplication     bool
 	Restore               bool
 	SidecarURL            string
@@ -76,6 +79,7 @@ var (
 	GatewayHostname       = Flag{"gatewayHostname", "", "Gateway hostname"}
 	GatewayURL            = Flag{"gatewayURL", "", "Gateway URL"}
 	ID                    = Flag{"id", "i", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021"}
+	KeepVolumes           = Flag{"keepVolumes", "k", "Preserve container data volumes during undeployment"}
 	Length                = Flag{"length", "l", "Salt length"}
 	ModuleName            = Flag{"moduleName", "n", "Module name, e.g. mod-orders"}
 	ModulePath            = Flag{"modulePath", "", "Module path, e.g. the path of your module in IntelliJ"}

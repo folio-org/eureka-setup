@@ -40,10 +40,23 @@ var undeploySystemCmd = &cobra.Command{
 
 func (run *Run) UndeploySystem() error {
 	slog.Info(run.Config.Action.Name, "text", "UNDEPLOYING SYSTEM CONTAINERS")
-	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "down", "--volumes", "--remove-orphans")
+
+	// Base command arguments without destructive properties
+	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "down"}
+
+	// Only nuke the database/broker volumes if the user omitted -k
+	if !run.Config.Action.Param.KeepVolumes {
+		subCommand = append(subCommand, "--volumes")
+	}
+
+	subCommand = append(subCommand, "--remove-orphans")
+
+	preparedCommand := exec.Command("docker", subCommand...)
 	return run.Config.ExecSvc.Exec(preparedCommand)
 }
 
 func init() {
 	rootCmd.AddCommand(undeploySystemCmd)
+	// Expose the flag here too so you can use it standalone if needed!
+	undeploySystemCmd.PersistentFlags().BoolVarP(&params.KeepVolumes, action.KeepVolumes.Long, action.KeepVolumes.Short, false, action.KeepVolumes.Description)
 }
