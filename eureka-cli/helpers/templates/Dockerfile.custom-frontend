@@ -1,0 +1,52 @@
+# --- Stage 1: Build the Static Assets ---
+FROM node:18-alpine AS stripes_build
+WORKDIR /app
+
+# Install git and native build dependencies
+RUN apk add --no-cache git alpine-sdk python3
+
+# Dynamically clone your repository based on active profile values
+RUN git clone -b {{.Branch}} {{.URL}} .
+
+ENV HUSKY=0
+ENV NODE_OPTIONS=--max-old-space-size=4096
+
+# Install dependencies using npm/yarn as required by your module dependencies
+RUN npm install --legacy-peer-deps
+
+# Build the module descriptors and compile the static bundle using stripes
+RUN node ./build-module-descriptors.js && \
+    npx stripes build {{.EurekaConfig}} output
+
+# --- Stage 2: Match the Official Nginx Runtime ---
+FROM nginx:stable-alpine
+RUN apk upgrade --no-cache
+
+EXPOSE 80
+
+# Copy the static workspace assets out of the builder stage
+COPY --from=stripes_build /app/output /usr/share/nginx/html
+
+# ⚡ Inline Write: Replicate the official platform-lsp server configuration block
+RUN echo 'server { \
+  listen 80; \
+  server_name localhost; \
+  charset utf-8; \
+  location / { \
+    root /usr/share/nginx/html; \
+    include mime.types; \
+    types { \
+      text/plain lock; \
+    } \
+    try_files $uri /index.html; \
+  } \
+}' > /etc/nginx/conf.d/default.conf
+
+# ⚡ Inline Write: Generate the dynamic startup entrypoint shell script matching yours
+RUN printf '#!/bin/sh\n\
+SERVER_NAME=${1:-localhost}\n\
+sed -i "s|localhost|$SERVER_NAME|g" /etc/nginx/conf.d/default.conf\n\
+exec /usr/sbin/nginx -g "daemon off;"\n' > /usr/bin/entrypoint.sh && \
+chmod +x /usr/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/bin/entrypoint.sh"]

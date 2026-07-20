@@ -1,7 +1,6 @@
 package upgrademodulesvc
 
 import (
-	"fmt"
 	"log/slog"
 
 	"github.com/Masterminds/semver/v3"
@@ -32,7 +31,7 @@ func (um *UpgradeModuleSvc) SetNewModuleVersionAndIDIntoContext() error {
 			um.Action.Param.ModuleVersion = oldModuleVersion.IncPatch().String()
 		}
 	}
-	um.Action.Param.ID = fmt.Sprintf("%s-%s", um.Action.Param.ModuleName, um.Action.Param.ModuleVersion)
+	um.Action.Param.ID = helpers.ToSyntheticID(um.Action.Param.ModuleName, um.Action.Param.ModuleVersion)
 
 	slog.Info(um.Action.Name, "text", "New id", "newId", um.Action.Param.ID)
 

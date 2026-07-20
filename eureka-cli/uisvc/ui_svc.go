@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/folio-org/eureka-setup/eureka-cli/dockerclient"
 	"github.com/folio-org/eureka-setup/eureka-cli/execsvc"
 	"github.com/folio-org/eureka-setup/eureka-cli/gitclient"
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/tenantsvc"
 	"github.com/go-git/go-git/v5"
 )
@@ -84,6 +86,27 @@ func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
 }
 
 func (us *UISvc) PrepareImage(tenantName string) (string, error) {
+	if us.Action.ConfigFrontendPlatform != "" {
+        targetTag := helpers.ResolveUIPlatformTag(us.Action.ConfigNamespacePlatformLspUI, tenantName)
+
+		// Trigger compilation if global build (-b), targeted build UI flag, OR always-build config is active
+		if us.Action.Param.BuildImages || us.Action.Param.BuildUI || us.Action.ConfigFrontendAlwaysBuild {
+			slog.Info(us.Action.Name, "text", "Compiling custom frontend platform via native deploy hook", "tag", targetTag)
+
+			// ⚡ AUTOMATIC NO-CACHE: Force no-cache if flag is passed OR always-build is true in configuration
+			forceNoCache := us.Action.Param.NoCache || us.Action.ConfigFrontendAlwaysBuild
+
+			if err := us.CompileCustomImage(tenantName, forceNoCache); err != nil {
+				return "", err
+			}
+			return targetTag, nil
+		}
+
+		slog.Info(us.Action.Name, "text", "Using cached custom platform image target", "tag", targetTag)
+		return targetTag, nil
+	}
+
+	// Legacy Native Fallback
 	imageName := fmt.Sprintf("platform-lsp-ui-%s", tenantName)
 	if us.Action.Param.BuildImages {
 		outputDir, err := us.CloneAndUpdateRepository(us.Action.Param.UpdateCloned)
@@ -153,12 +176,15 @@ func (us *UISvc) DeployContainer(tenantName string, imageName string, externalPo
 		return nil
 	}
 
+	internalPort := 80
+	memoryLimit := "35m"
+
 	err = us.ExecSvc.Exec(exec.Command("docker", "run", "--name", containerName,
 		"--hostname", containerName,
-		"--publish", fmt.Sprintf("%d:80", externalPort),
+		"--publish", fmt.Sprintf("%d:%d", externalPort, internalPort),
 		"--restart", "unless-stopped",
 		"--cpus", "1",
-		"--memory", "35m",
+		"--memory", memoryLimit,
 		"--memory-swap", "-1",
 		"--detach",
 		imageName,
@@ -169,4 +195,53 @@ func (us *UISvc) DeployContainer(tenantName string, imageName string, externalPo
 	slog.Info(us.Action.Name, "text", "Connecting UI container for tenant to network", "tenant", tenantName, "network", constant.NetworkID)
 
 	return us.ExecSvc.Exec(exec.Command("docker", "network", "connect", constant.NetworkID, containerName))
+}
+
+func (us *UISvc) CompileCustomImage(tenantName string, noCache bool) error {
+	repoURL := us.Action.ConfigFrontendURL
+	platformName := us.Action.ConfigFrontendPlatform
+	namespace := us.Action.ConfigNamespacePlatformLspUI
+
+	if repoURL == "" || platformName == "" {
+		return fmt.Errorf("frontend configuration missing from active profile config keys")
+	}
+
+	branchName := us.Action.ConfigFrontendBranch
+	if branchName == "" {
+		branchName = "main"
+	}
+
+	eurekaConfig := us.Action.ConfigFrontendConfig
+	if eurekaConfig == "" {
+		eurekaConfig = "stripes.config.js"
+	}
+
+	localImageTag := helpers.ResolveUIPlatformTag(namespace, tenantName)
+
+	dockerfileContent, err := helpers.GenerateFrontendDockerfile(branchName, repoURL, eurekaConfig)
+	if err != nil {
+		return fmt.Errorf("failed compiling custom frontend payload configurations: %w", err)
+	}
+
+	dockerfilePath := "Dockerfile.custom-frontend"
+	if err := os.WriteFile(dockerfilePath, []byte(dockerfileContent), 0644); err != nil {
+		return fmt.Errorf("failed creating transient dockerfile spec: %w", err)
+	}
+	defer func() {
+    	if err := os.Remove(dockerfilePath); err != nil {
+    		slog.Warn(us.Action.Name, "text", "Failed to remove transient dockerfile workspace asset", "path", dockerfilePath, "error", err.Error())
+    	}
+    }()
+
+	buildArgs := []string{"build"}
+	if noCache {
+		buildArgs = append(buildArgs, "--no-cache")
+	}
+	buildArgs = append(buildArgs, "-t", localImageTag, "-f", dockerfilePath, ".")
+
+	cmd := exec.Command("docker", buildArgs...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return us.ExecSvc.Exec(cmd)
 }

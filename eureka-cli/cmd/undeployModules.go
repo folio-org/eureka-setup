@@ -64,4 +64,5 @@ func (run *Run) UndeployModules(removeApplication bool) error {
 func init() {
 	rootCmd.AddCommand(undeployModulesCmd)
 	undeployModulesCmd.PersistentFlags().BoolVarP(&params.RemoveApplication, action.RemoveApplication.Long, action.RemoveApplication.Short, true, action.RemoveApplication.Description)
+    undeployModulesCmd.PersistentFlags().BoolVarP(&params.KeepVolumes, action.KeepVolumes.Long, action.KeepVolumes.Short, false, action.KeepVolumes.Description)
 }

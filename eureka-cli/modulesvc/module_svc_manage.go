@@ -137,32 +137,46 @@ func (ms *ModuleSvc) DeployModules(client *client.Client, containers *models.Con
 
 			version := ms.GetModuleImageVersion(backendModule, module)
 			module.Metadata.Version = &version
-			slog.Info(ms.Action.Name, "text", "Deploying module", "module", module.Metadata.Name,
-				"port1", backendModule.ModuleExposedServerPort,
-				"port2", backendModule.ModuleExposedDebugPort,
-				"port3", backendModule.SidecarExposedServerPort,
-				"port4", backendModule.SidecarExposedDebugPort)
 
-			if err := ms.DeployModule(client, &models.Container{
-				Name: module.Metadata.Name,
-				Config: &container.Config{
-					Image:        ms.GetModuleImage(module),
-					Hostname:     module.Metadata.Name,
-					Env:          ms.GetModuleEnv(containers, module, backendModule),
-					ExposedPorts: *backendModule.ModuleExposedPorts,
-				},
-				HostConfig: &container.HostConfig{
-					PortBindings:  *backendModule.ModulePortBindings,
-					RestartPolicy: *helpers.GetRestartPolicy(),
-					Resources:     backendModule.ModuleResources,
-					Binds:         backendModule.ModuleVolumes,
-				},
-				NetworkConfig: helpers.GetModuleNetworkConfig(),
-				Platform:      helpers.GetPlatform(),
-				PullImage:     backendModule.LocalDescriptorPath == "",
-			}); err != nil {
-				return nil, 0, err
-			}
+            slog.Debug(ms.Action.Name, "text", "Sanitization Engine trace init", "module", module.Metadata.Name, "framework_regex_resolved_version", version)
+
+            // Safely convert map structure records to our target config shape
+            override := helpers.ExtractImageOverride(ms.Action.ConfigBackendModules, module.Metadata.Name)
+            fallbackImage := ms.GetModuleImage(module)
+            imageName, isOverridden := helpers.SanitizeModuleImage(fallbackImage, version, module.Metadata.Version, override)
+
+            pullImage := backendModule.LocalDescriptorPath == ""
+            if isOverridden {
+                pullImage = true
+                slog.Debug(ms.Action.Name, "text", "Sanitization Engine matched image mapping details override", "module", module.Metadata.Name, "final_image_string", imageName)
+            }
+
+            slog.Info(ms.Action.Name, "text", "Deploying module", "module", module.Metadata.Name,
+                "port1", backendModule.ModuleExposedServerPort,
+                "port2", backendModule.ModuleExposedDebugPort,
+                "port3", backendModule.SidecarExposedServerPort,
+                "port4", backendModule.SidecarExposedDebugPort)
+
+            if err := ms.DeployModule(client, &models.Container{
+                Name: module.Metadata.Name,
+                Config: &container.Config{
+                    Image:        imageName, // Uses computed sanitized value
+                    Hostname:     module.Metadata.Name,
+                    Env:          ms.GetModuleEnv(containers, module, backendModule),
+                    ExposedPorts: *backendModule.ModuleExposedPorts,
+                },
+                HostConfig: &container.HostConfig{
+                    PortBindings:  *backendModule.ModulePortBindings,
+                    RestartPolicy: *helpers.GetRestartPolicy(),
+                    Resources:     backendModule.ModuleResources,
+                    Binds:         backendModule.ModuleVolumes,
+                },
+                NetworkConfig: helpers.GetModuleNetworkConfig(),
+                Platform:      helpers.GetPlatform(),
+                PullImage:     pullImage,
+            }); err != nil {
+                return nil, 0, err
+            }
 			newlyDeployed[module.Metadata.Name] = backendModule.ModuleExposedServerPort
 
 			if backendModule.DeploySidecar && sidecarImage != "" {
@@ -201,33 +215,36 @@ func (ms *ModuleSvc) shouldDeployModule(module *models.ProxyModule, backendModul
 }
 
 func (ms *ModuleSvc) deploySidecarAsync(wg *sync.WaitGroup, errCh chan<- error, r *models.SidecarRequest) {
-	defer wg.Done()
+	defer wg.Done() // Clears the deadlock blocker
 
-	container := &models.Container{
-		Name: r.Module.Metadata.SidecarName,
-		Config: &container.Config{
-			Image:        r.SidecarImage,
-			Hostname:     r.Module.Metadata.SidecarName,
-			Env:          ms.GetSidecarEnv(r.Containers, r.Module, r.BackendModule, "", ""),
-			ExposedPorts: *r.BackendModule.SidecarExposedPorts,
-			Cmd:          helpers.GetConfigSidecarCmd(ms.Action.ConfigSidecarModuleNativeBinaryCmd),
-		},
-		HostConfig: &container.HostConfig{
-			PortBindings:  *r.BackendModule.SidecarPortBindings,
-			RestartPolicy: *helpers.GetRestartPolicy(),
-			Resources:     *r.SidecarResources,
-		},
-		NetworkConfig: helpers.GetModuleNetworkConfig(),
-		Platform:      helpers.GetPlatform(),
-		PullImage:     false,
+	ctx, cancel := context.WithTimeout(context.Background(), constant.ContextTimeoutDockerDeploy)
+	defer cancel()
+
+	containerName := ms.getContainerName(&models.Container{Name: r.Module.Metadata.SidecarName})
+
+	createResp, err := r.Client.ContainerCreate(ctx, &container.Config{
+		Image:        r.SidecarImage,
+		Hostname:     r.Module.Metadata.SidecarName,
+		Env:          ms.GetSidecarEnv(r.Containers, r.Module, r.BackendModule, "", ""),
+		ExposedPorts: *r.BackendModule.SidecarExposedPorts,
+		Cmd:          helpers.GetConfigSidecarCmd(ms.Action.ConfigSidecarModuleNativeBinaryCmd),
+	}, &container.HostConfig{
+		PortBindings:  *r.BackendModule.SidecarPortBindings,
+		RestartPolicy: *helpers.GetRestartPolicy(),
+		Resources:     *r.SidecarResources,
+	}, helpers.GetModuleNetworkConfig(), helpers.GetPlatform(), containerName)
+	if err != nil {
+		errCh <- appErrors.SidecarDeployFailed(r.Module.Metadata.SidecarName, err)
+		return
 	}
-	if err := ms.DeployModule(r.Client, container); err != nil {
-		err := appErrors.SidecarDeployFailed(r.Module.Metadata.SidecarName, err)
-		select {
-		case errCh <- err:
-		default:
-		}
+
+	err = r.Client.ContainerStart(ctx, createResp.ID, container.StartOptions{})
+	if err != nil {
+		errCh <- appErrors.SidecarDeployFailed(r.Module.Metadata.SidecarName, err)
+		return
 	}
+
+	slog.Info(ms.Action.Name, "text", "Deployed module sidecar", "module", containerName)
 }
 
 func (ms *ModuleSvc) DeployModule(client *client.Client, c *models.Container) error {
@@ -304,7 +321,7 @@ func (ms *ModuleSvc) undeployModule(client *client.Client, deployedModule contai
 
 	err = client.ContainerRemove(ctx, deployedModule.ID, container.RemoveOptions{
 		Force:         true,
-		RemoveVolumes: true,
+		RemoveVolumes: !ms.Action.Param.KeepVolumes,
 	})
 	if err != nil {
 		slog.Error(ms.Action.Name, "error", err, "module", deployedModule.ID, "operation", "container remove")

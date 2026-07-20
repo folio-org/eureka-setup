@@ -18,6 +18,7 @@ package cmd
 import (
 	"log/slog"
 	"time"
+	"os/exec"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
@@ -60,7 +61,14 @@ func (run *Run) DeployModules() error {
 	if err != nil {
 		return err
 	}
+
+	// Resolve native framework metadata first
 	run.Config.RegistrySvc.ResolveModuleMetadata(modules)
+
+	prepopulatedDescriptors, err := run.Config.RegistrySvc.InjectProfileModules(modules, backendModules, frontendModules)
+	if err != nil {
+		return err
+	}
 
 	client, err := run.Config.DockerClient.Create()
 	if err != nil {
@@ -115,11 +123,23 @@ func (run *Run) DeployModules() error {
 		return err
 	}
 
+    if run.Config.Action.Param.RefreshGateway {
+        slog.Info(run.Config.Action.Name, "text", "Warm-data system boot detected. Synchronizing gateway mesh...")
+
+        flushCmd := exec.Command("docker", "restart", "kong")
+        if err := run.Config.ExecSvc.Exec(flushCmd); err != nil {
+            slog.Warn(run.Config.Action.Name, "text", "Gateway mesh synchronization warning", "error", err.Error())
+        }
+
+        time.Sleep(2 * time.Second)
+        run.Config.Action.Param.RefreshGateway = false // Reset state
+    }
+
 	return run.Config.ManagementSvc.CreateApplication(&models.RegistryExtract{
 		Modules:           modules,
 		BackendModules:    backendModules,
 		FrontendModules:   frontendModules,
-		ModuleDescriptors: make(map[string]any),
+		ModuleDescriptors: prepopulatedDescriptors,
 	})
 }
 

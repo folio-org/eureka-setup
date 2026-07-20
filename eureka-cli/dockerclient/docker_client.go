@@ -12,6 +12,7 @@ import (
 	"github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/execsvc"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 )
 
 // TODO Add testcontainers tests
@@ -71,6 +72,13 @@ func (dc *DockerClient) PushImage(namespace string, imageName string) error {
 }
 
 func (dc *DockerClient) ForcePullImage(imageName string) (finalImageName string, err error) {
+	if dc.Action.ConfigFrontendPlatform != "" {
+		localImageTag := helpers.ResolveUIPlatformTag(helpers.GetDefaultTenant(dc.Action.ConfigTenants), dc.Action.ConfigNamespacePlatformLspUI)
+		slog.Info(dc.Action.Name, "text", "Custom frontend configuration profile detected. Utilizing locally generated cache layout target.", "tag", localImageTag)
+		return localImageTag, nil
+	}
+	// --- End of Patch ---
+
 	slog.Info(dc.Action.Name, "text", "PULLING PLATFORM LSP UI IMAGE FROM DOCKER HUB")
 	if !action.IsSet(field.NamespacesPlatformLspUI) {
 		return "", errors.ImageKeyNotSet(imageName, field.NamespacesPlatformLspUI)

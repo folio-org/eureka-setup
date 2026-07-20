@@ -24,6 +24,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var deployUiBuildUI bool
+var deployUiNoCache bool
+
 // deployUiCmd represents the deployUi command
 var deployUiCmd = &cobra.Command{
 	Use:   "deployUi",
@@ -34,6 +37,9 @@ var deployUiCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		run.Config.Action.Param.BuildUI = deployUiBuildUI
+		run.Config.Action.Param.NoCache = deployUiNoCache
 
 		return run.ConsortiumPartition(func(consortiumName string, tenantType constant.TenantType) error {
 			return run.DeployUi(consortiumName, tenantType)
@@ -76,4 +82,7 @@ func init() {
 	deployUiCmd.PersistentFlags().BoolVarP(&params.SingleTenant, action.SingleTenant.Long, action.SingleTenant.Short, true, action.SingleTenant.Description)
 	deployUiCmd.PersistentFlags().BoolVarP(&params.EnableECSRequests, action.EnableECSRequests.Long, action.EnableECSRequests.Short, false, action.EnableECSRequests.Description)
 	deployUiCmd.PersistentFlags().BoolVarP(&params.LinkedData, action.LinkedData.Long, action.LinkedData.Short, false, action.LinkedData.Description)
+
+	deployUiCmd.Flags().BoolVar(&deployUiBuildUI, action.BuildUI.Long, false, action.BuildUI.Description)
+	deployUiCmd.Flags().BoolVar(&deployUiNoCache, action.NoCache.Long, false, action.NoCache.Description)
 }

@@ -1,24 +1,12 @@
-/*
-Copyright © 2026 Open Library Foundation
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package cmd
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
@@ -27,6 +15,10 @@ import (
 	git "github.com/go-git/go-git/v5"
 	"github.com/spf13/cobra"
 )
+
+// Flag tracking targeted builds
+var uiOnly bool
+var noCache bool
 
 // buildSystemCmd represents the buildSystem command
 var buildSystemCmd = &cobra.Command{
@@ -40,6 +32,21 @@ var buildSystemCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		if uiOnly {
+            slog.Info(run.Config.Action.Name, "text", "ISOLATED FRONTEND TARGET DETECTED - Skipping infrastructure steps")
+
+            // ⚡ AUTOMATIC NO-CACHE: Merge CLI flag with profile config option
+            forceNoCache := noCache || run.Config.Action.ConfigFrontendAlwaysBuild
+
+            if err := run.BuildCustomFrontendOnly(forceNoCache); err != nil {
+                return err
+            }
+            slog.Info(run.Config.Action.Name, "text", "Isolated custom frontend build completed", "duration", time.Since(start))
+            return nil
+        }
+
+		// Default Complete Sweep
 		if err := run.CloneUpdateRepositories(); err != nil {
 			return err
 		}
@@ -65,6 +72,7 @@ func (run *Run) CloneUpdateRepositories() error {
 	}
 
 	repositories := []*gitrepository.GitRepository{kongRepository, keycloakRepository}
+
 	slog.Info(run.Config.Action.Name, "text", "Cloning repositories", "repositories", repositories)
 	for _, repository := range repositories {
 		if err := run.Config.GitClient.Clone(repository); err != nil {
@@ -88,18 +96,83 @@ func (run *Run) CloneUpdateRepositories() error {
 	return nil
 }
 
-func (run *Run) BuildSystem() error {
-	slog.Info(run.Config.Action.Name, "text", "BUILDING SYSTEM IMAGES")
-	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache"}
+func (run *Run) BuildCustomFrontendOnly(forceNoCache bool) error {
 	homeDir, err := helpers.GetHomeMiscDir()
 	if err != nil {
 		return err
 	}
 
+	if run.Config.Action.ConfigFrontendPlatform == "" || run.Config.Action.ConfigFrontendURL == "" {
+		return fmt.Errorf("frontend configuration missing from active profile config keys")
+	}
+
+	branchName := run.Config.Action.ConfigFrontendBranch
+	if branchName == "" {
+		branchName = "main"
+	}
+
+	eurekaConfig := run.Config.Action.ConfigFrontendConfig
+	if eurekaConfig == "" {
+		eurekaConfig = "stripes.config.js"
+	}
+
+	dockerfileContent, err := helpers.GenerateFrontendDockerfile(branchName, run.Config.Action.ConfigFrontendURL, eurekaConfig)
+	if err != nil {
+		return err
+	}
+
+	dockerfilePath := filepath.Join(homeDir, "Dockerfile.custom-frontend")
+	if err := os.WriteFile(dockerfilePath, []byte(dockerfileContent), 0644); err != nil {
+		return fmt.Errorf("failed to write dynamic frontend Dockerfile: %w", err)
+	}
+	defer func() {
+    	if err := os.Remove(dockerfilePath); err != nil {
+    		slog.Warn(run.Config.Action.Name, "text", "Failed to remove transient dockerfile workspace asset", "path", dockerfilePath, "error", err.Error())
+    	}
+    }()
+	targetTag := helpers.ResolveUIPlatformTag(helpers.GetDefaultTenant(run.Config.Action.ConfigTenants), run.Config.Action.ConfigNamespacePlatformLspUI)
+	slog.Info(run.Config.Action.Name, "text", "Compiling custom frontend platform dynamically", "tag", targetTag)
+
+	// ⚡ CACHE CONTROL
+	buildArgs := []string{"build"}
+	if forceNoCache {
+		buildArgs = append(buildArgs, "--no-cache")
+	}
+	buildArgs = append(buildArgs, "-t", targetTag, "-f", "Dockerfile.custom-frontend", ".")
+
+	buildCmd := exec.Command("docker", buildArgs...)
+	if err := run.Config.ExecSvc.ExecFromDir(buildCmd, homeDir); err != nil {
+		return fmt.Errorf("failed compiling custom workspace image container: %w", err)
+	}
+
+	return nil
+}
+
+func (run *Run) BuildSystem() error {
+	if run.Config.Action.ConfigFrontendPlatform != "" && run.Config.Action.ConfigFrontendURL != "" {
+		slog.Info(run.Config.Action.Name, "text", "DYNAMIC FRONTEND PLATFORM DETECTED IN FULL SWEEP")
+
+		// ⚡ AUTOMATIC NO-CACHE: Merge CLI flag with profile config option here too
+		forceNoCache := noCache || run.Config.Action.ConfigFrontendAlwaysBuild
+
+		if err := run.BuildCustomFrontendOnly(forceNoCache); err != nil {
+			return err
+		}
+	}
+
+	homeDir, err := helpers.GetHomeMiscDir()
+	if err != nil {
+		return err
+	}
+
+	slog.Info(run.Config.Action.Name, "text", "BUILDING SYSTEM IMAGES")
+	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "build", "--no-cache"}
 	return run.Config.ExecSvc.ExecFromDir(exec.Command("docker", subCommand...), homeDir)
 }
 
 func init() {
 	rootCmd.AddCommand(buildSystemCmd)
 	buildSystemCmd.PersistentFlags().BoolVarP(&params.UpdateCloned, action.UpdateCloned.Long, action.UpdateCloned.Short, false, action.UpdateCloned.Description)
+	buildSystemCmd.Flags().BoolVar(&uiOnly, "ui-only", false, "Compile only the dynamic custom frontend platform image")
+	buildSystemCmd.Flags().BoolVar(&noCache, action.NoCache.Long, false, action.NoCache.Description)
 }

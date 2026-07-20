@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
@@ -42,6 +43,9 @@ func GetConfigSidecarCmd(cmd []string) strslice.StrSlice {
 }
 
 func GetSidecarName(moduleName string) string {
+	if strings.HasSuffix(moduleName, "-sc") {
+		return moduleName
+	}
 	return fmt.Sprintf("%s-sc", moduleName)
 }
 

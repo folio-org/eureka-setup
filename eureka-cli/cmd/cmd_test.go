@@ -604,6 +604,11 @@ func (m *MockRegistrySvc) GetAuthorizationToken() (string, error) {
 	return args.String(0), args.Error(1)
 }
 
+func (m *MockRegistrySvc) InjectProfileModules(modules *models.ProxyModulesByRegistry, backendModules map[string]models.BackendModule, frontendModules map[string]models.FrontendModule) (map[string]any, error) {
+	// Returns an empty prepopulated descriptors map and a nil error to safely fulfill the stub contract
+	return make(map[string]any), nil
+}
+
 // ==================== CreateTenants Tests ====================
 
 func TestCreateTenants_Success(t *testing.T) {

@@ -157,6 +157,11 @@ func (mp *ModuleProps) createConfigurableBackendProperties(value any, name strin
 		}
 	}
 
+	imageOverride := helpers.ExtractImageOverrideFromMap(entry)
+	p.Image = imageOverride.Image
+	p.ImageRegistry = imageOverride.ImageRegistry
+	p.DescriptorRegistry = helpers.ExtractDescriptorRegistryFromMap(entry)
+
 	p.Version = mp.getVersion(entry)
 	p.Port, err = mp.getPort(entry, p.DeployModule)
 	if err != nil {
@@ -287,6 +292,7 @@ func (mp *ModuleProps) ReadFrontendModules(verbose bool) (map[string]models.Fron
 				deployModule        = true
 				version             *string
 				localDescriptorPath = ""
+				descriptorRegistry  = ""
 			)
 			if value != nil {
 				entry, ok := value.(map[string]any)
@@ -305,6 +311,8 @@ func (mp *ModuleProps) ReadFrontendModules(verbose bool) (map[string]models.Fron
 						return nil, errors.LocalDescriptorNotFound(localDescriptorPath, name)
 					}
 				}
+
+				descriptorRegistry = helpers.ExtractDescriptorRegistryFromMap(entry)
 			}
 
 			modules[name] = models.FrontendModule{
@@ -312,6 +320,7 @@ func (mp *ModuleProps) ReadFrontendModules(verbose bool) (map[string]models.Fron
 				ModuleName:          name,
 				ModuleVersion:       version,
 				LocalDescriptorPath: localDescriptorPath,
+				DescriptorRegistry:  descriptorRegistry,
 			}
 			if verbose {
 				if version == nil {

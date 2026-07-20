@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-
 	"github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/spf13/viper"
@@ -51,13 +50,19 @@ type Action struct {
 	ConfigSidecarModuleNativeBinaryCmd []string
 	ConfigBackendModules               map[string]any
 	ConfigFrontendModules              map[string]any
-	ConfigCustomFrontendModules        map[string]any
+	ConfigCustomFrontendModules         map[string]any
 	ConfigTenants                      map[string]any
 	ConfigRoles                        map[string]any
 	ConfigUsers                        map[string]any
 	ConfigRolesCapabilitySets          map[string]any
 	ConfigConsortiums                  map[string]any
 	ConfigExtraVolumes                 []string
+	ConfigDockerRegistries             []string
+	ConfigFrontendPlatform             string
+    ConfigFrontendURL                  string
+    ConfigFrontendBranch               string
+    ConfigFrontendConfig               string
+    ConfigFrontendAlwaysBuild          bool
 }
 
 func New(name string, gatewayURL string, actionParam *Param) *Action {
@@ -100,6 +105,12 @@ func New(name string, gatewayURL string, actionParam *Param) *Action {
 		ConfigRolesCapabilitySets:          viper.GetStringMap(field.RolesCapabilitySetsEntry),
 		ConfigConsortiums:                  viper.GetStringMap(field.Consortiums),
 		ConfigExtraVolumes:                 viper.GetStringSlice(field.ExtraVolumes),
+		ConfigDockerRegistries:             viper.GetStringSlice("docker-registries"),
+		ConfigFrontendPlatform:             viper.GetString("frontend.platform"),
+        ConfigFrontendURL:                  viper.GetString("frontend.url"),
+        ConfigFrontendBranch:               viper.GetString("frontend.branch"),
+        ConfigFrontendConfig:               viper.GetString("frontend.config-file"),
+        ConfigFrontendAlwaysBuild:          viper.GetBool("frontend.always-build"),
 	}
 }
 
