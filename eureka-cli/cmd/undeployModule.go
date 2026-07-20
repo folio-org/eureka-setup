@@ -71,4 +71,5 @@ func init() {
 		slog.Error(errors.RegisterFlagCompletionFailed(err).Error())
 		os.Exit(1)
 	}
+    undeployModuleCmd.PersistentFlags().BoolVarP(&params.KeepVolumes, action.KeepVolumes.Long, action.KeepVolumes.Short, false, action.KeepVolumes.Description)
 }

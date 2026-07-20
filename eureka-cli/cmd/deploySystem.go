@@ -45,6 +45,19 @@ var deploySystemCmd = &cobra.Command{
 
 func (run *Run) DeploySystem() error {
 	slog.Info(run.Config.Action.Name, "text", "DEPLOYING SYSTEM CONTAINERS")
+	// Volume checker
+    // Check if our persistent Postgres data volume already exists on the host machine
+    checkVolCmd := exec.Command("docker", "volume", "inspect", "eureka_postgres_data") // NOTE this is from the docker-compose.yaml and is hardcoded
+    if err := checkVolCmd.Run(); err != nil {
+        // Volume wasn't found; Docker Compose is going to generate brand new ones
+        run.Config.Action.Param.NewVolumes = true
+        slog.Debug(run.Config.Action.Name, "text", "Volume eureka_postgres_data not found. Brand new system boot detected.")
+    } else {
+        // Volume was found; this boot is preserving old data structures
+        run.Config.Action.Param.NewVolumes = false
+        slog.Debug(run.Config.Action.Name, "text", "Volume eureka_postgres_data found. Warm-data system boot detected.")
+    }
+
 	if err := run.CloneUpdateRepositories(); err != nil {
 		return err
 	}
@@ -82,6 +95,14 @@ func (run *Run) dockerComposeUp(subCommand []string, wait time.Duration, label s
 		slog.Info(run.Config.Action.Name, "text", "WAITING FOR "+strings.ToUpper(label)+" CONTAINERS TO BECOME READY")
 		time.Sleep(wait)
 		slog.Info(run.Config.Action.Name, "text", fmt.Sprintf("All %s containers are ready", label))
+		if label == "system" {
+            if !run.Config.Action.Param.NewVolumes {
+                slog.Info(run.Config.Action.Name, "text", "Pre-existing data tracks identified. Raising gateway synchronization flag.")
+                run.Config.Action.Param.RefreshGateway = true
+            } else {
+                slog.Info(run.Config.Action.Name, "text", "Pristine database environment generated. Gateway sync not required.")
+            }
+        }
 	} else {
 		slog.Info(run.Config.Action.Name, "text", fmt.Sprintf("All %s containers already running, skipping wait", label))
 	}

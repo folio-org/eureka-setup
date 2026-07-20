@@ -179,53 +179,56 @@ Available flags:
 
 **Command-specific flags:**
 
-| Long                      | Short | Description                                               | Command(s)                             |
-|---------------------------|-------|-------------------------------------------------------------|----------------------------------------|
-| `--all`                   | `-a`  | All modules for all profiles                              | listModules                            |
-| `--apps`                  |       | Application names                                         | purgeTenants                           |
-| `--cleanup`               |       | Perform a cleanup operation                               | deployApplication, upgradeModule       |
-| `--defaultGateway`        | `-g`  | Use default gateway in URLs                               | interceptModule                        |
-| `--enableEcsRequests`     |       | Enable ECS requests                                       | deployUi, buildAndPushUi               |
-| `--gatewayHostname`       |       | Gateway Hostname                                          | createPortProxy                        |
-| `--gatewayURL`            |       | Gateway URL                                               | purgeTenants                           |
-| `--id`                    | `-i`  | Module ID (e.g. mod-orders:13.1.0-SNAPSHOT.1021)          | listModuleVersions                     |
-| `--ids`                   |       | Tenant ids                                                | purgeTenants                           |
-| `--length`                | `-l`  | Salt length for edge API key                              | getEdgeApiKey                          |
-| `--linkedData`            |       | Include Linked Data module in UI bundle                   | buildAndPushUi, deployUi               |
-| `--moduleName`            | `-n`  | Module name (e.g. mod-orders)                             | interceptModule, listModules,          |
-|                           |       |                                                           | listModuleVersions,                    |
-|                           |       |                                                           | undeployModule, updateModuleDiscovery, |
-|                           |       |                                                           | upgradeModule                          |
-| `--modulePath`            |       | Module path (e.g. path to module in IntelliJ)             | upgradeModule                          |
-| `--moduleType`            | `-y`  | Filter by module type                                     | listModules                            |
-| `--moduleUrl`             | `-m`  | Module URL                                                | interceptModule                        |
-| `--moduleVersion`         |       | Module version (e.g. 13.1.0-SNAPSHOT.1093)                | upgradeModule                          |
-| `--namespace`             |       | DockerHub namespace                                       | buildAndPushUi, upgradeModule          |
-| `--platformLspURL`        |       | Platform LSP UI URL                                       | buildAndPushUi, deployUi,              |
-|                           |       |                                                           | updateKeycloakPublicClients            |
-| `--privatePort`           |       | Private port                                              | updateModuleDiscovery                  |
-| `--purgeSchemas`          |       | Purge PostgreSQL schemas on uninstallation                | removeTenantEntitlements,              |
-|                           |       |                                                           | undeployApplication                    |
-| `--removeApplication`     |       | Remove application from the DB                            | undeployApplication                    |
-| `--restore`               | `-r`  | Restore module & sidecar                                  | interceptModule, updateModuleDiscovery |
-| `--sidecarUrl`            | `-s`  | Sidecar URL                                               | interceptModule, updateModuleDiscovery |
-| `--singleTenant`          |       | Use for Single Tenant workflow                            | deployUi, buildAndPushUi               |
-| `--skipApplication`       |       | Skip application operations                               | upgradeModule                          |
-| `--skipCapabilitySets`    |       | Skip refreshing capability sets                           | undeployApplication                    |
-| `--skipModuleArtifact`    |       | Skip building module artifact (jar and module descriptor) | upgradeModule                          |
-| `--skipModuleDeployment`  |       | Skip module & sidecar deployment                          | upgradeModule                          |
-| `--skipModuleDiscovery`   |       | Skip module discovery update                              | upgradeModule                          |
-| `--skipModuleImage`       |       | Skip building module Docker image                         | upgradeModule                          |
-| `--skipRegistry`          |       | Skip retrieving latest registry module versions           | interceptModule, deployApplication,    |
-|                           |       |                                                           | deployManagement, deployModules        |
-| `--skipTenantEntitlement` |       | Skip tenant entitlement operations                        | upgradeModule                          |
-| `--tenant`                | `-t`  | Tenant name                                               | getKeycloakAccessToken, getEdgeApiKey, |
-|                           |       |                                                           | buildAndPushUi                         |
-| `--tokenType`             |       | Token type                                                | getKeycloakAccessToken                 |
-| `--updateCloned`          | `-u`  | Update Git cloned projects                                | buildSystem, deployApplication,        |
-|                           |       |                                                           | deployUi, buildAndPushUi               |
-| `--user`                  | `-x`  | User for edge API key generation                          | getEdgeApiKey                          |
-| `--versions`              | `-v`  | Number of versions to display                             | listModuleVersions                     |
+| Long                      | Short | Description                                                                                              | Command(s)                                                     |
+|---------------------------|-------|----------------------------------------------------------------------------------------------------------|----------------------------------------------------------------|
+| `--all`                   | `-a`  | All modules for all profiles                                                                             | listModules                                                    |
+| `--apps`                  |       | Application names                                                                                        | purgeTenants                                                   |
+| `--build-ui`              |       | Build only the custom frontend platform image, skipping repository updates and other system build steps. | buildSystem, buildUi, deploy, deployApplication, deployUi      | 
+| `--cleanup`               |       | Perform a cleanup operation                                                                              | deployApplication, upgradeModule                               |
+| `--defaultGateway`        | `-g`  | Use default gateway in URLs                                                                              | interceptModule                                                |
+| `--enableEcsRequests`     |       | Enable ECS requests                                                                                      | deployUi, buildAndPushUi                                       |
+| `--gatewayHostname`       |       | Gateway Hostname                                                                                         | createPortProxy                                                |
+| `--gatewayURL`            |       | Gateway URL                                                                                              | purgeTenants                                                   |
+| `--id`                    | `-i`  | Module ID (e.g. mod-orders:13.1.0-SNAPSHOT.1021)                                                         | listModuleVersions                                             |
+| `--ids`                   |       | Tenant ids                                                                                               | purgeTenants                                                   |
+| `--keep-volumes`          | `-k`  | Preserve Docker volumes when tearing down the deployment.                                                | undeployModule, undeployModules, undeployApplication, undeploy |
+| `--length`                | `-l`  | Salt length for edge API key                                                                             | getEdgeApiKey                                                  |
+| `--linkedData`            |       | Include Linked Data module in UI bundle                                                                  | buildAndPushUi, deployUi                                       |
+| `--moduleName`            | `-n`  | Module name (e.g. mod-orders)                                                                            | interceptModule, listModules,                                  |
+|                           |       |                                                                                                          | listModuleVersions,                                            |
+|                           |       |                                                                                                          | undeployModule, updateModuleDiscovery,                         |
+|                           |       |                                                                                                          | upgradeModule                                                  |
+| `--modulePath`            |       | Module path (e.g. path to module in IntelliJ)                                                            | upgradeModule                                                  |
+| `--moduleType`            | `-y`  | Filter by module type                                                                                    | listModules                                                    |
+| `--moduleUrl`             | `-m`  | Module URL                                                                                               | interceptModule                                                |
+| `--moduleVersion`         |       | Module version (e.g. 13.1.0-SNAPSHOT.1093)                                                               | upgradeModule                                                  |
+| `--no-cache`              |       | When building the custom frontend platform image, disable Docker layer caching.                          | buildSystem, buildUi, deploy, deployApplication, deployUi      |
+| `--namespace`             |       | DockerHub namespace                                                                                      | buildAndPushUi, upgradeModule                                  |
+| `--platformLspURL`        |       | Platform LSP UI URL                                                                                      | buildAndPushUi, deployUi,                                      |
+|                           |       |                                                                                                          | updateKeycloakPublicClients                                    |
+| `--privatePort`           |       | Private port                                                                                             | updateModuleDiscovery                                          |
+| `--purgeSchemas`          |       | Purge PostgreSQL schemas on uninstallation                                                               | removeTenantEntitlements,                                      |
+|                           |       |                                                                                                          | undeployApplication                                            |
+| `--removeApplication`     |       | Remove application from the DB                                                                           | undeployApplication                                            |
+| `--restore`               | `-r`  | Restore module & sidecar                                                                                 | interceptModule, updateModuleDiscovery                         |
+| `--sidecarUrl`            | `-s`  | Sidecar URL                                                                                              | interceptModule, updateModuleDiscovery                         |
+| `--singleTenant`          |       | Use for Single Tenant workflow                                                                           | deployUi, buildAndPushUi                                       |
+| `--skipApplication`       |       | Skip application operations                                                                              | upgradeModule                                                  |
+| `--skipCapabilitySets`    |       | Skip refreshing capability sets                                                                          | undeployApplication                                            |
+| `--skipModuleArtifact`    |       | Skip building module artifact (jar and module descriptor)                                                | upgradeModule                                                  |
+| `--skipModuleDeployment`  |       | Skip module & sidecar deployment                                                                         | upgradeModule                                                  |
+| `--skipModuleDiscovery`   |       | Skip module discovery update                                                                             | upgradeModule                                                  |
+| `--skipModuleImage`       |       | Skip building module Docker image                                                                        | upgradeModule                                                  |
+| `--skipRegistry`          |       | Skip retrieving latest registry module versions                                                          | interceptModule, deployApplication,                            |
+|                           |       |                                                                                                          | deployManagement, deployModules                                |
+| `--skipTenantEntitlement` |       | Skip tenant entitlement operations                                                                       | upgradeModule                                                  |
+| `--tenant`                | `-t`  | Tenant name                                                                                              | getKeycloakAccessToken, getEdgeApiKey,                         |
+|                           |       |                                                                                                          | buildAndPushUi                                                 |
+| `--tokenType`             |       | Token type                                                                                               | getKeycloakAccessToken                                         |
+| `--updateCloned`          | `-u`  | Update Git cloned projects                                                                               | buildSystem, deployApplication,                                |
+|                           |       |                                                                                                          | deployUi, buildAndPushUi                                       |
+| `--user`                  | `-x`  | User for edge API key generation                                                                         | getEdgeApiKey                                                  |
+| `--versions`              | `-v`  | Number of versions to display                                                                            | listModuleVersions                                             |
 
 ```bash
 eureka-cli -c ./config.combined.yaml deployApplication

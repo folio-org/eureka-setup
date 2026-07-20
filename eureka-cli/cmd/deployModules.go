@@ -18,6 +18,7 @@ package cmd
 import (
 	"log/slog"
 	"time"
+	"os/exec"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
@@ -121,6 +122,18 @@ func (run *Run) DeployModules() error {
 	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.ClientCredentials); err != nil {
 		return err
 	}
+
+    if run.Config.Action.Param.RefreshGateway {
+        slog.Info(run.Config.Action.Name, "text", "Warm-data system boot detected. Synchronizing gateway mesh...")
+
+        flushCmd := exec.Command("docker", "restart", "kong")
+        if err := run.Config.ExecSvc.Exec(flushCmd); err != nil {
+            slog.Warn(run.Config.Action.Name, "text", "Gateway mesh synchronization warning", "error", err.Error())
+        }
+
+        time.Sleep(2 * time.Second)
+        run.Config.Action.Param.RefreshGateway = false // Reset state
+    }
 
 	return run.Config.ManagementSvc.CreateApplication(&models.RegistryExtract{
 		Modules:           modules,
