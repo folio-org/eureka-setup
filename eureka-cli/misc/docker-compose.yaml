@@ -401,7 +401,7 @@ services:
       - 9000:9000
       - 9001:9001
     healthcheck:
-      test: curl -k -f http://127.0.0.1:19001/minio/health/live || exit 1
+      test: curl -k -f http://127.0.0.1:9000/minio/health/live || exit 1
       interval: 30s
       timeout: 10s
       retries: 30
