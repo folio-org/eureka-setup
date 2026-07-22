@@ -211,8 +211,8 @@ Available flags:
 | `--tenant`                | `-t`  | Tenant name                                               | getKeycloakAccessToken, getEdgeApiKey, |
 |                           |       |                                                           | buildAndPushUi                         |
 | `--tokenType`             |       | Token type                                                | getKeycloakAccessToken                 |
-| `--updateCloned`          | `-u`  | Update Git cloned projects                                | buildSystem, deployApplication,        |
-|                           |       |                                                           | deployUi, buildAndPushUi               |
+| `--updateCloned`          | `-u`  | Update Git cloned projects                                | deployApplication, deployUi,           |
+|                           |       |                                                           | buildAndPushUi                         |
 | `--user`                  | `-x`  | User for edge API key generation                          | getEdgeApiKey                          |
 | `--versions`              | `-v`  | Number of versions to display                             | listModuleVersions                     |
 
@@ -255,7 +255,7 @@ eureka-cli deployApplication -oq
 
 > Deploys the system without optional containers depending on the profile, such as _netcat_, _kafka-ui_, _minio_, _createbuckets_, _opensearch_, _opensearch dashboards_ and _ftp-server_.
 
-- In case you want to update your local repositories of _folio-kong_, _folio-keycloak_ and _platform-lsp_ (UI), you can do so with the combined `-bu` flags
+- In case you want to update your local repository of _platform-lsp_ (UI), you can do so with the combined `-bu` flags
 
 ```bash
 eureka-cli deployApplication -bu
@@ -266,11 +266,7 @@ eureka-cli deployApplication -bu
 - System containers can also be built or rebuilt separately from environment deployment. This is particularly useful if you want to verify the images without a full deployment
 
 ```bash
-# Build from the local repositories
 eureka-cli buildSystem
-
-# Build from the Git updated local repositories
-eureka-cli buildSystem -u
 ```
 
 ### Undeploy the _combined_ application
@@ -797,7 +793,7 @@ eureka-cli deployUi
 The CLI also supports building and deploying the UI image in-place, during either `deployApplication` execution or with `deployUi` command.
 
 ```bash
-# Will build and deploy every image including folio-kong, folio-keycloak and platform-lsp itself
+# Will build and deploy every locally built image including platform-lsp itself
 eureka-cli deployApplication -b -u
 
 # Will only build and deploy the platform-lsp image
@@ -1013,7 +1009,7 @@ If there are multiple instances of a container daemon (e.g. **Rancher Desktop**,
 
 Vault UI does not have a **Userpass** sign-in method or login fails with admin/admin credentials
 
-- Your local Vault image is outdated, update the git repository of the CLI, rebuild the binary for your platform of choice and run `eureka-cli buildSystem -u` once before deploying any application
+- Your local Vault image is outdated, update the git repository of the CLI, rebuild the binary for your platform of choice and run `eureka-cli buildSystem -o` once before deploying any application (`-o` overwrites the extracted files under `~/.eureka` with the versions embedded in the binary)
 
 ### Command-based
 
@@ -1040,7 +1036,7 @@ Module readiness checks are failing
 
 - Rerun the deployment again with more available RAM
 
-When trying to deploy with `eureka-cli deployApplication -bu` or building with `eureka-cli buildSystem -u` (retry if fails on `Error: worktree contains unstaged changes`):
+When trying to deploy with `eureka-cli deployApplication -bu` or building with `eureka-cli buildSystem`:
 
 ```txt
 ERROR: unable to select packages:
@@ -1049,6 +1045,7 @@ ERROR: unable to select packages:
 ```
 
 - Update your local CLI git repository and rebuild the binary; our Dockerfiles in the `misc` folder are no longer dependent on pinned and non-deterministic package versions of Alpine Linux
+- If `deployApplication -bu` fails on `Error: worktree contains unstaged changes` instead, simply retry the command
 
 ---
 

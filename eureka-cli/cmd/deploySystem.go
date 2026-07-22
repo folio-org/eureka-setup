@@ -45,9 +45,6 @@ var deploySystemCmd = &cobra.Command{
 
 func (run *Run) DeploySystem() error {
 	slog.Info(run.Config.Action.Name, "text", "DEPLOYING SYSTEM CONTAINERS")
-	if err := run.CloneUpdateRepositories(); err != nil {
-		return err
-	}
 	if params.BuildImages {
 		if err := run.BuildSystem(); err != nil {
 			return err
@@ -92,6 +89,5 @@ func (run *Run) dockerComposeUp(subCommand []string, wait time.Duration, label s
 func init() {
 	rootCmd.AddCommand(deploySystemCmd)
 	deploySystemCmd.PersistentFlags().BoolVarP(&params.BuildImages, action.BuildImages.Long, action.BuildImages.Short, false, action.BuildImages.Description)
-	deploySystemCmd.PersistentFlags().BoolVarP(&params.UpdateCloned, action.UpdateCloned.Long, action.UpdateCloned.Short, false, action.UpdateCloned.Description)
 	deploySystemCmd.PersistentFlags().BoolVarP(&params.OnlyRequired, action.OnlyRequired.Long, action.OnlyRequired.Short, false, action.OnlyRequired.Description)
 }

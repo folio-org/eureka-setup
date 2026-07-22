@@ -40,7 +40,7 @@ services:
   ### Netcat (required by checkPorts command) ###
   netcat:
     container_name: netcat
-    image: ${DOCKERHUB_NAMESPACE}/folio-netcat:${FOLIO_NETCAT_VERSION}
+    image: folio-netcat:${FOLIO_NETCAT_VERSION}
     restart: unless-stopped
     build:
       context: ${HOME}/.eureka/misc/folio-netcat
@@ -160,21 +160,23 @@ services:
 
   kafka-tools:
     container_name: kafka-tools
-    image: ${DOCKERHUB_NAMESPACE}/folio-kafka-tools:${FOLIO_KAFKA_TOOLS_VERSION}
+    # Official Apache Kafka image (JVM variant) idling; bundles the CLI scripts under
+    # /opt/kafka/bin, which the PATH below exposes to `docker exec` and the healthcheck.
+    image: apache/kafka:${KAFKA_VERSION}
     restart: unless-stopped
-    build:
-      context: ${HOME}/.eureka/misc/folio-kafka-tools
-      dockerfile: Dockerfile
+    command: ["sleep", "infinity"]
     cpus: "0.5"
     mem_limit: 350m
     memswap_limit: -1
     depends_on:
       kafka:
         condition: service_healthy
+    environment:
+      PATH: /opt/kafka/bin:/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     networks:
       - eureka-net
     healthcheck:
-      test: ["CMD", "/bin/bash", "-c", "kafka-broker-api-versions.sh --bootstrap-server kafka.eureka:9092 --version"]
+      test: ["CMD", "/bin/bash", "-c", "kafka-broker-api-versions.sh --bootstrap-server kafka.eureka:9092"]
       interval: 30s
       timeout: 10s
       retries: 10
@@ -183,7 +185,7 @@ services:
   ### Vault (required) ###
   vault:
     container_name: vault
-    image: ${DOCKERHUB_NAMESPACE}/folio-vault:${FOLIO_VAULT_VERSION}
+    image: folio-vault:${FOLIO_VAULT_VERSION}
     restart: unless-stopped
     build:
       context: ${HOME}/.eureka/misc/folio-vault
@@ -237,11 +239,8 @@ services:
   # Source repository: https://github.com/folio-org/folio-keycloak
   keycloak-internal:
     container_name: keycloak-internal
-    image: ${DOCKERHUB_NAMESPACE}/folio-keycloak:${FOLIO_KEYCLOAK_VERSION}
+    image: ${FOLIO_KEYCLOAK_NAMESPACE}/folio-keycloak:${FOLIO_KEYCLOAK_VERSION}
     restart: unless-stopped
-    build:
-      context: ${HOME}/.eureka/misc/folio-keycloak
-      dockerfile: Dockerfile
     cpus: 2
     mem_limit: 2g
     memswap_limit: -1
@@ -275,11 +274,8 @@ services:
   # Source repository: https://github.com/folio-org/folio-kong
   kong:
     container_name: kong
-    image: ${DOCKERHUB_NAMESPACE}/folio-kong:${FOLIO_KONG_VERSION}
+    image: ${FOLIO_KONG_NAMESPACE}/folio-kong:${FOLIO_KONG_VERSION}
     restart: unless-stopped
-    build:
-      context: ${HOME}/.eureka/misc/folio-kong
-      dockerfile: Dockerfile
     cpus: 4
     mem_limit: 2g
     memswap_limit: -1

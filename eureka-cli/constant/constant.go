@@ -69,24 +69,16 @@ const (
 	SidecarProjectName = "folio-module-sidecar"
 
 	// Folio source Git repository URLs
-	FolioKongRepositoryURL     = "https://github.com/folio-org/folio-kong"
-	FolioKeycloakRepositoryURL = "https://github.com/folio-org/folio-keycloak"
-	PlatformLspRepositoryURL   = "https://github.com/folio-org/platform-lsp.git"
+	PlatformLspRepositoryURL = "https://github.com/folio-org/platform-lsp.git"
 
 	// Folio source Git repository labels
-	FolioKongLabel     = "folio-kong"
-	FolioKeycloakLabel = "folio-keycloak"
-	PlatformLspLabel   = "platform-lsp"
+	PlatformLspLabel = "platform-lsp"
 
 	// Folio source Git local repository output directories
-	FolioKongOutputDir     = "folio-kong"
-	FolioKeycloakOutputDir = "folio-keycloak"
-	PlatformLspOutputDir   = "platform-lsp"
+	PlatformLspOutputDir = "platform-lsp"
 
 	// Branch names
-	FolioKongBranch     = "master"
-	FolioKeycloakBranch = "master"
-	StripesBranch       = "snapshot"
+	StripesBranch = "snapshot"
 
 	// Module descriptor file name
 	ModuleDescriptor = "ModuleDescriptor.json"
