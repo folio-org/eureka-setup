@@ -1285,6 +1285,22 @@ func TestDeployUi_Success(t *testing.T) {
 	mockUISvc.AssertExpectations(t)
 }
 
+func TestDeployUi_SkipUi(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.DeployUi)
+	mockUISvc := &MockUISvc{}
+	run.Config.UISvc = mockUISvc
+	params.SkipUI = true
+	t.Cleanup(func() { params.SkipUI = false })
+
+	// Act
+	err := run.DeployUi(constant.NoneConsortium, constant.Default)
+
+	// Assert
+	assert.NoError(t, err)
+	mockUISvc.AssertExpectations(t)
+}
+
 func TestDeployUi_SetConfigError(t *testing.T) {
 	// Arrange
 	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.DeployUi)

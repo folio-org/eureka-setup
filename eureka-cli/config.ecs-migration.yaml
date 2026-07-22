@@ -12,8 +12,6 @@ far:
   url: https://far.ci.folio.org
 registry:
   url: https://folio-registry.dev.folio.org
-namespaces:
-  platform-lsp-ui: bkadirkhodjaev
 environment:
   # PostgreSQL
   DB_HOST: postgres.eureka

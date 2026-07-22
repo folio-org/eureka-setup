@@ -271,6 +271,9 @@ const (
 	SnapshotNamespace = "folioci"
 	ReleaseNamespace  = "folioorg"
 	LocalNamespace    = "foliolocal"
+
+	// DeprecatedUINamespace is the former default for namespaces.platform-lsp-ui, no longer maintained (see issue #225)
+	DeprecatedUINamespace = "bkadirkhodjaev"
 )
 
 func GetNamespaces() []string {

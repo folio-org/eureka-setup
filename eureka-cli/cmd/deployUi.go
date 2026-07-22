@@ -42,6 +42,10 @@ var deployUiCmd = &cobra.Command{
 }
 
 func (run *Run) DeployUi(consortiumName string, tenantType constant.TenantType) error {
+	if params.SkipUI {
+		slog.Info(run.Config.Action.Name, "text", "SKIPPING UI DEPLOYMENT")
+		return nil
+	}
 	slog.Info(run.Config.Action.Name, "text", "DEPLOYING UI", "consortium", consortiumName)
 	return run.TenantPartition(consortiumName, tenantType, func(configTenant, tenantType string) error {
 		if helpers.IsUIEnabled(configTenant, run.Config.Action.ConfigTenants) {

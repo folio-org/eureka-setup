@@ -86,20 +86,43 @@ func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
 func (us *UISvc) PrepareImage(tenantName string) (string, error) {
 	imageName := fmt.Sprintf("platform-lsp-ui-%s", tenantName)
 	if us.Action.Param.BuildImages {
-		outputDir, err := us.CloneAndUpdateRepository(us.Action.Param.UpdateCloned)
-		if err != nil {
-			return "", err
+		return us.buildImageFromRepository(tenantName)
+	}
+	if us.Action.ConfigNamespacePlatformLspUI != "" {
+		if us.Action.ConfigNamespacePlatformLspUI == constant.DeprecatedUINamespace {
+			slog.Warn(us.Action.Name, "text", "Configured UI namespace is deprecated, remove namespaces.platform-lsp-ui to build locally or set your own namespace populated via buildAndPushUi", "namespace", constant.DeprecatedUINamespace)
 		}
-
-		return us.BuildImage(tenantName, outputDir)
+		return us.DockerClient.ForcePullImage(imageName)
 	}
 
-	finalImageName, err := us.DockerClient.ForcePullImage(imageName)
+	exists, err := us.imageExists(imageName)
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		slog.Info(us.Action.Name, "text", "Reusing existing local UI image, pass -b to rebuild", "image", imageName)
+		return imageName, nil
+	}
+
+	return us.buildImageFromRepository(tenantName)
+}
+
+func (us *UISvc) buildImageFromRepository(tenantName string) (string, error) {
+	outputDir, err := us.CloneAndUpdateRepository(us.Action.Param.UpdateCloned)
 	if err != nil {
 		return "", err
 	}
 
-	return finalImageName, nil
+	return us.BuildImage(tenantName, outputDir)
+}
+
+func (us *UISvc) imageExists(imageName string) (bool, error) {
+	stdout, _, err := us.ExecSvc.ExecReturnOutput(exec.Command("docker", "images", "--quiet", imageName+":latest"))
+	if err != nil {
+		return false, err
+	}
+
+	return strings.TrimSpace(stdout.String()) != "", nil
 }
 
 func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error) {
