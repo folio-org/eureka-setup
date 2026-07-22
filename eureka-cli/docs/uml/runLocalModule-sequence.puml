@@ -1,0 +1,153 @@
+@startuml runLocalModule Sequence Diagram
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 150
+
+title Eureka CLI - runLocalModule Command Flow
+
+actor Developer
+participant "CLI" as CLI
+participant "Run" as Run
+participant "Keycloak" as Keycloak
+participant "ManagementSvc" as Mgmt
+participant "Build Tool\n(Maven / Gradle / Grails)" as Build
+participant "Docker" as Docker
+participant "ModuleSvc" as ModSvc
+participant "HTTPClient" as HTTP
+participant "Kong Gateway" as Kong
+
+Developer -> CLI: eureka-cli runLocalModule\n--modulePath /path/to/private-module\n[--applicationName app-local]
+
+activate CLI
+CLI -> Run: New(action.RunLocalModule)
+activate Run
+
+== Authentication & Context Setup ==
+Run -> Run: setKeycloakMasterAccessTokenIntoContext()
+Run -> Keycloak: POST /realms/master/protocol/openid-connect/token
+Keycloak --> Run: Access Token
+note right: Get Keycloak master access token\nusing client credentials
+
+Run -> Run: resolveModuleIdentity()
+note right: If --moduleName / --moduleVersion\nomitted, derive from pom.xml /\nbuild.gradle(.kts) / gradle.properties
+
+Run -> Run: setDefaultNamespaceIntoContext()
+note right: Set namespace to foliolocal\nif not specified
+
+== Collision Guard ==
+Run -> Mgmt: GetLatestApplication(baseAppName)
+Mgmt -> Kong: GET /applications?appName=<base>&latest=1&full=true
+Kong --> Mgmt: Base Application
+Mgmt --> Run: modules[] of base app
+
+alt module name already in base app
+    Run --> CLI: Error: "<name> is already\nprovided by <base app>;\nuse upgradeModule instead"
+    CLI --> Developer: X Aborted (nothing changed)
+end
+
+== Module Build Phase ==
+opt !skipModuleArtifact
+    Run -> Run: buildModuleArtifact()
+    Run -> Build: detectModuleBuild(modulePath)
+    Build --> Run: {tool, dir}
+    Run -> Build: clean + set version + package/assemble
+    Build --> Run: Artifact + ModuleDescriptor.json
+    note right: Reuses upgrademodulesvc\nBuildModuleArtifact
+end
+
+opt !skipModuleImage
+    Run -> Run: buildModuleImage()
+    Run -> Docker: docker build\n--tag foliolocal/<module>:<version>
+    Docker --> Run: Image Built
+end
+
+Run -> Run: readModuleDescriptor()
+note right: Read ModuleDescriptor.json from\ntarget/ or build/resources/main/
+
+== Module Deployment Phase ==
+opt !skipModuleDeployment
+    Run -> Run: reserveUsedHostPorts()
+    Run -> Docker: list running containers
+    Docker --> Run: published host ports
+    note right: Skip ports already in use so a second\nlocal module does not collide
+
+    Run -> Run: deployLocalModuleAndSidecarPair()
+    Run -> ModSvc: NewModulePair()
+    ModSvc --> Run: Module Pair
+    Run -> ModSvc: DeployModuleAndSidecarPair()
+    ModSvc -> Docker: Deploy Module Container
+    Docker --> ModSvc: Module Running
+    ModSvc -> Docker: Deploy Sidecar Container
+    Docker --> ModSvc: Sidecar Running
+    ModSvc --> Run: Deployment Complete
+end
+
+== Application Update Phase (app-local) ==
+Run -> Mgmt: GetLatestApplicationByName(app-local)
+Mgmt -> Kong: GET /applications?appName=app-local&latest=1&full=true
+Kong --> Mgmt: app-local (or none)
+Mgmt --> Run: Existing app-local | none
+
+alt app-local does NOT exist
+    Run -> Run: buildInitialLocalApp()
+    note right: New app-local-1.0.0 with:\n dependencies: [<base app>]\n modules: [this module]\n uiModules: []
+else app-local already exists
+    Run -> Run: mergeLocalApp()
+    note right: Increment patch version.\nMerge module by name\n(append or replace).\n**Preserve existing\nuiModules / uiModuleDescriptors\nverbatim.**
+end
+
+opt !skipApplication
+    Run -> HTTP: POST /applications?check=true
+    HTTP -> Kong: Create app-local-<newVersion>
+    Kong --> HTTP: Application Created
+    HTTP --> Run: Application Response
+end
+
+== Module Discovery ==
+opt !skipModuleDiscovery
+    Run -> HTTP: POST /modules/discovery
+    HTTP -> Kong: Register <module>-sc.eureka:<port>
+    Kong --> HTTP: Discovery Registered
+    HTTP --> Run: Discovery Response
+
+    alt Discovery Failed
+        Run -> Run: cleanupLocalAppOnFailure()
+        note right: Rollback:\n- If app-local was newly created:\n   DELETE app-local-<newVersion>\n- If app-local existed:\n   keep previous version
+    end
+end
+
+== Tenant Entitlement ==
+opt !skipTenantEntitlement
+    alt app-local was newly created
+        Run -> HTTP: POST /entitlements?async=false
+        HTTP -> Kong: Attach tenants to app-local-<newVersion>
+    else app-local existed (upgrade)
+        Run -> HTTP: PUT /entitlements?async=false
+        HTTP -> Kong: Upgrade tenants to app-local-<newVersion>
+    end
+    Kong --> HTTP: Flow ID
+    HTTP --> Run: OK
+
+    alt Entitlement Failed
+        Run -> Run: cleanupLocalAppOnFailure()
+        note right: Same rollback branch as above
+    end
+end
+
+== Cleanup ==
+Run -> Mgmt: RemoveApplications(app-local, keep=<newVersion>)
+Mgmt -> Kong: DELETE previous app-local-<oldVersion>
+Kong --> Mgmt: Deleted
+
+opt cleanup
+    Run -> Build: revert version + clean
+    Build --> Run: Workspace reset
+end
+
+Run --> CLI: Success
+deactivate Run
+CLI --> Developer: OK - Local module running under app-local-<newVersion>
+deactivate CLI
+
+@enduml

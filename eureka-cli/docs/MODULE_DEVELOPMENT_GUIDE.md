@@ -48,6 +48,31 @@
       - [Scenario 2: Downgrade to Previous Version](#scenario-2-downgrade-to-previous-version)
       - [Scenario 3: Upgrade Without Rebuilding](#scenario-3-upgrade-without-rebuilding)
       - [Scenario 4: Test Application Update Logic Only](#scenario-4-test-application-update-logic-only)
+  - [runLocalModule Command](#runlocalmodule-command)
+    - [Purpose of runLocalModule](#purpose-of-runlocalmodule)
+    - [runLocalModule Prerequisites](#runlocalmodule-prerequisites)
+    - [How runLocalModule Works](#how-runlocalmodule-works)
+      - [Phase 1: Authentication \& Context Setup](#rlm-phase-1-authentication--context-setup)
+      - [Phase 2: Collision Guard](#rlm-phase-2-collision-guard)
+      - [Phase 3: Module Build](#rlm-phase-3-module-build)
+      - [Phase 4: Module Deployment](#rlm-phase-4-module-deployment)
+      - [Phase 5: Application Update (app-local)](#rlm-phase-5-application-update-app-local)
+      - [Phase 6: Module Discovery](#rlm-phase-6-module-discovery)
+      - [Phase 7: Tenant Entitlement](#rlm-phase-7-tenant-entitlement)
+      - [Phase 8: Cleanup](#rlm-phase-8-cleanup)
+    - [runLocalModule Common Parameters](#runlocalmodule-common-parameters)
+    - [runLocalModule Usage Examples](#runlocalmodule-usage-examples)
+      - [Run a Private Module (golden path)](#run-a-private-module-golden-path)
+      - [Override Name / Version / Application](#override-name--version--application)
+      - [Add a Second Local Module](#add-a-second-local-module)
+      - [Skip Specific Steps](#skip-specific-steps-1)
+      - [Undeploy the Local Application](#undeploy-the-local-application)
+    - [runLocalModule Command Flow Diagram](#runlocalmodule-command-flow-diagram)
+    - [runLocalModule Rollback Behavior](#runlocalmodule-rollback-behavior)
+    - [runLocalModule Common Scenarios](#runlocalmodule-common-scenarios)
+      - [Scenario 1: Run a Module That Is Not in LSP](#rlm-scenario-1-run-a-module-that-is-not-in-lsp)
+      - [Scenario 2: Iterate and Add a Second Module](#rlm-scenario-2-iterate-and-add-a-second-module)
+      - [Scenario 3: Collision and Undeploy](#rlm-scenario-3-collision-and-undeploy)
   - [Development Workflows](#development-workflows)
     - [Workflow 1: Debug Existing Module](#workflow-1-debug-existing-module)
     - [Workflow 2: Test Local Changes](#workflow-2-test-local-changes)
@@ -410,6 +435,185 @@ eureka-cli upgradeModule \
 
 1. Run: `eureka-cli upgradeModule -n mod-orders --modulePath ~/Folio/mod-orders --skipModuleArtifact --skipModuleImage --skipModuleDeployment`
 2. This skips all build/deploy steps but tests application versioning logic
+
+## runLocalModule Command
+
+### Purpose of runLocalModule
+
+The `runLocalModule` command builds and runs a **private, not-yet-published** backend module directly from its local source folder — a module that is **not** registered in FOLIO LSP/FAR (a private-repo module, a fork, or one not yet added to `platform-lsp`). It reuses the `upgradeModule` build/deploy pipeline, but instead of replacing a module that already exists, it layers the new module into the environment through a dedicated child application (default `app-local`) that depends on the currently deployed base application. It handles:
+
+- **Module identity resolution** from `pom.xml` / `build.gradle(.kts)` / Grails `gradle.properties` (name + SNAPSHOT-incremented version)
+- **Collision guarding** against modules already provided by the base application
+- **Maven / Gradle / Grails artifact building** and **Docker image creation** (`foliolocal/<module>:<version>`)
+- **Container deployment** of the module + sidecar with health checks
+- **Child-application management** (create `app-local-1.0.0`, or patch-bump and merge on subsequent runs)
+- **Module discovery registration** in Kong
+- **Tenant entitlement** to the local application
+- **Automatic rollback** on discovery / entitlement failure
+
+### runLocalModule Prerequisites
+
+Before using `runLocalModule`, ensure:
+
+- A base application is deployed and running (e.g. `eureka-cli -p combined deployApplication -oq`)
+- Maven is installed and on PATH for Maven modules (`mvn --version`); a checked-in Gradle Wrapper for Gradle/Grails modules
+- Docker is running and accessible
+- The module source is available locally with a `Dockerfile` at the repository root
+- The module name is **not** already part of the base application (otherwise use `upgradeModule`)
+
+### How runLocalModule Works
+
+The command follows a multi-phase workflow:
+
+#### RLM Phase 1: Authentication & Context Setup
+
+- Obtains Keycloak master access token
+- Validates `--modulePath`
+- Sets default namespace to `foliolocal` if not specified
+- Resolves module identity (name/version) from the build file when `--moduleName` / `--moduleVersion` are omitted
+
+#### RLM Phase 2: Collision Guard
+
+- Fetches the base application's module list
+- Fails fast (before any build) if the module name is already provided by the base application, instructing the user to use `upgradeModule`
+
+#### RLM Phase 3: Module Build
+
+- Builds the artifact (`mvn clean` + `versions:set` + `package`, or the Gradle/Grails equivalent)
+- Builds the Docker image tagged `foliolocal/<module>:<version>`
+- Reads the generated `ModuleDescriptor.json`
+
+#### RLM Phase 4: Module Deployment
+
+- Reserves host ports already used by running containers (so a second local module does not collide)
+- Deploys the module and sidecar containers with health checks
+
+#### RLM Phase 5: Application Update (app-local)
+
+- Fetches the latest `app-local` (or none)
+- If absent: creates `app-local-1.0.0` with `dependencies: [<base app>]` and this module
+- If present: increments the patch version and adds/replaces the module by name, preserving any existing `uiModules` / `uiModuleDescriptors`
+
+#### RLM Phase 6: Module Discovery
+
+- Registers the module's sidecar location in Kong
+- Rolls back the just-created application version on failure
+
+#### RLM Phase 7: Tenant Entitlement
+
+- New app: attaches every configured tenant to the local application (POST)
+- Existing app: upgrades tenant entitlements to the new version (PUT)
+- Rolls back the just-created application version on failure
+
+#### RLM Phase 8: Cleanup
+
+- Removes superseded `app-local` versions (keeps only the new one)
+- Optionally reverts the build-file version and cleans the artifact (`--cleanup`)
+
+### runLocalModule Common Parameters
+
+| Parameter                   | Shorthand | Required | Description                                                        |
+|-----------------------------|-----------|----------|--------------------------------------------------------------------|
+| `--modulePath`              |           | Yes      | Local path to the module source folder (repository root)           |
+| `--moduleName`              | `-n`      | No       | Override the auto-detected module name                             |
+| `--moduleVersion`           |           | No       | Override the version (default: auto-detected + SNAPSHOT-increment) |
+| `--applicationName`         |           | No       | Child application that owns local modules (default: `app-local`)   |
+| `--namespace`               |           | No       | Docker namespace (default: `foliolocal`)                           |
+| `--cleanup`                 |           | No       | Revert build-file version and clean the artifact after success     |
+| `--profile`                 | `-p`      | No       | Profile to use (combined, import, etc.)                            |
+| `--skipModuleArtifact`      |           | No       | Skip artifact build (use existing JAR)                             |
+| `--skipModuleImage`         |           | No       | Skip Docker image build                                            |
+| `--skipModuleDeployment`    |           | No       | Skip container deployment                                          |
+| `--skipApplication`         |           | No       | Skip application version create/update                             |
+| `--skipModuleDiscovery`     |           | No       | Skip Kong module discovery registration                            |
+| `--skipTenantEntitlement`   |           | No       | Skip tenant entitlement                                            |
+
+### runLocalModule Usage Examples
+
+#### Run a Private Module (golden path)
+
+```bash
+# Auto-detects name/version from the build file; builds foliolocal/<module>:<version>,
+# deploys module + sidecar, creates app-local-1.0.0 (depends on the base app), entitles tenants
+eureka-cli runLocalModule --modulePath ~/repos/mod-private
+```
+
+#### Override Name / Version / Application
+
+```bash
+eureka-cli runLocalModule \
+  --modulePath ~/repos/mod-private \
+  --moduleName mod-private \
+  --moduleVersion 1.2.0-SNAPSHOT.5 \
+  --applicationName app-local
+```
+
+#### Add a Second Local Module
+
+```bash
+# Both modules coexist under a single new app-local version; tenants are upgraded to it
+eureka-cli runLocalModule --modulePath ~/repos/mod-another
+```
+
+#### Skip Specific Steps
+
+```bash
+# Re-wire the application/discovery/entitlement without rebuilding
+eureka-cli runLocalModule \
+  --modulePath ~/repos/mod-private \
+  --skipModuleArtifact \
+  --skipModuleImage
+```
+
+#### Undeploy the Local Application
+
+```bash
+# Stops the module + sidecar containers and removes app-local, its entitlements and discovery;
+# the base application is untouched. Use the same profile you deployed under.
+eureka-cli undeployApplication --applicationName app-local
+```
+
+### runLocalModule Command Flow Diagram
+
+![runLocalModule Sequence Diagram](../images/uml/cli_run_local_module.png)
+
+**Key Steps:**
+
+1. **Authentication & Context Setup**: Obtains token, resolves module identity, sets default namespace
+2. **Collision Guard**: Fails fast if the module is already in the base application
+3. **Module Build Phase**: Builds artifact and `foliolocal/<module>:<version>` image
+4. **Module Deployment Phase**: Reserves used host ports, deploys module + sidecar with health checks
+5. **Application Update Phase**: Creates `app-local-1.0.0` or patch-bumps and merges the module
+6. **Module Discovery**: Registers the sidecar location in Kong, with rollback on failure
+7. **Tenant Entitlement**: Attaches (new) or upgrades (existing) tenant entitlements, with rollback on failure
+8. **Cleanup**: Removes superseded `app-local` versions
+
+### runLocalModule Rollback Behavior
+
+If the run fails during **module discovery** or **tenant entitlement**, it is rolled back the same way `upgradeModule` rolls back:
+
+- The just-created `app-local` version is removed; the previous version (if any) is left intact
+- The command exits non-zero with the underlying error
+
+The deployed module + sidecar containers are left running — each `runLocalModule` replaces them anyway (it undeploys the pair before redeploying) — so simply re-run the command once the underlying issue is fixed. To fully remove a local application, use `undeployApplication --applicationName app-local`.
+
+### runLocalModule Common Scenarios
+
+#### RLM Scenario 1: Run a Module That Is Not in LSP
+
+1. Prepare a local module whose name is not in the base application
+2. Run: `eureka-cli runLocalModule --modulePath ~/repos/mod-private`
+3. Verify: `docker ps | grep mod-private`, and `app-local` exists with the base app as a dependency
+
+#### RLM Scenario 2: Iterate and Add a Second Module
+
+1. Edit the source and re-run `runLocalModule` — the version bumps, containers are replaced, no duplicate entries
+2. Run `runLocalModule` for a second module — both coexist under a new `app-local` version
+
+#### RLM Scenario 3: Collision and Undeploy
+
+1. Point `runLocalModule` at a module already in the base application — it fails fast and changes nothing
+2. `eureka-cli undeployApplication --applicationName app-local` — removes the local app, its entitlements, discovery, and containers; the base app is untouched
 
 ## Development Workflows
 

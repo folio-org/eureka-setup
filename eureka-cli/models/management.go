@@ -86,7 +86,7 @@ type ApplicationUpgradeRequest struct {
 	ApplicationName              string
 	NewApplicationID             string
 	NewApplicationVersion        string
-	NewDependencies              map[string]any
+	NewDependencies              any
 	NewBackendModules            []map[string]any
 	NewFrontendModules           []map[string]any
 	NewBackendModuleDescriptors  []any

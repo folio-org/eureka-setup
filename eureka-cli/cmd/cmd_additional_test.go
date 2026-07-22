@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
@@ -35,6 +36,11 @@ func (m *MockUpgradeModuleSvc) BuildModuleArtifact(moduleName, moduleVersion, mo
 	return args.Error(0)
 }
 
+func (m *MockUpgradeModuleSvc) CleanModuleArtifact(moduleName, modulePath string) error {
+	args := m.Called(moduleName, modulePath)
+	return args.Error(0)
+}
+
 func (m *MockUpgradeModuleSvc) BuildModuleImage(namespace, moduleName, moduleVersion, modulePath string) error {
 	args := m.Called(namespace, moduleName, moduleVersion, modulePath)
 	return args.Error(0)
@@ -46,6 +52,16 @@ func (m *MockUpgradeModuleSvc) ReadModuleDescriptor(moduleName, moduleVersion, m
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(map[string]any), args.Error(1)
+}
+
+func (m *MockUpgradeModuleSvc) ResolveModuleIdentity(modulePath string) (string, string, error) {
+	args := m.Called(modulePath)
+	return args.String(0), args.String(1), args.Error(2)
+}
+
+func (m *MockUpgradeModuleSvc) GetModuleDescriptorPath(modulePath string) (string, error) {
+	args := m.Called(modulePath)
+	return args.String(0), args.Error(1)
 }
 
 func (m *MockUpgradeModuleSvc) UpdateBackendModules(moduleName, newModuleVersion string, shouldBuild bool, oldBackendModules []any) ([]map[string]any, []map[string]string, string, error) {
@@ -197,6 +213,187 @@ func TestUpgradeModule_Success(t *testing.T) {
 
 func TestUpgradeModule_GetLatestApplicationError(t *testing.T) {
 	t.Skip("UpgradeModule requires extensive mocking; tested via integration tests")
+}
+
+// ==================== RunLocalModule Rollback Tests ====================
+
+func setupRunLocalModuleRollbackTest(t *testing.T) (*Run, *MockManagementSvc, *MockUpgradeModuleSvc, func()) {
+	t.Helper()
+	run, mockManagement, mockKeycloak, _, _, _ := newTestRun(action.RunLocalModule)
+	mockUpgrade := &MockUpgradeModuleSvc{}
+	run.Config.UpgradeModuleSvc = mockUpgrade
+
+	originalParams := params
+	params = action.Param{
+		ModuleName:           "mod-x",
+		ModuleVersion:        "1.0.0",
+		ModulePath:           "",
+		Namespace:            constant.SnapshotNamespace, // folioci -> shouldBuild=false
+		ApplicationName:      "app-local",
+		SkipModuleDeployment: true,
+	}
+
+	mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("master-token", nil)
+	mockUpgrade.On("SetDefaultNamespaceIntoContext").Return()
+	mockManagement.On("GetLatestApplication").Return(map[string]any{
+		"name":    "app-combined",
+		"version": "1.0.0",
+		"modules": []any{map[string]any{"name": "mod-users"}},
+	}, nil)
+
+	return run, mockManagement, mockUpgrade, func() { params = originalParams }
+}
+
+func existingLocalApp() map[string]any {
+	return map[string]any{
+		"id":                  "app-local-1.0.1",
+		"version":             "1.0.1",
+		"dependencies":        []any{map[string]any{"name": "app-combined", "version": "1.0.0"}},
+		"modules":             []any{map[string]any{"id": "mod-x-0.9.0", "name": "mod-x", "version": "0.9.0"}},
+		"moduleDescriptors":   []any{},
+		"uiModules":           []any{},
+		"uiModuleDescriptors": []any{},
+	}
+}
+
+
+func TestRunLocalModule_DiscoveryFailureKeepsPreviousVersion(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockUpgrade, cleanup := setupRunLocalModuleRollbackTest(t)
+	defer cleanup()
+
+	mockManagement.On("GetLatestApplicationByName", "app-local").Return(existingLocalApp(), nil)
+	mockManagement.On("CreateNewApplication", mock.Anything).Return(nil)
+	mockManagement.On("CreateNewModuleDiscovery", mock.Anything).Return(assert.AnError)
+	mockManagement.On("RemoveApplications", "app-local", "app-local-1.0.1").Return(nil)
+
+	// Act
+	err := run.RunLocalModule()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, assert.AnError, err)
+	mockManagement.AssertCalled(t, "RemoveApplications", "app-local", "app-local-1.0.1")
+	mockManagement.AssertNotCalled(t, "UpgradeTenantEntitlement", mock.Anything, mock.Anything, mock.Anything)
+	mockManagement.AssertNotCalled(t, "CreateTenantEntitlementForApplication", mock.Anything, mock.Anything, mock.Anything)
+	mockManagement.AssertExpectations(t)
+	mockUpgrade.AssertExpectations(t)
+}
+
+
+func TestRunLocalModule_DiscoveryFailureRemovesNewVersionWhenNoPrevious(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockUpgrade, cleanup := setupRunLocalModuleRollbackTest(t)
+	defer cleanup()
+
+	mockManagement.On("GetLatestApplicationByName", "app-local").Return(nil, nil)
+	mockManagement.On("CreateNewApplication", mock.Anything).Return(nil)
+	mockManagement.On("CreateNewModuleDiscovery", mock.Anything).Return(assert.AnError)
+	mockManagement.On("RemoveApplications", "app-local", "").Return(nil)
+
+	// Act
+	err := run.RunLocalModule()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, assert.AnError, err)
+	mockManagement.AssertCalled(t, "RemoveApplications", "app-local", "")
+	mockManagement.AssertExpectations(t)
+	mockUpgrade.AssertExpectations(t)
+}
+
+
+func TestRunLocalModule_EntitlementFailureKeepsPreviousVersion(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockUpgrade, cleanup := setupRunLocalModuleRollbackTest(t)
+	defer cleanup()
+
+	mockManagement.On("GetLatestApplicationByName", "app-local").Return(existingLocalApp(), nil)
+	mockManagement.On("CreateNewApplication", mock.Anything).Return(nil)
+	mockManagement.On("CreateNewModuleDiscovery", mock.Anything).Return(nil)
+	mockManagement.On("UpgradeTenantEntitlement", mock.Anything, mock.Anything, "app-local-1.0.2").Return(assert.AnError)
+	mockManagement.On("RemoveApplications", "app-local", "app-local-1.0.1").Return(nil)
+
+	// Act
+	err := run.RunLocalModule()
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, assert.AnError, err)
+	mockManagement.AssertCalled(t, "RemoveApplications", "app-local", "app-local-1.0.1")
+	mockManagement.AssertExpectations(t)
+	mockUpgrade.AssertExpectations(t)
+}
+
+
+func TestReserveUsedHostPorts_SeedsReservedPortsFromRunningContainers(t *testing.T) {
+	// Arrange
+	run, _, _, _, mockDocker, mockModule := newTestRun(action.RunLocalModule)
+
+	mockDocker.On("Create").Return(nil, nil)
+	mockDocker.On("Close", mock.Anything).Return()
+	mockModule.On("GetDeployedModules", mock.Anything, mock.Anything).Return([]container.Summary{
+		{Ports: []container.Port{{PublicPort: 30112}, {PublicPort: 30113}, {PublicPort: 0}}},
+		{Ports: []container.Port{{PublicPort: 30114}}},
+	}, nil)
+
+	// Act
+	err := run.reserveUsedHostPorts()
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Contains(t, run.Config.Action.ReservedPorts, 30112)
+	assert.Contains(t, run.Config.Action.ReservedPorts, 30113)
+	assert.Contains(t, run.Config.Action.ReservedPorts, 30114)
+	assert.NotContains(t, run.Config.Action.ReservedPorts, 0) // unpublished ports (PublicPort 0) are skipped
+	mockModule.AssertExpectations(t)
+	mockDocker.AssertExpectations(t)
+}
+
+func TestRunLocalModule_FirstRunCreatesInitialVersion(t *testing.T) {
+	// Arrange
+	run, mockManagement, mockUpgrade, cleanup := setupRunLocalModuleRollbackTest(t)
+	defer cleanup()
+
+	mockManagement.On("GetLatestApplicationByName", "app-local").Return(nil, nil)
+	mockManagement.On("CreateNewApplication", mock.MatchedBy(func(r *models.ApplicationUpgradeRequest) bool {
+		return r.NewApplicationID == "app-local-1.0.0" && r.NewApplicationVersion == "1.0.0"
+	})).Return(nil)
+	mockManagement.On("CreateNewModuleDiscovery", mock.Anything).Return(nil)
+	mockManagement.On("CreateTenantEntitlementForApplication", mock.Anything, mock.Anything, "app-local-1.0.0").Return(nil)
+	mockManagement.On("RemoveApplications", "app-local", "app-local-1.0.0").Return(nil)
+
+	// Act
+	err := run.RunLocalModule()
+
+	// Assert
+	assert.NoError(t, err)
+	mockManagement.AssertCalled(t, "CreateTenantEntitlementForApplication", mock.Anything, mock.Anything, "app-local-1.0.0")
+	mockManagement.AssertExpectations(t)
+	mockUpgrade.AssertExpectations(t)
+}
+
+
+func TestCleanupLocalAppOnFailure_OnlyRemovesAppVersions(t *testing.T) {
+	// Arrange
+	run, mockManagement, _, _, mockDocker, mockModule := newTestRun(action.RunLocalModule)
+
+	originalParams := params
+	defer func() { params = originalParams }()
+	params = action.Param{ModuleName: "mod-x", ID: "mod-x-1.0.0"}
+
+	mockManagement.On("RemoveApplications", "app-local", "app-local-1.0.1").Return(nil)
+
+	// Act
+	err := run.cleanupLocalAppOnFailure("app-local", "app-local-1.0.1")
+
+	// Assert
+	assert.NoError(t, err)
+	mockManagement.AssertCalled(t, "RemoveApplications", "app-local", "app-local-1.0.1")
+	mockManagement.AssertNotCalled(t, "RemoveModuleDiscovery", mock.Anything)
+	mockDocker.AssertNotCalled(t, "Create")
+	mockModule.AssertNotCalled(t, "UndeployModuleByNamePattern", mock.Anything, mock.Anything)
+	mockManagement.AssertExpectations(t)
 }
 
 // ==================== DeployManagement Tests ====================
