@@ -171,6 +171,8 @@ backend-modules:
     use-vault: true
     use-okapi-url: true
     disable-system-user: true
+    sidecar-environment:
+      HANDLER_EGRESS_IGNORE_SYSTEM_USER_TOKEN_ERROR: "true" # no system user - see ECLI-31
     port: 9904
     environment:
       SINGLE_TENANT_UX: "false"
