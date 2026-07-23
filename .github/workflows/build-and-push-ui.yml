@@ -1,0 +1,102 @@
+name: Build And Push UI
+
+# Builds the platform-lsp UI image in CI and pushes it to a Docker Hub namespace of your choice.
+# Fork this repository, add a DOCKERHUB_TOKEN secret, and dispatch this workflow with your own namespace.
+on:
+  # To enable scheduled builds, uncomment this block and swap the DOCKERHUB_NAMESPACE
+  # lines below, since scheduled runs receive no inputs.
+  # schedule:
+  #   - cron: '0 7 * * *'
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Deployment profile"
+        required: true
+        type: string
+        default: combined
+      namespace:
+        description: "DockerHub namespace"
+        required: true
+        type: string
+      tenant:
+        description: "Tenant"
+        required: true
+        type: string
+        default: diku
+      platformLspURL:
+        description: "Platform LSP UI url"
+        required: true
+        type: string
+        default: http://localhost:3000
+      singleTenant:
+        description: "Use for Single Tenant workflow"
+        required: true
+        type: boolean
+        default: true
+      linkedData:
+        description: "Include Linked Data module in UI bundle"
+        required: true
+        type: boolean
+        default: true
+      enableEcsRequests:
+        description: "Enable ECS requests"
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  build-ui:
+    name: Build And Push UI
+    runs-on: ubuntu-latest
+    env:
+      DEPLOYMENT_PROFILE: ${{ inputs.profile || 'combined' }}
+      DOCKERHUB_NAMESPACE: ${{ inputs.namespace }}
+      # DOCKERHUB_NAMESPACE: ${{ inputs.namespace || 'my-namespace' }}
+      TENANT_NAME: ${{ inputs.tenant || 'diku' }}
+      PLATFORM_LSP_URL: ${{ inputs.platformLspURL || 'http://localhost:3000' }}
+      SINGLE_TENANT_MODE: ${{ inputs.singleTenant != false && 'true' || 'false' }}
+      LINKED_DATA: ${{ inputs.linkedData != false && 'true' || 'false' }}
+      ENABLE_ECS_REQUESTS: ${{ inputs.enableEcsRequests == true && 'true' || 'false' }}
+    steps:
+      - name: Using inputs
+        run: |
+          echo "profile: $DEPLOYMENT_PROFILE"
+          echo "namespace: $DOCKERHUB_NAMESPACE"
+          echo "tenant: $TENANT_NAME"
+          echo "platformLspURL: $PLATFORM_LSP_URL"
+          echo "singleTenant: $SINGLE_TENANT_MODE"
+          echo "linkedData: $LINKED_DATA"
+          echo "enableEcsRequests: $ENABLE_ECS_REQUESTS"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4.2.0
+        with:
+          username: ${{ env.DOCKERHUB_NAMESPACE }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Checkout code
+        uses: actions/checkout@v6.0.2
+
+      - name: Setup Go Environment
+        uses: ./.github/actions/setup-go
+
+      - name: Prepare .eureka config directory
+        run: |
+          mkdir -p /home/runner/.eureka
+          chmod -R 0700 /home/runner/.eureka
+
+      - name: Build CLI
+        working-directory: ./eureka-cli
+        run: go build -o eureka-cli
+
+      - name: Build And Push UI Command
+        working-directory: ./eureka-cli
+        run: |
+          ./eureka-cli buildAndPushUi \
+            --profile $DEPLOYMENT_PROFILE \
+            --namespace $DOCKERHUB_NAMESPACE \
+            --tenant $TENANT_NAME \
+            --platformLspURL $PLATFORM_LSP_URL \
+            --singleTenant $SINGLE_TENANT_MODE \
+            --linkedData $LINKED_DATA \
+            --enableEcsRequests $ENABLE_ECS_REQUESTS

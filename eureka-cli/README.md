@@ -806,6 +806,8 @@ namespaces:
 eureka-cli buildAndPushUi -n my-namespace -t diku -u
 ```
 
+> The UI build is memory-hungry (the node process can peak at around 8 GB). If your machine cannot spare that, fork this repository, add a `DOCKERHUB_TOKEN` secret, and dispatch the `Build And Push UI` workflow to build the image on GitHub-hosted runners instead. Then set `namespaces.platform-lsp-ui` to that namespace as shown above, and the CLI will pull the image rather than build it.
+
 ## Using Single Tenant UX
 
 Single tenant UX is enabled by default for _ecs_, _ecs-single_ and _ecs-migration_ profiles. This functionality allows users in member tenants to automatically log in to their respective tenant spaces from a single user login form configured for the central tenant. Single Tenant UX uses shadow users created in the central tenant and the Keycloak realm to perform authentication with the correct member tenant identity provider.
