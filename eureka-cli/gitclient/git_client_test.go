@@ -21,44 +21,6 @@ func TestNew(t *testing.T) {
 	assert.Equal(t, action, client.Action)
 }
 
-func TestKongRepository(t *testing.T) {
-	testhelpers.SetTempHome(t)
-
-	// Arrange
-	action := testhelpers.NewMockAction()
-	client := New(action)
-
-	// Act
-	repo, err := client.KongRepository()
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, repo)
-	assert.Equal(t, constant.FolioKeycloakLabel, repo.Label)
-	assert.Equal(t, constant.FolioKeycloakRepositoryURL, repo.URL)
-	assert.Contains(t, repo.Dir, constant.FolioKeycloakOutputDir)
-	assert.Equal(t, plumbing.ReferenceName(constant.FolioKeycloakBranch), repo.Branch)
-}
-
-func TestKeycloakRepository(t *testing.T) {
-	testhelpers.SetTempHome(t)
-
-	// Arrange
-	action := testhelpers.NewMockAction()
-	client := New(action)
-
-	// Act
-	repo, err := client.KeycloakRepository()
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, repo)
-	assert.Equal(t, constant.FolioKongLabel, repo.Label)
-	assert.Equal(t, constant.FolioKongRepositoryURL, repo.URL)
-	assert.Contains(t, repo.Dir, constant.FolioKongOutputDir)
-	assert.Equal(t, plumbing.ReferenceName(constant.FolioKongBranch), repo.Branch)
-}
-
 func TestPlatformLspRepository_WithCustomBranch(t *testing.T) {
 	testhelpers.SetTempHome(t)
 
@@ -99,46 +61,6 @@ func TestPlatformLspRepository_WithDifferentBranch(t *testing.T) {
 	assert.Equal(t, differentBranch, repo.Branch)
 }
 
-func TestKongRepository_VerifyConstants(t *testing.T) {
-	testhelpers.SetTempHome(t)
-
-	// Arrange
-	action := testhelpers.NewMockAction()
-	client := New(action)
-
-	// Act
-	repo, err := client.KongRepository()
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, repo)
-	// Verify all fields use the correct constants
-	assert.NotEmpty(t, repo.Label)
-	assert.NotEmpty(t, repo.URL)
-	assert.NotEmpty(t, repo.Dir)
-	assert.NotEqual(t, "", repo.Branch)
-}
-
-func TestKeycloakRepository_VerifyConstants(t *testing.T) {
-	testhelpers.SetTempHome(t)
-
-	// Arrange
-	action := testhelpers.NewMockAction()
-	client := New(action)
-
-	// Act
-	repo, err := client.KeycloakRepository()
-
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, repo)
-	// Verify all fields use the correct constants
-	assert.NotEmpty(t, repo.Label)
-	assert.NotEmpty(t, repo.URL)
-	assert.NotEmpty(t, repo.Dir)
-	assert.NotEqual(t, "", repo.Branch)
-}
-
 func TestPlatformLspRepository_VerifyConstants(t *testing.T) {
 	testhelpers.SetTempHome(t)
 
@@ -158,27 +80,6 @@ func TestPlatformLspRepository_VerifyConstants(t *testing.T) {
 	assert.NotEmpty(t, repo.URL)
 	assert.NotEmpty(t, repo.Dir)
 	assert.NotEqual(t, "", repo.Branch)
-}
-
-func TestKongRepository_UniqueFromKeycloak(t *testing.T) {
-	testhelpers.SetTempHome(t)
-
-	// Arrange
-	action := testhelpers.NewMockAction()
-	client := New(action)
-
-	// Act
-	kongRepo, err1 := client.KongRepository()
-	keycloakRepo, err2 := client.KeycloakRepository()
-
-	// Assert
-	assert.NoError(t, err1)
-	assert.NoError(t, err2)
-	assert.NotNil(t, kongRepo)
-	assert.NotNil(t, keycloakRepo)
-	// These should be different repositories
-	assert.NotEqual(t, kongRepo.Label, keycloakRepo.Label)
-	assert.NotEqual(t, kongRepo.URL, keycloakRepo.URL)
 }
 
 func TestPlatformLspRepository_BranchParameter(t *testing.T) {
@@ -218,16 +119,10 @@ func TestRepositoryProvisioner_AllMethodsReturnGitRepository(t *testing.T) {
 	client := New(action)
 
 	// Act
-	kongRepo, kongErr := client.KongRepository()
-	keycloakRepo, keycloakErr := client.KeycloakRepository()
 	platformRepo, platformErr := client.PlatformLspRepository(plumbing.NewBranchReferenceName("main"))
 
 	// Assert
-	assert.NoError(t, kongErr)
-	assert.NoError(t, keycloakErr)
 	assert.NoError(t, platformErr)
-	assert.NotNil(t, kongRepo)
-	assert.NotNil(t, keycloakRepo)
 	assert.NotNil(t, platformRepo)
 }
 

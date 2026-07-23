@@ -17,7 +17,6 @@ import (
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
-	"github.com/folio-org/eureka-setup/eureka-cli/gitrepository"
 	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/models"
 	"github.com/folio-org/eureka-setup/eureka-cli/modulesvc"
@@ -972,61 +971,6 @@ func TestRemoveRoles_RemoveRolesError(t *testing.T) {
 }
 
 // ==================== BuildSystem Tests ====================
-
-func TestCloneUpdateRepositories_Success(t *testing.T) {
-	// Arrange
-	run, _, _, _, _, _ := newTestRun(action.BuildSystem)
-	mockGitClient := &testhelpers.MockGitClient{}
-	run.Config.GitClient = mockGitClient
-
-	mockGitClient.On("KongRepository").Return(&gitrepository.GitRepository{}, nil)
-	mockGitClient.On("KeycloakRepository").Return(&gitrepository.GitRepository{}, nil)
-	mockGitClient.On("Clone", mock.Anything).Return(nil).Times(2)
-
-	// Act
-	err := run.CloneUpdateRepositories()
-
-	// Assert
-	assert.NoError(t, err)
-	mockGitClient.AssertExpectations(t)
-}
-
-func TestCloneUpdateRepositories_KongRepoError(t *testing.T) {
-	// Arrange
-	run, _, _, _, _, _ := newTestRun(action.BuildSystem)
-	mockGitClient := &testhelpers.MockGitClient{}
-	run.Config.GitClient = mockGitClient
-
-	expectedError := assert.AnError
-	mockGitClient.On("KongRepository").Return(nil, expectedError)
-
-	// Act
-	err := run.CloneUpdateRepositories()
-
-	// Assert
-	assert.Error(t, err)
-	assert.Equal(t, expectedError, err)
-	mockGitClient.AssertExpectations(t)
-}
-
-func TestCloneUpdateRepositories_KeycloakRepoError(t *testing.T) {
-	// Arrange
-	run, _, _, _, _, _ := newTestRun(action.BuildSystem)
-	mockGitClient := &testhelpers.MockGitClient{}
-	run.Config.GitClient = mockGitClient
-
-	expectedError := assert.AnError
-	mockGitClient.On("KongRepository").Return(&gitrepository.GitRepository{}, nil)
-	mockGitClient.On("KeycloakRepository").Return(nil, expectedError)
-
-	// Act
-	err := run.CloneUpdateRepositories()
-
-	// Assert
-	assert.Error(t, err)
-	assert.Equal(t, expectedError, err)
-	mockGitClient.AssertExpectations(t)
-}
 
 func TestBuildSystem_Success(t *testing.T) {
 	testhelpers.SetTempHome(t)
@@ -2626,15 +2570,10 @@ func TestDeploySystem_Success(t *testing.T) {
 
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.DeploySystem)
-	mockGitClient := &testhelpers.MockGitClient{}
 	mockExecSvc := &MockExecSvc{}
-	run.Config.GitClient = mockGitClient
 	run.Config.ExecSvc = mockExecSvc
 	params.BuildImages = false
 
-	mockGitClient.On("KongRepository").Return(&gitrepository.GitRepository{}, nil)
-	mockGitClient.On("KeycloakRepository").Return(&gitrepository.GitRepository{}, nil)
-	mockGitClient.On("Clone", mock.Anything).Return(nil)
 	mockExecSvc.On("ExecReturnOutput", mock.Anything).Return(bytes.Buffer{}, bytes.Buffer{}, nil)
 
 	// Act
@@ -2650,17 +2589,12 @@ func TestDeploySystem_AlreadyRunning_SkipsSleep(t *testing.T) {
 
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.DeploySystem)
-	mockGitClient := &testhelpers.MockGitClient{}
 	mockExecSvc := &MockExecSvc{}
-	run.Config.GitClient = mockGitClient
 	run.Config.ExecSvc = mockExecSvc
 	params.BuildImages = false
 
 	var stdout bytes.Buffer
 	stdout.WriteString("Container eureka-kafka  Running\nContainer eureka-postgres  Running\n")
-	mockGitClient.On("KongRepository").Return(&gitrepository.GitRepository{}, nil)
-	mockGitClient.On("KeycloakRepository").Return(&gitrepository.GitRepository{}, nil)
-	mockGitClient.On("Clone", mock.Anything).Return(nil)
 	mockExecSvc.On("ExecReturnOutput", mock.Anything).Return(stdout, bytes.Buffer{}, nil)
 
 	// Act
@@ -2676,16 +2610,11 @@ func TestDeploySystem_ExecError(t *testing.T) {
 
 	// Arrange
 	run, _, _, _, _, _ := newTestRun(action.DeploySystem)
-	mockGitClient := &testhelpers.MockGitClient{}
 	mockExecSvc := &MockExecSvc{}
-	run.Config.GitClient = mockGitClient
 	run.Config.ExecSvc = mockExecSvc
 	params.BuildImages = false
 
 	expectedError := assert.AnError
-	mockGitClient.On("KongRepository").Return(&gitrepository.GitRepository{}, nil)
-	mockGitClient.On("KeycloakRepository").Return(&gitrepository.GitRepository{}, nil)
-	mockGitClient.On("Clone", mock.Anything).Return(nil)
 	mockExecSvc.On("ExecReturnOutput", mock.Anything).Return(bytes.Buffer{}, bytes.Buffer{}, expectedError)
 
 	// Act
