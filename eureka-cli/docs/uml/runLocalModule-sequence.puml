@@ -29,11 +29,14 @@ Run -> Keycloak: POST /realms/master/protocol/openid-connect/token
 Keycloak --> Run: Access Token
 note right: Get Keycloak master access token\nusing client credentials
 
-Run -> Run: resolveModuleIdentity()
-note right: If --moduleName / --moduleVersion\nomitted, derive from pom.xml /\nbuild.gradle(.kts) / gradle.properties
+Run -> Run: validateModulePath()
+note right: Ensure --modulePath exists and\nis a directory
 
 Run -> Run: setDefaultNamespaceIntoContext()
 note right: Set namespace to foliolocal\nif not specified
+
+Run -> Run: resolveModuleIdentity()
+note right: If --moduleName / --moduleVersion\nomitted, derive from pom.xml /\nbuild.gradle(.kts) / gradle.properties
 
 == Collision Guard ==
 Run -> Mgmt: GetLatestApplication(baseAppName)
@@ -47,23 +50,27 @@ alt module name already in base app
 end
 
 == Module Build Phase ==
-opt !skipModuleArtifact
-    Run -> Run: buildModuleArtifact()
-    Run -> Build: detectModuleBuild(modulePath)
-    Build --> Run: {tool, dir}
-    Run -> Build: clean + set version + package/assemble
-    Build --> Run: Artifact + ModuleDescriptor.json
-    note right: Reuses upgrademodulesvc\nBuildModuleArtifact
-end
+opt shouldBuild := !IsFolioNamespace(namespace)
+    note right: Default namespace is foliolocal, so this\nis true unless --namespace targets a\npublished FOLIO registry (folio-snapshot / folio-release)
 
-opt !skipModuleImage
-    Run -> Run: buildModuleImage()
-    Run -> Docker: docker build\n--tag foliolocal/<module>:<version>
-    Docker --> Run: Image Built
-end
+    opt !skipModuleArtifact
+        Run -> Run: buildModuleArtifact()
+        Run -> Build: detectModuleBuild(modulePath)
+        Build --> Run: {tool, dir}
+        Run -> Build: clean + set version + package/assemble
+        Build --> Run: Artifact + ModuleDescriptor.json
+        note right: Reuses upgrademodulesvc\nBuildModuleArtifact
+    end
 
-Run -> Run: readModuleDescriptor()
-note right: Read ModuleDescriptor.json from\ntarget/ or build/resources/main/
+    opt !skipModuleImage
+        Run -> Run: buildModuleImage()
+        Run -> Docker: docker build\n--tag foliolocal/<module>:<version>
+        Docker --> Run: Image Built
+    end
+
+    Run -> Run: readModuleDescriptor()
+    note right: Read ModuleDescriptor.json from\ntarget/ or build/resources/main/
+end
 
 == Module Deployment Phase ==
 opt !skipModuleDeployment
