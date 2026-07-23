@@ -33,6 +33,7 @@ const (
 	RemoveTenants               = "Remove Tenants"
 	RemoveUsers                 = "Remove Users"
 	Root                        = "Root"
+	RunLocalModule              = "Run Local Module"
 	UndeployAdditionalSystem    = "Undeploy Additional System"
 	UndeployApplication         = "Undeploy Application"
 	UndeployManagement          = "Undeploy Management"

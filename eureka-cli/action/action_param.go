@@ -4,6 +4,7 @@ package action
 // passed to the program by the user from the shell instance
 type Param struct {
 	All                   bool
+	ApplicationName       string
 	ApplicationNames      []string
 	BuildImages           bool
 	Cleanup               bool
@@ -63,6 +64,7 @@ func (f Flag) GetName() string {
 // Flag definitions
 var (
 	All                   = Flag{"all", "a", "All modules for all profiles"}
+	ApplicationName       = Flag{"applicationName", "", "Name of the child application that owns local modules"}
 	ApplicationNames      = Flag{"apps", "", "Application names"}
 	BuildImages           = Flag{"buildImages", "b", "Build Docker images"}
 	Cleanup               = Flag{"cleanup", "", "Perform a cleanup operation"}

@@ -29,6 +29,7 @@ type ManagementProcessor interface {
 type ManagementApplicationManager interface {
 	GetApplications() (models.ApplicationsResponse, error)
 	GetLatestApplication() (map[string]any, error)
+	GetLatestApplicationByName(appName string) (map[string]any, error)
 	CreateApplication(extract *models.RegistryExtract) error
 	CreateNewApplication(r *models.ApplicationUpgradeRequest) error
 	RemoveApplication(applicationID string) error
@@ -36,6 +37,7 @@ type ManagementApplicationManager interface {
 	GetModuleDiscovery(name string) (models.ModuleDiscoveryResponse, error)
 	CreateNewModuleDiscovery(newDiscoveryModules []map[string]string) error
 	UpdateModuleDiscovery(id string, restore bool, privatePort int, sidecarURL string) error
+	RemoveModuleDiscovery(id string) error
 }
 
 // ManagementSvc defines the service for management operations including applications and tenants
@@ -66,7 +68,21 @@ func (ms *ManagementSvc) GetApplications() (models.ApplicationsResponse, error) 
 }
 
 func (ms *ManagementSvc) GetLatestApplication() (map[string]any, error) {
-	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/applications?appName=%s&latest=1&full=true", ms.Action.ConfigApplicationName))
+	app, err := ms.GetLatestApplicationByName(ms.Action.ConfigApplicationName)
+	if err != nil {
+		return nil, err
+	}
+	if app == nil {
+		return nil, apperrors.ApplicationNotFound(ms.Action.ConfigApplicationName)
+	}
+
+	return app, nil
+}
+
+// GetLatestApplicationByName returns the latest version of the named application, or (nil, nil) when
+// no application with that name exists yet - letting callers distinguish "not deployed" from an error.
+func (ms *ManagementSvc) GetLatestApplicationByName(appName string) (map[string]any, error) {
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/applications?appName=%s&latest=1&full=true", appName))
 	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
 	if err != nil {
 		return nil, err
@@ -77,7 +93,7 @@ func (ms *ManagementSvc) GetLatestApplication() (map[string]any, error) {
 		return nil, err
 	}
 	if len(decodedResponse.ApplicationDescriptors) == 0 {
-		return nil, apperrors.ApplicationNotFound(ms.Action.ConfigApplicationName)
+		return nil, nil
 	}
 
 	return decodedResponse.ApplicationDescriptors[0], nil
@@ -396,6 +412,22 @@ func (ms *ManagementSvc) CreateNewModuleDiscovery(newDiscoveryModules []map[stri
 		return err
 	}
 	slog.Info(ms.Action.Name, "text", "Created module discovery", "count", len(newDiscoveryModules), "totalRecords", discoveryResponse.TotalRecords)
+
+	return nil
+}
+
+// RemoveModuleDiscovery deletes the Kong module discovery registration for the given module id.
+func (ms *ManagementSvc) RemoveModuleDiscovery(id string) error {
+	requestURL := ms.Action.GetRequestURL(constant.KongPort, fmt.Sprintf("/modules/%s/discovery", id))
+	headers, err := helpers.SecureApplicationJSONHeaders(ms.Action.KeycloakMasterAccessToken)
+	if err != nil {
+		return err
+	}
+
+	if err := ms.HTTPClient.Delete(requestURL, headers); err != nil {
+		return err
+	}
+	slog.Info(ms.Action.Name, "text", "Removed module discovery", "id", id)
 
 	return nil
 }

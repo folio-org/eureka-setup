@@ -33,6 +33,7 @@
     - [Intercept a module](#intercept-a-module)
     - [Create a port proxy](#create-a-port-proxy)
     - [Upgrade a module](#upgrade-a-module)
+    - [Run a local module](#run-a-local-module)
     - [Other commands](#other-commands)
   - [Using a custom folio-module-sidecar](#using-a-custom-folio-module-sidecar)
   - [Using a native folio-module-sidecar](#using-a-native-folio-module-sidecar)
@@ -509,6 +510,44 @@ In both cases, the application patch version will be incremented, as this does n
 - The upgrade command also has other flags that can be passed in order to skip a certain step in the process.
 
 ![CLI Upgrade Module](images/cli_upgrade_module_3.png)
+
+### Run a local module
+
+Whereas `upgradeModule` changes a module that is already part of the deployed application, `runLocalModule` builds and runs a **brand-new** backend module straight from a local source folder - a module that is not registered in FOLIO LSP/FAR (a private-repo module, a fork, or one that has not yet been added to `platform-lsp`). This lets you develop, integration-test and demo such modules without publishing them first.
+
+The new module is layered into the environment through a dedicated child application (default `app-local`) that depends on the currently deployed base application, following the same child-app pattern used by `app-export`, `app-edge`, `app-search` and `app-erm`. Build prerequisites are the same as `upgradeModule`: the [Maven CLI](https://maven.apache.org/install.html) for Maven modules, a checked-in Gradle Wrapper for Gradle/Grails modules, and a running Docker daemon.
+
+- Point the command at the module repository root; the module name and version are auto-detected from the build file (`pom.xml` / `build.gradle(.kts)` / Grails `gradle.properties`). The image is built with the `foliolocal` namespace and the module version is SNAPSHOT-incremented, exactly as `upgradeModule` does.
+
+```bash
+# Build foliolocal/mod-private:<version>, deploy the module + sidecar, create app-local-1.0.0
+# (dependencies: [app-combined-1.0.0]), register Kong discovery and entitle the configured tenants
+eureka-cli runLocalModule --modulePath ~/repos/mod-private
+```
+
+> The first run creates `app-local-1.0.0` (consistent with the base application's `1.0.0`); every subsequent run patch-bumps it (`1.0.1`, `1.0.2`, ...) and upgrades the tenant entitlements to the new version.
+
+- Override the auto-detected identity or the owning application with the optional flags. Re-running against the same `--applicationName` adds the module (or replaces it if the same name already exists) and bumps the local application version.
+
+```bash
+# Override module name/version and use a custom local application name
+eureka-cli runLocalModule --modulePath ~/repos/mod-private --moduleName mod-private --moduleVersion 1.2.0-SNAPSHOT.5 --applicationName app-local
+
+# Add a second private module - both coexist under a single new app-local version
+eureka-cli runLocalModule --modulePath ~/repos/mod-another
+```
+
+> If the module name collides with a module already provided by the base application, the command fails fast with `<name> is already provided by application <base app>; use upgradeModule to change its version` and changes nothing.
+
+- The command supports the same `--skip*` step flags as `upgradeModule` (`--skipModuleArtifact`, `--skipModuleImage`, `--skipModuleDeployment`, `--skipApplication`, `--skipModuleDiscovery`, `--skipTenantEntitlement`) for iterative development, plus `--cleanup` to revert the build artifact after a successful run.
+
+- If a run fails during Kong discovery registration or tenant entitlement, it is rolled back the same way `upgradeModule` rolls back: the just-created `app-local` version is removed (the previous version, if any, is left intact) and the command exits non-zero with the underlying error. The deployed module + sidecar containers are left running (each `runLocalModule` replaces them anyway, undeploying the pair before redeploying), so simply re-run the command once the underlying issue is fixed.
+
+- To tear everything down, point `undeployApplication` at the local application with `--applicationName` (use the same profile you deployed under, so the container names match). The module + sidecar containers, the `app-local` application, its tenant entitlements and Kong discovery entries are removed, while the base application is left untouched.
+
+```bash
+eureka-cli undeployApplication --applicationName app-local
+```
 
 ### Other commands
 

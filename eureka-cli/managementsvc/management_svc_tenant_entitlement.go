@@ -15,8 +15,10 @@ import (
 type ManagementTenantEntitlementManager interface {
 	GetTenantEntitlements(tenantName string, includeModules bool) (models.TenantEntitlementResponse, error)
 	CreateTenantEntitlement(consortiumName string, tenantType constant.TenantType) error
+	CreateTenantEntitlementForApplication(consortiumName string, tenantType constant.TenantType, applicationID string) error
 	UpgradeTenantEntitlement(consortiumName string, tenantType constant.TenantType, newApplicationID string) error
 	RemoveTenantEntitlements(consortiumName string, tenantType constant.TenantType, purgeSchemas bool) error
+	RemoveTenantEntitlementsForApplication(consortiumName string, tenantType constant.TenantType, applicationID string, purgeSchemas bool) error
 }
 
 func (ms *ManagementSvc) GetTenantEntitlements(tenantName string, includeModules bool) (models.TenantEntitlementResponse, error) {
@@ -35,6 +37,10 @@ func (ms *ManagementSvc) GetTenantEntitlements(tenantName string, includeModules
 }
 
 func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantType constant.TenantType) error {
+	return ms.CreateTenantEntitlementForApplication(consortiumName, tenantType, ms.Action.ConfigApplicationID)
+}
+
+func (ms *ManagementSvc) CreateTenantEntitlementForApplication(consortiumName string, tenantType constant.TenantType, applicationID string) error {
 	tenantParameters, err := ms.TenantSvc.GetEntitlementTenantParameters(consortiumName)
 	if err != nil {
 		return err
@@ -64,7 +70,7 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 		}
 		alreadyEntitled := false
 		for _, e := range existingEntitlements.Entitlements {
-			if e.ApplicationID == ms.Action.ConfigApplicationID {
+			if e.ApplicationID == applicationID {
 				alreadyEntitled = true
 				break
 			}
@@ -76,7 +82,7 @@ func (ms *ManagementSvc) CreateTenantEntitlement(consortiumName string, tenantTy
 
 		payload, err := json.Marshal(map[string]any{
 			"tenantId":     helpers.GetString(entry, "id"),
-			"applications": []string{ms.Action.ConfigApplicationID},
+			"applications": []string{applicationID},
 		})
 		if err != nil {
 			return err
@@ -137,6 +143,11 @@ func (ms *ManagementSvc) UpgradeTenantEntitlement(consortiumName string, tenantT
 }
 
 func (ms *ManagementSvc) RemoveTenantEntitlements(consortiumName string, tenantType constant.TenantType, purgeSchemas bool) error {
+	return ms.RemoveTenantEntitlementsForApplication(consortiumName, tenantType, ms.Action.ConfigApplicationID, purgeSchemas)
+}
+
+
+func (ms *ManagementSvc) RemoveTenantEntitlementsForApplication(consortiumName string, tenantType constant.TenantType, applicationID string, purgeSchemas bool) error {
 	tenants, err := ms.GetTenants(consortiumName, tenantType)
 	if err != nil {
 		return err
@@ -158,7 +169,7 @@ func (ms *ManagementSvc) RemoveTenantEntitlements(consortiumName string, tenantT
 
 		payload, err := json.Marshal(map[string]any{
 			"tenantId":     tenantID,
-			"applications": []string{ms.Action.ConfigApplicationID},
+			"applications": []string{applicationID},
 		})
 		if err != nil {
 			return err

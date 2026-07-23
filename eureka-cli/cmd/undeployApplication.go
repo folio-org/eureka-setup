@@ -16,11 +16,13 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -39,9 +41,12 @@ var undeployApplicationCmd = &cobra.Command{
 			return err
 		}
 
-		if run.Config.Action.IsChildApp() {
+		switch {
+		case cmd.Flags().Changed(action.ApplicationName.Long):
+			err = run.UndeployLocalApplication()
+		case run.Config.Action.IsChildApp():
 			err = run.UndeployChildApplication()
-		} else {
+		default:
 			err = run.UndeployApplication()
 		}
 		if err != nil {
@@ -65,6 +70,56 @@ func (run *Run) UndeployApplication() error {
 	}
 
 	return run.UndeploySystem()
+}
+
+// UndeployLocalApplication tears down a local application created by runLocalModule
+func (run *Run) UndeployLocalApplication() error {
+	if err := run.setKeycloakMasterAccessTokenIntoContext(constant.ClientCredentials); err != nil {
+		return err
+	}
+	appName := params.ApplicationName
+
+	app, err := run.Config.ManagementSvc.GetLatestApplicationByName(appName)
+	if err != nil {
+		return err
+	}
+	if app == nil {
+		slog.Info(run.Config.Action.Name, "text", "No local application found, nothing to undeploy", "name", appName)
+		return nil
+	}
+	appID := helpers.GetString(app, "id")
+
+	slog.Info(run.Config.Action.Name, "text", "UNDEPLOYING LOCAL APPLICATION", "name", appName, "id", appID)
+	if err := run.Config.ManagementSvc.RemoveTenantEntitlementsForApplication(constant.NoneConsortium, constant.All, appID, params.PurgeSchemas); err != nil {
+		slog.Warn(run.Config.Action.Name, "text", "Remove local application tenant entitlements was unsuccessful", "error", err)
+	}
+
+	client, err := run.Config.DockerClient.Create()
+	if err != nil {
+		return err
+	}
+	defer run.Config.DockerClient.Close(client)
+
+	for _, value := range helpers.GetAnySlice(app, "modules") {
+		entry, ok := value.(map[string]any)
+		if !ok {
+			continue
+		}
+		moduleName := helpers.GetString(entry, "name")
+		moduleID := helpers.GetString(entry, "id")
+
+		if err := run.Config.ManagementSvc.RemoveModuleDiscovery(moduleID); err != nil {
+			slog.Warn(run.Config.Action.Name, "text", "Remove module discovery was unsuccessful", "module", moduleName, "error", err)
+		}
+
+		pattern := fmt.Sprintf(constant.SingleModuleOrSidecarContainerPattern, run.Config.Action.ConfigProfileName, moduleName)
+		if err := run.Config.ModuleSvc.UndeployModuleByNamePattern(client, pattern); err != nil {
+			slog.Warn(run.Config.Action.Name, "text", "Undeploy module containers was unsuccessful", "module", moduleName, "error", err)
+		}
+	}
+
+	slog.Info(run.Config.Action.Name, "text", "REMOVING LOCAL APPLICATIONS", "name", appName)
+	return run.Config.ManagementSvc.RemoveApplications(appName, "")
 }
 
 func (run *Run) UndeployChildApplication() error {
@@ -97,6 +152,7 @@ func (run *Run) UndeployChildApplication() error {
 
 func init() {
 	rootCmd.AddCommand(undeployApplicationCmd)
+	undeployApplicationCmd.PersistentFlags().StringVarP(&params.ApplicationName, action.ApplicationName.Long, action.ApplicationName.Short, "", action.ApplicationName.Description)
 	undeployApplicationCmd.PersistentFlags().BoolVarP(&params.PurgeSchemas, action.PurgeSchemas.Long, action.PurgeSchemas.Short, false, action.PurgeSchemas.Description)
 	undeployApplicationCmd.PersistentFlags().BoolVarP(&params.SkipCapabilitySets, action.SkipCapabilitySets.Long, action.SkipCapabilitySets.Short, false, action.SkipCapabilitySets.Description)
 }

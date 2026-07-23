@@ -244,6 +244,10 @@ func ParentApplicationNotReachable(required []string, err error) error {
 	return fmt.Errorf("%w: parent application services unreachable (required: %s) - deploy parent application first: %w", ErrDeploymentFailed, strings.Join(required, ", "), err)
 }
 
+func ModuleAlreadyInBaseApplication(moduleName, baseApplicationName string) error {
+	return fmt.Errorf("%w: %s is already provided by application %s; use upgradeModule to change its version", ErrInvalidInput, moduleName, baseApplicationName)
+}
+
 // ==================== Module Errors ====================
 
 func ModuleBuildToolNotFound(modulePath string) error {

@@ -79,6 +79,14 @@ func (m *MockManagementSvc) GetLatestApplication() (map[string]any, error) {
 	return args.Get(0).(map[string]any), args.Error(1)
 }
 
+func (m *MockManagementSvc) GetLatestApplicationByName(appName string) (map[string]any, error) {
+	args := m.Called(appName)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(map[string]any), args.Error(1)
+}
+
 func (m *MockManagementSvc) CreateApplication(extract *models.RegistryExtract) error {
 	args := m.Called(extract)
 	return args.Error(0)
@@ -114,6 +122,11 @@ func (m *MockManagementSvc) UpdateModuleDiscovery(id string, restore bool, priva
 	return args.Error(0)
 }
 
+func (m *MockManagementSvc) RemoveModuleDiscovery(id string) error {
+	args := m.Called(id)
+	return args.Error(0)
+}
+
 func (m *MockManagementSvc) GetTenantEntitlements(tenantName string, includeModules bool) (models.TenantEntitlementResponse, error) {
 	args := m.Called(tenantName, includeModules)
 	return args.Get(0).(models.TenantEntitlementResponse), args.Error(1)
@@ -124,6 +137,11 @@ func (m *MockManagementSvc) CreateTenantEntitlement(consortiumName string, tenan
 	return args.Error(0)
 }
 
+func (m *MockManagementSvc) CreateTenantEntitlementForApplication(consortiumName string, tenantType constant.TenantType, applicationID string) error {
+	args := m.Called(consortiumName, tenantType, applicationID)
+	return args.Error(0)
+}
+
 func (m *MockManagementSvc) UpgradeTenantEntitlement(consortiumName string, tenantType constant.TenantType, newApplicationID string) error {
 	args := m.Called(consortiumName, tenantType, newApplicationID)
 	return args.Error(0)
@@ -131,6 +149,11 @@ func (m *MockManagementSvc) UpgradeTenantEntitlement(consortiumName string, tena
 
 func (m *MockManagementSvc) RemoveTenantEntitlements(consortiumName string, tenantType constant.TenantType, purgeSchemas bool) error {
 	args := m.Called(consortiumName, tenantType, purgeSchemas)
+	return args.Error(0)
+}
+
+func (m *MockManagementSvc) RemoveTenantEntitlementsForApplication(consortiumName string, tenantType constant.TenantType, applicationID string, purgeSchemas bool) error {
+	args := m.Called(consortiumName, tenantType, applicationID, purgeSchemas)
 	return args.Error(0)
 }
 

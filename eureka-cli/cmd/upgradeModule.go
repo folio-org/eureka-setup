@@ -93,7 +93,7 @@ func (run *Run) UpgradeModule() error {
 		newModuleDescriptor = readModuleDescriptor
 	}
 	if !params.SkipModuleDeployment {
-		if err := run.deployNewModuleAndSidecarPair(); err != nil {
+		if err := run.deployModuleAndSidecarPair(nil); err != nil {
 			return err
 		}
 	}
@@ -176,8 +176,8 @@ func (run *Run) UpgradeModule() error {
 	return nil
 }
 
-func (run *Run) deployNewModuleAndSidecarPair() error {
-	slog.Info(run.Config.Action.Name, "text", "DEPLOYING NEW MODULE AND SIDECAR PAIR", "module", params.ModuleName, "id", params.ID)
+func (run *Run) deployModuleAndSidecarPair(prepare func(*models.ProxyModulesByRegistry, map[string]models.BackendModule) error) error {
+	slog.Info(run.Config.Action.Name, "text", "DEPLOYING MODULE AND SIDECAR PAIR", "module", params.ModuleName, "id", params.ID)
 	backendModules, err := run.Config.ModuleProps.ReadBackendModules(false, false)
 	if err != nil {
 		return err
@@ -186,6 +186,11 @@ func (run *Run) deployNewModuleAndSidecarPair() error {
 	modules, err := run.Config.RegistrySvc.GetModules(false, false)
 	if err != nil {
 		return err
+	}
+	if prepare != nil {
+		if err := prepare(modules, backendModules); err != nil {
+			return err
+		}
 	}
 	run.Config.RegistrySvc.ResolveModuleMetadata(modules)
 
