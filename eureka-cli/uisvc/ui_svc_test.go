@@ -3,8 +3,10 @@ package uisvc
 import (
 	"bytes"
 	"errors"
+	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
@@ -238,6 +240,8 @@ func TestPrepareImage_BuildImages(t *testing.T) {
 		BuildImages:  true,
 		UpdateCloned: false,
 	}
+	// A configured namespace must not bypass an explicitly requested build
+	act.ConfigNamespacePlatformLspUI = "test-namespace"
 	mockGitClient := new(testhelpers.MockGitClient)
 	svc := New(act, nil, mockGitClient, nil, nil)
 
@@ -268,6 +272,7 @@ func TestPrepareImage_PullImage(t *testing.T) {
 	act.Param = &action.Param{
 		BuildImages: false,
 	}
+	act.ConfigNamespacePlatformLspUI = "test-namespace"
 	mockDockerClient := new(testhelpers.MockDockerClient)
 	svc := New(act, nil, nil, mockDockerClient, nil)
 
@@ -290,6 +295,7 @@ func TestPrepareImage_PullImageError(t *testing.T) {
 	act.Param = &action.Param{
 		BuildImages: false,
 	}
+	act.ConfigNamespacePlatformLspUI = "test-namespace"
 	mockDockerClient := new(testhelpers.MockDockerClient)
 	svc := New(act, nil, nil, mockDockerClient, nil)
 
@@ -305,6 +311,136 @@ func TestPrepareImage_PullImageError(t *testing.T) {
 	assert.Equal(t, "", imageName)
 	assert.Equal(t, pullErr, err)
 	mockDockerClient.AssertExpectations(t)
+}
+
+// matchImageExistsCommand asserts the local image check queries the exact tag that DeployContainer will run
+func matchImageExistsCommand(imageName string) any {
+	return mock.MatchedBy(func(cmd *exec.Cmd) bool {
+		return slices.Equal(cmd.Args, []string{"docker", "images", "--quiet", imageName + ":latest"})
+	})
+}
+
+func TestPrepareImage_NoNamespace_ReusesExistingImage(t *testing.T) {
+	// Arrange
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{
+		BuildImages: false,
+	}
+	mockExec := new(testhelpers.MockCommandExecutor)
+	svc := New(act, mockExec, nil, nil, nil)
+
+	var stdout bytes.Buffer
+	stdout.WriteString("abc123def456\n")
+	mockExec.On("ExecReturnOutput", matchImageExistsCommand("platform-lsp-ui-test-tenant")).Return(stdout, bytes.Buffer{}, nil)
+
+	// Act
+	imageName, err := svc.PrepareImage("test-tenant")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, "platform-lsp-ui-test-tenant", imageName)
+	mockExec.AssertExpectations(t)
+}
+
+func TestPrepareImage_NoNamespace_BuildsWhenImageMissing(t *testing.T) {
+	// Arrange
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{
+		BuildImages: false,
+	}
+	mockExec := new(testhelpers.MockCommandExecutor)
+	mockGitClient := new(testhelpers.MockGitClient)
+	svc := New(act, mockExec, mockGitClient, nil, nil)
+
+	mockRepo := &gitrepository.GitRepository{
+		Label:  "platform-lsp",
+		URL:    "https://github.com/test/platform-lsp.git",
+		Dir:    "/home/test/platform-lsp",
+		Branch: plumbing.NewBranchReferenceName("snapshot"),
+	}
+
+	mockExec.On("ExecReturnOutput", matchImageExistsCommand("platform-lsp-ui-test-tenant")).Return(bytes.Buffer{}, bytes.Buffer{}, nil)
+	mockGitClient.On("PlatformLspRepository", mock.Anything).
+		Return(mockRepo, nil)
+	mockGitClient.On("Clone", mockRepo).
+		Return(nil)
+
+	// Act
+	_, err := svc.PrepareImage("test-tenant")
+
+	// Assert
+	// BuildImage will fail in test since it needs file system, but we verify the flow
+	assert.Error(t, err) // Expected to fail at file operations
+	mockExec.AssertExpectations(t)
+	mockGitClient.AssertExpectations(t)
+}
+
+func TestPrepareImage_NoNamespace_ImageCheckError(t *testing.T) {
+	// Arrange
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{
+		BuildImages: false,
+	}
+	mockExec := new(testhelpers.MockCommandExecutor)
+	svc := New(act, mockExec, nil, nil, nil)
+
+	execErr := errors.New("docker not running")
+	mockExec.On("ExecReturnOutput", matchImageExistsCommand("platform-lsp-ui-test-tenant")).Return(bytes.Buffer{}, bytes.Buffer{}, execErr)
+
+	// Act
+	imageName, err := svc.PrepareImage("test-tenant")
+
+	// Assert
+	assert.Error(t, err)
+	assert.Equal(t, "", imageName)
+	assert.Equal(t, execErr, err)
+	mockExec.AssertExpectations(t)
+}
+
+func TestBuildImage_DoesNotModifySource(t *testing.T) {
+	// Arrange
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{
+		SingleTenant: true,
+		LinkedData:   false,
+	}
+	mockExec := new(testhelpers.MockCommandExecutor)
+	svc := New(act, mockExec, nil, nil, nil)
+
+	sourceDir := t.TempDir()
+	stripesConfig := `okapi: {url: "${kongUrl}", tenantOptions: ${tenantOptions}}`
+	stripesModules := "'@folio/users': {},\n'@folio/consortia-settings': {},\n"
+	packageJSON := `{"dependencies": {"@folio/users": "1.0.0", "@folio/consortia-settings": "1.0.0"}}`
+	assert.NoError(t, os.WriteFile(filepath.Join(sourceDir, "stripes.config.js"), []byte(stripesConfig), 0644))
+	assert.NoError(t, os.WriteFile(filepath.Join(sourceDir, "stripes.modules.js"), []byte(stripesModules), 0644))
+	assert.NoError(t, os.WriteFile(filepath.Join(sourceDir, "package.json"), []byte(packageJSON), 0644))
+
+	var buildDir string
+	mockExec.On("ExecFromDir", mock.Anything, mock.MatchedBy(func(dir string) bool {
+		buildDir = dir
+		return dir != sourceDir
+	})).Return(nil)
+
+	// Act
+	imageName, err := svc.BuildImage("test-tenant", sourceDir)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, "platform-lsp-ui-test-tenant", imageName)
+	mockExec.AssertExpectations(t)
+
+	// The checkout keeps its placeholders and optional modules
+	sourceConfig, err := os.ReadFile(filepath.Join(sourceDir, "stripes.config.js"))
+	assert.NoError(t, err)
+	assert.Equal(t, stripesConfig, string(sourceConfig))
+	sourcePackageJSON, err := os.ReadFile(filepath.Join(sourceDir, "package.json"))
+	assert.NoError(t, err)
+	assert.Contains(t, string(sourcePackageJSON), "@folio/consortia-settings")
+
+	// The temporary build directory is cleaned up
+	assert.NotEmpty(t, buildDir)
+	_, statErr := os.Stat(buildDir)
+	assert.True(t, os.IsNotExist(statErr))
 }
 
 func TestDeployContainer_Success(t *testing.T) {
