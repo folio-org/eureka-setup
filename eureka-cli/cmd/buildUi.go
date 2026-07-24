@@ -19,6 +19,7 @@ import (
 	"log/slog"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
@@ -66,7 +67,7 @@ func (run *Run) BuildUi() error {
 func init() {
 	rootCmd.AddCommand(buildUiCmd)
 	buildUiCmd.PersistentFlags().BoolVarP(&params.UpdateCloned, action.UpdateCloned.Long, action.UpdateCloned.Short, false, action.UpdateCloned.Description)
-	buildUiCmd.PersistentFlags().StringVarP(&params.PlatformLspURL, action.PlatformLspURL.Long, action.PlatformLspURL.Short, "http://localhost:3000", action.PlatformLspURL.Description)
+	buildUiCmd.PersistentFlags().StringVarP(&params.PlatformLspURL, action.PlatformLspURL.Long, action.PlatformLspURL.Short, constant.DefaultPlatformLspURL, action.PlatformLspURL.Description)
 	buildUiCmd.PersistentFlags().BoolVarP(&params.SingleTenant, action.SingleTenant.Long, action.SingleTenant.Short, true, action.SingleTenant.Description)
 	buildUiCmd.PersistentFlags().BoolVarP(&params.LinkedData, action.LinkedData.Long, action.LinkedData.Short, false, action.LinkedData.Description)
 	buildUiCmd.PersistentFlags().BoolVarP(&params.EnableECSRequests, action.EnableECSRequests.Long, action.EnableECSRequests.Short, false, action.EnableECSRequests.Description)

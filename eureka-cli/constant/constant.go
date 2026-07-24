@@ -206,6 +206,9 @@ const (
 	KongExternalHTTP     = "http://localhost:8000"
 	KeycloakExternalHTTP = "http://keycloak.eureka:8080"
 
+	// Default UI URL, set as the platformLspURL flag default and overridable per tenant via platform-lsp-url in the config
+	DefaultPlatformLspURL = "http://localhost:3000"
+
 	// Backend modules
 	ModSearchModule           = "mod-search"
 	ModDataExportWorkerModule = "mod-data-export-worker"

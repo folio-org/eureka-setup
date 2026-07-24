@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/spf13/cobra"
 )
@@ -68,7 +69,7 @@ func init() {
 	rootCmd.AddCommand(buildAndPushUiCmd)
 	buildAndPushUiCmd.PersistentFlags().StringVarP(&params.Namespace, action.Namespace.Long, action.Namespace.Short, "", action.Namespace.Description)
 	buildAndPushUiCmd.PersistentFlags().StringVarP(&params.Tenant, action.Tenant.Long, action.Tenant.Short, "", action.Tenant.Description)
-	buildAndPushUiCmd.PersistentFlags().StringVarP(&params.PlatformLspURL, action.PlatformLspURL.Long, action.PlatformLspURL.Short, "http://localhost:3000", action.PlatformLspURL.Description)
+	buildAndPushUiCmd.PersistentFlags().StringVarP(&params.PlatformLspURL, action.PlatformLspURL.Long, action.PlatformLspURL.Short, constant.DefaultPlatformLspURL, action.PlatformLspURL.Description)
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&params.LinkedData, action.LinkedData.Long, action.LinkedData.Short, false, action.LinkedData.Description)
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&params.SingleTenant, action.SingleTenant.Long, action.SingleTenant.Short, true, action.SingleTenant.Description)
 	buildAndPushUiCmd.PersistentFlags().BoolVarP(&params.EnableECSRequests, action.EnableECSRequests.Long, action.EnableECSRequests.Short, false, action.EnableECSRequests.Description)
