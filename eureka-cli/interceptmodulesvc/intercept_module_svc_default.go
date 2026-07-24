@@ -3,9 +3,9 @@ package interceptmodulesvc
 import (
 	"log/slog"
 
-	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/modulesvc"
+	"github.com/moby/moby/client"
 )
 
 func (is *InterceptModuleSvc) DeployDefaultModuleAndSidecarPair(client *client.Client, pair *modulesvc.ModulePair) error {

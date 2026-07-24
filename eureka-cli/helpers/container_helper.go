@@ -3,14 +3,13 @@ package helpers
 import (
 	"fmt"
 	"log/slog"
+	"net/netip"
 	"strconv"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/strslice"
-	"github.com/docker/go-connections/nat"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -33,7 +32,7 @@ func GetRestartPolicy() *container.RestartPolicy {
 	}
 }
 
-func GetConfigSidecarCmd(cmd []string) strslice.StrSlice {
+func GetConfigSidecarCmd(cmd []string) []string {
 	if len(cmd) > 0 {
 		return cmd
 	}
@@ -45,32 +44,33 @@ func GetSidecarName(moduleName string) string {
 	return fmt.Sprintf("%s-sc", moduleName)
 }
 
-func CreateExposedPorts(privateServerPort int) *nat.PortSet {
-	exposedPorts := make(map[nat.Port]struct{})
-	exposedPorts[nat.Port(strconv.Itoa(privateServerPort))] = struct{}{}
-	exposedPorts[nat.Port(constant.PrivateDebugPort)] = struct{}{}
-	portSet := nat.PortSet(exposedPorts)
+// TCPPort converts a port number to a network.Port with the default TCP protocol
+func TCPPort(port int) network.Port {
+	return network.MustParsePort(strconv.Itoa(port))
+}
+
+func CreateExposedPorts(privateServerPort int) *network.PortSet {
+	portSet := network.PortSet{
+		TCPPort(privateServerPort):                       {},
+		network.MustParsePort(constant.PrivateDebugPort): {},
+	}
 
 	return &portSet
 }
 
-func CreatePortBindings(hostServerPort int, hostServerDebugPort int, privateServerPort int) *nat.PortMap {
-	var (
-		serverPortBinding []nat.PortBinding
-		debugPortBinding  []nat.PortBinding
-	)
-	serverPortBinding = append(serverPortBinding, nat.PortBinding{
-		HostIP:   constant.HostIP,
+func CreatePortBindings(hostServerPort int, hostServerDebugPort int, privateServerPort int) *network.PortMap {
+	serverPortBinding := []network.PortBinding{{
+		HostIP:   netip.MustParseAddr(constant.HostIP),
 		HostPort: strconv.Itoa(hostServerPort),
-	})
-	debugPortBinding = append(debugPortBinding, nat.PortBinding{
-		HostIP:   constant.HostIP,
+	}}
+	debugPortBinding := []network.PortBinding{{
+		HostIP:   netip.MustParseAddr(constant.HostIP),
 		HostPort: strconv.Itoa(hostServerDebugPort),
-	})
-	portBindings := make(map[nat.Port][]nat.PortBinding)
-	portBindings[nat.Port(strconv.Itoa(privateServerPort))] = serverPortBinding
-	portBindings[nat.Port(constant.PrivateDebugPort)] = debugPortBinding
-	portMap := nat.PortMap(portBindings)
+	}}
+	portMap := network.PortMap{
+		TCPPort(privateServerPort):                       serverPortBinding,
+		network.MustParsePort(constant.PrivateDebugPort): debugPortBinding,
+	}
 
 	return &portMap
 }

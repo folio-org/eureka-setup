@@ -22,7 +22,6 @@ import (
 	"strconv"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/docker/docker/api/types/filters"
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/errors"
@@ -217,7 +216,7 @@ func (run *Run) reserveUsedHostPorts() error {
 	}
 	defer run.Config.DockerClient.Close(client)
 
-	deployed, err := run.Config.ModuleSvc.GetDeployedModules(client, filters.NewArgs())
+	deployed, err := run.Config.ModuleSvc.GetDeployedModules(client, nil)
 	if err != nil {
 		return err
 	}

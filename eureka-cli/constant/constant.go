@@ -26,7 +26,6 @@ const (
 	ConsumerGroupPollMaxRetries   = 70
 
 	// Context timeout durations
-	ContextTimeoutDockerAPIVersion   = 15 * time.Second
 	ContextTimeoutDockerList         = 30 * time.Second
 	ContextTimeoutDockerImagePull    = 5 * time.Minute
 	ContextTimeoutDockerDeploy       = 2 * time.Minute

@@ -11,9 +11,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
@@ -24,6 +21,8 @@ import (
 	"github.com/folio-org/eureka-setup/eureka-cli/runconfig"
 	"github.com/go-git/go-git/v5/plumbing"
 	vault "github.com/hashicorp/vault-client-go"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -379,7 +378,7 @@ func (m *MockModuleSvc) GetSidecarEnv(containers *models.Containers, module *mod
 	return args.Get(0).([]string)
 }
 
-func (m *MockModuleSvc) GetDeployedModules(cli *client.Client, f filters.Args) ([]container.Summary, error) {
+func (m *MockModuleSvc) GetDeployedModules(cli *client.Client, f client.Filters) ([]container.Summary, error) {
 	args := m.Called(cli, f)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)

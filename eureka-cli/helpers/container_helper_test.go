@@ -3,10 +3,10 @@ package helpers_test
 import (
 	"testing"
 
-	"github.com/docker/go-connections/nat"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
+	"github.com/moby/moby/api/types/network"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -102,8 +102,8 @@ func TestCreateExposedPorts_ValidPort(t *testing.T) {
 	// Assert
 	assert.NotNil(t, result)
 	assert.Len(t, *result, 2)
-	assert.Contains(t, *result, nat.Port("8081"))
-	assert.Contains(t, *result, nat.Port(constant.PrivateDebugPort))
+	assert.Contains(t, *result, network.MustParsePort("8081"))
+	assert.Contains(t, *result, network.MustParsePort(constant.PrivateDebugPort))
 }
 
 func TestCreatePortBindings_ValidPorts(t *testing.T) {
@@ -119,14 +119,14 @@ func TestCreatePortBindings_ValidPorts(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.Len(t, *result, 2)
 
-	serverBindings := (*result)[nat.Port("8081")]
+	serverBindings := (*result)[network.MustParsePort("8081")]
 	assert.Len(t, serverBindings, 1)
-	assert.Equal(t, constant.HostIP, serverBindings[0].HostIP)
+	assert.Equal(t, constant.HostIP, serverBindings[0].HostIP.String())
 	assert.Equal(t, "9000", serverBindings[0].HostPort)
 
-	debugBindings := (*result)[nat.Port(constant.PrivateDebugPort)]
+	debugBindings := (*result)[network.MustParsePort(constant.PrivateDebugPort)]
 	assert.Len(t, debugBindings, 1)
-	assert.Equal(t, constant.HostIP, debugBindings[0].HostIP)
+	assert.Equal(t, constant.HostIP, debugBindings[0].HostIP.String())
 	assert.Equal(t, "5005", debugBindings[0].HostPort)
 }
 

@@ -3,10 +3,10 @@ package interceptmodulesvc
 import (
 	"log/slog"
 
-	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/managementsvc"
 	"github.com/folio-org/eureka-setup/eureka-cli/modulesvc"
+	"github.com/moby/moby/client"
 )
 
 // TODO Add testcontainers tests

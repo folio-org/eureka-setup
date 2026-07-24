@@ -6,13 +6,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/models"
 	"github.com/folio-org/eureka-setup/eureka-cli/modulesvc"
 	"github.com/folio-org/eureka-setup/eureka-cli/runconfig"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -256,7 +256,6 @@ func existingLocalApp() map[string]any {
 	}
 }
 
-
 func TestRunLocalModule_DiscoveryFailureKeepsPreviousVersion(t *testing.T) {
 	// Arrange
 	run, mockManagement, mockUpgrade, cleanup := setupRunLocalModuleRollbackTest(t)
@@ -280,7 +279,6 @@ func TestRunLocalModule_DiscoveryFailureKeepsPreviousVersion(t *testing.T) {
 	mockUpgrade.AssertExpectations(t)
 }
 
-
 func TestRunLocalModule_DiscoveryFailureRemovesNewVersionWhenNoPrevious(t *testing.T) {
 	// Arrange
 	run, mockManagement, mockUpgrade, cleanup := setupRunLocalModuleRollbackTest(t)
@@ -301,7 +299,6 @@ func TestRunLocalModule_DiscoveryFailureRemovesNewVersionWhenNoPrevious(t *testi
 	mockManagement.AssertExpectations(t)
 	mockUpgrade.AssertExpectations(t)
 }
-
 
 func TestRunLocalModule_EntitlementFailureKeepsPreviousVersion(t *testing.T) {
 	// Arrange
@@ -325,7 +322,6 @@ func TestRunLocalModule_EntitlementFailureKeepsPreviousVersion(t *testing.T) {
 	mockUpgrade.AssertExpectations(t)
 }
 
-
 func TestReserveUsedHostPorts_SeedsReservedPortsFromRunningContainers(t *testing.T) {
 	// Arrange
 	run, _, _, _, mockDocker, mockModule := newTestRun(action.RunLocalModule)
@@ -333,8 +329,8 @@ func TestReserveUsedHostPorts_SeedsReservedPortsFromRunningContainers(t *testing
 	mockDocker.On("Create").Return(nil, nil)
 	mockDocker.On("Close", mock.Anything).Return()
 	mockModule.On("GetDeployedModules", mock.Anything, mock.Anything).Return([]container.Summary{
-		{Ports: []container.Port{{PublicPort: 30112}, {PublicPort: 30113}, {PublicPort: 0}}},
-		{Ports: []container.Port{{PublicPort: 30114}}},
+		{Ports: []container.PortSummary{{PublicPort: 30112}, {PublicPort: 30113}, {PublicPort: 0}}},
+		{Ports: []container.PortSummary{{PublicPort: 30114}}},
 	}, nil)
 
 	// Act
@@ -372,7 +368,6 @@ func TestRunLocalModule_FirstRunCreatesInitialVersion(t *testing.T) {
 	mockManagement.AssertExpectations(t)
 	mockUpgrade.AssertExpectations(t)
 }
-
 
 func TestCleanupLocalAppOnFailure_OnlyRemovesAppVersions(t *testing.T) {
 	// Arrange

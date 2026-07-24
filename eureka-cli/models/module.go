@@ -1,12 +1,11 @@
 package models
 
 import (
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/client"
-	"github.com/docker/go-connections/nat"
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/client"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -48,8 +47,8 @@ type BackendModule struct {
 	ModuleVersion            *string
 	ModuleExposedServerPort  int
 	ModuleExposedDebugPort   int
-	ModuleExposedPorts       *nat.PortSet
-	ModulePortBindings       *nat.PortMap
+	ModuleExposedPorts       *network.PortSet
+	ModulePortBindings       *network.PortMap
 	ModuleEnv                map[string]any
 	SidecarEnv               map[string]any
 	ModuleResources          container.Resources
@@ -57,8 +56,8 @@ type BackendModule struct {
 	DeploySidecar            bool
 	SidecarExposedServerPort int
 	SidecarExposedDebugPort  int
-	SidecarExposedPorts      *nat.PortSet
-	SidecarPortBindings      *nat.PortMap
+	SidecarExposedPorts      *network.PortSet
+	SidecarPortBindings      *network.PortMap
 	PrivatePort              int
 }
 

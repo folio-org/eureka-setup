@@ -3,12 +3,12 @@ package upgrademodulesvc
 import (
 	"log/slog"
 
-	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/execsvc"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/managementsvc"
 	"github.com/folio-org/eureka-setup/eureka-cli/modulesvc"
+	"github.com/moby/moby/client"
 )
 
 // TODO Add testcontainers tests

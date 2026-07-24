@@ -18,8 +18,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
+	"github.com/moby/moby/client"
 	"github.com/spf13/cobra"
 )
 

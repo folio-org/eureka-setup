@@ -6,10 +6,9 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
+	"github.com/moby/moby/client"
 )
 
 // ModuleVaultHandler defines the interface for module Vault operations
@@ -17,11 +16,11 @@ type ModuleVaultHandler interface {
 	GetVaultRootToken(client *client.Client) (string, error)
 }
 
-func (ms *ModuleSvc) GetVaultRootToken(client *client.Client) (string, error) {
+func (ms *ModuleSvc) GetVaultRootToken(dockerClient *client.Client) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), constant.ContextTimeoutVaultContainerLogs)
 	defer cancel()
 
-	logStream, err := client.ContainerLogs(ctx, constant.VaultContainer, container.LogsOptions{
+	logStream, err := dockerClient.ContainerLogs(ctx, constant.VaultContainer, client.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 	})

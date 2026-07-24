@@ -5,9 +5,9 @@ import (
 	"net/url"
 	"os/exec"
 
-	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/models"
+	"github.com/moby/moby/client"
 	"github.com/stretchr/testify/mock"
 )
 
