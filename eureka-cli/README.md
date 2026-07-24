@@ -174,13 +174,13 @@ Available flags:
 | `--apps`                  |       | Application names                                         | purgeTenants                           |
 | `--cleanup`               |       | Perform a cleanup operation                               | deployApplication, upgradeModule       |
 | `--defaultGateway`        | `-g`  | Use default gateway in URLs                               | interceptModule                        |
-| `--enableEcsRequests`     |       | Enable ECS requests                                       | deployUi, buildAndPushUi               |
+| `--enableEcsRequests`     |       | Enable ECS requests                                       | deployUi, buildAndPushUi, buildUi      |
 | `--gatewayHostname`       |       | Gateway Hostname                                          | createPortProxy                        |
 | `--gatewayURL`            |       | Gateway URL                                               | purgeTenants                           |
 | `--id`                    | `-i`  | Module ID (e.g. mod-orders:13.1.0-SNAPSHOT.1021)          | listModuleVersions                     |
 | `--ids`                   |       | Tenant ids                                                | purgeTenants                           |
 | `--length`                | `-l`  | Salt length for edge API key                              | getEdgeApiKey                          |
-| `--linkedData`            |       | Include Linked Data module in UI bundle                   | buildAndPushUi, deployUi               |
+| `--linkedData`            |       | Include Linked Data module in UI bundle                   | buildAndPushUi, deployUi, buildUi      |
 | `--moduleName`            | `-n`  | Module name (e.g. mod-orders)                             | interceptModule, listModules,          |
 |                           |       |                                                           | listModuleVersions,                    |
 |                           |       |                                                           | undeployModule, updateModuleDiscovery, |
@@ -191,14 +191,14 @@ Available flags:
 | `--moduleVersion`         |       | Module version (e.g. 13.1.0-SNAPSHOT.1093)                | upgradeModule                          |
 | `--namespace`             |       | DockerHub namespace                                       | buildAndPushUi, upgradeModule          |
 | `--platformLspURL`        |       | Platform LSP UI URL                                       | buildAndPushUi, deployUi,              |
-|                           |       |                                                           | updateKeycloakPublicClients            |
+|                           |       |                                                           | updateKeycloakPublicClients, buildUi   |
 | `--privatePort`           |       | Private port                                              | updateModuleDiscovery                  |
 | `--purgeSchemas`          |       | Purge PostgreSQL schemas on uninstallation                | removeTenantEntitlements,              |
 |                           |       |                                                           | undeployApplication                    |
 | `--removeApplication`     |       | Remove application from the DB                            | undeployApplication                    |
 | `--restore`               | `-r`  | Restore module & sidecar                                  | interceptModule, updateModuleDiscovery |
 | `--sidecarUrl`            | `-s`  | Sidecar URL                                               | interceptModule, updateModuleDiscovery |
-| `--singleTenant`          |       | Use for Single Tenant workflow                            | deployUi, buildAndPushUi               |
+| `--singleTenant`          |       | Use for Single Tenant workflow                            | deployUi, buildAndPushUi, buildUi      |
 | `--skipApplication`       |       | Skip application operations                               | upgradeModule                          |
 | `--skipCapabilitySets`    |       | Skip refreshing capability sets                           | undeployApplication                    |
 | `--skipModuleArtifact`    |       | Skip building module artifact (jar and module descriptor) | upgradeModule                          |
@@ -213,7 +213,7 @@ Available flags:
 |                           |       |                                                           | buildAndPushUi                         |
 | `--tokenType`             |       | Token type                                                | getKeycloakAccessToken                 |
 | `--updateCloned`          | `-u`  | Update Git cloned projects                                | buildSystem, deployApplication,        |
-|                           |       |                                                           | deployUi, buildAndPushUi               |
+|                           |       |                                                           | deployUi, buildAndPushUi, buildUi      |
 | `--user`                  | `-x`  | User for edge API key generation                          | getEdgeApiKey                          |
 | `--versions`              | `-v`  | Number of versions to display                             | listModuleVersions                     |
 
@@ -789,6 +789,12 @@ eureka-cli undeployUi
 eureka-cli deployUi -b
 ```
 
+- To build the image without touching any containers, use `buildUi`; run it before `deployApplication` to keep the memory-heavy UI build from competing with a running platform
+
+```bash
+eureka-cli buildUi -u
+```
+
 - To skip the UI entirely (e.g. for backend-only development), set `deploy-ui: false` for the tenant in the config or pass `--skipUi` to `deployApplication`
 
 ```bash
@@ -806,7 +812,7 @@ namespaces:
 eureka-cli buildAndPushUi -n my-namespace -t diku -u
 ```
 
-> The UI build is memory-hungry (the node process can peak at around 8 GB). If your machine cannot spare that, fork this repository, add a `DOCKERHUB_TOKEN` secret, and dispatch the `Build And Push UI` workflow to build the image on GitHub-hosted runners instead. Then set `namespaces.platform-lsp-ui` to that namespace as shown above, and the CLI will pull the image rather than build it.
+> The UI build is memory-hungry (the node process can peak at around 8 GB). Run `buildUi` before `deployApplication` so the build does not compete with a running platform for memory. If the build is too heavy for your machine altogether, fork this repository, add a `DOCKERHUB_TOKEN` secret, and dispatch the `Build And Push UI` workflow to build the image on GitHub-hosted runners instead. Then set `namespaces.platform-lsp-ui` to that namespace as shown above, and the CLI will pull the image rather than build it.
 
 ## Using Single Tenant UX
 

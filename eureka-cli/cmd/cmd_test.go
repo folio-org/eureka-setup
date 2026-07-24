@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -1282,6 +1283,77 @@ func TestDeployUi_Success(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 	mockTenantSvc.AssertExpectations(t)
+	mockUISvc.AssertExpectations(t)
+}
+
+func TestBuildUi_Success(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.BuildUi)
+	mockTenantSvc := &testhelpers.MockTenantSvc{}
+	mockUISvc := &MockUISvc{}
+	run.Config.TenantSvc = mockTenantSvc
+	run.Config.UISvc = mockUISvc
+	run.Config.Action.ConfigTenants = map[string]any{
+		"test-tenant": map[string]any{
+			"deploy-ui": true,
+		},
+	}
+
+	mockTenantSvc.On("SetConfigTenantParams", "test-tenant").Return(nil)
+	mockUISvc.On("CloneAndUpdateRepository", false).Return("/tmp/platform-lsp", nil)
+	mockUISvc.On("BuildImage", "test-tenant", "/tmp/platform-lsp").Return("platform-lsp-ui-test-tenant", nil)
+
+	// Act
+	err := run.BuildUi()
+
+	// Assert
+	assert.NoError(t, err)
+	mockTenantSvc.AssertExpectations(t)
+	mockUISvc.AssertExpectations(t)
+}
+
+func TestBuildUi_SkipsTenantWithoutUI(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.BuildUi)
+	mockUISvc := &MockUISvc{}
+	run.Config.UISvc = mockUISvc
+	run.Config.Action.ConfigTenants = map[string]any{
+		"test-tenant": map[string]any{
+			"deploy-ui": false,
+		},
+	}
+
+	// Act
+	err := run.BuildUi()
+
+	// Assert
+	assert.NoError(t, err)
+	mockUISvc.AssertExpectations(t)
+}
+
+func TestBuildUi_BuildImageError(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.BuildUi)
+	mockTenantSvc := &testhelpers.MockTenantSvc{}
+	mockUISvc := &MockUISvc{}
+	run.Config.TenantSvc = mockTenantSvc
+	run.Config.UISvc = mockUISvc
+	run.Config.Action.ConfigTenants = map[string]any{
+		"test-tenant": map[string]any{
+			"deploy-ui": true,
+		},
+	}
+
+	buildErr := errors.New("build failed")
+	mockTenantSvc.On("SetConfigTenantParams", "test-tenant").Return(nil)
+	mockUISvc.On("CloneAndUpdateRepository", false).Return("/tmp/platform-lsp", nil)
+	mockUISvc.On("BuildImage", "test-tenant", "/tmp/platform-lsp").Return("", buildErr)
+
+	// Act
+	err := run.BuildUi()
+
+	// Assert
+	assert.Equal(t, buildErr, err)
 	mockUISvc.AssertExpectations(t)
 }
 
