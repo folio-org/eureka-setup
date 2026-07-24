@@ -3,6 +3,7 @@ package uisvc
 import (
 	"bytes"
 	"errors"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
@@ -394,6 +395,52 @@ func TestPrepareImage_NoNamespace_ImageCheckError(t *testing.T) {
 	assert.Equal(t, "", imageName)
 	assert.Equal(t, execErr, err)
 	mockExec.AssertExpectations(t)
+}
+
+func TestBuildImage_DoesNotModifySource(t *testing.T) {
+	// Arrange
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{
+		SingleTenant: true,
+		LinkedData:   false,
+	}
+	mockExec := new(testhelpers.MockCommandExecutor)
+	svc := New(act, mockExec, nil, nil, nil)
+
+	sourceDir := t.TempDir()
+	stripesConfig := `okapi: {url: "${kongUrl}", tenantOptions: ${tenantOptions}}`
+	stripesModules := "'@folio/users': {},\n'@folio/consortia-settings': {},\n"
+	packageJSON := `{"dependencies": {"@folio/users": "1.0.0", "@folio/consortia-settings": "1.0.0"}}`
+	assert.NoError(t, os.WriteFile(filepath.Join(sourceDir, "stripes.config.js"), []byte(stripesConfig), 0644))
+	assert.NoError(t, os.WriteFile(filepath.Join(sourceDir, "stripes.modules.js"), []byte(stripesModules), 0644))
+	assert.NoError(t, os.WriteFile(filepath.Join(sourceDir, "package.json"), []byte(packageJSON), 0644))
+
+	var buildDir string
+	mockExec.On("ExecFromDir", mock.Anything, mock.MatchedBy(func(dir string) bool {
+		buildDir = dir
+		return dir != sourceDir
+	})).Return(nil)
+
+	// Act
+	imageName, err := svc.BuildImage("test-tenant", sourceDir)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, "platform-lsp-ui-test-tenant", imageName)
+	mockExec.AssertExpectations(t)
+
+	// The checkout keeps its placeholders and optional modules
+	sourceConfig, err := os.ReadFile(filepath.Join(sourceDir, "stripes.config.js"))
+	assert.NoError(t, err)
+	assert.Equal(t, stripesConfig, string(sourceConfig))
+	sourcePackageJSON, err := os.ReadFile(filepath.Join(sourceDir, "package.json"))
+	assert.NoError(t, err)
+	assert.Contains(t, string(sourcePackageJSON), "@folio/consortia-settings")
+
+	// The temporary build directory is cleaned up
+	assert.NotEmpty(t, buildDir)
+	_, statErr := os.Stat(buildDir)
+	assert.True(t, os.IsNotExist(statErr))
 }
 
 func TestDeployContainer_Success(t *testing.T) {

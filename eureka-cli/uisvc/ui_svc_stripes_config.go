@@ -55,12 +55,17 @@ func (us *UISvc) PrepareStripesConfigJS(tenantName string, configPath string) er
 	}
 
 	var newReadFileStr = string(readFileBytes)
+	replaced := 0
 	for key, value := range replaceMap {
 		if !strings.Contains(newReadFileStr, key) {
 			slog.Info(us.Action.Name, "text", "Key not found in stripes.config.js", "key", key)
 			continue
 		}
 		newReadFileStr = strings.ReplaceAll(newReadFileStr, key, value)
+		replaced++
+	}
+	if replaced == 0 {
+		slog.Warn(us.Action.Name, "text", "stripes.config.js contains no substitution placeholders and is used as is, pass -u to restore a pristine checkout if this is unintended")
 	}
 	fmt.Println()
 	fmt.Println("DUMPING stripes.config.js")
