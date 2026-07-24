@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/network"
@@ -44,35 +45,56 @@ func GetSidecarName(moduleName string) string {
 	return fmt.Sprintf("%s-sc", moduleName)
 }
 
-// TCPPort converts a port number to a network.Port with the default TCP protocol
-func TCPPort(port int) network.Port {
-	return network.MustParsePort(strconv.Itoa(port))
-}
+// privateDebugPort and hostIP are parsed from compile-time constants, so Must* parsing cannot panic at runtime
+var (
+	privateDebugPort = network.MustParsePort(constant.PrivateDebugPort)
+	hostIP           = netip.MustParseAddr(constant.HostIP)
+)
 
-func CreateExposedPorts(privateServerPort int) *network.PortSet {
-	portSet := network.PortSet{
-		TCPPort(privateServerPort):                       {},
-		network.MustParsePort(constant.PrivateDebugPort): {},
+// tcpPort converts a configured port number to a network.Port with the default TCP protocol
+func tcpPort(port int) (network.Port, error) {
+	parsedPort, err := network.ParsePort(strconv.Itoa(port))
+	if err != nil {
+		return network.Port{}, errors.InvalidContainerPort(port, err)
 	}
 
-	return &portSet
+	return parsedPort, nil
 }
 
-func CreatePortBindings(hostServerPort int, hostServerDebugPort int, privateServerPort int) *network.PortMap {
+func CreateExposedPorts(privateServerPort int) (*network.PortSet, error) {
+	privatePort, err := tcpPort(privateServerPort)
+	if err != nil {
+		return nil, err
+	}
+
+	portSet := network.PortSet{
+		privatePort:      {},
+		privateDebugPort: {},
+	}
+
+	return &portSet, nil
+}
+
+func CreatePortBindings(hostServerPort int, hostServerDebugPort int, privateServerPort int) (*network.PortMap, error) {
+	privatePort, err := tcpPort(privateServerPort)
+	if err != nil {
+		return nil, err
+	}
+
 	serverPortBinding := []network.PortBinding{{
-		HostIP:   netip.MustParseAddr(constant.HostIP),
+		HostIP:   hostIP,
 		HostPort: strconv.Itoa(hostServerPort),
 	}}
 	debugPortBinding := []network.PortBinding{{
-		HostIP:   netip.MustParseAddr(constant.HostIP),
+		HostIP:   hostIP,
 		HostPort: strconv.Itoa(hostServerDebugPort),
 	}}
 	portMap := network.PortMap{
-		TCPPort(privateServerPort):                       serverPortBinding,
-		network.MustParsePort(constant.PrivateDebugPort): debugPortBinding,
+		privatePort:      serverPortBinding,
+		privateDebugPort: debugPortBinding,
 	}
 
-	return &portMap
+	return &portMap, nil
 }
 
 func CreateResources(isModule bool, r map[string]any) *container.Resources {

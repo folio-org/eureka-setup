@@ -43,8 +43,14 @@ func (is *InterceptModuleSvc) prepareModuleAndSidecarPairNetwork(pair *modulesvc
 	pair.BackendModule.SidecarExposedServerPort = ports[2]
 	pair.BackendModule.SidecarExposedDebugPort = ports[3]
 
-	pair.BackendModule.ModulePortBindings = helpers.CreatePortBindings(ports[0], ports[1], pair.BackendModule.PrivatePort)
-	pair.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(ports[2], ports[3], pair.BackendModule.PrivatePort)
+	pair.BackendModule.ModulePortBindings, err = helpers.CreatePortBindings(ports[0], ports[1], pair.BackendModule.PrivatePort)
+	if err != nil {
+		return err
+	}
+	pair.BackendModule.SidecarPortBindings, err = helpers.CreatePortBindings(ports[2], ports[3], pair.BackendModule.PrivatePort)
+	if err != nil {
+		return err
+	}
 	if err := is.updateModuleDiscovery(pair); err != nil {
 		return err
 	}

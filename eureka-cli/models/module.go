@@ -91,7 +91,10 @@ type SidecarRequest struct {
 
 // NewBackendModuleWithSidecar creates a new BackendModule instance with sidecar configuration
 func NewBackendModuleWithSidecar(action *action.Action, p BackendModuleProperties) (*BackendModule, error) {
-	exposedPorts := helpers.CreateExposedPorts(*p.PrivatePort)
+	exposedPorts, err := helpers.CreateExposedPorts(*p.PrivatePort)
+	if err != nil {
+		return nil, err
+	}
 	moduleServerPort := *p.Port
 
 	var moduleDebugPort, sidecarServerPort, sidecarDebugPort = 0, 0, 0
@@ -106,6 +109,15 @@ func NewBackendModuleWithSidecar(action *action.Action, p BackendModulePropertie
 		sidecarDebugPort = ports[2]
 	}
 
+	modulePortBindings, err := helpers.CreatePortBindings(moduleServerPort, moduleDebugPort, *p.PrivatePort)
+	if err != nil {
+		return nil, err
+	}
+	sidecarPortBindings, err := helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, *p.PrivatePort)
+	if err != nil {
+		return nil, err
+	}
+
 	return &BackendModule{
 		DeployModule:             p.DeployModule,
 		UseVault:                 p.UseVault,
@@ -118,7 +130,7 @@ func NewBackendModuleWithSidecar(action *action.Action, p BackendModulePropertie
 		ModuleExposedDebugPort:   moduleDebugPort,
 		PrivatePort:              *p.PrivatePort,
 		ModuleExposedPorts:       exposedPorts,
-		ModulePortBindings:       helpers.CreatePortBindings(moduleServerPort, moduleDebugPort, *p.PrivatePort),
+		ModulePortBindings:       modulePortBindings,
 		ModuleEnv:                p.Env,
 		SidecarEnv:               p.SidecarEnv,
 		ModuleResources:          *helpers.CreateResources(true, p.Resources),
@@ -127,7 +139,7 @@ func NewBackendModuleWithSidecar(action *action.Action, p BackendModulePropertie
 		SidecarExposedServerPort: sidecarServerPort,
 		SidecarExposedDebugPort:  sidecarDebugPort,
 		SidecarExposedPorts:      exposedPorts,
-		SidecarPortBindings:      helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, *p.PrivatePort),
+		SidecarPortBindings:      sidecarPortBindings,
 	}, nil
 }
 
@@ -135,6 +147,15 @@ func NewBackendModuleWithSidecar(action *action.Action, p BackendModulePropertie
 func NewBackendModule(action *action.Action, p BackendModuleProperties) (*BackendModule, error) {
 	serverPort := *p.Port
 	debugPort, err := action.GetPreReservedPort()
+	if err != nil {
+		return nil, err
+	}
+
+	exposedPorts, err := helpers.CreateExposedPorts(*p.PrivatePort)
+	if err != nil {
+		return nil, err
+	}
+	modulePortBindings, err := helpers.CreatePortBindings(serverPort, debugPort, *p.PrivatePort)
 	if err != nil {
 		return nil, err
 	}
@@ -150,8 +171,8 @@ func NewBackendModule(action *action.Action, p BackendModuleProperties) (*Backen
 		ModuleExposedServerPort: serverPort,
 		ModuleExposedDebugPort:  debugPort,
 		PrivatePort:             *p.PrivatePort,
-		ModuleExposedPorts:      helpers.CreateExposedPorts(*p.PrivatePort),
-		ModulePortBindings:      helpers.CreatePortBindings(serverPort, debugPort, *p.PrivatePort),
+		ModuleExposedPorts:      exposedPorts,
+		ModulePortBindings:      modulePortBindings,
 		ModuleEnv:               p.Env,
 		SidecarEnv:              p.SidecarEnv,
 		ModuleResources:         *helpers.CreateResources(true, p.Resources),

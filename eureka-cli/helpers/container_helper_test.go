@@ -97,13 +97,24 @@ func TestCreateExposedPorts_ValidPort(t *testing.T) {
 	privateServerPort := 8081
 
 	// Act
-	result := helpers.CreateExposedPorts(privateServerPort)
+	result, err := helpers.CreateExposedPorts(privateServerPort)
 
 	// Assert
+	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, *result, 2)
 	assert.Contains(t, *result, network.MustParsePort("8081"))
 	assert.Contains(t, *result, network.MustParsePort(constant.PrivateDebugPort))
+}
+
+func TestCreateExposedPorts_InvalidPort(t *testing.T) {
+	// Act
+	result, err := helpers.CreateExposedPorts(99999)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid container port 99999")
+	assert.Nil(t, result)
 }
 
 func TestCreatePortBindings_ValidPorts(t *testing.T) {
@@ -113,9 +124,10 @@ func TestCreatePortBindings_ValidPorts(t *testing.T) {
 	privateServerPort := 8081
 
 	// Act
-	result := helpers.CreatePortBindings(hostServerPort, hostServerDebugPort, privateServerPort)
+	result, err := helpers.CreatePortBindings(hostServerPort, hostServerDebugPort, privateServerPort)
 
 	// Assert
+	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, *result, 2)
 
@@ -128,6 +140,16 @@ func TestCreatePortBindings_ValidPorts(t *testing.T) {
 	assert.Len(t, debugBindings, 1)
 	assert.Equal(t, constant.HostIP, debugBindings[0].HostIP.String())
 	assert.Equal(t, "5005", debugBindings[0].HostPort)
+}
+
+func TestCreatePortBindings_InvalidPrivatePort(t *testing.T) {
+	// Act
+	result, err := helpers.CreatePortBindings(9000, 5005, -1)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid container port -1")
+	assert.Nil(t, result)
 }
 
 func TestCreateResources_WithCustomResources(t *testing.T) {
