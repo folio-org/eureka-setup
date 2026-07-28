@@ -132,6 +132,10 @@ func NoFreeTCPPort(portStart, portEnd int) error {
 	return fmt.Errorf("failed to find free TCP ports in range: %d-%d", portStart, portEnd)
 }
 
+func InvalidContainerPort(port int, err error) error {
+	return fmt.Errorf("invalid container port %d: %w", port, err)
+}
+
 func HostnameNotReachable(hostname string, err error) error {
 	return fmt.Errorf("%w: check if hostname exists in /etc/hosts: %s", err, hostname)
 }

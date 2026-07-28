@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,9 +12,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
@@ -23,6 +21,8 @@ import (
 	"github.com/folio-org/eureka-setup/eureka-cli/runconfig"
 	"github.com/go-git/go-git/v5/plumbing"
 	vault "github.com/hashicorp/vault-client-go"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -378,7 +378,7 @@ func (m *MockModuleSvc) GetSidecarEnv(containers *models.Containers, module *mod
 	return args.Get(0).([]string)
 }
 
-func (m *MockModuleSvc) GetDeployedModules(cli *client.Client, f filters.Args) ([]container.Summary, error) {
+func (m *MockModuleSvc) GetDeployedModules(cli *client.Client, f client.Filters) ([]container.Summary, error) {
 	args := m.Called(cli, f)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -1226,6 +1226,93 @@ func TestDeployUi_Success(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 	mockTenantSvc.AssertExpectations(t)
+	mockUISvc.AssertExpectations(t)
+}
+
+func TestBuildUi_Success(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.BuildUi)
+	mockTenantSvc := &testhelpers.MockTenantSvc{}
+	mockUISvc := &MockUISvc{}
+	run.Config.TenantSvc = mockTenantSvc
+	run.Config.UISvc = mockUISvc
+	run.Config.Action.ConfigTenants = map[string]any{
+		"test-tenant": map[string]any{
+			"deploy-ui": true,
+		},
+	}
+
+	mockTenantSvc.On("SetConfigTenantParams", "test-tenant").Return(nil)
+	mockUISvc.On("CloneAndUpdateRepository", false).Return("/tmp/platform-lsp", nil)
+	mockUISvc.On("BuildImage", "test-tenant", "/tmp/platform-lsp").Return("platform-lsp-ui-test-tenant", nil)
+
+	// Act
+	err := run.BuildUi()
+
+	// Assert
+	assert.NoError(t, err)
+	mockTenantSvc.AssertExpectations(t)
+	mockUISvc.AssertExpectations(t)
+}
+
+func TestBuildUi_SkipsTenantWithoutUI(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.BuildUi)
+	mockUISvc := &MockUISvc{}
+	run.Config.UISvc = mockUISvc
+	run.Config.Action.ConfigTenants = map[string]any{
+		"test-tenant": map[string]any{
+			"deploy-ui": false,
+		},
+	}
+
+	// Act
+	err := run.BuildUi()
+
+	// Assert
+	assert.NoError(t, err)
+	mockUISvc.AssertExpectations(t)
+}
+
+func TestBuildUi_BuildImageError(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.BuildUi)
+	mockTenantSvc := &testhelpers.MockTenantSvc{}
+	mockUISvc := &MockUISvc{}
+	run.Config.TenantSvc = mockTenantSvc
+	run.Config.UISvc = mockUISvc
+	run.Config.Action.ConfigTenants = map[string]any{
+		"test-tenant": map[string]any{
+			"deploy-ui": true,
+		},
+	}
+
+	buildErr := errors.New("build failed")
+	mockTenantSvc.On("SetConfigTenantParams", "test-tenant").Return(nil)
+	mockUISvc.On("CloneAndUpdateRepository", false).Return("/tmp/platform-lsp", nil)
+	mockUISvc.On("BuildImage", "test-tenant", "/tmp/platform-lsp").Return("", buildErr)
+
+	// Act
+	err := run.BuildUi()
+
+	// Assert
+	assert.Equal(t, buildErr, err)
+	mockUISvc.AssertExpectations(t)
+}
+
+func TestDeployUi_SkipUi(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, _ := newTestRun(action.DeployUi)
+	mockUISvc := &MockUISvc{}
+	run.Config.UISvc = mockUISvc
+	params.SkipUI = true
+	t.Cleanup(func() { params.SkipUI = false })
+
+	// Act
+	err := run.DeployUi(constant.NoneConsortium, constant.Default)
+
+	// Assert
+	assert.NoError(t, err)
 	mockUISvc.AssertExpectations(t)
 }
 

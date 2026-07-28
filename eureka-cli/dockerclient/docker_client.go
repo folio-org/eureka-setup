@@ -1,17 +1,15 @@
 package dockerclient
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"os/exec"
 
-	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/execsvc"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
+	"github.com/moby/moby/client"
 )
 
 // TODO Add testcontainers tests
@@ -35,16 +33,7 @@ func New(action *action.Action, execSvc execsvc.CommandRunner) *DockerClient {
 }
 
 func (dc *DockerClient) Create() (*client.Client, error) {
-	newClient, err := client.NewClientWithOpts(client.FromEnv)
-	if err != nil {
-		return nil, err
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), constant.ContextTimeoutDockerAPIVersion)
-	defer cancel()
-
-	newClient.NegotiateAPIVersion(ctx)
-
-	return newClient, nil
+	return client.New(client.FromEnv)
 }
 
 func (dc *DockerClient) Close(client *client.Client) {

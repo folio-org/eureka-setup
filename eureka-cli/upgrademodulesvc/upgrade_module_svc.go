@@ -3,12 +3,12 @@ package upgrademodulesvc
 import (
 	"log/slog"
 
-	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/execsvc"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/managementsvc"
 	"github.com/folio-org/eureka-setup/eureka-cli/modulesvc"
+	"github.com/moby/moby/client"
 )
 
 // TODO Add testcontainers tests
@@ -71,8 +71,14 @@ func (um *UpgradeModuleSvc) prepareModuleAndSidecarPairNetwork(pair *modulesvc.M
 	pair.BackendModule.SidecarExposedServerPort = ports[2]
 	pair.BackendModule.SidecarExposedDebugPort = ports[3]
 
-	pair.BackendModule.ModulePortBindings = helpers.CreatePortBindings(ports[0], ports[1], pair.BackendModule.PrivatePort)
-	pair.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(ports[2], ports[3], pair.BackendModule.PrivatePort)
+	pair.BackendModule.ModulePortBindings, err = helpers.CreatePortBindings(ports[0], ports[1], pair.BackendModule.PrivatePort)
+	if err != nil {
+		return err
+	}
+	pair.BackendModule.SidecarPortBindings, err = helpers.CreatePortBindings(ports[2], ports[3], pair.BackendModule.PrivatePort)
+	if err != nil {
+		return err
+	}
 
 	pair.Module.Metadata.Version = pair.BackendModule.ModuleVersion
 

@@ -3,14 +3,14 @@ package helpers
 import (
 	"fmt"
 	"log/slog"
+	"net/netip"
 	"strconv"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/strslice"
-	"github.com/docker/go-connections/nat"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -33,7 +33,7 @@ func GetRestartPolicy() *container.RestartPolicy {
 	}
 }
 
-func GetConfigSidecarCmd(cmd []string) strslice.StrSlice {
+func GetConfigSidecarCmd(cmd []string) []string {
 	if len(cmd) > 0 {
 		return cmd
 	}
@@ -45,34 +45,56 @@ func GetSidecarName(moduleName string) string {
 	return fmt.Sprintf("%s-sc", moduleName)
 }
 
-func CreateExposedPorts(privateServerPort int) *nat.PortSet {
-	exposedPorts := make(map[nat.Port]struct{})
-	exposedPorts[nat.Port(strconv.Itoa(privateServerPort))] = struct{}{}
-	exposedPorts[nat.Port(constant.PrivateDebugPort)] = struct{}{}
-	portSet := nat.PortSet(exposedPorts)
+// privateDebugPort and hostIP are parsed from compile-time constants, so Must* parsing cannot panic at runtime
+var (
+	privateDebugPort = network.MustParsePort(constant.PrivateDebugPort)
+	hostIP           = netip.MustParseAddr(constant.HostIP)
+)
 
-	return &portSet
+// tcpPort converts a configured port number to a network.Port with the default TCP protocol
+func tcpPort(port int) (network.Port, error) {
+	parsedPort, err := network.ParsePort(strconv.Itoa(port))
+	if err != nil {
+		return network.Port{}, errors.InvalidContainerPort(port, err)
+	}
+
+	return parsedPort, nil
 }
 
-func CreatePortBindings(hostServerPort int, hostServerDebugPort int, privateServerPort int) *nat.PortMap {
-	var (
-		serverPortBinding []nat.PortBinding
-		debugPortBinding  []nat.PortBinding
-	)
-	serverPortBinding = append(serverPortBinding, nat.PortBinding{
-		HostIP:   constant.HostIP,
-		HostPort: strconv.Itoa(hostServerPort),
-	})
-	debugPortBinding = append(debugPortBinding, nat.PortBinding{
-		HostIP:   constant.HostIP,
-		HostPort: strconv.Itoa(hostServerDebugPort),
-	})
-	portBindings := make(map[nat.Port][]nat.PortBinding)
-	portBindings[nat.Port(strconv.Itoa(privateServerPort))] = serverPortBinding
-	portBindings[nat.Port(constant.PrivateDebugPort)] = debugPortBinding
-	portMap := nat.PortMap(portBindings)
+func CreateExposedPorts(privateServerPort int) (*network.PortSet, error) {
+	privatePort, err := tcpPort(privateServerPort)
+	if err != nil {
+		return nil, err
+	}
 
-	return &portMap
+	portSet := network.PortSet{
+		privatePort:      {},
+		privateDebugPort: {},
+	}
+
+	return &portSet, nil
+}
+
+func CreatePortBindings(hostServerPort int, hostServerDebugPort int, privateServerPort int) (*network.PortMap, error) {
+	privatePort, err := tcpPort(privateServerPort)
+	if err != nil {
+		return nil, err
+	}
+
+	serverPortBinding := []network.PortBinding{{
+		HostIP:   hostIP,
+		HostPort: strconv.Itoa(hostServerPort),
+	}}
+	debugPortBinding := []network.PortBinding{{
+		HostIP:   hostIP,
+		HostPort: strconv.Itoa(hostServerDebugPort),
+	}}
+	portMap := network.PortMap{
+		privatePort:      serverPortBinding,
+		privateDebugPort: debugPortBinding,
+	}
+
+	return &portMap, nil
 }
 
 func CreateResources(isModule bool, r map[string]any) *container.Resources {
