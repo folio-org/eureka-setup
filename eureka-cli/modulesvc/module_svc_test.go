@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	dockertypes "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/models"
+	dockertypes "github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -1390,7 +1390,7 @@ func newDockerTestServer(t *testing.T, summaries []dockertypes.Summary, statusCo
 		}
 		w.WriteHeader(http.StatusOK)
 	}))
-	cli, err := client.NewClientWithOpts(client.WithHost(ts.URL), client.WithVersion("1.41"))
+	cli, err := client.New(client.WithHost(ts.URL), client.WithAPIVersion("1.41"))
 	require.NoError(t, err)
 	t.Cleanup(ts.Close)
 	return ts, cli
@@ -1426,7 +1426,7 @@ func TestGetModule_ManagementModule_SkipsProfilePrefix(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	t.Cleanup(ts.Close)
-	dockerClient, err := client.NewClientWithOpts(client.WithHost(ts.URL), client.WithVersion("1.41"))
+	dockerClient, err := client.New(client.WithHost(ts.URL), client.WithAPIVersion("1.41"))
 	require.NoError(t, err)
 
 	action := testhelpers.NewMockAction()

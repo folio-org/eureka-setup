@@ -3,9 +3,9 @@ package interceptmodulesvc
 import (
 	"log/slog"
 
-	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/modulesvc"
+	"github.com/moby/moby/client"
 )
 
 func (is *InterceptModuleSvc) DeployCustomSidecarForInterception(client *client.Client, pair *modulesvc.ModulePair) error {
@@ -47,7 +47,10 @@ func (is *InterceptModuleSvc) prepareSidecarNetwork(pair *modulesvc.ModulePair) 
 	pair.BackendModule.SidecarExposedServerPort = sidecarServerPort
 	pair.BackendModule.SidecarExposedDebugPort = sidecarDebugPort
 
-	pair.BackendModule.SidecarPortBindings = helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, pair.BackendModule.PrivatePort)
+	pair.BackendModule.SidecarPortBindings, err = helpers.CreatePortBindings(sidecarServerPort, sidecarDebugPort, pair.BackendModule.PrivatePort)
+	if err != nil {
+		return err
+	}
 	if err := is.updateModuleDiscovery(pair); err != nil {
 		return err
 	}

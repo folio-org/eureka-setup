@@ -3,10 +3,10 @@ package helpers_test
 import (
 	"testing"
 
-	"github.com/docker/go-connections/nat"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
+	"github.com/moby/moby/api/types/network"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -97,13 +97,24 @@ func TestCreateExposedPorts_ValidPort(t *testing.T) {
 	privateServerPort := 8081
 
 	// Act
-	result := helpers.CreateExposedPorts(privateServerPort)
+	result, err := helpers.CreateExposedPorts(privateServerPort)
 
 	// Assert
+	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, *result, 2)
-	assert.Contains(t, *result, nat.Port("8081"))
-	assert.Contains(t, *result, nat.Port(constant.PrivateDebugPort))
+	assert.Contains(t, *result, network.MustParsePort("8081"))
+	assert.Contains(t, *result, network.MustParsePort(constant.PrivateDebugPort))
+}
+
+func TestCreateExposedPorts_InvalidPort(t *testing.T) {
+	// Act
+	result, err := helpers.CreateExposedPorts(99999)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid container port 99999")
+	assert.Nil(t, result)
 }
 
 func TestCreatePortBindings_ValidPorts(t *testing.T) {
@@ -113,21 +124,32 @@ func TestCreatePortBindings_ValidPorts(t *testing.T) {
 	privateServerPort := 8081
 
 	// Act
-	result := helpers.CreatePortBindings(hostServerPort, hostServerDebugPort, privateServerPort)
+	result, err := helpers.CreatePortBindings(hostServerPort, hostServerDebugPort, privateServerPort)
 
 	// Assert
+	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, *result, 2)
 
-	serverBindings := (*result)[nat.Port("8081")]
+	serverBindings := (*result)[network.MustParsePort("8081")]
 	assert.Len(t, serverBindings, 1)
-	assert.Equal(t, constant.HostIP, serverBindings[0].HostIP)
+	assert.Equal(t, constant.HostIP, serverBindings[0].HostIP.String())
 	assert.Equal(t, "9000", serverBindings[0].HostPort)
 
-	debugBindings := (*result)[nat.Port(constant.PrivateDebugPort)]
+	debugBindings := (*result)[network.MustParsePort(constant.PrivateDebugPort)]
 	assert.Len(t, debugBindings, 1)
-	assert.Equal(t, constant.HostIP, debugBindings[0].HostIP)
+	assert.Equal(t, constant.HostIP, debugBindings[0].HostIP.String())
 	assert.Equal(t, "5005", debugBindings[0].HostPort)
+}
+
+func TestCreatePortBindings_InvalidPrivatePort(t *testing.T) {
+	// Act
+	result, err := helpers.CreatePortBindings(9000, 5005, -1)
+
+	// Assert
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid container port -1")
+	assert.Nil(t, result)
 }
 
 func TestCreateResources_WithCustomResources(t *testing.T) {

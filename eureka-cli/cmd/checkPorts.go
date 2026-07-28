@@ -22,11 +22,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 	"github.com/spf13/cobra"
 )
 
@@ -71,17 +71,14 @@ func (run *Run) deployNetcatContainer() error {
 }
 
 func (run *Run) getDeployedModules() ([]container.Summary, error) {
-	client, err := run.Config.DockerClient.Create()
+	dockerClient, err := run.Config.DockerClient.Create()
 	if err != nil {
 		return nil, err
 	}
-	defer run.Config.DockerClient.Close(client)
+	defer run.Config.DockerClient.Close(dockerClient)
 
-	filters := filters.NewArgs(filters.KeyValuePair{
-		Key:   "name",
-		Value: fmt.Sprintf(constant.ProfileContainerPattern, run.Config.Action.ConfigProfileName),
-	})
-	containers, err := run.Config.ModuleSvc.GetDeployedModules(client, filters)
+	filters := make(client.Filters).Add("name", fmt.Sprintf(constant.ProfileContainerPattern, run.Config.Action.ConfigProfileName))
+	containers, err := run.Config.ModuleSvc.GetDeployedModules(dockerClient, filters)
 	if err != nil {
 		return nil, err
 	}

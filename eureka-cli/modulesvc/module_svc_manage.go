@@ -11,19 +11,17 @@ import (
 	"sync"
 
 	"github.com/containerd/errdefs"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/client"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	appErrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/models"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 )
 
 // ModuleManager defines the interface for managing module deployment and lifecycle
 type ModuleManager interface {
-	GetDeployedModules(client *client.Client, filters filters.Args) ([]container.Summary, error)
+	GetDeployedModules(client *client.Client, filters client.Filters) ([]container.Summary, error)
 	GetModule(client *client.Client, moduleName string) ([]container.Summary, error)
 	PullModule(client *client.Client, imageName string) error
 	DeployModules(client *client.Client, containers *models.Containers, sidecarImage string, sidecarResources *container.Resources) (map[string]int, int, error)
@@ -31,11 +29,11 @@ type ModuleManager interface {
 	UndeployModuleByNamePattern(client *client.Client, pattern string) error
 }
 
-func (ms *ModuleSvc) GetDeployedModules(client *client.Client, filters filters.Args) ([]container.Summary, error) {
+func (ms *ModuleSvc) GetDeployedModules(dockerClient *client.Client, filters client.Filters) ([]container.Summary, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), constant.ContextTimeoutDockerList)
 	defer cancel()
 
-	deployedModules, err := client.ContainerList(ctx, container.ListOptions{
+	deployedModules, err := dockerClient.ContainerList(ctx, client.ContainerListOptions{
 		All:     true,
 		Filters: filters,
 	})
@@ -43,23 +41,20 @@ func (ms *ModuleSvc) GetDeployedModules(client *client.Client, filters filters.A
 		return nil, err
 	}
 
-	return deployedModules, nil
+	return deployedModules.Items, nil
 }
 
-func (ms *ModuleSvc) GetModule(client *client.Client, moduleName string) ([]container.Summary, error) {
+func (ms *ModuleSvc) GetModule(dockerClient *client.Client, moduleName string) ([]container.Summary, error) {
 	containerName := fmt.Sprintf("eureka-%s-%s", ms.Action.ConfigProfileName, moduleName)
 	if strings.HasPrefix(moduleName, constant.ManagementModulePattern) {
 		containerName = fmt.Sprintf("eureka-%s", moduleName)
 	}
 
-	return ms.GetDeployedModules(client, filters.NewArgs(filters.KeyValuePair{
-		Key:   "name",
-		Value: fmt.Sprintf("^%s$", containerName),
-	}))
+	return ms.GetDeployedModules(dockerClient, make(client.Filters).Add("name", fmt.Sprintf("^%s$", containerName)))
 }
 
-func (ms *ModuleSvc) PullModule(client *client.Client, imageName string) error {
-	_, err := client.ImageInspect(context.Background(), imageName)
+func (ms *ModuleSvc) PullModule(dockerClient *client.Client, imageName string) error {
+	_, err := dockerClient.ImageInspect(context.Background(), imageName)
 	if err == nil {
 		slog.Info(ms.Action.Name, "text", "Image already exists locally", "image", imageName)
 		return nil
@@ -75,7 +70,7 @@ func (ms *ModuleSvc) PullModule(client *client.Client, imageName string) error {
 		return err
 	}
 
-	reader, err := client.ImagePull(ctx, imageName, image.PullOptions{
+	reader, err := dockerClient.ImagePull(ctx, imageName, client.ImagePullOptions{
 		RegistryAuth: authorizationToken,
 	})
 	if err != nil {
@@ -230,19 +225,25 @@ func (ms *ModuleSvc) deploySidecarAsync(wg *sync.WaitGroup, errCh chan<- error, 
 	}
 }
 
-func (ms *ModuleSvc) DeployModule(client *client.Client, c *models.Container) error {
+func (ms *ModuleSvc) DeployModule(dockerClient *client.Client, c *models.Container) error {
 	ctx, cancel := context.WithTimeout(context.Background(), constant.ContextTimeoutDockerDeploy)
 	defer cancel()
 
 	if c.PullImage {
-		err := ms.PullModule(client, c.Config.Image)
+		err := ms.PullModule(dockerClient, c.Config.Image)
 		if err != nil {
 			return err
 		}
 	}
 
 	containerName := ms.getContainerName(c)
-	createResponse, err := client.ContainerCreate(ctx, c.Config, c.HostConfig, c.NetworkConfig, c.Platform, containerName)
+	createResponse, err := dockerClient.ContainerCreate(ctx, client.ContainerCreateOptions{
+		Name:             containerName,
+		Config:           c.Config,
+		HostConfig:       c.HostConfig,
+		NetworkingConfig: c.NetworkConfig,
+		Platform:         c.Platform,
+	})
 	if err != nil {
 		return err
 	}
@@ -250,7 +251,7 @@ func (ms *ModuleSvc) DeployModule(client *client.Client, c *models.Container) er
 		slog.Warn(ms.Action.Name, "text", "Module created with warning", "container", containerName, "warnings", createResponse.Warnings)
 	}
 
-	err = client.ContainerStart(ctx, createResponse.ID, container.StartOptions{})
+	_, err = dockerClient.ContainerStart(ctx, createResponse.ID, client.ContainerStartOptions{})
 	if err != nil {
 		return err
 	}
@@ -267,17 +268,14 @@ func (ms *ModuleSvc) getContainerName(container *models.Container) string {
 	return fmt.Sprintf("eureka-%s-%s", ms.Action.ConfigProfileName, container.Name)
 }
 
-func (ms *ModuleSvc) UndeployModuleByNamePattern(client *client.Client, pattern string) error {
-	deployedModules, err := ms.GetDeployedModules(client, filters.NewArgs(filters.KeyValuePair{
-		Key:   "name",
-		Value: pattern,
-	}))
+func (ms *ModuleSvc) UndeployModuleByNamePattern(dockerClient *client.Client, pattern string) error {
+	deployedModules, err := ms.GetDeployedModules(dockerClient, make(client.Filters).Add("name", pattern))
 	if err != nil {
 		return err
 	}
 
 	for _, deployedModule := range deployedModules {
-		err = ms.undeployModule(client, deployedModule)
+		err = ms.undeployModule(dockerClient, deployedModule)
 		if err != nil {
 			return err
 		}
@@ -286,23 +284,25 @@ func (ms *ModuleSvc) UndeployModuleByNamePattern(client *client.Client, pattern 
 	return nil
 }
 
-func (ms *ModuleSvc) undeployModule(client *client.Client, deployedModule container.Summary) error {
+func (ms *ModuleSvc) undeployModule(dockerClient *client.Client, deployedModule container.Summary) error {
 	ctx, cancel := context.WithTimeout(context.Background(), constant.ContextTimeoutDockerUndeploy)
 	defer cancel()
 
-	err := client.NetworkDisconnect(ctx, constant.NetworkID, deployedModule.ID, false)
+	_, err := dockerClient.NetworkDisconnect(ctx, constant.NetworkID, client.NetworkDisconnectOptions{
+		Container: deployedModule.ID,
+	})
 	if err != nil {
 		slog.Warn(ms.Action.Name, "text", "Module network is disconnected with warnings", "moduleId", deployedModule.ID, "error", err.Error())
 	}
 
-	err = client.ContainerStop(ctx, deployedModule.ID, container.StopOptions{
+	_, err = dockerClient.ContainerStop(ctx, deployedModule.ID, client.ContainerStopOptions{
 		Signal: "9",
 	})
 	if err != nil {
 		return err
 	}
 
-	err = client.ContainerRemove(ctx, deployedModule.ID, container.RemoveOptions{
+	_, err = dockerClient.ContainerRemove(ctx, deployedModule.ID, client.ContainerRemoveOptions{
 		Force:         true,
 		RemoveVolumes: true,
 	})
