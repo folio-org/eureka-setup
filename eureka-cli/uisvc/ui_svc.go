@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -86,36 +87,70 @@ func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
 func (us *UISvc) PrepareImage(tenantName string) (string, error) {
 	imageName := fmt.Sprintf("platform-lsp-ui-%s", tenantName)
 	if us.Action.Param.BuildImages {
-		outputDir, err := us.CloneAndUpdateRepository(us.Action.Param.UpdateCloned)
-		if err != nil {
-			return "", err
+		return us.buildImageFromRepository(tenantName)
+	}
+	if us.Action.ConfigNamespacePlatformLspUI != "" {
+		if us.Action.ConfigNamespacePlatformLspUI == constant.DeprecatedUINamespace {
+			slog.Warn(us.Action.Name, "text", "Configured UI namespace is deprecated, remove namespaces.platform-lsp-ui to build locally or set your own namespace populated via buildAndPushUi", "namespace", constant.DeprecatedUINamespace)
 		}
-
-		return us.BuildImage(tenantName, outputDir)
+		return us.DockerClient.ForcePullImage(imageName)
 	}
 
-	finalImageName, err := us.DockerClient.ForcePullImage(imageName)
+	exists, err := us.imageExists(imageName)
+	if err != nil {
+		return "", err
+	}
+	if exists {
+		slog.Info(us.Action.Name, "text", "Reusing existing local UI image, pass -b to rebuild", "image", imageName)
+		return imageName, nil
+	}
+
+	return us.buildImageFromRepository(tenantName)
+}
+
+func (us *UISvc) buildImageFromRepository(tenantName string) (string, error) {
+	outputDir, err := us.CloneAndUpdateRepository(us.Action.Param.UpdateCloned)
 	if err != nil {
 		return "", err
 	}
 
-	return finalImageName, nil
+	return us.BuildImage(tenantName, outputDir)
+}
+
+func (us *UISvc) imageExists(imageName string) (bool, error) {
+	stdout, _, err := us.ExecSvc.ExecReturnOutput(exec.Command("docker", "images", "--quiet", imageName+":latest"))
+	if err != nil {
+		return false, err
+	}
+
+	return strings.TrimSpace(stdout.String()) != "", nil
 }
 
 func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error) {
+	// Config substitution below is destructive, work on a throwaway copy so the checkout keeps its placeholders and any user modifications
+	buildDir, err := us.copySourceToTempDir(outputDir)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		if err := os.RemoveAll(buildDir); err != nil {
+			slog.Warn(us.Action.Name, "text", "Removing temporary build directory was unsuccessful", "dir", buildDir, "error", err)
+		}
+	}()
+
 	slog.Info(us.Action.Name, "text", "Preparing UI configs")
-	err := us.PrepareStripesConfigJS(tenantName, outputDir)
+	err = us.PrepareStripesConfigJS(tenantName, buildDir)
 	if err != nil {
 		return "", err
 	}
 
 	slog.Info(us.Action.Name, "text", "Removing optional modules from stripes.modules.js")
-	err = us.PrepareStripesModulesJS(outputDir)
+	err = us.PrepareStripesModulesJS(buildDir)
 	if err != nil {
 		return "", err
 	}
 
-	err = us.PreparePackageJSON(outputDir)
+	err = us.PreparePackageJSON(buildDir)
 	if err != nil {
 		return "", err
 	}
@@ -129,12 +164,29 @@ func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error)
 		"--progress", "plain",
 		"--no-cache",
 		".",
-	), outputDir)
+	), buildDir)
 	if err != nil {
 		return "", err
 	}
 
 	return finalImageName, nil
+}
+
+func (us *UISvc) copySourceToTempDir(sourceDir string) (string, error) {
+	slog.Info(us.Action.Name, "text", "Copying UI source to a temporary build directory")
+	tempDir, err := os.MkdirTemp("", "platform-lsp-ui-build-")
+	if err != nil {
+		return "", err
+	}
+
+	if err := os.CopyFS(tempDir, os.DirFS(sourceDir)); err != nil {
+		if removeErr := os.RemoveAll(tempDir); removeErr != nil {
+			slog.Warn(us.Action.Name, "text", "Removing temporary build directory was unsuccessful", "dir", tempDir, "error", removeErr)
+		}
+		return "", err
+	}
+
+	return tempDir, nil
 }
 
 func (us *UISvc) DeployContainer(tenantName string, imageName string, externalPort int) error {

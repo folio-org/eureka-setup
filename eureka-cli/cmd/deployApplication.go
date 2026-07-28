@@ -202,4 +202,5 @@ func init() {
 	deployApplicationCmd.PersistentFlags().BoolVarP(&params.OnlyRequired, action.OnlyRequired.Long, action.OnlyRequired.Short, false, action.OnlyRequired.Description)
 	deployApplicationCmd.PersistentFlags().BoolVarP(&params.Cleanup, action.Cleanup.Long, action.Cleanup.Short, false, action.Cleanup.Description)
 	deployApplicationCmd.PersistentFlags().BoolVarP(&params.SkipRegistry, action.SkipRegistry.Long, action.SkipRegistry.Short, false, action.SkipRegistry.Description)
+	deployApplicationCmd.PersistentFlags().BoolVarP(&params.SkipUI, action.SkipUI.Long, action.SkipUI.Short, false, action.SkipUI.Description)
 }

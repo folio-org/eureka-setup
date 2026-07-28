@@ -205,6 +205,9 @@ const (
 	KongExternalHTTP     = "http://localhost:8000"
 	KeycloakExternalHTTP = "http://keycloak.eureka:8080"
 
+	// Default UI URL, set as the platformLspURL flag default and overridable per tenant via platform-lsp-url in the config
+	DefaultPlatformLspURL = "http://localhost:3000"
+
 	// Backend modules
 	ModSearchModule           = "mod-search"
 	ModDataExportWorkerModule = "mod-data-export-worker"
@@ -270,6 +273,9 @@ const (
 	SnapshotNamespace = "folioci"
 	ReleaseNamespace  = "folioorg"
 	LocalNamespace    = "foliolocal"
+
+	// DeprecatedUINamespace is the former default for namespaces.platform-lsp-ui, no longer maintained (see issue #225)
+	DeprecatedUINamespace = "bkadirkhodjaev"
 )
 
 func GetNamespaces() []string {

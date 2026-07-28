@@ -174,13 +174,13 @@ Available flags:
 | `--apps`                  |       | Application names                                         | purgeTenants                           |
 | `--cleanup`               |       | Perform a cleanup operation                               | deployApplication, upgradeModule       |
 | `--defaultGateway`        | `-g`  | Use default gateway in URLs                               | interceptModule                        |
-| `--enableEcsRequests`     |       | Enable ECS requests                                       | deployUi, buildAndPushUi               |
+| `--enableEcsRequests`     |       | Enable ECS requests                                       | deployUi, buildAndPushUi, buildUi      |
 | `--gatewayHostname`       |       | Gateway Hostname                                          | createPortProxy                        |
 | `--gatewayURL`            |       | Gateway URL                                               | purgeTenants                           |
 | `--id`                    | `-i`  | Module ID (e.g. mod-orders:13.1.0-SNAPSHOT.1021)          | listModuleVersions                     |
 | `--ids`                   |       | Tenant ids                                                | purgeTenants                           |
 | `--length`                | `-l`  | Salt length for edge API key                              | getEdgeApiKey                          |
-| `--linkedData`            |       | Include Linked Data module in UI bundle                   | buildAndPushUi, deployUi               |
+| `--linkedData`            |       | Include Linked Data module in UI bundle                   | buildAndPushUi, deployUi, buildUi      |
 | `--moduleName`            | `-n`  | Module name (e.g. mod-orders)                             | interceptModule, listModules,          |
 |                           |       |                                                           | listModuleVersions,                    |
 |                           |       |                                                           | undeployModule, updateModuleDiscovery, |
@@ -191,14 +191,14 @@ Available flags:
 | `--moduleVersion`         |       | Module version (e.g. 13.1.0-SNAPSHOT.1093)                | upgradeModule                          |
 | `--namespace`             |       | DockerHub namespace                                       | buildAndPushUi, upgradeModule          |
 | `--platformLspURL`        |       | Platform LSP UI URL                                       | buildAndPushUi, deployUi,              |
-|                           |       |                                                           | updateKeycloakPublicClients            |
+|                           |       |                                                           | updateKeycloakPublicClients, buildUi   |
 | `--privatePort`           |       | Private port                                              | updateModuleDiscovery                  |
 | `--purgeSchemas`          |       | Purge PostgreSQL schemas on uninstallation                | removeTenantEntitlements,              |
 |                           |       |                                                           | undeployApplication                    |
 | `--removeApplication`     |       | Remove application from the DB                            | undeployApplication                    |
 | `--restore`               | `-r`  | Restore module & sidecar                                  | interceptModule, updateModuleDiscovery |
 | `--sidecarUrl`            | `-s`  | Sidecar URL                                               | interceptModule, updateModuleDiscovery |
-| `--singleTenant`          |       | Use for Single Tenant workflow                            | deployUi, buildAndPushUi               |
+| `--singleTenant`          |       | Use for Single Tenant workflow                            | deployUi, buildAndPushUi, buildUi      |
 | `--skipApplication`       |       | Skip application operations                               | upgradeModule                          |
 | `--skipCapabilitySets`    |       | Skip refreshing capability sets                           | undeployApplication                    |
 | `--skipModuleArtifact`    |       | Skip building module artifact (jar and module descriptor) | upgradeModule                          |
@@ -208,11 +208,12 @@ Available flags:
 | `--skipRegistry`          |       | Skip retrieving latest registry module versions           | interceptModule, deployApplication,    |
 |                           |       |                                                           | deployManagement, deployModules        |
 | `--skipTenantEntitlement` |       | Skip tenant entitlement operations                        | upgradeModule                          |
+| `--skipUi`                |       | Skip UI build and deployment                              | deployApplication                      |
 | `--tenant`                | `-t`  | Tenant name                                               | getKeycloakAccessToken, getEdgeApiKey, |
 |                           |       |                                                           | buildAndPushUi                         |
 | `--tokenType`             |       | Token type                                                | getKeycloakAccessToken                 |
 | `--updateCloned`          | `-u`  | Update Git cloned projects                                | buildSystem, deployApplication,        |
-|                           |       |                                                           | deployUi, buildAndPushUi               |
+|                           |       |                                                           | deployUi, buildAndPushUi, buildUi      |
 | `--user`                  | `-x`  | User for edge API key generation                          | getEdgeApiKey                          |
 | `--versions`              | `-v`  | Number of versions to display                             | listModuleVersions                     |
 
@@ -768,41 +769,50 @@ eureka-cli deployApplication
 
 ## Using the UI
 
-The environment depends on the [platform-lsp](https://github.com/folio-org/platform-lsp) project to combine and assemble frontend and backend modules into a single UI package. By default, the CLI uses a pre-built Docker image of _platform-lsp_ from DockerHub to deploy the UI container.
+The environment depends on the [platform-lsp](https://github.com/folio-org/platform-lsp) project to combine and assemble frontend modules into a single UI package. No official prebuilt UI image is published to any registry, so by default the CLI builds the UI image locally from the _platform-lsp_ repository.
 
-- To use a different namespace, override the `namespaces.platform-lsp-ui` key in the config, for example in `config.combined.yaml`
-
-```yaml
-namespaces:
-  platform-lsp-ui: bkadirkhodjaev # Change to pull from a different namespace if necessary
-```
-
-- If you haven't built the image yet, the CLI has a dedicated command to build the UI image separately from the deployment lifecycle
+- The image `platform-lsp-ui-{{tenant}}` is built automatically during `deployApplication` or `deployUi` for every tenant with `deploy-ui: true` in the config, and is reused on subsequent runs
+- To force a rebuild (e.g. to include the latest module versions), pass the `-b` flag, optionally combined with `-u` to first update the local _platform-lsp_ repository
 
 ```bash
-eureka-cli buildAndPushUi -n {{namespace}} -t diku -u
+# Will rebuild and redeploy only the platform-lsp image
+eureka-cli deployUi -b -u
+
+# Will do the same during a full deployment
+eureka-cli deployApplication -b -u
 ```
 
-> Replace {{namespace}} with your DockerHub namespace of choice, and use `-u` flag only if you want to update your local repository with upstream changes.
-
-- To use the newly built image, remove the old container and create a new one
+- To replace a deployed UI container with a newly built image, remove the old container first
 
 ```bash
 eureka-cli undeployUi
-eureka-cli deployUi
+eureka-cli deployUi -b
 ```
 
-> This will pull the latest Docker image from the registry and create a UI container out of it.
-
-The CLI also supports building and deploying the UI image in-place, during either `deployApplication` execution or with `deployUi` command.
+- To build the image without touching any containers, use `buildUi`; run it before `deployApplication` to keep the memory-heavy UI build from competing with a running platform
 
 ```bash
-# Will build and deploy every image including folio-kong, folio-keycloak and platform-lsp itself
-eureka-cli deployApplication -b -u
-
-# Will only build and deploy the platform-lsp image
-eureka-cli deployUi -b -u
+eureka-cli buildUi -u
 ```
+
+- To skip the UI entirely (e.g. for backend-only development), set `deploy-ui: false` for the tenant in the config or pass `--skipUi` to `deployApplication`
+
+```bash
+eureka-cli deployApplication --skipUi
+```
+
+- To pull a prebuilt UI image from a registry instead of building locally, set the `namespaces.platform-lsp-ui` key in the config; the CLI will then pull `{{namespace}}/platform-lsp-ui-{{tenant}}` on every deployment instead of building. The `buildAndPushUi` command builds such an image and pushes it to a namespace of your choice.
+
+```yaml
+namespaces:
+  platform-lsp-ui: my-namespace
+```
+
+```bash
+eureka-cli buildAndPushUi -n my-namespace -t diku -u
+```
+
+> The UI build is memory-hungry (the node process can peak at around 8 GB). Run `buildUi` before `deployApplication` so the build does not compete with a running platform for memory. If the build is too heavy for your machine altogether, fork this repository, add a `DOCKERHUB_TOKEN` secret, and dispatch the `Build And Push UI` workflow to build the image on GitHub-hosted runners instead. Then set `namespaces.platform-lsp-ui` to that namespace as shown above, and the CLI will pull the image rather than build it.
 
 ## Using Single Tenant UX
 

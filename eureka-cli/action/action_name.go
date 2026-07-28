@@ -4,6 +4,7 @@ const (
 	AttachCapabilitySets        = "Attach Capability Sets"
 	BuildAndPushUi              = "Build and push UI"
 	BuildSystem                 = "Build System"
+	BuildUi                     = "Build UI"
 	CheckPorts                  = "Check Ports"
 	CreateConsortiums           = "Create Consortiums"
 	CreatePortProxy             = "Create Port Proxy"

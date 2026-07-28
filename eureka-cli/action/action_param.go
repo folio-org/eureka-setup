@@ -41,6 +41,7 @@ type Param struct {
 	SkipModuleDiscovery   bool
 	SkipRegistry          bool
 	SkipTenantEntitlement bool
+	SkipUI                bool
 	Tenant                string
 	TenantIDs             []string
 	TokenType             string
@@ -101,6 +102,7 @@ var (
 	SkipModuleDiscovery   = Flag{"skipModuleDiscovery", "", "Skip module discovery update"}
 	SkipRegistry          = Flag{"skipRegistry", "", "Skip retrieving module registry versions"}
 	SkipTenantEntitlement = Flag{"skipTenantEntitlement", "", "Skip tenant entitlement operations"}
+	SkipUI                = Flag{"skipUi", "", "Skip UI build and deployment"}
 	Tenant                = Flag{"tenant", "t", "Tenant"}
 	TenantIDs             = Flag{"ids", "", "Tenant ids"}
 	TokenType             = Flag{"tokenType", "", "Token type"}
