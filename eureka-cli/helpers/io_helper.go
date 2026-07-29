@@ -151,13 +151,21 @@ func GetHomeDirPath() (string, error) {
 		return "", err
 	}
 
-	homeDir := filepath.Join(userHome, constant.ConfigDir)
-	if err = os.MkdirAll(homeDir, constant.DirPerm); err != nil {
+	return filepath.Join(userHome, constant.ConfigDir), nil
+}
+
+func EnsureHomeDir() (string, error) {
+	homeDir, err := GetHomeDirPath()
+	if err != nil {
+		return "", err
+	}
+
+	if err := os.MkdirAll(homeDir, constant.DirPerm); err != nil {
 		return "", err
 	}
 
 	// MkdirAll does not change the mode of an existing directory, so repair installations created by older releases with wrong permissions
-	if err = os.Chmod(homeDir, constant.DirPerm); err != nil {
+	if err := os.Chmod(homeDir, constant.DirPerm); err != nil {
 		return "", err
 	}
 

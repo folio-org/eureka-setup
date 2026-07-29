@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 )
 
 // SetTempHome redirects the user home directory to a per-test temporary directory so tests never touch the real ~/.eureka
@@ -16,6 +18,19 @@ func SetTempHome(t *testing.T) string {
 	t.Setenv("USERPROFILE", tempHome)
 
 	return tempHome
+}
+
+// SetTempConfigDir redirects the user home directory like SetTempHome and creates the home config directory, returning its path
+func SetTempConfigDir(t *testing.T) string {
+	t.Helper()
+
+	SetTempHome(t)
+	homeDir, err := helpers.EnsureHomeDir()
+	if err != nil {
+		t.Fatalf("failed to create the home config directory: %v", err)
+	}
+
+	return homeDir
 }
 
 // CreateTempJSONFile creates a temporary JSON file with the given data

@@ -67,7 +67,7 @@
 
 Install dependencies:
 
-- [Go](https://go.dev/doc/install) compiler: last development-tested version is `go1.25.3 windows/amd64`
+- [Go](https://go.dev/doc/install) compiler: last development-tested version is `go1.26.5 linux/amd64`
 - [Rancher Desktop](https://rancherdesktop.io/) container daemon: last development-tested version is `v1.20.1`
   - Enable **dockerd (Moby)** container engine
   - Disable **Check for updates automatically**

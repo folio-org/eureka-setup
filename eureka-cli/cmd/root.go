@@ -54,30 +54,28 @@ func Execute(fs *embed.FS) {
 }
 
 func initConfig() {
-	setConfig(&params)
+	homeDir, err := helpers.EnsureHomeDir()
+	cobra.CheckErr(err)
+
+	setConfig(&params, homeDir)
 	viper.AutomaticEnv()
 
 	if params.OverwriteFiles {
-		createHomeDir(true)
-	} else {
-		if err := viper.ReadInConfig(); err != nil {
-			createHomeDir(false)
-		}
+		copyHomeDirFiles(homeDir, true)
+	} else if readErr := viper.ReadInConfig(); readErr != nil {
+		copyHomeDirFiles(homeDir, false)
 	}
 
-	err := viper.ReadInConfig()
+	err = viper.ReadInConfig()
 	cobra.CheckErr(err)
 
-	logger, err = setDefaultLogger()
+	logger, err = setDefaultLogger(homeDir)
 	cobra.CheckErr(err)
 }
 
-func setConfig(params *action.Param) {
+func setConfig(params *action.Param, homeDir string) {
 	if params.ConfigFile == "" {
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
-		viper.AddConfigPath(filepath.Join(home, constant.ConfigDir))
+		viper.AddConfigPath(homeDir)
 		viper.SetConfigType(constant.ConfigType)
 		if params.Profile == "" {
 			params.Profile = constant.GetDefaultProfile()
@@ -91,15 +89,10 @@ func setConfig(params *action.Param) {
 	}
 }
 
-func setDefaultLogger() (*slog.Logger, error) {
+func setDefaultLogger(homeDir string) (*slog.Logger, error) {
 	logLevel := slog.LevelInfo
 	if params.EnableDebug {
 		logLevel = slog.LevelDebug
-	}
-
-	homeDir, err := helpers.GetHomeDirPath()
-	if err != nil {
-		return nil, err
 	}
 
 	logDir := filepath.Join(homeDir, constant.LogDir)
@@ -128,10 +121,7 @@ func setDefaultLogger() (*slog.Logger, error) {
 	return logger, nil
 }
 
-func createHomeDir(overwriteFiles bool) {
-	homeDir, err := helpers.GetHomeDirPath()
-	cobra.CheckErr(err)
-
+func copyHomeDirFiles(homeDir string, overwriteFiles bool) {
 	if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
 		if overwriteFiles {
 			fmt.Printf("Overwriting files in %s home directory\n\n", homeDir)
@@ -139,7 +129,7 @@ func createHomeDir(overwriteFiles bool) {
 			fmt.Printf("Creating missing files in %s home directory\n\n", homeDir)
 		}
 	}
-	err = helpers.CopyMultipleFiles(homeDir, runFs)
+	err := helpers.CopyMultipleFiles(homeDir, runFs)
 	cobra.CheckErr(err)
 
 	if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
