@@ -135,23 +135,29 @@ cobra-cli add [my_new_command_name] --viper --author "Open Library Foundation" -
 
 ## Update system components
 
-At the moment most system components, like _Keycloak_, _Kong_, and others, are not automatically updated, and must be regularly manually rebuilt and uploaded to keep up-to-date with the FOLIO development process.
-
-- Run the following set of commands to the rebuild and upload each system component manually to a specified Docker Hub registry namespace
+_Keycloak_ and _Kong_ are pulled as upstream FOLIO images, selected via `FOLIO_KEYCLOAK_NAMESPACE` / `FOLIO_KEYCLOAK_VERSION` and `FOLIO_KONG_NAMESPACE` / `FOLIO_KONG_VERSION` in `misc/.env`. The defaults track the `folioci` snapshot namespace at `:latest` and are not pinned; for a reproducible setup, switch to `folioorg` with a release version, or keep `folioci` and pin a specific `*-SNAPSHOT.*` version. Note that Docker only pulls an image that is missing locally, so a floating tag like `:latest` is reused as first pulled on every subsequent deployment - refresh it deliberately by pinning a newer version, or manually from `~/.eureka/misc`:
 
 ```bash
-cd eureka-cli
-docker build -t [my_namespace]/folio-netcat:latest ~/.eureka/misc/folio-netcat --no-cache
-docker build -t [my_namespace]/folio-vault:latest ~/.eureka/misc/folio-vault --no-cache
-docker build -t [my_namespace]/folio-kafka-tools:latest ~/.eureka/misc/folio-kafka-tools --no-cache
-docker build -t [my_namespace]/folio-keycloak:latest ~/.eureka/misc/folio-keycloak --no-cache
-docker build -t [my_namespace]/folio-kong:latest ~/.eureka/misc/folio-kong --no-cache
-
-docker push [my_namespace]/folio-netcat:latest
-docker push [my_namespace]/folio-vault:latest
-docker push [my_namespace]/folio-kafka-tools:latest
-docker push [my_namespace]/folio-keycloak:latest
-docker push [my_namespace]/folio-kong:latest
+docker compose --project-name eureka pull kong keycloak-internal
+eureka-cli deploySystem
 ```
 
-> The current registry namespace points to `bkadirkhodjaev`, but can be changed to use your own namespace once all file dependencies are updated
+To test locally patched _Keycloak_ or _Kong_ images, build the image from your local checkout, tag it under any namespace/version, and point the `.env` variables at that tag - `docker compose` uses the local image as long as it exists and never pulls it:
+
+```bash
+docker build -t dev/folio-keycloak:local ~/git/folio-keycloak
+# In misc/.env: FOLIO_KEYCLOAK_NAMESPACE=dev, FOLIO_KEYCLOAK_VERSION=local
+```
+
+_Netcat_ and _Vault_ are always built locally (from `misc/folio-netcat` and `misc/folio-vault`) and are never pulled from a registry. `docker compose up` builds each once and then reuses the cached image, so after a CLI upgrade that changes their `Dockerfile` you must refresh the local image explicitly - otherwise the stale one is reused:
+
+```bash
+# Re-extract the embedded build context into ~/.eureka, then force a rebuild
+eureka-cli buildSystem -o          # -o overwrites files under ~/.eureka
+# or, in one step during a deploy:
+eureka-cli deployApplication -bo
+```
+
+> Vault is stateful: its bootstrap scripts are baked into the image and run against the persisted `vault-*` volumes on startup. A stale Vault image shows up as a missing Userpass sign-in method or a failed `admin/admin` login (see Troubleshooting). If a rebuilt image changes the bootstrap in a way that is incompatible with existing state, wipe the volumes and re-bootstrap with `eureka-cli undeploySystem` (`compose down --volumes`) followed by a fresh deploy.
+
+_Kafka tools_ is the official `apache/kafka` image (JVM variant) idling on `sleep infinity`, pinned to `KAFKA_VERSION` so it always matches the broker. It needs no custom image or manual maintenance - bump `KAFKA_VERSION` in `misc/.env` to move both the broker and the tools together.

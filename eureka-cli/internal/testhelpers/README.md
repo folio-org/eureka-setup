@@ -7,7 +7,7 @@ Reusable testing utilities for eureka-cli. Import path: `github.com/folio-org/eu
 | File                | Contents                                                              |
 |:--------------------|:----------------------------------------------------------------------|
 | `mocks.go`          | `NewMockAction()`, `MockHTTPClient`, `MockCommandExecutor`, `MockRegistrySvc`, `MockModuleEnv`, `MockDockerClient`, `MockTenantSvc` |
-| `git_mocks.go`      | `MockGitClient` — mock for `gitclient.GitClientRunner` (`KongRepository`, `KeycloakRepository`, `PlatformCompleteRepository`, `Clone`, `ResetHardPullFromOrigin`) |
+| `git_mocks.go`      | `MockGitClient` — mock for `gitclient.GitClientRunner` (`PlatformLspRepository`, `Clone`, `ResetHardPullFromOrigin`) |
 | `http_helpers.go`   | `MockHTTPServer`, `JSONResponse`, `ErrorResponse`, `EmptyResponse`, `SequentialResponses`, request assertion helpers |
 | `file_helpers.go`   | `CreateTempJSONFile`, `CreateTempFile`, `CreateJSONFileInDir`, `CreateFileInDir`, `ReadFileContent` |
 | `viper_helpers.go`  | `ViperTestConfig` — tracks original values and restores them in `Reset()`; `SetupViperForTest(map[string]any)` for bulk setup |

@@ -22,8 +22,6 @@ type GitClientRunner interface {
 
 // GitClientRepositoryProvisioner defines the interface for Git repository provisioning
 type GitClientRepositoryProvisioner interface {
-	KongRepository() (*gitrepository.GitRepository, error)
-	KeycloakRepository() (*gitrepository.GitRepository, error)
 	PlatformLspRepository(branch plumbing.ReferenceName) (*gitrepository.GitRepository, error)
 }
 
@@ -41,24 +39,6 @@ type GitClient struct {
 // New creates a new GitClient instance
 func New(action *action.Action) *GitClient {
 	return &GitClient{Action: action}
-}
-
-func (gc *GitClient) KongRepository() (*gitrepository.GitRepository, error) {
-	var (
-		label = constant.FolioKeycloakLabel
-		url   = constant.FolioKeycloakRepositoryURL
-		dir   = constant.FolioKeycloakOutputDir
-	)
-	return gitrepository.New(gc.Action, label, url, dir, constant.FolioKeycloakBranch)
-}
-
-func (gc *GitClient) KeycloakRepository() (*gitrepository.GitRepository, error) {
-	var (
-		label = constant.FolioKongLabel
-		url   = constant.FolioKongRepositoryURL
-		dir   = constant.FolioKongOutputDir
-	)
-	return gitrepository.New(gc.Action, label, url, dir, constant.FolioKongBranch)
 }
 
 func (gc *GitClient) PlatformLspRepository(branch plumbing.ReferenceName) (*gitrepository.GitRepository, error) {

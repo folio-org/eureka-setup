@@ -16,15 +16,12 @@ limitations under the License.
 package cmd
 
 import (
-	"errors"
 	"log/slog"
 	"os/exec"
 	"time"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
-	"github.com/folio-org/eureka-setup/eureka-cli/gitrepository"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
-	git "github.com/go-git/go-git/v5"
 	"github.com/spf13/cobra"
 )
 
@@ -40,9 +37,6 @@ var buildSystemCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if err := run.CloneUpdateRepositories(); err != nil {
-			return err
-		}
 		if err := run.BuildSystem(); err != nil {
 			return err
 		}
@@ -50,42 +44,6 @@ var buildSystemCmd = &cobra.Command{
 
 		return nil
 	},
-}
-
-func (run *Run) CloneUpdateRepositories() error {
-	slog.Info(run.Config.Action.Name, "text", "CLONING & UPDATING REPOSITORIES")
-	kongRepository, err := run.Config.GitClient.KongRepository()
-	if err != nil {
-		return err
-	}
-
-	keycloakRepository, err := run.Config.GitClient.KeycloakRepository()
-	if err != nil {
-		return err
-	}
-
-	repositories := []*gitrepository.GitRepository{kongRepository, keycloakRepository}
-	slog.Info(run.Config.Action.Name, "text", "Cloning repositories", "repositories", repositories)
-	for _, repository := range repositories {
-		if err := run.Config.GitClient.Clone(repository); err != nil {
-			if errors.Is(err, git.ErrRepositoryAlreadyExists) {
-				slog.Info(run.Config.Action.Name, "text", "Repository already cloned, skipping", "label", repository.Label)
-			} else {
-				slog.Warn(run.Config.Action.Name, "text", "Cloning was unsuccessful", "error", err)
-			}
-		}
-	}
-
-	if params.UpdateCloned {
-		slog.Info(run.Config.Action.Name, "text", "Updating repositories", "repositories", repositories)
-		for _, repository := range repositories {
-			if err := run.Config.GitClient.ResetHardPullFromOrigin(repository); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
 }
 
 func (run *Run) BuildSystem() error {
@@ -101,5 +59,4 @@ func (run *Run) BuildSystem() error {
 
 func init() {
 	rootCmd.AddCommand(buildSystemCmd)
-	buildSystemCmd.PersistentFlags().BoolVarP(&params.UpdateCloned, action.UpdateCloned.Long, action.UpdateCloned.Short, false, action.UpdateCloned.Description)
 }

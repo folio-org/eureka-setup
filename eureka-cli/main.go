@@ -23,7 +23,6 @@ import (
 
 var (
 	//go:embed misc/edge-modules
-	//go:embed misc/folio-kafka-tools
 	//go:embed misc/folio-keycloak-nginx
 	//go:embed misc/folio-netcat
 	//go:embed misc/folio-vault
