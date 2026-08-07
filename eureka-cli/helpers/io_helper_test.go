@@ -386,12 +386,26 @@ func TestGetCurrentWorkDirPath_Success(t *testing.T) {
 	assert.NotEmpty(t, result)
 }
 
-func TestGetHomeDirPath_CreatesDirectoryWithOwnerOnlyPermissions(t *testing.T) {
+func TestGetHomeDirPath_ResolvesPathWithoutCreatingDirectory(t *testing.T) {
+	// Arrange
+	tempHome := testhelpers.SetTempHome(t)
+	homeDir := filepath.Join(tempHome, ".eureka")
+
+	// Act
+	result, err := helpers.GetHomeDirPath()
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, homeDir, result)
+	assert.NoDirExists(t, homeDir)
+}
+
+func TestEnsureHomeDir_CreatesDirectoryWithOwnerOnlyPermissions(t *testing.T) {
 	// Arrange
 	tempHome := testhelpers.SetTempHome(t)
 
 	// Act
-	result, err := helpers.GetHomeDirPath()
+	result, err := helpers.EnsureHomeDir()
 
 	// Assert
 	assert.NoError(t, err)
@@ -407,14 +421,14 @@ func TestGetHomeDirPath_CreatesDirectoryWithOwnerOnlyPermissions(t *testing.T) {
 	}
 }
 
-func TestGetHomeDirPath_RepairsExistingDirectoryPermissions(t *testing.T) {
+func TestEnsureHomeDir_RepairsExistingDirectoryPermissions(t *testing.T) {
 	// Arrange
 	tempHome := testhelpers.SetTempHome(t)
 	homeDir := filepath.Join(tempHome, ".eureka")
 	assert.NoError(t, os.Mkdir(homeDir, 0644))
 
 	// Act
-	result, err := helpers.GetHomeDirPath()
+	result, err := helpers.EnsureHomeDir()
 
 	// Assert
 	assert.NoError(t, err)

@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"testing"
 
@@ -1691,14 +1693,8 @@ func TestAttachCapabilitySets_Success(t *testing.T) {
 	mockKafkaSvc := &MockKafkaSvc{}
 	run.Config.KafkaSvc = mockKafkaSvc
 
-	testhelpers.SetTempHome(t)
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		t.Fatal(err)
-	}
-	filePath := filepath.Join(homeDir, ".eureka", fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
-	t.Cleanup(func() { _ = os.Remove(filePath) })
+	homeDir := testhelpers.SetTempConfigDir(t)
+	filePath := filepath.Join(homeDir, fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
 
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
@@ -1712,7 +1708,7 @@ func TestAttachCapabilitySets_Success(t *testing.T) {
 	mockKeycloak.On("CountCapabilitySets", "test-tenant").Return(530, nil)
 
 	// Act
-	err = run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
+	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
 
 	// Assert
 	assert.NoError(t, err)
@@ -1730,20 +1726,10 @@ func TestAttachCapabilitySets_Success(t *testing.T) {
 
 func TestAttachCapabilitySets_FilePersisted_SkipsPoll(t *testing.T) {
 	// Arrange — pre-create persistence file; live count matches → skip poll
-	testhelpers.SetTempHome(t)
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		t.Fatal(err)
-	}
-	filePath := filepath.Join(homeDir, ".eureka", fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
-	if err := os.MkdirAll(filepath.Dir(filePath), constant.DirPerm); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filePath, []byte(`{"tenant":"test-tenant","total":530}`), 0644); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.Remove(filePath) })
+	homeDir := testhelpers.SetTempConfigDir(t)
+	fileName := fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant")
+	filePath := filepath.Join(homeDir, fileName)
+	testhelpers.CreateFileInDir(t, homeDir, fileName, `{"tenant":"test-tenant","total":530}`)
 
 	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.AttachCapabilitySets)
 	mockKafkaSvc := &MockKafkaSvc{}
@@ -1760,7 +1746,7 @@ func TestAttachCapabilitySets_FilePersisted_SkipsPoll(t *testing.T) {
 	mockKeycloak.On("CountCapabilitySets", "test-tenant").Return(530, nil)
 
 	// Act
-	err = run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
+	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
 
 	// Assert
 	assert.NoError(t, err)
@@ -1845,20 +1831,10 @@ func TestAttachCapabilitySets_AttachError(t *testing.T) {
 
 func TestAttachCapabilitySets_ForceRefresh_DeletesFile(t *testing.T) {
 	// Arrange — pre-create file; forceRefresh=true deletes it, forcing a full poll
-	testhelpers.SetTempHome(t)
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		t.Fatal(err)
-	}
-	filePath := filepath.Join(homeDir, ".eureka", fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
-	if err := os.MkdirAll(filepath.Dir(filePath), constant.DirPerm); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filePath, []byte(`{"tenant":"test-tenant","total":200}`), 0644); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.Remove(filePath) })
+	homeDir := testhelpers.SetTempConfigDir(t)
+	fileName := fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant")
+	filePath := filepath.Join(homeDir, fileName)
+	testhelpers.CreateFileInDir(t, homeDir, fileName, `{"tenant":"test-tenant","total":200}`)
 
 	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.AttachCapabilitySets)
 	mockKafkaSvc := &MockKafkaSvc{}
@@ -1876,7 +1852,7 @@ func TestAttachCapabilitySets_ForceRefresh_DeletesFile(t *testing.T) {
 	mockKeycloak.On("CountCapabilitySets", "test-tenant").Return(200, nil)
 
 	// Act
-	err = run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, true)
+	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, true)
 
 	// Assert — poll must have been called since file was deleted
 	assert.NoError(t, err)
@@ -1893,20 +1869,10 @@ func TestAttachCapabilitySets_ForceRefresh_DeletesFile(t *testing.T) {
 
 func TestAttachCapabilitySets_CountChanged_Polls(t *testing.T) {
 	// Arrange — persisted total doesn't match live count; poll is required
-	testhelpers.SetTempHome(t)
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		t.Fatal(err)
-	}
-	filePath := filepath.Join(homeDir, ".eureka", fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
-	if err := os.MkdirAll(filepath.Dir(filePath), constant.DirPerm); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filePath, []byte(`{"tenant":"test-tenant","total":100}`), 0644); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.Remove(filePath) })
+	homeDir := testhelpers.SetTempConfigDir(t)
+	fileName := fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant")
+	filePath := filepath.Join(homeDir, fileName)
+	testhelpers.CreateFileInDir(t, homeDir, fileName, `{"tenant":"test-tenant","total":100}`)
 
 	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.AttachCapabilitySets)
 	mockKafkaSvc := &MockKafkaSvc{}
@@ -1925,7 +1891,7 @@ func TestAttachCapabilitySets_CountChanged_Polls(t *testing.T) {
 	mockKeycloak.On("CountCapabilitySets", "test-tenant").Return(200, nil)
 
 	// Act
-	err = run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
+	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
 
 	// Assert — poll called; file updated to live count
 	assert.NoError(t, err)
@@ -1942,20 +1908,8 @@ func TestAttachCapabilitySets_CountChanged_Polls(t *testing.T) {
 
 func TestAttachCapabilitySets_PreCheckCountError_Polls(t *testing.T) {
 	// Arrange — CountCapabilitySets errors during pre-check; falls through to poll
-	testhelpers.SetTempHome(t)
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		t.Fatal(err)
-	}
-	filePath := filepath.Join(homeDir, ".eureka", fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
-	if err := os.MkdirAll(filepath.Dir(filePath), constant.DirPerm); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filePath, []byte(`{"tenant":"test-tenant","total":300}`), 0644); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.Remove(filePath) })
+	homeDir := testhelpers.SetTempConfigDir(t)
+	testhelpers.CreateFileInDir(t, homeDir, fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"), `{"tenant":"test-tenant","total":300}`)
 
 	run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.AttachCapabilitySets)
 	mockKafkaSvc := &MockKafkaSvc{}
@@ -1974,7 +1928,7 @@ func TestAttachCapabilitySets_PreCheckCountError_Polls(t *testing.T) {
 	mockKeycloak.On("CountCapabilitySets", "test-tenant").Return(300, nil)
 
 	// Act
-	err = run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
+	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
 
 	// Assert — poll called despite file existing; function succeeds
 	assert.NoError(t, err)
@@ -1988,14 +1942,8 @@ func TestAttachCapabilitySets_PostAttachCountError_ReturnsNil(t *testing.T) {
 	mockKafkaSvc := &MockKafkaSvc{}
 	run.Config.KafkaSvc = mockKafkaSvc
 
-	testhelpers.SetTempHome(t)
-
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		t.Fatal(err)
-	}
-	filePath := filepath.Join(homeDir, ".eureka", fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
-	t.Cleanup(func() { _ = os.Remove(filePath) })
+	homeDir := testhelpers.SetTempConfigDir(t)
+	filePath := filepath.Join(homeDir, fmt.Sprintf(constant.CapabilitySetsFilePattern, "test-tenant"))
 
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
@@ -2009,7 +1957,7 @@ func TestAttachCapabilitySets_PostAttachCountError_ReturnsNil(t *testing.T) {
 	mockKeycloak.On("CountCapabilitySets", "test-tenant").Return(0, assert.AnError)
 
 	// Act
-	err = run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
+	err := run.AttachCapabilitySets(constant.NoneConsortium, constant.Default, 0, false)
 
 	// Assert — count error is non-fatal; no file written
 	assert.NoError(t, err)
@@ -2861,4 +2809,33 @@ func TestInterceptModule_InterceptError(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Equal(t, expectedError, err)
+}
+
+// ==================== Home Directory Tests ====================
+
+func TestInitConfig_RepairsHomeDirPermissionsOfOlderInstallations(t *testing.T) {
+	// Arrange
+	tempHome := testhelpers.SetTempHome(t)
+	homeDir := filepath.Join(tempHome, constant.ConfigDir)
+	assert.NoError(t, os.Mkdir(homeDir, 0755))
+	// A readable config keeps initConfig from reaching copyHomeDirFiles, which needs the embedded file system
+	testhelpers.CreateFileInDir(t, homeDir, "config.combined.yaml", "profile:\n  name: combined\n")
+
+	previousParams, previousLogger, previousDefault := params, logger, slog.Default()
+	t.Cleanup(func() {
+		params, logger = previousParams, previousLogger
+		slog.SetDefault(previousDefault)
+	})
+	viper.Reset()
+	t.Cleanup(viper.Reset)
+	params = action.Param{Profile: constant.CombinedProfile}
+
+	// Act
+	initConfig()
+
+	// Assert
+	info, err := os.Stat(homeDir)
+	if assert.NoError(t, err) && runtime.GOOS != "windows" {
+		assert.Equal(t, constant.DirPerm, info.Mode().Perm())
+	}
 }
