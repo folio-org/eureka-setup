@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.1
 
       - name: Validate misc/folio-netcat/Dockerfile
         uses: hadolint/hadolint-action@v3.3.0
@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.1
 
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
@@ -52,7 +52,7 @@ jobs:
       EXCLUDE_PATTERN: '/(interceptmodulesvc|upgrademodulesvc)$|/internal/|eureka-cli$'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.1
 
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
@@ -79,7 +79,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.1
 
       - name: Setup Go Environment
         uses: ./.github/actions/setup-go
