@@ -26,8 +26,8 @@ import (
 // removeUsersCmd represents the removeUsers command
 var removeUsersCmd = &cobra.Command{
 	Use:   "removeUsers",
-	Short: "Create users",
-	Long:  `Create all users.`,
+	Short: "Remove users",
+	Long:  `Remove all users.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		run, err := New(action.RemoveUsers)
 		if err != nil {
