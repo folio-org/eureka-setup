@@ -8,8 +8,8 @@ RUN apk update && apk add --no-cache netcat-openbsd curl wget bind-tools tracero
     adduser -D -u 1000 -G netcat netcat
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD nc -h > /dev/null 2>&1 || exit 1
+    CMD ["/bin/sh", "-c", "nc -h > /dev/null 2>&1 || exit 1"]
 
-USER netcat
+USER 1000:1000
 
 CMD ["/bin/sh", "-c", "sleep infinity"]
