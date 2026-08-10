@@ -14,10 +14,20 @@ updates:
     ignore:
       - dependency-name: "golang.org/x/*"
         update-types: ["version-update:semver-patch"]
+    groups:
+      go-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
 
-  # GitHub Actions workflow dependencies
+  # GitHub Actions workflow dependencies, plus local composite actions
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directories:
+      - "/"
+      - "/.github/actions/*"
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 2
@@ -26,3 +36,11 @@ updates:
     labels:
       - "github-actions"
       - "dependencies"
+    groups:
+      actions-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
