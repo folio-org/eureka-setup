@@ -61,7 +61,7 @@ func getConfigGatewayURL(actionName string) (gatewayURL string, err error) {
 
 func getDefaultGatewayURL(actionName string) (gatewayURL string, err error) {
 	if err = helpers.IsHostnameReachable(actionName, constant.DockerHostname); err != nil {
-		slog.Warn(actionName, "text", "Retrieving default gateway URL was unsuccessful", "error", err)
+		slog.Debug(actionName, "text", "Retrieving default gateway URL was unsuccessful", "error", err)
 		return "", nil
 	}
 
