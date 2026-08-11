@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"sync"
 	"testing"
 
@@ -2486,6 +2487,40 @@ func TestUndeploySystem_ExecError(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Equal(t, expectedError, err)
+}
+
+func TestUndeploySystem_VolumeRemoval(t *testing.T) {
+	testCases := []struct {
+		name          string
+		keepVolumes   bool
+		expectVolumes bool
+	}{
+		{name: "removes volumes by default", keepVolumes: false, expectVolumes: true},
+		{name: "keeps volumes with keepVolumes flag", keepVolumes: true, expectVolumes: false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Arrange
+			run, _, _, _, _, _ := newTestRun(action.UndeploySystem)
+			run.Config.Action.Param.KeepVolumes = tc.keepVolumes
+			mockExecSvc := &MockExecSvc{}
+			run.Config.ExecSvc = mockExecSvc
+
+			mockExecSvc.On("Exec", mock.MatchedBy(func(cmd *exec.Cmd) bool {
+				return slices.Contains(cmd.Args, "down") &&
+					slices.Contains(cmd.Args, "--remove-orphans") &&
+					slices.Contains(cmd.Args, "--volumes") == tc.expectVolumes
+			})).Return(nil)
+
+			// Act
+			err := run.UndeploySystem()
+
+			// Assert
+			assert.NoError(t, err)
+			mockExecSvc.AssertExpectations(t)
+		})
+	}
 }
 
 // ==================== UndeployModules Tests ====================
