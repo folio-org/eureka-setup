@@ -14,13 +14,13 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Validate misc/folio-netcat/Dockerfile
-        uses: hadolint/hadolint-action@v3.3.0
+        uses: hadolint/hadolint-action@v3.4.0
         with:
           dockerfile: ./eureka-cli/misc/folio-netcat/Dockerfile
           ignore: DL3018
 
       - name: Validate misc/folio-vault/Dockerfile
-        uses: hadolint/hadolint-action@v3.3.0
+        uses: hadolint/hadolint-action@v3.4.0
         with:
           dockerfile: ./eureka-cli/misc/folio-vault/Dockerfile
           ignore: DL3018
