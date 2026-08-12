@@ -210,7 +210,8 @@ Available flags:
 | `--skipModuleDiscovery`   |       | Skip module discovery update                              | upgradeModule                          |
 | `--skipModuleImage`       |       | Skip building module Docker image                         | upgradeModule                          |
 | `--skipRegistry`          |       | Skip retrieving latest registry module versions           | interceptModule, deployApplication,    |
-|                           |       |                                                           | deployManagement, deployModules        |
+|                           |       |                                                           | deployManagement, deployModules,       |
+|                           |       |                                                           | upgradeModule                          |
 | `--skipTenantEntitlement` |       | Skip tenant entitlement operations                        | upgradeModule                          |
 | `--skipUi`                |       | Skip UI build and deployment                              | deployApplication                      |
 | `--tenant`                | `-t`  | Tenant name                                               | getKeycloakAccessToken, getEdgeApiKey, |
