@@ -40,10 +40,16 @@ var undeploySystemCmd = &cobra.Command{
 
 func (run *Run) UndeploySystem() error {
 	slog.Info(run.Config.Action.Name, "text", "UNDEPLOYING SYSTEM CONTAINERS")
-	preparedCommand := exec.Command("docker", "compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "down", "--volumes", "--remove-orphans")
-	return run.Config.ExecSvc.Exec(preparedCommand)
+	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "down"}
+	if !run.Config.Action.Param.KeepVolumes {
+		subCommand = append(subCommand, "--volumes")
+	}
+	subCommand = append(subCommand, "--remove-orphans")
+
+	return run.Config.ExecSvc.Exec(exec.Command("docker", subCommand...))
 }
 
 func init() {
 	rootCmd.AddCommand(undeploySystemCmd)
+	undeploySystemCmd.PersistentFlags().BoolVarP(&params.KeepVolumes, action.KeepVolumes.Long, action.KeepVolumes.Short, false, action.KeepVolumes.Description)
 }

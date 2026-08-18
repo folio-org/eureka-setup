@@ -15,6 +15,7 @@ type Param struct {
 	GatewayHostname       string
 	GatewayURL            string
 	ID                    string
+	KeepVolumes           bool
 	Length                int
 	ModuleName            string
 	ModulePath            string
@@ -76,6 +77,7 @@ var (
 	GatewayHostname       = Flag{"gatewayHostname", "", "Gateway hostname"}
 	GatewayURL            = Flag{"gatewayURL", "", "Gateway URL"}
 	ID                    = Flag{"id", "i", "Module id, e.g. mod-orders:13.1.0-SNAPSHOT.1021"}
+	KeepVolumes           = Flag{"keepVolumes", "k", "Preserve system data volumes during undeployment"}
 	Length                = Flag{"length", "l", "Salt length"}
 	ModuleName            = Flag{"moduleName", "n", "Module name, e.g. mod-orders"}
 	ModulePath            = Flag{"modulePath", "", "Module path, e.g. the path of your module in IntelliJ"}

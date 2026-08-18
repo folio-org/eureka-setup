@@ -14,6 +14,7 @@
     - [(Optional) Enable autocompletion](#optional-enable-autocompletion)
     - [Deploy the _combined_ application](#deploy-the-combined-application)
     - [Undeploy the _combined_ application](#undeploy-the-combined-application)
+    - [Preserve data volumes across redeployments](#preserve-data-volumes-across-redeployments)
     - [Deploy the _combined_ application from AWS ECR](#deploy-the-combined-application-from-aws-ecr)
     - [Deploy the _ecs_ application](#deploy-the-ecs-application)
     - [Undeploy the _ecs_ application](#undeploy-the-ecs-application)
@@ -179,6 +180,9 @@ Available flags:
 | `--gatewayURL`            |       | Gateway URL                                               | purgeTenants                           |
 | `--id`                    | `-i`  | Module ID (e.g. mod-orders:13.1.0-SNAPSHOT.1021)          | listModuleVersions                     |
 | `--ids`                   |       | Tenant ids                                                | purgeTenants                           |
+| `--keepVolumes`           | `-k`  | Preserve system data volumes during undeployment          | deployApplication,                     |
+|                           |       |                                                           | undeployApplication,                   |
+|                           |       |                                                           | undeploySystem                         |
 | `--length`                | `-l`  | Salt length for edge API key                              | getEdgeApiKey                          |
 | `--linkedData`            |       | Include Linked Data module in UI bundle                   | buildAndPushUi, deployUi, buildUi      |
 | `--moduleName`            | `-n`  | Module name (e.g. mod-orders)                             | interceptModule, listModules,          |
@@ -206,7 +210,8 @@ Available flags:
 | `--skipModuleDiscovery`   |       | Skip module discovery update                              | upgradeModule                          |
 | `--skipModuleImage`       |       | Skip building module Docker image                         | upgradeModule                          |
 | `--skipRegistry`          |       | Skip retrieving latest registry module versions           | interceptModule, deployApplication,    |
-|                           |       |                                                           | deployManagement, deployModules        |
+|                           |       |                                                           | deployManagement, deployModules,       |
+|                           |       |                                                           | upgradeModule                          |
 | `--skipTenantEntitlement` |       | Skip tenant entitlement operations                        | upgradeModule                          |
 | `--skipUi`                |       | Skip UI build and deployment                              | deployApplication                      |
 | `--tenant`                | `-t`  | Tenant name                                               | getKeycloakAccessToken, getEdgeApiKey, |
@@ -275,6 +280,30 @@ eureka-cli buildSystem
 ```bash
 eureka-cli undeployApplication
 ```
+
+> This removes all containers and deletes the system data volumes (PostgreSQL, Vault, Kafka, MinIO, FTP, OpenSearch plugins), so the next deployment starts from scratch and re-runs tenant initialization. To keep the data volumes, add the `--keepVolumes` (`-k`) flag; see [Preserve data volumes across redeployments](#preserve-data-volumes-across-redeployments).
+
+### Preserve data volumes across redeployments
+
+- To keep the system data volumes during teardown for a faster redeployment, add the `--keepVolumes` (`-k`) flag
+
+```bash
+eureka-cli undeployApplication -k
+```
+
+> All containers are removed, but tenants, entitlements, users, roles and other data survive in the preserved volumes. The next `deployApplication` detects the existing state and skips tenant initialization, application creation and entitlement setup, which makes it considerably faster than a cold deployment.
+
+- To restart the whole environment in one command while preserving data, combine `--cleanup` with `-k`
+
+```bash
+eureka-cli deployApplication --cleanup -k
+```
+
+- Scope and caveats:
+  - The flag only has an effect where the system teardown runs: standalone profiles, `undeploySystem`, and `deployApplication --cleanup`. Undeploying a child application (e.g. `-p erm`) never removes the system data volumes, so `-k` is accepted but changes nothing there.
+  - Anonymous container volumes are left behind as orphans when `-k` is used; run `docker volume prune` occasionally to clean them up.
+  - Retained volumes are expected to match the redeployed application version. Retaining volumes across an incompatible version change (e.g. a schema migration) can cause confusing errors on the next deployment; when in doubt, undeploy without `-k` and start clean.
+  - Note that a redeploy re-resolves module versions from the registry, so newer snapshot versions published since the teardown are picked up automatically (already-present images are never re-pulled, but new version tags are). To redeploy exactly the module set that created the retained data, pass `--skipRegistry`.
 
 ### Deploy the _combined_ application from AWS ECR
 

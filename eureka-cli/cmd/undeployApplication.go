@@ -153,6 +153,7 @@ func (run *Run) UndeployChildApplication() error {
 func init() {
 	rootCmd.AddCommand(undeployApplicationCmd)
 	undeployApplicationCmd.PersistentFlags().StringVarP(&params.ApplicationName, action.ApplicationName.Long, action.ApplicationName.Short, "", action.ApplicationName.Description)
+	undeployApplicationCmd.PersistentFlags().BoolVarP(&params.KeepVolumes, action.KeepVolumes.Long, action.KeepVolumes.Short, false, action.KeepVolumes.Description)
 	undeployApplicationCmd.PersistentFlags().BoolVarP(&params.PurgeSchemas, action.PurgeSchemas.Long, action.PurgeSchemas.Short, false, action.PurgeSchemas.Description)
 	undeployApplicationCmd.PersistentFlags().BoolVarP(&params.SkipCapabilitySets, action.SkipCapabilitySets.Long, action.SkipCapabilitySets.Short, false, action.SkipCapabilitySets.Description)
 }
