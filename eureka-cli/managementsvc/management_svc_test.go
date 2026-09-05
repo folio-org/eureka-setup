@@ -244,7 +244,7 @@ func TestGetApplications_HeaderCreationError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, models.ApplicationsResponse{}, result)
 	assert.Contains(t, err.Error(), "access token")
-	mockHTTP.AssertNotCalled(t, "GetReturnStruct")
+	mockHTTP.AssertNotCalled(t, "GetRetryReturnStruct")
 }
 
 func TestRemoveApplication_HeaderCreationError(t *testing.T) {
@@ -279,7 +279,7 @@ func TestGetModuleDiscovery_HeaderCreationError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, models.ModuleDiscoveryResponse{}, result)
 	assert.Contains(t, err.Error(), "access token")
-	mockHTTP.AssertNotCalled(t, "GetReturnStruct")
+	mockHTTP.AssertNotCalled(t, "GetRetryReturnStruct")
 }
 
 func TestUpdateModuleDiscovery_HeaderCreationError(t *testing.T) {
@@ -410,7 +410,7 @@ func TestGetApplications_Success(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/applications")
 		}),
@@ -443,7 +443,7 @@ func TestGetApplications_HTTPError(t *testing.T) {
 
 	expectedError := errors.New("HTTP request failed")
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.Anything,
 		mock.Anything,
 		mock.Anything).
@@ -467,7 +467,7 @@ func TestGetApplications_NilResponse(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.Anything,
 		mock.Anything,
 		mock.Anything).
@@ -542,7 +542,7 @@ func TestGetModuleDiscovery_Success(t *testing.T) {
 
 	moduleName := "mod-test"
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			// The URL contains query-escaped characters: %28 = (, %29 = )
 			return strings.Contains(url, "/modules/discovery") &&
@@ -582,7 +582,7 @@ func TestGetModuleDiscovery_HTTPError(t *testing.T) {
 	moduleName := "mod-test"
 	expectedError := errors.New("HTTP request failed")
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.Anything,
 		mock.Anything,
 		mock.Anything).
@@ -897,7 +897,7 @@ func TestCreateTenantEntitlement_Success(t *testing.T) {
 
 	responseBody := `{"tenants": [{"id": "tenant-123", "name": "test-tenant"}], "totalRecords": 1}`
 	mockHTTP.On("GetRetryReturnStruct",
-		mock.Anything,
+		mock.MatchedBy(func(url string) bool { return strings.Contains(url, "/tenants") }),
 		mock.Anything,
 		mock.Anything).
 		Run(func(args mock.Arguments) {
@@ -906,7 +906,7 @@ func TestCreateTenantEntitlement_Success(t *testing.T) {
 		}).
 		Return(nil)
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/entitlements?tenant=")
 		}),
@@ -1043,7 +1043,7 @@ func TestGetModuleDiscovery_NilResponse(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.Anything,
 		mock.Anything,
 		mock.Anything).
@@ -1247,7 +1247,7 @@ func TestGetApplications_DecodeError(t *testing.T) {
 	// Simulate error from GetReturnStruct (e.g., decode error)
 	expectedError := errors.New("decode error: invalid character")
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.Anything,
 		mock.Anything,
 		mock.Anything).
@@ -1274,7 +1274,7 @@ func TestGetModuleDiscovery_DecodeError(t *testing.T) {
 	// Simulate error from GetReturnStruct (e.g., decode error)
 	expectedError := errors.New("decode error: invalid character")
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.Anything,
 		mock.Anything,
 		mock.Anything).
@@ -1345,7 +1345,7 @@ func TestCreateTenantEntitlement_PostError(t *testing.T) {
 
 	responseBody := `{"tenants": [{"id": "tenant-123", "name": "test-tenant"}], "totalRecords": 1}`
 	mockHTTP.On("GetRetryReturnStruct",
-		mock.Anything,
+		mock.MatchedBy(func(url string) bool { return strings.Contains(url, "/tenants") }),
 		mock.Anything,
 		mock.Anything).
 		Run(func(args mock.Arguments) {
@@ -1354,7 +1354,7 @@ func TestCreateTenantEntitlement_PostError(t *testing.T) {
 		}).
 		Return(nil)
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/entitlements?tenant=")
 		}),
@@ -3355,7 +3355,7 @@ func TestGetTenantEntitlements_Success(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return assert.Contains(t, url, "/entitlements") &&
 				assert.Contains(t, url, "tenant=test-tenant") &&
@@ -3402,7 +3402,7 @@ func TestGetTenantEntitlements_WithoutModules(t *testing.T) {
 		},
 	}
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return assert.Contains(t, url, "/entitlements") &&
 				assert.Contains(t, url, "tenant=test-tenant") &&
@@ -3451,7 +3451,7 @@ func TestGetTenantEntitlements_HTTPError(t *testing.T) {
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
 	expectedError := errors.New("network error")
-	mockHTTP.On("GetReturnStruct", mock.Anything, mock.Anything, mock.Anything).
+	mockHTTP.On("GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything).
 		Return(expectedError)
 
 	// Act
@@ -3477,7 +3477,7 @@ func TestGetTenantEntitlements_EmptyResponse(t *testing.T) {
 		Entitlements: []models.TenantEntitlementDTO{},
 	}
 
-	mockHTTP.On("GetReturnStruct", mock.Anything, mock.Anything, mock.Anything).
+	mockHTTP.On("GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {
 			target := args.Get(2).(*models.TenantEntitlementResponse)
 			*target = expectedResponse
@@ -3518,7 +3518,7 @@ func TestGetLatestApplication_Success(t *testing.T) {
 		ApplicationDescriptors: []map[string]any{expectedApp},
 	}
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return assert.Contains(t, url, "/applications") &&
 				assert.Contains(t, url, "appName=test-app") &&
@@ -3571,7 +3571,7 @@ func TestGetLatestApplication_HTTPError(t *testing.T) {
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
 	expectedError := errors.New("network error")
-	mockHTTP.On("GetReturnStruct", mock.Anything, mock.Anything, mock.Anything).
+	mockHTTP.On("GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything).
 		Return(expectedError)
 
 	// Act
@@ -3603,7 +3603,7 @@ func TestGetLatestApplication_MultipleVersions(t *testing.T) {
 		ApplicationDescriptors: []map[string]any{latestApp},
 	}
 
-	mockHTTP.On("GetReturnStruct", mock.Anything, mock.Anything, mock.Anything).
+	mockHTTP.On("GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {
 			target := args.Get(2).(*models.ApplicationsResponse)
 			*target = expectedResponse
@@ -3854,7 +3854,7 @@ func TestRemoveApplications_Success(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.MatchedBy(func(url string) bool { return strings.Contains(url, "/applications") }),
 		mock.Anything,
 		mock.Anything).
@@ -3898,7 +3898,7 @@ func TestRemoveApplications_GetApplicationsError(t *testing.T) {
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
 	expectedError := errors.New("failed to get applications")
-	mockHTTP.On("GetReturnStruct", mock.Anything, mock.Anything, mock.Anything).
+	mockHTTP.On("GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything).
 		Return(expectedError)
 
 	// Act
@@ -3918,7 +3918,7 @@ func TestRemoveApplications_HeaderError(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	mockHTTP.On("GetReturnStruct", mock.Anything, mock.Anything, mock.Anything).
+	mockHTTP.On("GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {
 			target := args.Get(2).(*models.ApplicationsResponse)
 			target.ApplicationDescriptors = []map[string]any{{"id": "app-1"}}
@@ -3943,7 +3943,7 @@ func TestRemoveApplications_DeleteError(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	mockHTTP.On("GetReturnStruct", mock.Anything, mock.Anything, mock.Anything).
+	mockHTTP.On("GetRetryReturnStruct", mock.Anything, mock.Anything, mock.Anything).
 		Run(func(args mock.Arguments) {
 			target := args.Get(2).(*models.ApplicationsResponse)
 			target.ApplicationDescriptors = []map[string]any{{"id": "app-1", "name": "test-app"}}
@@ -4157,7 +4157,7 @@ func TestCreateTenantEntitlement_AlreadyEntitled_Skipped(t *testing.T) {
 
 	responseBody := `{"tenants": [{"id": "tenant-123", "name": "test-tenant"}], "totalRecords": 1}`
 	mockHTTP.On("GetRetryReturnStruct",
-		mock.Anything,
+		mock.MatchedBy(func(url string) bool { return strings.Contains(url, "/tenants") }),
 		mock.Anything,
 		mock.Anything).
 		Run(func(args mock.Arguments) {
@@ -4166,7 +4166,7 @@ func TestCreateTenantEntitlement_AlreadyEntitled_Skipped(t *testing.T) {
 		}).
 		Return(nil)
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return strings.Contains(url, "/entitlements?tenant=")
 		}),

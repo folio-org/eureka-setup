@@ -35,7 +35,7 @@ func (us *UserSvc) Get(tenantName string, username string) (*models.User, error)
 	}
 
 	var decodedResponse models.UserResponse
-	if err := us.HTTPClient.GetReturnStruct(requestURL, headers, &decodedResponse); err != nil {
+	if err := us.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return nil, err
 	}
 	if len(decodedResponse.Users) == 0 {

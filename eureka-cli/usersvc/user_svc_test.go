@@ -48,7 +48,7 @@ func TestGet_Success(t *testing.T) {
 		TotalRecords: 1,
 	}
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.MatchedBy(func(url string) bool {
 			return assert.Contains(t, url, "username=="+username) &&
 				assert.Contains(t, url, "limit=1")
@@ -93,7 +93,7 @@ func TestGet_UserNotFound(t *testing.T) {
 		TotalRecords: 0,
 	}
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.Anything,
 		mock.Anything,
 		mock.Anything).
@@ -133,7 +133,7 @@ func TestGet_HeaderCreationError(t *testing.T) {
 	assert.Nil(t, user)
 	assert.Contains(t, err.Error(), "access token")
 	// HTTP client should not be called since header creation failed
-	mockHTTP.AssertNotCalled(t, "GetReturnStruct")
+	mockHTTP.AssertNotCalled(t, "GetRetryReturnStruct")
 }
 
 func TestGet_HTTPError(t *testing.T) {
@@ -147,7 +147,7 @@ func TestGet_HTTPError(t *testing.T) {
 	username := "testuser"
 	expectedError := errors.New("HTTP request failed")
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.Anything,
 		mock.Anything,
 		mock.Anything).
@@ -196,7 +196,7 @@ func TestGet_WithPersonalInfo(t *testing.T) {
 		TotalRecords: 1,
 	}
 
-	mockHTTP.On("GetReturnStruct",
+	mockHTTP.On("GetRetryReturnStruct",
 		mock.Anything,
 		mock.Anything,
 		mock.Anything).
