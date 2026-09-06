@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync/atomic"
 	"testing"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
@@ -29,28 +30,7 @@ func createTestLogger() *slog.Logger {
 
 // GET Tests
 
-func TestGetReturnStruct_Success(t *testing.T) {
-	// Arrange
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(TestResponse{ID: 42, Message: "test"})
-	}))
-	defer server.Close()
-
-	client := httpclient.New(createTestAction(), createTestLogger())
-	var result TestResponse
-
-	// Act
-	err := client.GetReturnStruct(server.URL, nil, &result)
-
-	// Assert
-	assert.NoError(t, err)
-	assert.Equal(t, 42, result.ID)
-	assert.Equal(t, "test", result.Message)
-}
-
-func TestGetReturnStruct_EmptyResponse(t *testing.T) {
+func TestGetRetryReturnStruct_EmptyResponse(t *testing.T) {
 	// Arrange
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", "0")
@@ -62,13 +42,13 @@ func TestGetReturnStruct_EmptyResponse(t *testing.T) {
 	var result TestResponse
 
 	// Act
-	err := client.GetReturnStruct(server.URL, nil, &result)
+	err := client.GetRetryReturnStruct(server.URL, nil, &result)
 
 	// Assert
 	assert.NoError(t, err)
 }
 
-func TestGetReturnStruct_InvalidJSON(t *testing.T) {
+func TestGetRetryReturnStruct_InvalidJSON(t *testing.T) {
 	// Arrange
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -80,7 +60,7 @@ func TestGetReturnStruct_InvalidJSON(t *testing.T) {
 	var result TestResponse
 
 	// Act
-	err := client.GetReturnStruct(server.URL, nil, &result)
+	err := client.GetRetryReturnStruct(server.URL, nil, &result)
 
 	// Assert
 	assert.Error(t, err)
@@ -591,11 +571,17 @@ func TestNew_CreatesClient(t *testing.T) {
 
 // Edge Cases and Error Handling
 
-func TestGetReturnStruct_ServerError(t *testing.T) {
+func TestGetRetryReturnStruct_RecoversFromServerError(t *testing.T) {
 	// Arrange
+	var attempts int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(`{"error": "internal error"}`))
+		if atomic.AddInt32(&attempts, 1) == 1 {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"error": "internal error"}`))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(TestResponse{ID: 7, Message: "recovered"})
 	}))
 	defer server.Close()
 
@@ -603,10 +589,12 @@ func TestGetReturnStruct_ServerError(t *testing.T) {
 	var result TestResponse
 
 	// Act
-	err := client.GetReturnStruct(server.URL, nil, &result)
+	err := client.GetRetryReturnStruct(server.URL, nil, &result)
 
 	// Assert
-	assert.Error(t, err)
+	assert.NoError(t, err)
+	assert.Equal(t, int32(2), atomic.LoadInt32(&attempts))
+	assert.Equal(t, 7, result.ID)
 }
 
 func TestPostReturnNoContent_ServerError(t *testing.T) {
@@ -657,7 +645,7 @@ func TestPutReturnNoContent_ServerError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestGetReturnStruct_EOFHandling(t *testing.T) {
+func TestGetRetryReturnStruct_EOFHandling(t *testing.T) {
 	// Arrange
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -669,7 +657,7 @@ func TestGetReturnStruct_EOFHandling(t *testing.T) {
 	var result TestResponse
 
 	// Act
-	err := client.GetReturnStruct(server.URL, nil, &result)
+	err := client.GetRetryReturnStruct(server.URL, nil, &result)
 
 	// Assert
 	assert.NoError(t, err) // EOF is handled gracefully

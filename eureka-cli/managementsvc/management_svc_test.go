@@ -1244,7 +1244,7 @@ func TestGetApplications_DecodeError(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	// Simulate error from GetReturnStruct (e.g., decode error)
+	// Simulate error from GetRetryReturnStruct (e.g., decode error)
 	expectedError := errors.New("decode error: invalid character")
 
 	mockHTTP.On("GetRetryReturnStruct",
@@ -1271,7 +1271,7 @@ func TestGetModuleDiscovery_DecodeError(t *testing.T) {
 	mockTenantSvc := &MockTenantSvc{}
 	svc := managementsvc.New(action, mockHTTP, mockTenantSvc)
 
-	// Simulate error from GetReturnStruct (e.g., decode error)
+	// Simulate error from GetRetryReturnStruct (e.g., decode error)
 	expectedError := errors.New("decode error: invalid character")
 
 	mockHTTP.On("GetRetryReturnStruct",
