@@ -571,30 +571,51 @@ func TestNew_CreatesClient(t *testing.T) {
 
 // Edge Cases and Error Handling
 
-func TestGetRetryReturnStruct_RecoversFromServerError(t *testing.T) {
-	// Arrange
-	var attempts int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if atomic.AddInt32(&attempts, 1) == 1 {
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte(`{"error": "internal error"}`))
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(TestResponse{ID: 7, Message: "recovered"})
-	}))
-	defer server.Close()
+func TestGetRetryReturnStruct_RetryPolicy(t *testing.T) {
+	tests := []struct {
+		name             string
+		firstStatus      int
+		expectedAttempts int32
+		expectError      bool
+	}{
+		{"TooManyRequests_Retried", http.StatusTooManyRequests, 2, false},
+		{"InternalServerError_Retried", http.StatusInternalServerError, 2, false},
+		{"ServiceUnavailable_Retried", http.StatusServiceUnavailable, 2, false},
+		{"NotFound_NotRetried", http.StatusNotFound, 1, true},
+	}
 
-	client := httpclient.New(createTestAction(), createTestLogger())
-	var result TestResponse
+	for _, tt := range tests {
+		t.Run("TestGetRetryReturnStruct_"+tt.name, func(t *testing.T) {
+			t.Parallel()
+			// Arrange
+			var attempts int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if atomic.AddInt32(&attempts, 1) == 1 {
+					w.WriteHeader(tt.firstStatus)
+					_, _ = w.Write([]byte(`{"error": "first attempt"}`))
+					return
+				}
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(TestResponse{ID: 7, Message: "recovered"})
+			}))
+			defer server.Close()
 
-	// Act
-	err := client.GetRetryReturnStruct(server.URL, nil, &result)
+			client := httpclient.New(createTestAction(), createTestLogger())
+			var result TestResponse
 
-	// Assert
-	assert.NoError(t, err)
-	assert.Equal(t, int32(2), atomic.LoadInt32(&attempts))
-	assert.Equal(t, 7, result.ID)
+			// Act
+			err := client.GetRetryReturnStruct(server.URL, nil, &result)
+
+			// Assert
+			assert.Equal(t, tt.expectedAttempts, atomic.LoadInt32(&attempts))
+			if tt.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, 7, result.ID)
+		})
+	}
 }
 
 func TestPostReturnNoContent_ServerError(t *testing.T) {

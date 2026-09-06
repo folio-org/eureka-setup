@@ -1,7 +1,6 @@
 package httpclient
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
 
@@ -36,20 +35,6 @@ func createRetryClient(logger *slog.Logger, customClient *http.Client) *retryabl
 	retryClient.RetryMax = constant.RetryHTTPClientRetryMax
 	retryClient.RetryWaitMin = constant.RetryHTTPClientRetryWaitMin
 	retryClient.RetryWaitMax = constant.RetryHTTPClientRetryWaitMax
-	retryClient.CheckRetry = func(ctx context.Context, httpResponse *http.Response, err error) (bool, error) {
-		// Use default retry policy for other errors
-		shouldRetry, checkErr := retryablehttp.DefaultRetryPolicy(ctx, httpResponse, err)
-		if shouldRetry {
-			return true, checkErr
-		}
-		// Also retry on 429 Too Many Requests and 503 Service Unavailable
-		if httpResponse != nil && (httpResponse.StatusCode == http.StatusTooManyRequests ||
-			httpResponse.StatusCode == http.StatusServiceUnavailable) {
-			return true, nil
-		}
-
-		return false, checkErr
-	}
 	retryClient.Logger = &LoggerAdapter{logger}
 
 	return retryClient
