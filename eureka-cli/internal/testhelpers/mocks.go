@@ -34,11 +34,6 @@ func (m *MockHTTPClient) GetReturnRawBytes(url string, headers map[string]string
 	return args.Get(0).([]byte), args.Error(1)
 }
 
-func (m *MockHTTPClient) GetReturnStruct(url string, headers map[string]string, target any) error {
-	args := m.Called(url, headers, target)
-	return args.Error(0)
-}
-
 func (m *MockHTTPClient) GetRetryReturnStruct(url string, headers map[string]string, target any) error {
 	args := m.Called(url, headers, target)
 	return args.Error(0)

@@ -8,17 +8,12 @@ import (
 
 // HTTPClientGetManager defines the interface for HTTP GET operations
 type HTTPClientGetManager interface {
-	GetReturnStruct(url string, headers map[string]string, target any) error
 	GetRetryReturnStruct(url string, headers map[string]string, target any) error
 	GetReturnRawBytes(url string, headers map[string]string) ([]byte, error)
 }
 
-func (hc *HTTPClient) GetReturnStruct(url string, headers map[string]string, target any) error {
-	return hc.getAndDecode(url, headers, false, target)
-}
-
 func (hc *HTTPClient) GetRetryReturnStruct(url string, headers map[string]string, target any) error {
-	return hc.getAndDecode(url, headers, true, target)
+	return hc.getAndDecode(url, headers, target)
 }
 
 func (hc *HTTPClient) GetReturnRawBytes(url string, headers map[string]string) ([]byte, error) {
@@ -31,8 +26,8 @@ func (hc *HTTPClient) GetReturnRawBytes(url string, headers map[string]string) (
 	return io.ReadAll(httpResponse.Body)
 }
 
-func (hc *HTTPClient) getAndDecode(url string, headers map[string]string, useRetry bool, target any) error {
-	httpResponse, err := hc.doRequest(http.MethodGet, url, nil, headers, useRetry)
+func (hc *HTTPClient) getAndDecode(url string, headers map[string]string, target any) error {
+	httpResponse, err := hc.doRequest(http.MethodGet, url, nil, headers, true)
 	if err != nil {
 		return err
 	}

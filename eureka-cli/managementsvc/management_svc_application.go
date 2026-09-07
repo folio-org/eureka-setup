@@ -60,7 +60,7 @@ func (ms *ManagementSvc) GetApplications() (models.ApplicationsResponse, error) 
 	}
 
 	var decodedResponse models.ApplicationsResponse
-	if err := ms.HTTPClient.GetReturnStruct(requestURL, headers, &decodedResponse); err != nil {
+	if err := ms.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return models.ApplicationsResponse{}, err
 	}
 
@@ -89,7 +89,7 @@ func (ms *ManagementSvc) GetLatestApplicationByName(appName string) (map[string]
 	}
 
 	var decodedResponse models.ApplicationsResponse
-	if err := ms.HTTPClient.GetReturnStruct(requestURL, headers, &decodedResponse); err != nil {
+	if err := ms.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return nil, err
 	}
 	if len(decodedResponse.ApplicationDescriptors) == 0 {
@@ -378,7 +378,7 @@ func (ms *ManagementSvc) GetModuleDiscovery(name string) (models.ModuleDiscovery
 	}
 
 	var decodedResponse models.ModuleDiscoveryResponse
-	if err := ms.HTTPClient.GetReturnStruct(requestURL, headers, &decodedResponse); err != nil {
+	if err := ms.HTTPClient.GetRetryReturnStruct(requestURL, headers, &decodedResponse); err != nil {
 		return models.ModuleDiscoveryResponse{}, err
 	}
 

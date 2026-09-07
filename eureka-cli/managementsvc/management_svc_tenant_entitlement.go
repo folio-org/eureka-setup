@@ -29,7 +29,7 @@ func (ms *ManagementSvc) GetTenantEntitlements(tenantName string, includeModules
 	}
 
 	var response models.TenantEntitlementResponse
-	if err := ms.HTTPClient.GetReturnStruct(requestURL, headers, &response); err != nil {
+	if err := ms.HTTPClient.GetRetryReturnStruct(requestURL, headers, &response); err != nil {
 		return models.TenantEntitlementResponse{}, err
 	}
 
