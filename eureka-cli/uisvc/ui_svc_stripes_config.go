@@ -3,17 +3,24 @@ package uisvc
 import (
 	"fmt"
 	"log/slog"
+	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	apperrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/go-git/go-git/v5/plumbing"
 )
+
+// stripesPlaceholderPattern matches a stripes.config.js placeholder such as ${kongUrl} or ${ kongUrl }.
+var stripesPlaceholderPattern = regexp.MustCompile(`\$\{([^}]*)\}`)
 
 // UIStripesConfigProcessor defines the interface for UI Stripes configuration operations
 type UIStripesConfigProcessor interface {
@@ -43,29 +50,44 @@ func (us *UISvc) PrepareStripesConfigJS(tenantName string, configPath string) er
 	clientIdSuffix := action.GetConfigEnv("KC_LOGIN_CLIENT_SUFFIX", us.Action.ConfigGlobalEnv)
 	tenantOptions := fmt.Sprintf(`{%[1]s: {name: "%[1]s", displayName: "%[1]s", clientId: "%[1]s%s"}}`, tenantName, clientIdSuffix)
 	replaceMap := map[string]string{
-		"${kongUrl}":           constant.KongExternalHTTP,
-		"${tenantUrl}":         us.Action.Param.PlatformLspURL,
-		"${keycloakUrl}":       constant.KeycloakExternalHTTP,
-		"${hasAllPerms}":       `false`,
-		"${isSingleTenant}":    strconv.FormatBool(us.Action.Param.SingleTenant),
-		"${tenantOptions}":     tenantOptions,
-		"${enableEcsRequests}": strconv.FormatBool(us.Action.Param.EnableECSRequests),
-		"${aboutInstallDate}":  fmt.Sprintf("'%s'", time.Now().Format("January 02, 2006")),
-		"${aboutInstallMsg}":   fmt.Sprintf("'%s'", "Local build"),
+		"kongUrl":           constant.KongExternalHTTP,
+		"tenantUrl":         us.Action.Param.PlatformLspURL,
+		"keycloakUrl":       constant.KeycloakExternalHTTP,
+		"hasAllPerms":       `false`,
+		"isSingleTenant":    strconv.FormatBool(us.Action.Param.SingleTenant),
+		"tenantOptions":     tenantOptions,
+		"enableEcsRequests": strconv.FormatBool(us.Action.Param.EnableECSRequests),
+		"aboutInstallDate":  fmt.Sprintf("'%s'", time.Now().Format("January 02, 2006")),
+		"aboutInstallMsg":   "'Local build'",
 	}
 
-	var newReadFileStr = string(readFileBytes)
-	replaced := 0
-	for key, value := range replaceMap {
-		if !strings.Contains(newReadFileStr, key) {
-			slog.Info(us.Action.Name, "text", "Key not found in stripes.config.js", "key", key)
-			continue
+	replaced := make(map[string]bool)
+	unresolved := make(map[string]bool)
+	newReadFileStr := stripesPlaceholderPattern.ReplaceAllStringFunc(string(readFileBytes), func(placeholder string) string {
+		key := strings.TrimSpace(stripesPlaceholderPattern.FindStringSubmatch(placeholder)[1])
+		value, ok := replaceMap[key]
+		if !ok {
+			unresolved[placeholder] = true
+			return placeholder
 		}
-		newReadFileStr = strings.ReplaceAll(newReadFileStr, key, value)
-		replaced++
+		replaced[key] = true
+
+		return value
+	})
+	var missing []string
+	for _, key := range slices.Sorted(maps.Keys(replaceMap)) {
+		if !replaced[key] {
+			missing = append(missing, key)
+		}
 	}
-	if replaced == 0 {
+	if len(missing) > 0 {
+		slog.Info(us.Action.Name, "text", "Keys not found in stripes.config.js", "keys", missing)
+	}
+	if len(replaced) == 0 {
 		slog.Warn(us.Action.Name, "text", "stripes.config.js contains no substitution placeholders and is used as is, pass -u to restore a pristine checkout if this is unintended")
+	}
+	if len(unresolved) > 0 {
+		return apperrors.StripesConfigPlaceholdersUnresolved(slices.Sorted(maps.Keys(unresolved)))
 	}
 	fmt.Println()
 	fmt.Println("DUMPING stripes.config.js")

@@ -654,6 +654,22 @@ func TestParentApplicationNotReachable(t *testing.T) {
 	})
 }
 
+func TestStripesConfigPlaceholdersUnresolved(t *testing.T) {
+	t.Run("TestStripesConfigPlaceholdersUnresolved_NamesPlaceholders", func(t *testing.T) {
+		// Arrange
+		placeholders := []string{"${ newThing }", "${other}"}
+
+		// Act
+		result := apperrors.StripesConfigPlaceholdersUnresolved(placeholders)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "stripes.config.js still contains placeholder(s)")
+		assert.Contains(t, result.Error(), "${ newThing }, ${other}")
+		assert.True(t, errors.Is(result, apperrors.ErrDeploymentFailed))
+	})
+}
+
 // ==================== Module Errors Tests ====================
 
 func TestModulesNotDeployed(t *testing.T) {
