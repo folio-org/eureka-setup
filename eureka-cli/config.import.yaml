@@ -227,6 +227,8 @@ backend-modules:
   mod-configuration:
   mod-users:
     disable-system-user: true
+    sidecar-environment:
+      HANDLER_EGRESS_IGNORE_SYSTEM_USER_TOKEN_ERROR: "true" # no system user - see ECLI-45
   mod-roles:
   mod-password-validator:
   mod-settings:
