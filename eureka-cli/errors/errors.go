@@ -248,6 +248,10 @@ func ParentApplicationNotReachable(required []string, err error) error {
 	return fmt.Errorf("%w: parent application services unreachable (required: %s) - deploy parent application first: %w", ErrDeploymentFailed, strings.Join(required, ", "), err)
 }
 
+func StripesConfigPlaceholdersUnresolved(placeholders []string) error {
+	return fmt.Errorf("%w: stripes.config.js still contains placeholder(s) the CLI does not substitute, the UI build would fail on them: %s", ErrDeploymentFailed, strings.Join(placeholders, ", "))
+}
+
 func ModuleAlreadyInBaseApplication(moduleName, baseApplicationName string) error {
 	return fmt.Errorf("%w: %s is already provided by application %s; use upgradeModule to change its version", ErrInvalidInput, moduleName, baseApplicationName)
 }
