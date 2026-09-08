@@ -130,7 +130,11 @@ func (ms *ModuleSvc) findRegistrySidecarImageVersion(modules []*models.ProxyModu
 
 func (ms *ModuleSvc) GetModuleImage(module *models.ProxyModule) string {
 	moduleVersion := *module.Metadata.Version
-	return fmt.Sprintf("%s/%s:%s", ms.RegistrySvc.GetNamespace(moduleVersion), module.Metadata.Name, moduleVersion)
+	namespace := ms.Action.ConfigNamespaceBackendModules
+	if namespace == "" {
+		namespace = ms.RegistrySvc.GetNamespace(moduleVersion)
+	}
+	return ms.GetLocalModuleImage(namespace, module.Metadata.Name, moduleVersion)
 }
 
 func (ms *ModuleSvc) GetLocalModuleImage(namespace, moduleName, moduleVersion string) string {

@@ -53,6 +53,14 @@ func (ms *ModuleSvc) GetModule(dockerClient *client.Client, moduleName string) (
 	return ms.GetDeployedModules(dockerClient, make(client.Filters).Add("name", fmt.Sprintf("^%s$", containerName)))
 }
 
+// getPullAuthorizationToken returns the ECR token, except for images in namespaces.backend-modules, which are never in ECR
+func (ms *ModuleSvc) getPullAuthorizationToken(imageName string) (string, error) {
+	if namespace := ms.Action.ConfigNamespaceBackendModules; namespace != "" && strings.HasPrefix(imageName, namespace+"/") {
+		return "", nil
+	}
+	return ms.RegistrySvc.GetAuthorizationToken()
+}
+
 func (ms *ModuleSvc) PullModule(dockerClient *client.Client, imageName string) error {
 	_, err := dockerClient.ImageInspect(context.Background(), imageName)
 	if err == nil {
@@ -65,7 +73,7 @@ func (ms *ModuleSvc) PullModule(dockerClient *client.Client, imageName string) e
 	ctx, cancel := context.WithTimeout(context.Background(), constant.ContextTimeoutDockerImagePull)
 	defer cancel()
 
-	authorizationToken, err := ms.RegistrySvc.GetAuthorizationToken()
+	authorizationToken, err := ms.getPullAuthorizationToken(imageName)
 	if err != nil {
 		return err
 	}
