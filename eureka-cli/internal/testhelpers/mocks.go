@@ -217,6 +217,11 @@ func (m *MockDockerClient) ForcePullImage(image string) (string, error) {
 	return args.String(0), args.Error(1)
 }
 
+func (m *MockDockerClient) GetRegistryAuth(imageName string) (string, error) {
+	args := m.Called(imageName)
+	return args.String(0), args.Error(1)
+}
+
 // MockTenantSvc is a mock implementation of tenantsvc.TenantProcessor
 type MockTenantSvc struct {
 	mock.Mock

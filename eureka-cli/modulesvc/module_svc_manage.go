@@ -77,6 +77,12 @@ func (ms *ModuleSvc) PullModule(dockerClient *client.Client, imageName string) e
 	if err != nil {
 		return err
 	}
+	if authorizationToken == "" {
+		authorizationToken, err = ms.DockerClient.GetRegistryAuth(imageName)
+		if err != nil {
+			return err
+		}
+	}
 
 	reader, err := dockerClient.ImagePull(ctx, imageName, client.ImagePullOptions{
 		RegistryAuth: authorizationToken,
