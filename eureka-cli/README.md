@@ -41,6 +41,7 @@
   - [Using local backend module images](#using-local-backend-module-images)
   - [Using local frontend module descriptors](#using-local-frontend-module-descriptors)
   - [Using a backend module namespace](#using-a-backend-module-namespace)
+  - [Using private registry credentials](#using-private-registry-credentials)
   - [Using the UI](#using-the-ui)
   - [Using Single Tenant UX](#using-single-tenant-ux)
   - [Using the environment](#using-the-environment)
@@ -803,8 +804,21 @@ namespaces:
 ```
 
 - Backend module images are then pulled as `{{namespace}}/{{module}}:{{version}}`, e.g. `docker.libsdev.k-int.com/knowledgeintegration/mod-ill:1.11.0-SNAPSHOT.278`
-- The key takes precedence over `AWS_ECR_FOLIO_REPO`: backend module images are pulled from the namespace without the ECR token, while the sidecar image still comes from ECR when it is configured; the UI image is not affected
+- The key takes precedence over `AWS_ECR_FOLIO_REPO`: backend module images are pulled from the namespace with the credentials stored by `docker login` (see [Using private registry credentials](#using-private-registry-credentials)) instead of the ECR token, while the sidecar image still comes from ECR when it is configured; the UI image is not affected
 - If it is omitted, images are pulled from `folioci` (snapshots) or `folioorg` (releases)
+
+## Using private registry credentials
+
+Image pulls use the credentials stored by `docker login` for the registry host of each image, read from `~/.docker/config.json` (or `$DOCKER_CONFIG/config.json`), including credentials kept in a `credsStore` or per-host `credHelpers` credential helper.
+
+```bash
+docker login docker.libsdev.k-int.com
+eureka-cli deployApplication
+```
+
+- No manual `docker pull` is needed for images hosted on a private registry
+- Images without stored credentials for their host are pulled anonymously, as before
+- When `AWS_ECR_FOLIO_REPO` is set, the ECR authorization token is used instead, except for backend module images in `namespaces.backend-modules`, which use the stored credentials
 
 ## Using the UI
 
