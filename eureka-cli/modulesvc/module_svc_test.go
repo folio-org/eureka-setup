@@ -387,27 +387,82 @@ func TestGetSidecarImage_InvalidVersionType(t *testing.T) {
 }
 
 func TestGetModuleImage(t *testing.T) {
-	// Arrange
-	action := testhelpers.NewMockAction()
-	mockRegistry := new(testhelpers.MockRegistrySvc)
-	mockRegistry.On("GetNamespace", "1.5.0").Return("ghcr.io/folio-org")
-
-	svc := New(action, nil, nil, mockRegistry, nil)
-
-	version := "1.5.0"
-	module := &models.ProxyModule{
-		Metadata: models.ProxyModuleMetadata{
-			Name:    "mod-users",
-			Version: &version,
-		},
+	tests := []struct {
+		name              string
+		backendNamespace  string
+		registryNamespace string
+		moduleName        string
+		version           string
+		expected          string
+	}{
+		{name: "registry namespace", registryNamespace: "ghcr.io/folio-org", moduleName: "mod-users", version: "1.5.0", expected: "ghcr.io/folio-org/mod-users:1.5.0"},
+		{name: "backend namespace takes precedence", backendNamespace: "docker.libsdev.k-int.com/knowledgeintegration", moduleName: "mod-ill", version: "1.11.0-SNAPSHOT.2789435861", expected: "docker.libsdev.k-int.com/knowledgeintegration/mod-ill:1.11.0-SNAPSHOT.2789435861"},
 	}
 
-	// Act
-	image := svc.GetModuleImage(module)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			action := testhelpers.NewMockAction()
+			action.ConfigNamespaceBackendModules = tt.backendNamespace
+			mockRegistry := new(testhelpers.MockRegistrySvc)
+			if tt.registryNamespace != "" {
+				mockRegistry.On("GetNamespace", tt.version).Return(tt.registryNamespace)
+			}
+			svc := New(action, nil, nil, mockRegistry, nil)
+			module := &models.ProxyModule{Metadata: models.ProxyModuleMetadata{Name: tt.moduleName, Version: &tt.version}}
 
-	// Assert
-	assert.Equal(t, "ghcr.io/folio-org/mod-users:1.5.0", image)
-	mockRegistry.AssertExpectations(t)
+			// Act
+			image := svc.GetModuleImage(module)
+
+			// Assert
+			assert.Equal(t, tt.expected, image)
+			mockRegistry.AssertExpectations(t)
+		})
+	}
+}
+
+func TestGetPullAuthorizationToken(t *testing.T) {
+	tests := []struct {
+		name          string
+		namespace     string
+		imageName     string
+		registryToken string
+		registryErr   error
+		wantToken     string
+		wantErr       bool
+		wantRegistry  bool
+	}{
+		{name: "no backend namespace uses registry token", imageName: "folioci/mod-users:1.5.0", registryToken: "ecr-token", wantToken: "ecr-token", wantRegistry: true},
+		{name: "image in backend namespace skips registry token", namespace: "docker.libsdev.k-int.com/knowledgeintegration", imageName: "docker.libsdev.k-int.com/knowledgeintegration/mod-ill:1.11.0", wantToken: ""},
+		{name: "sidecar outside backend namespace uses registry token", namespace: "docker.libsdev.k-int.com/knowledgeintegration", imageName: "123.dkr.ecr.eu-west-1.amazonaws.com/folio-module-sidecar:3.0.4", registryToken: "ecr-token", wantToken: "ecr-token", wantRegistry: true},
+		{name: "namespace prefix requires path separator", namespace: "docker.libsdev.k-int.com/ki", imageName: "docker.libsdev.k-int.com/kint/mod-ill:1.11.0", registryToken: "ecr-token", wantToken: "ecr-token", wantRegistry: true},
+		{name: "registry error propagates", imageName: "folioci/mod-users:1.5.0", registryErr: assert.AnError, wantErr: true, wantRegistry: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			action := testhelpers.NewMockAction()
+			action.ConfigNamespaceBackendModules = tt.namespace
+			mockRegistry := new(testhelpers.MockRegistrySvc)
+			if tt.wantRegistry {
+				mockRegistry.On("GetAuthorizationToken").Return(tt.registryToken, tt.registryErr)
+			}
+			svc := New(action, nil, nil, mockRegistry, nil)
+
+			// Act
+			token, err := svc.getPullAuthorizationToken(tt.imageName)
+
+			// Assert
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.wantToken, token)
+			}
+			mockRegistry.AssertExpectations(t)
+		})
+	}
 }
 
 func TestGetModuleEnv_AllFeatures(t *testing.T) {

@@ -40,6 +40,7 @@
   - [Using a native folio-module-sidecar](#using-a-native-folio-module-sidecar)
   - [Using local backend module images](#using-local-backend-module-images)
   - [Using local frontend module descriptors](#using-local-frontend-module-descriptors)
+  - [Using a backend module namespace](#using-a-backend-module-namespace)
   - [Using the UI](#using-the-ui)
   - [Using Single Tenant UX](#using-single-tenant-ux)
   - [Using the environment](#using-the-environment)
@@ -791,6 +792,19 @@ frontend-modules:
 ```bash
 eureka-cli deployApplication
 ```
+
+## Using a backend module namespace
+
+The `namespaces.backend-modules` config key sets the image namespace of all backend modules of the profile, for images hosted outside the FOLIO Docker Hub namespaces (a private mirror or the external registry of a third-party application).
+
+```yaml
+namespaces:
+  backend-modules: docker.libsdev.k-int.com/knowledgeintegration
+```
+
+- Backend module images are then pulled as `{{namespace}}/{{module}}:{{version}}`, e.g. `docker.libsdev.k-int.com/knowledgeintegration/mod-ill:1.11.0-SNAPSHOT.278`
+- The key takes precedence over `AWS_ECR_FOLIO_REPO`: backend module images are pulled from the namespace without the ECR token, while the sidecar image still comes from ECR when it is configured; the UI image is not affected
+- If it is omitted, images are pulled from `folioci` (snapshots) or `folioorg` (releases)
 
 ## Using the UI
 

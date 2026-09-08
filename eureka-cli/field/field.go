@@ -20,6 +20,7 @@ const (
 	RegistryURL                          = "registry.url"
 	Namespaces                           = "namespaces"
 	NamespacesPlatformLspUI              = "namespaces.platform-lsp-ui"
+	NamespacesBackendModules             = "namespaces.backend-modules"
 	Env                                  = "environment"
 	EnvFolio                             = "environment.ENV"
 	EnvTopicSharingTenant                = "environment.KAFKA_PRODUCER_TENANT_COLLECTION"
