@@ -60,7 +60,8 @@ func New(action *action.Action,
 }
 
 // CloneAndUpdateRepository makes sure the platform checkout comes from the configured repository and returns its directory.
-// A checkout cloned from another repository is replaced when updateCloned is set and is an error otherwise.
+// With updateCloned, the checkout is brought to the configured branch as it is on origin, and a checkout cloned from another
+// repository is replaced; without it, such a checkout is an error.
 func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
 	slog.Info(us.Action.Name, "text", "CLONING & UPDATING PLATFORM LSP UI REPOSITORY")
 	repository, err := us.GitClient.PlatformLspRepository(us.GetStripesURL(), us.GetStripesBranch())
@@ -70,11 +71,6 @@ func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
 
 	if err := us.GitClient.EnsureCheckout(repository, updateCloned); err != nil {
 		return "", err
-	}
-	if updateCloned {
-		if err := us.GitClient.ResetHardPullFromOrigin(repository); err != nil {
-			return "", err
-		}
 	}
 
 	return repository.Dir, nil

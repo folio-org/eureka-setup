@@ -19,17 +19,12 @@ func (m *MockGitClient) PlatformLspRepository(url string, branch plumbing.Refere
 	return args.Get(0).(*gitrepository.GitRepository), args.Error(1)
 }
 
-func (m *MockGitClient) EnsureCheckout(repository *gitrepository.GitRepository, replace bool) error {
-	args := m.Called(repository, replace)
+func (m *MockGitClient) EnsureCheckout(repository *gitrepository.GitRepository, update bool) error {
+	args := m.Called(repository, update)
 	return args.Error(0)
 }
 
 func (m *MockGitClient) Clone(repository *gitrepository.GitRepository) error {
-	args := m.Called(repository)
-	return args.Error(0)
-}
-
-func (m *MockGitClient) ResetHardPullFromOrigin(repository *gitrepository.GitRepository) error {
 	args := m.Called(repository)
 	return args.Error(0)
 }

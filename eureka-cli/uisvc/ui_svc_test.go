@@ -106,20 +106,15 @@ func TestGetStripesURL_ConfigValue(t *testing.T) {
 
 func TestCloneAndUpdateRepository(t *testing.T) {
 	ensureErr := errors.New("checkout mismatch")
-	updateErr := errors.New("update failed")
 
 	testCases := []struct {
 		name         string
 		updateCloned bool
 		ensureErr    error
-		updateErr    error
-		wantErr      error
 	}{
-		{"Checkout ensured without update", false, nil, nil, nil},
-		{"Checkout ensured and updated", true, nil, nil, nil},
-		{"Ensure error without update", false, ensureErr, nil, ensureErr},
-		{"Ensure error with update", true, ensureErr, nil, ensureErr},
-		{"Update error", true, nil, updateErr, updateErr},
+		{"Checkout ensured without update", false, nil},
+		{"Checkout ensured with update", true, nil},
+		{"Ensure error", false, ensureErr},
 	}
 
 	for _, tc := range testCases {
@@ -130,24 +125,18 @@ func TestCloneAndUpdateRepository(t *testing.T) {
 			mockRepo := newPlatformRepository()
 			mockGitClient.On("PlatformLspRepository", constant.PlatformLspRepositoryURL, mock.Anything).Return(mockRepo, nil)
 			mockGitClient.On("EnsureCheckout", mockRepo, tc.updateCloned).Return(tc.ensureErr)
-			if tc.ensureErr == nil && tc.updateCloned {
-				mockGitClient.On("ResetHardPullFromOrigin", mockRepo).Return(tc.updateErr)
-			}
 
 			// Act
 			outputDir, err := svc.CloneAndUpdateRepository(tc.updateCloned)
 
 			// Assert
-			assert.Equal(t, tc.wantErr, err)
-			if tc.wantErr == nil {
+			assert.Equal(t, tc.ensureErr, err)
+			if tc.ensureErr == nil {
 				assert.Equal(t, testPlatformDir, outputDir)
 			} else {
 				assert.Equal(t, "", outputDir)
 			}
 			mockGitClient.AssertExpectations(t)
-			if tc.ensureErr != nil || !tc.updateCloned {
-				mockGitClient.AssertNotCalled(t, "ResetHardPullFromOrigin", mock.Anything)
-			}
 		})
 	}
 }
