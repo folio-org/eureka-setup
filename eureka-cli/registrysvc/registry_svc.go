@@ -60,8 +60,14 @@ func (rs *RegistrySvc) ResolveModuleMetadata(modules *models.ProxyModulesByRegis
 			if module.ID == "okapi" {
 				continue
 			}
-			module.Metadata.Name = helpers.GetModuleNameFromID(module.ID)
-			module.Metadata.Version = helpers.GetOptionalModuleVersion(module.ID)
+			// Name and version stated by the application descriptor win over what the ID parses to,
+			// since the ID pattern does not cover every version the descriptor schema allows
+			if module.Metadata.Name == "" {
+				module.Metadata.Name = helpers.GetModuleNameFromID(module.ID)
+			}
+			if module.Metadata.Version == nil {
+				module.Metadata.Version = helpers.GetOptionalModuleVersion(module.ID)
+			}
 			module.Metadata.SidecarName = rs.getSidecarName(module)
 			moduleSet[i] = module
 		}
@@ -77,16 +83,34 @@ func (rs *RegistrySvc) getSidecarName(module *models.ProxyModule) string {
 }
 
 func (rs *RegistrySvc) GetModules(verbose bool, forceRefresh bool) (*models.ProxyModulesByRegistry, error) {
-	moduleVersions, err := rs.getFlattenedModuleVersions(forceRefresh)
+	var (
+		moduleVersions    []models.ApplicationModule
+		moduleDescriptors map[string]any
+		err               error
+	)
+	if rs.Action.ConfigApplicationDescriptor != "" {
+		moduleVersions, moduleDescriptors, err = rs.readDescriptorInventory()
+	} else {
+		moduleVersions, err = rs.getFlattenedModuleVersions(forceRefresh)
+	}
 	if err != nil {
 		return nil, err
 	}
 
 	var folioModules, eurekaModules []*models.ProxyModule
+	moduleDescriptorURLs := make(map[string]string)
 	for _, m := range moduleVersions {
 		proxy := &models.ProxyModule{
-			ID:     m.ID,
-			Action: "enable",
+			ID:       m.ID,
+			Action:   "enable",
+			Metadata: models.ProxyModuleMetadata{Name: m.Name},
+		}
+		if m.Version != "" {
+			version := m.Version
+			proxy.Metadata.Version = &version
+		}
+		if m.URL != "" {
+			moduleDescriptorURLs[m.ID] = m.URL
 		}
 		if isEurekaModule(m.Name) {
 			eurekaModules = append(eurekaModules, proxy)
@@ -100,9 +124,80 @@ func (rs *RegistrySvc) GetModules(verbose bool, forceRefresh bool) (*models.Prox
 	}
 
 	return &models.ProxyModulesByRegistry{
-		FolioModules:  folioModules,
-		EurekaModules: eurekaModules,
+		FolioModules:         folioModules,
+		EurekaModules:        eurekaModules,
+		ModuleDescriptors:    moduleDescriptors,
+		ModuleDescriptorURLs: moduleDescriptorURLs,
 	}, nil
+}
+
+// readDescriptorInventory builds the inventory from application.descriptor plus, when lsp.url is set, the
+// eureka-components of the platform descriptor, so that the sidecar version resolves as for any other profile
+func (rs *RegistrySvc) readDescriptorInventory() ([]models.ApplicationModule, map[string]any, error) {
+	if rs.Action.Param.SkipRegistry {
+		slog.Info(rs.Action.Name, "text", "Skip registry flag has no effect, application.descriptor is read on every run")
+	}
+	modules, moduleDescriptors, err := rs.readApplicationDescriptor(rs.Action.ConfigApplicationDescriptor)
+	if err != nil {
+		return nil, nil, err
+	}
+	if rs.Action.ConfigLspURL == "" {
+		slog.Info(rs.Action.Name, "text", "No lsp.url set, sidecar version must be set via sidecar-module.version")
+		return modules, moduleDescriptors, nil
+	}
+
+	descriptor, err := rs.fetchPlatformDescriptor()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return append(modules, platformComponents(descriptor)...), moduleDescriptors, nil
+}
+
+// readApplicationDescriptor uses an application descriptor (local file or URL) as the module inventory instead of
+// the LSP platform descriptor and FAR. The descriptor is the same JSON that is registered in mgr-applications in a
+// real deployment, so a profile backed by one mirrors that application. Embedded module descriptors are returned
+// keyed by module ID so they can be inlined into the application registration.
+func (rs *RegistrySvc) readApplicationDescriptor(source string) ([]models.ApplicationModule, map[string]any, error) {
+	var descriptor models.ApplicationDescriptorSource
+	if helpers.IsURL(source) {
+		if err := rs.HTTPClient.GetRetryReturnStruct(source, map[string]string{}, &descriptor); err != nil {
+			return nil, nil, appErrors.ApplicationDescriptorReadFailed(source, err)
+		}
+	} else {
+		path, err := helpers.ExpandHomeDir(source)
+		if err != nil {
+			return nil, nil, err
+		}
+		if err := helpers.ReadJSONFromFile(path, &descriptor); err != nil {
+			return nil, nil, appErrors.ApplicationDescriptorReadFailed(source, err)
+		}
+	}
+	slog.Info(rs.Action.Name, "text", "Read application descriptor", "source", source, "id", descriptor.ID)
+	if descriptor.Name != "" && descriptor.Name != rs.Action.ConfigApplicationName {
+		slog.Warn(rs.Action.Name, "text", "Application descriptor name differs from application.name in the profile", "descriptor", descriptor.Name, "profile", rs.Action.ConfigApplicationName)
+	}
+
+	var modules []models.ApplicationModule
+	for _, module := range append(descriptor.Modules, descriptor.UIModules...) {
+		if module.ID == "" {
+			module.ID = fmt.Sprintf("%s-%s", module.Name, module.Version)
+		}
+		modules = append(modules, module)
+	}
+	if len(modules) == 0 {
+		return nil, nil, appErrors.ApplicationDescriptorNoModules(source)
+	}
+
+	moduleDescriptors := make(map[string]any)
+	for _, moduleDescriptor := range append(descriptor.ModuleDescriptors, descriptor.UIModuleDescriptors...) {
+		if id := helpers.GetString(moduleDescriptor, "id"); id != "" {
+			moduleDescriptors[id] = moduleDescriptor
+		}
+	}
+	slog.Info(rs.Action.Name, "text", "Using application descriptor as module inventory", "modules", len(modules), "embeddedDescriptors", len(moduleDescriptors))
+
+	return modules, moduleDescriptors, nil
 }
 
 func (rs *RegistrySvc) getFlattenedModuleVersions(forceRefresh bool) ([]models.ApplicationModule, error) {
@@ -142,23 +237,15 @@ func (rs *RegistrySvc) readModulesLocalFile(path string) ([]models.ApplicationMo
 }
 
 func (rs *RegistrySvc) fetchAndPersistModuleVersions(filePath string) ([]models.ApplicationModule, error) {
-	var descriptor models.PlatformDescriptor
-	if err := rs.HTTPClient.GetRetryReturnStruct(rs.Action.ConfigLspURL, map[string]string{}, &descriptor); err != nil {
+	descriptor, err := rs.fetchPlatformDescriptor()
+	if err != nil {
 		return nil, err
 	}
-	slog.Info(rs.Action.Name, "text", "Fetched LSP platform descriptor", "name", descriptor.Name, "version", descriptor.Version)
 
 	applications := append(descriptor.Applications.Required, descriptor.Applications.Optional...)
 	applications = append(applications, descriptor.Applications.Experimental...)
 
-	var modules []models.ApplicationModule
-	for _, component := range descriptor.EurekaComponents {
-		modules = append(modules, models.ApplicationModule{
-			ID:      fmt.Sprintf("%s-%s", component.Name, component.Version),
-			Name:    component.Name,
-			Version: component.Version,
-		})
-	}
+	modules := platformComponents(descriptor)
 
 	type result struct {
 		modules []models.ApplicationModule
@@ -196,6 +283,7 @@ func (rs *RegistrySvc) fetchAndPersistModuleVersions(filePath string) ([]models.
 							ID:      helpers.GetString(entry, "id"),
 							Name:    helpers.GetString(entry, "name"),
 							Version: helpers.GetString(entry, "version"),
+							URL:     helpers.GetString(entry, "url"),
 						})
 					}
 				}
@@ -222,6 +310,30 @@ func (rs *RegistrySvc) fetchAndPersistModuleVersions(filePath string) ([]models.
 	slog.Info(rs.Action.Name, "text", "Persisted module versions to a local file", "file", constant.ModulesFile)
 
 	return modules, nil
+}
+
+func (rs *RegistrySvc) fetchPlatformDescriptor() (*models.PlatformDescriptor, error) {
+	var descriptor models.PlatformDescriptor
+	if err := rs.HTTPClient.GetRetryReturnStruct(rs.Action.ConfigLspURL, map[string]string{}, &descriptor); err != nil {
+		return nil, err
+	}
+	slog.Info(rs.Action.Name, "text", "Fetched LSP platform descriptor", "name", descriptor.Name, "version", descriptor.Version)
+
+	return &descriptor, nil
+}
+
+// platformComponents returns the eureka-components of a platform descriptor (management modules, sidecar, Kong, Keycloak)
+func platformComponents(descriptor *models.PlatformDescriptor) []models.ApplicationModule {
+	var modules []models.ApplicationModule
+	for _, component := range descriptor.EurekaComponents {
+		modules = append(modules, models.ApplicationModule{
+			ID:      fmt.Sprintf("%s-%s", component.Name, component.Version),
+			Name:    component.Name,
+			Version: component.Version,
+		})
+	}
+
+	return modules
 }
 
 func isEurekaModule(name string) bool {

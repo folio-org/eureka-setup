@@ -22,8 +22,12 @@ func IsHostnameReachable(actionName string, hostname string) error {
 
 // ==================== Hostname ====================
 
+func IsURL(value string) bool {
+	return strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://")
+}
+
 func ConstructURL(url string, gatewayURL string) string {
-	if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
+	if IsURL(url) {
 		return url
 	}
 

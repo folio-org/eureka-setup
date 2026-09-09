@@ -41,6 +41,7 @@
   - [Using local backend module images](#using-local-backend-module-images)
   - [Using local frontend module descriptors](#using-local-frontend-module-descriptors)
   - [Using a backend module namespace](#using-a-backend-module-namespace)
+  - [Using a third-party application](#using-a-third-party-application)
   - [Using the UI](#using-the-ui)
   - [Using Single Tenant UX](#using-single-tenant-ux)
   - [Using the environment](#using-the-environment)
@@ -805,6 +806,45 @@ namespaces:
 - Backend module images are then pulled as `{{namespace}}/{{module}}:{{version}}`, e.g. `docker.libsdev.k-int.com/knowledgeintegration/mod-ill:1.11.0-SNAPSHOT.278`
 - The key takes precedence over `AWS_ECR_FOLIO_REPO`: backend module images are pulled from the namespace without the ECR token, while the sidecar image still comes from ECR when it is configured; the UI image is not affected
 - If it is omitted, images are pulled from `folioci` (snapshots) or `folioorg` (releases)
+
+## Using a third-party application
+
+A third-party application is one whose descriptor and images are not published in the FOLIO registries and Docker Hub namespaces, whether it comes from a service provider, a consortium or an in-house project. It is deployed from its own child-application profile, the same way such an application is registered in a real Eureka deployment. The profile names the application, its external registry and its external image namespace, so the environment ends up with stock FOLIO images next to images from the third party's Docker registry.
+
+```yaml
+profile:
+  name: ill
+application:
+  name: app-ill
+  version: 1.0.0
+  descriptor: ~/app-ill-1.0.0.json
+  dependencies:
+    name: app-combined
+    version: 1.0.0
+lsp:
+  url: https://raw.githubusercontent.com/folio-org/platform-lsp/refs/heads/snapshot/platform-descriptor.json
+registry:
+  url: https://folio-registry.k-int.com
+namespaces:
+  backend-modules: docker.libsdev.k-int.com/knowledgeintegration
+backend-modules:
+  mod-ill:
+    private-port: 8080
+frontend-modules:
+  k-int_ill-ui:
+```
+
+```bash
+docker login docker.libsdev.k-int.com
+eureka-cli -p combined deployApplication
+eureka-cli -p ill deployApplication
+```
+
+- `application.descriptor` is a local file path (`~` and `$HOME` are expanded) or an `http(s)` URL of an application descriptor, the same JSON that is registered in `mgr-applications`. Its `modules` and `uiModules` replace the platform applications and FAR as the module inventory of the profile; `far.url` is not consulted and the `~/.eureka/modules.json` cache is bypassed. Only modules also listed under `backend-modules` / `frontend-modules` are deployed, as with any profile. Module descriptors embedded in the application descriptor (`moduleDescriptors`, `uiModuleDescriptors`) are registered inline; other modules are registered with the descriptor `url` given for them in the application descriptor (as with the platform's applications from FAR), or one derived from `registry.url` when there is none, or fetched from that URL when `application.fetch-descriptors` is `true`.
+- The descriptor's `dependencies` block is ignored. `application.dependencies` in the profile names the parent applications that exist in the local installation, because profile names and versions are managed by hand.
+- `lsp.url` is still read for the platform's `eureka-components`, so the sidecar version resolves as for every other profile and stays consistent with the base platform. If `lsp.url` is not set, there is no source for it and `sidecar-module.version` must be set explicitly.
+- Module versions with semver build metadata (`1.11.0-SNAPSHOT.278+1787670557413-d0e2d3d`) are not supported: Docker rejects `+` in an image tag, and Eureka cannot entitle such a module because the gateway service is named after the module ID and rejects `+` as well. The CLI passes versions through unchanged; the descriptor must use versions without build metadata.
+- `namespaces.backend-modules` points at the external image namespace (see [Using a backend module namespace](#using-a-backend-module-namespace)) and `docker login` supplies the pull credentials (see [Using private registry credentials](#using-private-registry-credentials)).
 
 ## Using the UI
 

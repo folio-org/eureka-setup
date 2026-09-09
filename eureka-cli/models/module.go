@@ -32,6 +32,10 @@ type ProxyModuleMetadata struct {
 type ProxyModulesByRegistry struct {
 	FolioModules  []*ProxyModule
 	EurekaModules []*ProxyModule
+	// ModuleDescriptors holds module descriptors embedded in application.descriptor, keyed by module ID
+	ModuleDescriptors map[string]any
+	// ModuleDescriptorURLs holds the per-module descriptor URLs named by the application descriptors, keyed by module ID
+	ModuleDescriptorURLs map[string]string
 }
 
 // ==================== Backend Module ====================
