@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	appErrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
@@ -143,6 +144,23 @@ func GetHomeMiscDir() (string, error) {
 	}
 
 	return filepath.Join(homeDir, constant.DockerComposeWorkDir), nil
+}
+
+// ExpandHomeDir replaces a leading ~ or $HOME path segment with the user's home directory
+func ExpandHomeDir(path string) (string, error) {
+	for _, prefix := range []string{"~", "$HOME"} {
+		if path != prefix && !strings.HasPrefix(path, prefix+"/") {
+			continue
+		}
+		userHome, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+
+		return userHome + strings.TrimPrefix(path, prefix), nil
+	}
+
+	return path, nil
 }
 
 func GetHomeDirPath() (string, error) {

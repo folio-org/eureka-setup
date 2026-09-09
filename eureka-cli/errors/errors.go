@@ -348,6 +348,14 @@ func ReindexJobIDBlank() error {
 
 // ==================== Registry Errors ====================
 
+func ApplicationDescriptorReadFailed(source string, err error) error {
+	return fmt.Errorf("%w: failed to read application descriptor from %s: %w", ErrInvalidInput, source, err)
+}
+
+func ApplicationDescriptorNoModules(source string) error {
+	return fmt.Errorf("%w: application descriptor from %s contains no modules or uiModules", ErrInvalidInput, source)
+}
+
 func LocalInstallFileNotFound(err error) error {
 	return fmt.Errorf("%w: failed to find local install file: %w", ErrNotFound, err)
 }

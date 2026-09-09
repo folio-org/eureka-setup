@@ -165,34 +165,49 @@ func (ms *ManagementSvc) CreateApplication(extract *models.RegistryExtract) erro
 				module.ID = fmt.Sprintf("%s-%s", module.Metadata.Name, *module.Metadata.Version)
 			}
 
-			moduleDescriptorURL := ms.Action.GetModuleURL(module.ID)
-			isLocalBackendModule := existsBackend && backendModule.LocalDescriptorPath != ""
-			isLocalFrontendModule := existsFrontend && frontendModule.LocalDescriptorPath != ""
-			isLocalModule := isLocalBackendModule || isLocalFrontendModule
-			if ms.Action.ConfigApplicationFetchDescriptors || isLocalModule {
-				var descriptorPath string
-				if isLocalBackendModule {
-					descriptorPath = backendModule.LocalDescriptorPath
-				} else if isLocalFrontendModule {
-					descriptorPath = frontendModule.LocalDescriptorPath
+			// The descriptor URL carried from the application descriptor (FAR or application.descriptor) wins over
+			// the one derived from registry.url; a profile version pin changes the module ID, so it never matches
+			// a URL or an embedded descriptor of another version
+			moduleDescriptorURL, hasDescriptorURL := extract.Modules.ModuleDescriptorURLs[module.ID]
+			if !hasDescriptorURL {
+				moduleDescriptorURL = ms.Action.GetModuleURL(module.ID)
+			}
+			var localDescriptorPath string
+			if existsBackend {
+				localDescriptorPath = backendModule.LocalDescriptorPath
+			} else if existsFrontend {
+				localDescriptorPath = frontendModule.LocalDescriptorPath
+			}
+
+			// Descriptor source precedence: local-descriptor-path, then a descriptor embedded in application.descriptor,
+			// then a fetch from the descriptor URL when fetch-descriptors is set; otherwise the URL is registered as is
+			switch embeddedDescriptor, hasEmbeddedDescriptor := extract.Modules.ModuleDescriptors[module.ID]; {
+			case localDescriptorPath != "":
+				if err := ms.FetchModuleDescriptor(extract, module.ID, moduleDescriptorURL, localDescriptorPath, true); err != nil {
+					return err
 				}
-				if err := ms.FetchModuleDescriptor(extract, module.ID, moduleDescriptorURL, descriptorPath, isLocalModule); err != nil {
+			case hasEmbeddedDescriptor:
+				extract.ModuleDescriptors[module.ID] = embeddedDescriptor
+			case ms.Action.ConfigApplicationFetchDescriptors:
+				if err := ms.FetchModuleDescriptor(extract, module.ID, moduleDescriptorURL, "", false); err != nil {
 					return err
 				}
 			}
+			moduleDescriptor, inlineDescriptor := extract.ModuleDescriptors[module.ID]
 
+			moduleEntry := map[string]string{
+				"id":      module.ID,
+				"name":    module.Metadata.Name,
+				"version": *module.Metadata.Version,
+			}
+			if !inlineDescriptor {
+				moduleEntry["url"] = moduleDescriptorURL
+			}
 			if existsBackend {
-				newBackendModule := map[string]string{
-					"id":      module.ID,
-					"name":    module.Metadata.Name,
-					"version": *module.Metadata.Version,
+				backendModules = append(backendModules, moduleEntry)
+				if inlineDescriptor {
+					backendModuleDescriptors = append(backendModuleDescriptors, moduleDescriptor)
 				}
-				if ms.Action.ConfigApplicationFetchDescriptors || isLocalModule {
-					backendModuleDescriptors = append(backendModuleDescriptors, extract.ModuleDescriptors[module.ID])
-				} else {
-					newBackendModule["url"] = moduleDescriptorURL
-				}
-				backendModules = append(backendModules, newBackendModule)
 
 				sidecarURL := fmt.Sprintf("http://%s.eureka:%d", module.Metadata.SidecarName, backendModule.PrivatePort)
 				discoveryModules = append(discoveryModules, map[string]string{
@@ -202,17 +217,10 @@ func (ms *ManagementSvc) CreateApplication(extract *models.RegistryExtract) erro
 					"location": sidecarURL,
 				})
 			} else if existsFrontend {
-				newFrontendModule := map[string]string{
-					"id":      module.ID,
-					"name":    module.Metadata.Name,
-					"version": *module.Metadata.Version,
+				frontendModules = append(frontendModules, moduleEntry)
+				if inlineDescriptor {
+					frontendModuleDescriptors = append(frontendModuleDescriptors, moduleDescriptor)
 				}
-				if ms.Action.ConfigApplicationFetchDescriptors || isLocalModule {
-					frontendModuleDescriptors = append(frontendModuleDescriptors, extract.ModuleDescriptors[module.ID])
-				} else {
-					newFrontendModule["url"] = moduleDescriptorURL
-				}
-				frontendModules = append(frontendModules, newFrontendModule)
 			}
 		}
 	}
