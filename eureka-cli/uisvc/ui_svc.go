@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
@@ -64,7 +65,9 @@ func New(action *action.Action,
 // repository is replaced; without it, such a checkout is an error.
 func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
 	slog.Info(us.Action.Name, "text", "CLONING & UPDATING PLATFORM LSP UI REPOSITORY")
-	repository, err := us.GitClient.PlatformLspRepository(us.GetStripesURL(), us.GetStripesBranch())
+	url := us.GetStripesURL()
+	slog.Info(us.Action.Name, "text", "Using stripes url", "url", url)
+	repository, err := us.GitClient.PlatformLspRepository(url, us.GetStripesBranch())
 	if err != nil {
 		return "", err
 	}
@@ -76,8 +79,26 @@ func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
 	return repository.Dir, nil
 }
 
+// imageName names the UI image after the platform repository and the tenant, e.g. platform-lsp-ui-diku
+func (us *UISvc) imageName(tenantName string) string {
+	return fmt.Sprintf("%s-ui-%s", platformName(us.GetStripesURL()), tenantName)
+}
+
+// platformNameInvalid matches the characters a Docker image name does not allow
+var platformNameInvalid = regexp.MustCompile(`[^a-z0-9._-]`)
+
+// platformName derives the platform name from the repository URL: the last path segment without .git, in Docker image name characters
+func platformName(url string) string {
+	name := strings.TrimSuffix(strings.TrimRight(strings.TrimSpace(url), "/"), ".git")
+	if i := strings.LastIndexAny(name, "/:"); i >= 0 {
+		name = name[i+1:]
+	}
+
+	return platformNameInvalid.ReplaceAllString(strings.ToLower(name), "-")
+}
+
 func (us *UISvc) PrepareImage(tenantName string) (string, error) {
-	imageName := fmt.Sprintf("platform-lsp-ui-%s", tenantName)
+	imageName := us.imageName(tenantName)
 	if us.Action.Param.BuildImages {
 		return us.buildImageFromRepository(tenantName)
 	}
@@ -148,7 +169,7 @@ func (us *UISvc) BuildImage(tenantName string, outputDir string) (string, error)
 	}
 
 	slog.Info(us.Action.Name, "text", "Building UI image")
-	finalImageName := fmt.Sprintf("platform-lsp-ui-%s", tenantName)
+	finalImageName := us.imageName(tenantName)
 	err = us.ExecSvc.ExecFromDir(exec.Command("docker", "build", "--tag", finalImageName,
 		"--build-arg", fmt.Sprintf("OKAPI_URL=%s", constant.KongExternalHTTP),
 		"--build-arg", fmt.Sprintf("TENANT_ID=%s", tenantName),

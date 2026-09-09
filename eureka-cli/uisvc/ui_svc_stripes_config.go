@@ -32,10 +32,7 @@ type UIStripesConfigProcessor interface {
 
 // GetStripesURL returns the platform repository the UI is built from: application.stripes-url, or the upstream platform-lsp repository
 func (us *UISvc) GetStripesURL() string {
-	url := action.GetStringOrDefault(field.ApplicationStripesURL, constant.PlatformLspRepositoryURL)
-	slog.Info(us.Action.Name, "text", "Using stripes url", "url", url)
-
-	return url
+	return action.GetStringOrDefault(field.ApplicationStripesURL, constant.PlatformLspRepositoryURL)
 }
 
 func (us *UISvc) GetStripesBranch() plumbing.ReferenceName {

@@ -811,7 +811,7 @@ namespaces:
 
 The environment depends on the [platform-lsp](https://github.com/folio-org/platform-lsp) project to combine and assemble frontend modules into a single UI package. No official prebuilt UI image is published to any registry, so by default the CLI builds the UI image locally from the _platform-lsp_ repository.
 
-- The image `platform-lsp-ui-{{tenant}}` is built automatically during `deployApplication` or `deployUi` for every tenant with `deploy-ui: true` in the config, and is reused on subsequent runs
+- The image `{{platform}}-ui-{{tenant}}` (`platform-lsp-ui-diku` by default; the platform part is the name of the repository the UI is built from) is built automatically during `deployApplication` or `deployUi` for every tenant with `deploy-ui: true` in the config, and is reused on subsequent runs
 - To force a rebuild (e.g. to include the latest module versions), pass the `-b` flag, optionally combined with `-u` to first update the local _platform-lsp_ repository
 
 ```bash
@@ -841,7 +841,7 @@ eureka-cli buildUi -u
 eureka-cli deployApplication --skipUi
 ```
 
-- To pull a prebuilt UI image from a registry instead of building locally, set the `namespaces.platform-lsp-ui` key in the config; the CLI will then pull `{{namespace}}/platform-lsp-ui-{{tenant}}` on every deployment instead of building. The `buildAndPushUi` command builds such an image and pushes it to a namespace of your choice.
+- To pull a prebuilt UI image from a registry instead of building locally, set the `namespaces.platform-lsp-ui` key in the config; the CLI will then pull `{{namespace}}/{{platform}}-ui-{{tenant}}` on every deployment instead of building. The `buildAndPushUi` command builds such an image and pushes it to a namespace of your choice.
 
 ```yaml
 namespaces:
@@ -864,7 +864,7 @@ application:
   stripes-branch: stable
 ```
 
-- Both keys apply to a local build only, so pass `-b` after changing them; a reused image or a configured `namespaces.platform-lsp-ui` (see above) does not read them.
+- The image is named after the repository, e.g. `platform-fork-ui-diku`, so repositories with different names keep separate images and switching between them reuses the image that exists; a fork that keeps the upstream name shares `platform-lsp-ui-{{tenant}}` with upstream. Pass `-b -u` to rebuild from the configured repository and branch, e.g. after changing `stripes-branch` or switching between same-named repositories; `-b` alone rebuilds the checkout as it is. A configured `namespaces.platform-lsp-ui` (see above) pulls instead of building.
 - The local checkout in `~/.eureka/misc/platform-lsp` must come from the configured repository. If it was cloned from another one, the build stops with an error naming both repositories; pass `-u` to replace the checkout, which discards everything in it.
 - Without `-u`, the checkout is built as it is: local branches, commits and edits are kept, and a warning names the checked-out branch if it differs from `stripes-branch`. With `-u`, the checkout is brought to `stripes-branch` as it is on origin: the branch is fetched and checked out, untracked files and uncommitted changes are discarded, other local branches are kept.
 - A `file://` URL works as well, e.g. to build from a bare repository on the same machine
@@ -879,7 +879,7 @@ eureka-cli deployUi
 
 #### One UI bundle per tenant
 
-The UI image `platform-lsp-ui-{{tenant}}` and its container are built once per tenant from one repository. [Child application profiles](#deploy-child-applications) register their UI modules through `frontend-modules` for entitlement but do not contribute to the bundle and should not set `deploy-ui`: for a tenant whose UI is already deployed, a second profile reuses the existing image and skips the running container. A fork therefore has to contain the UI modules of every application it hosts, the base ones included; with several third-party applications one fork carries all of them.
+The UI container `eureka-platform-lsp-ui-{{tenant}}` is one per tenant, and its image is built from one repository. [Child application profiles](#deploy-child-applications) register their UI modules through `frontend-modules` for entitlement but do not contribute to the bundle and should not set `deploy-ui`: for a tenant whose UI is already deployed, a second profile reuses the existing image and skips the running container. A fork therefore has to contain the UI modules of every application it hosts, the base ones included; with several third-party applications one fork carries all of them.
 
 The UI is owned by the profile that deploys the platform.
 

@@ -103,6 +103,47 @@ func TestGetStripesURL_ConfigValue(t *testing.T) {
 	assert.Equal(t, "https://example.org/vendor/platform-fork.git", url)
 }
 
+func TestPlatformName(t *testing.T) {
+	testCases := []struct {
+		url  string
+		want string
+	}{
+		{constant.PlatformLspRepositoryURL, "platform-lsp"},
+		{"https://gitlab.com/knowledge-integration/libraries/networks/platform-ill.git", "platform-ill"},
+		{"git@github.com:vendor/Platform-Fork.git", "platform-fork"},
+		{"file:///home/dev/platform-fork.git/", "platform-fork"},
+		{"/home/dev/my platform", "my-platform"},
+		{"https://example.org/platform-lsp", "platform-lsp"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.url, func(t *testing.T) {
+			assert.Equal(t, tc.want, platformName(tc.url))
+		})
+	}
+}
+
+func TestPrepareImage_ForkURL_NamesImageAfterRepository(t *testing.T) {
+	// Arrange
+	viperConfig := testhelpers.SetupViperForTest(map[string]any{field.ApplicationStripesURL: "https://example.org/vendor/platform-fork.git"})
+	defer viperConfig.Reset()
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{}
+	mockExec := new(testhelpers.MockCommandExecutor)
+	svc := New(act, mockExec, nil, nil, nil)
+	var stdout bytes.Buffer
+	stdout.WriteString("abc123\n")
+	mockExec.On("ExecReturnOutput", matchImageExistsCommand("platform-fork-ui-test-tenant")).Return(stdout, bytes.Buffer{}, nil)
+
+	// Act
+	imageName, err := svc.PrepareImage("test-tenant")
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, "platform-fork-ui-test-tenant", imageName)
+	mockExec.AssertExpectations(t)
+}
+
 func TestCloneAndUpdateRepository(t *testing.T) {
 	ensureErr := errors.New("checkout mismatch")
 
