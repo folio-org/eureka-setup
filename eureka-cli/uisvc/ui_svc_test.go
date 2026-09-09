@@ -15,7 +15,6 @@ import (
 	"github.com/folio-org/eureka-setup/eureka-cli/gitrepository"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
-	"github.com/folio-org/eureka-setup/eureka-cli/models"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -785,6 +784,43 @@ module.exports = {
 
 // ==================== PreparePackageJSON Tests ====================
 
+// packageJSONFile is the subset of package.json the tests look at
+type packageJSONFile struct {
+	Scripts      map[string]string `json:"scripts"`
+	Dependencies map[string]string `json:"dependencies"`
+}
+
+func TestPreparePackageJSON_KeepsUnknownFields(t *testing.T) {
+	// Arrange
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{SingleTenant: true}
+	svc := New(act, nil, nil, nil, nil)
+	configPath := t.TempDir()
+	testhelpers.CreateJSONFileInDir(t, configPath, "package.json", map[string]any{
+		"name":       "platform-fork",
+		"private":    true,
+		"engines":    map[string]any{"node": ">=20"},
+		"workspaces": []any{"packages/*"},
+		"dependencies": map[string]any{
+			"@folio/users":              "^1.0.0",
+			"@folio/consortia-settings": "^2.0.0",
+		},
+	})
+
+	// Act
+	err := svc.PreparePackageJSON(configPath)
+
+	// Assert
+	assert.NoError(t, err)
+	var result map[string]any
+	assert.NoError(t, helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result))
+	assert.Equal(t, true, result["private"])
+	assert.Equal(t, map[string]any{"node": ">=20"}, result["engines"])
+	assert.Equal(t, []any{"packages/*"}, result["workspaces"])
+	assert.Equal(t, map[string]any{"@folio/users": "^1.0.0"}, result["dependencies"])
+	assert.NotContains(t, result, "devDependencies", "fields absent from the file must not appear")
+}
+
 func TestPreparePackageJSON_SingleTenant_RemovesConsortiaAndLdWrapper(t *testing.T) {
 	// Arrange
 	act := testhelpers.NewMockAction()
@@ -816,7 +852,7 @@ func TestPreparePackageJSON_SingleTenant_RemovesConsortiaAndLdWrapper(t *testing
 	// Assert
 	assert.NoError(t, err)
 
-	var result models.PackageJSON
+	var result packageJSONFile
 	err = helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result)
 	assert.NoError(t, err)
 
@@ -862,7 +898,7 @@ func TestPreparePackageJSON_MultiTenant_LinkedData_KeepsAll(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 
-	var result models.PackageJSON
+	var result packageJSONFile
 	err = helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result)
 	assert.NoError(t, err)
 
@@ -904,7 +940,7 @@ func TestPreparePackageJSON_MultiTenant_NoLinkedData_RemovesLdWrapper(t *testing
 	// Assert
 	assert.NoError(t, err)
 
-	var result models.PackageJSON
+	var result packageJSONFile
 	err = helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result)
 	assert.NoError(t, err)
 
@@ -956,7 +992,7 @@ func TestPreparePackageJSON_BuildScriptNotOverwritten(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 
-	var result models.PackageJSON
+	var result packageJSONFile
 	err = helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result)
 	assert.NoError(t, err)
 
@@ -993,7 +1029,7 @@ func TestPreparePackageJSON_NothingToRemove_NoWrite(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 
-	var result models.PackageJSON
+	var result packageJSONFile
 	err = helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result)
 	assert.NoError(t, err)
 
