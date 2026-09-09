@@ -10,6 +10,7 @@ const (
 	ApplicationPortStart                 = "application.port-start"
 	ApplicationPortEnd                   = "application.port-end"
 	ApplicationStripesBranch             = "application.stripes-branch"
+	ApplicationStripesURL                = "application.stripes-url"
 	ApplicationGatewayHostname           = "application.gateway-hostname"
 	ApplicationDependencies              = "application.dependencies"
 	Lsp                                  = "lsp"

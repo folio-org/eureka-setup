@@ -235,6 +235,14 @@ func IsSet(key string) bool {
 	return viper.IsSet(key)
 }
 
+func GetStringOrDefault(key string, fallback string) string {
+	if value := viper.GetString(key); value != "" {
+		return value
+	}
+
+	return fallback
+}
+
 func (a *Action) GetKafkaTopicConfigTenant(configTenant string) string {
 	if a.ConfigManagementTopicSharing {
 		return a.ConfigTopicSharingTenant

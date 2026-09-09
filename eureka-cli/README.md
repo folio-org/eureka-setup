@@ -42,6 +42,7 @@
   - [Using local frontend module descriptors](#using-local-frontend-module-descriptors)
   - [Using a backend module namespace](#using-a-backend-module-namespace)
   - [Using the UI](#using-the-ui)
+    - [Building the UI from a platform fork](#building-the-ui-from-a-platform-fork)
   - [Using Single Tenant UX](#using-single-tenant-ux)
   - [Using the environment](#using-the-environment)
   - [Using template environment variables](#using-template-environment-variables)
@@ -852,6 +853,34 @@ eureka-cli buildUi -u
 ```
 
 > The UI build is memory-hungry (the node process can peak at around 8 GB). Run `buildUi` before `deployApplication` so the build does not compete with a running platform for memory. If the build is too heavy for your machine altogether, fork this repository, add a `DOCKERHUB_TOKEN` secret, and dispatch the `Build And Push UI` workflow to build the image on GitHub-hosted runners instead. Then set `namespaces.platform-lsp-ui` to that namespace as shown above, and the CLI will pull the image rather than build it.
+
+### Building the UI from a platform fork
+
+The repository and branch the UI is built from are set per profile; both default to the upstream _platform-lsp_ `snapshot` branch. Point them at a fork, e.g. a vendor platform that adds its own UI modules, to build that platform instead:
+
+```yaml
+application:
+  stripes-url: https://example.org/vendor/platform-fork.git
+  stripes-branch: stable
+```
+
+- Both keys apply to a local build only, so pass `-b` after changing them; a reused image or a configured `namespaces.platform-lsp-ui` (see above) does not read them.
+- The local checkout in `~/.eureka/misc/platform-lsp` must come from the configured repository. If it was cloned from another one, the build stops with an error naming both repositories; pass `-u` to replace the checkout, which discards everything in it. Local branches, commits and edits in a checkout of the configured repository are built as they are.
+- A `file://` URL works as well, e.g. to build from a bare repository on the same machine
+- The fork must keep the _platform-lsp_ layout the build relies on: `docker/Dockerfile`, a `stripes.config.js` whose `${...}` placeholders are among the ones the CLI substitutes (an unknown placeholder fails the build, a file without placeholders is used as is), a `stripes.modules.js` and a `package.json`. The optional modules `@folio/consortia-settings` and `@folio/ld-folio-wrapper` are removed from both files if present, unless `--linkedData` or a multi-tenant deployment keeps them.
+- To switch a running environment to a fork, build first so a failing build leaves the running UI alone, then replace the container. `undeployUi` removes the UI containers of every tenant the platform knows, not only those of the current profile.
+
+```bash
+eureka-cli buildUi -u
+eureka-cli undeployUi
+eureka-cli deployUi
+```
+
+#### One UI bundle per tenant
+
+The UI image `platform-lsp-ui-{{tenant}}` and its container are built once per tenant from one repository. [Child application profiles](#deploy-child-applications) register their UI modules through `frontend-modules` for entitlement but do not contribute to the bundle and should not set `deploy-ui`: for a tenant whose UI is already deployed, a second profile reuses the existing image and skips the running container. A fork therefore has to contain the UI modules of every application it hosts, the base ones included; with several third-party applications one fork carries all of them.
+
+The UI is owned by the profile that deploys the platform.
 
 ## Using Single Tenant UX
 

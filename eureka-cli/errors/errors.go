@@ -184,6 +184,10 @@ func CloneFailed(repoLabel string, err error) error {
 	return fmt.Errorf("failed to clone repository %s: %w", repoLabel, err)
 }
 
+func CheckoutOriginMismatch(repoLabel string, dir string, configuredURL string, originURL string) error {
+	return fmt.Errorf("%w: checkout of %s at %s was cloned from %q, not from the configured %q; pass -u to replace the checkout or remove the directory", ErrInvalidInput, repoLabel, dir, originURL, configuredURL)
+}
+
 // ==================== Kafka Errors ====================
 
 func KafkaNotReady(err error) error {

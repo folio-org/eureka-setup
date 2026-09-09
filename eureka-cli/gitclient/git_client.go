@@ -1,6 +1,7 @@
 package gitclient
 
 import (
+	stderrors "errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -22,11 +23,12 @@ type GitClientRunner interface {
 
 // GitClientRepositoryProvisioner defines the interface for Git repository provisioning
 type GitClientRepositoryProvisioner interface {
-	PlatformLspRepository(branch plumbing.ReferenceName) (*gitrepository.GitRepository, error)
+	PlatformLspRepository(url string, branch plumbing.ReferenceName) (*gitrepository.GitRepository, error)
 }
 
 // GitClientManager defines the interface for Git repository management
 type GitClientManager interface {
+	EnsureCheckout(repository *gitrepository.GitRepository, replace bool) error
 	Clone(repository *gitrepository.GitRepository) error
 	ResetHardPullFromOrigin(repository *gitrepository.GitRepository) error
 }
@@ -41,13 +43,55 @@ func New(action *action.Action) *GitClient {
 	return &GitClient{Action: action}
 }
 
-func (gc *GitClient) PlatformLspRepository(branch plumbing.ReferenceName) (*gitrepository.GitRepository, error) {
-	var (
-		label = constant.PlatformLspLabel
-		url   = constant.PlatformLspRepositoryURL
-		dir   = constant.PlatformLspOutputDir
-	)
-	return gitrepository.New(gc.Action, label, url, dir, branch)
+func (gc *GitClient) PlatformLspRepository(url string, branch plumbing.ReferenceName) (*gitrepository.GitRepository, error) {
+	return gitrepository.New(gc.Action, constant.PlatformLspLabel, url, constant.PlatformLspOutputDir, branch)
+}
+
+// EnsureCheckout makes sure repository.Dir holds a clone of repository.URL: it clones when there is no checkout, and when the
+// checkout was cloned from another repository it replaces the checkout if replace is set and fails otherwise.
+// Branches, commits and edits inside a checkout of the configured repository are left alone.
+func (rc *GitClient) EnsureCheckout(repository *gitrepository.GitRepository, replace bool) error {
+	originURL, err := rc.originURL(repository)
+	if stderrors.Is(err, git.ErrRepositoryNotExists) {
+		return rc.Clone(repository)
+	}
+	if err != nil {
+		return err
+	}
+	if sameRemoteURL(originURL, repository.URL) {
+		return nil
+	}
+	if !replace {
+		return errors.CheckoutOriginMismatch(repository.Label, repository.Dir, repository.URL, originURL)
+	}
+
+	slog.Warn(rc.Action.Name, "text", "Replacing checkout cloned from another repository", "label", repository.Label, "dir", repository.Dir, "origin", originURL, "configured", repository.URL)
+	if err := os.RemoveAll(repository.Dir); err != nil {
+		return err
+	}
+
+	return rc.Clone(repository)
+}
+
+func (rc *GitClient) originURL(repository *gitrepository.GitRepository) (string, error) {
+	targetRepository, err := git.PlainOpen(repository.Dir)
+	if err != nil {
+		return "", err
+	}
+
+	remote, err := targetRepository.Remote(git.DefaultRemoteName)
+	if err != nil {
+		return "", err
+	}
+	if urls := remote.Config().URLs; len(urls) > 0 {
+		return urls[0], nil
+	}
+
+	return "", nil
+}
+
+func sameRemoteURL(a string, b string) bool {
+	return strings.TrimSuffix(a, "/") == strings.TrimSuffix(b, "/")
 }
 
 func (rc *GitClient) Clone(repository *gitrepository.GitRepository) error {

@@ -11,11 +11,11 @@ import (
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/folio-org/eureka-setup/eureka-cli/gitrepository"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/models"
-	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -69,168 +69,103 @@ func TestGetStripesBranch_ConfigValue(t *testing.T) {
 	assert.NotEmpty(t, branch)
 }
 
-func TestCloneAndUpdateRepository_CloneSuccess(t *testing.T) {
-	// Arrange
-	action := testhelpers.NewMockAction()
-	mockGitClient := new(testhelpers.MockGitClient)
-	svc := New(action, nil, mockGitClient, nil, nil)
+const testPlatformDir = "/home/test/platform-lsp"
 
-	mockRepo := &gitrepository.GitRepository{
+func newPlatformRepository() *gitrepository.GitRepository {
+	return &gitrepository.GitRepository{
 		Label:  "platform-lsp",
 		URL:    "https://github.com/test/platform-lsp.git",
-		Dir:    "/home/test/platform-lsp",
+		Dir:    testPlatformDir,
 		Branch: plumbing.NewBranchReferenceName("snapshot"),
 	}
-
-	mockGitClient.On("PlatformLspRepository", mock.Anything).
-		Return(mockRepo, nil)
-	mockGitClient.On("Clone", mockRepo).
-		Return(nil)
-
-	// Act
-	outputDir, err := svc.CloneAndUpdateRepository(false)
-
-	// Assert
-	assert.NoError(t, err)
-	assert.Equal(t, "/home/test/platform-lsp", outputDir)
-	mockGitClient.AssertExpectations(t)
 }
 
-func TestCloneAndUpdateRepository_AlreadyExists(t *testing.T) {
+func TestGetStripesURL_Default(t *testing.T) {
 	// Arrange
-	action := testhelpers.NewMockAction()
-	mockGitClient := new(testhelpers.MockGitClient)
-	svc := New(action, nil, mockGitClient, nil, nil)
-
-	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-lsp",
-		URL:    "https://github.com/test/platform-lsp.git",
-		Dir:    "/home/test/platform-lsp",
-		Branch: plumbing.NewBranchReferenceName("snapshot"),
-	}
-
-	mockGitClient.On("PlatformLspRepository", mock.Anything).
-		Return(mockRepo, nil)
-	mockGitClient.On("Clone", mockRepo).
-		Return(git.ErrRepositoryAlreadyExists)
+	svc := New(testhelpers.NewMockAction(), nil, nil, nil, nil)
 
 	// Act
-	outputDir, err := svc.CloneAndUpdateRepository(false)
+	url := svc.GetStripesURL()
 
 	// Assert
-	assert.NoError(t, err)
-	assert.Equal(t, "/home/test/platform-lsp", outputDir)
-	mockGitClient.AssertExpectations(t)
+	assert.Equal(t, constant.PlatformLspRepositoryURL, url)
 }
 
-func TestCloneAndUpdateRepository_CloneError(t *testing.T) {
+func TestGetStripesURL_ConfigValue(t *testing.T) {
 	// Arrange
-	action := testhelpers.NewMockAction()
-	mockGitClient := new(testhelpers.MockGitClient)
-	svc := New(action, nil, mockGitClient, nil, nil)
-
-	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-lsp",
-		URL:    "https://github.com/test/platform-lsp.git",
-		Dir:    "/home/test/platform-lsp",
-		Branch: plumbing.NewBranchReferenceName("snapshot"),
-	}
-	cloneErr := errors.New("clone failed")
-
-	mockGitClient.On("PlatformLspRepository", mock.Anything).
-		Return(mockRepo, nil)
-	mockGitClient.On("Clone", mockRepo).
-		Return(cloneErr)
+	viperConfig := testhelpers.SetupViperForTest(map[string]any{field.ApplicationStripesURL: "https://example.org/vendor/platform-fork.git"})
+	defer viperConfig.Reset()
+	svc := New(testhelpers.NewMockAction(), nil, nil, nil, nil)
 
 	// Act
-	outputDir, err := svc.CloneAndUpdateRepository(false)
+	url := svc.GetStripesURL()
 
 	// Assert
-	assert.Error(t, err)
-	assert.Equal(t, "", outputDir)
-	assert.Equal(t, cloneErr, err)
-	mockGitClient.AssertExpectations(t)
+	assert.Equal(t, "https://example.org/vendor/platform-fork.git", url)
 }
 
-func TestCloneAndUpdateRepository_WithUpdate(t *testing.T) {
-	// Arrange
-	action := testhelpers.NewMockAction()
-	mockGitClient := new(testhelpers.MockGitClient)
-	svc := New(action, nil, mockGitClient, nil, nil)
-
-	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-lsp",
-		URL:    "https://github.com/test/platform-lsp.git",
-		Dir:    "/home/test/platform-lsp",
-		Branch: plumbing.NewBranchReferenceName("snapshot"),
-	}
-
-	mockGitClient.On("PlatformLspRepository", mock.Anything).
-		Return(mockRepo, nil)
-	mockGitClient.On("Clone", mockRepo).
-		Return(git.ErrRepositoryAlreadyExists)
-	mockGitClient.On("ResetHardPullFromOrigin", mockRepo).
-		Return(nil)
-
-	// Act
-	outputDir, err := svc.CloneAndUpdateRepository(true)
-
-	// Assert
-	assert.NoError(t, err)
-	assert.Equal(t, "/home/test/platform-lsp", outputDir)
-	mockGitClient.AssertExpectations(t)
-}
-
-func TestCloneAndUpdateRepository_UpdateError(t *testing.T) {
-	// Arrange
-	action := testhelpers.NewMockAction()
-	mockGitClient := new(testhelpers.MockGitClient)
-	svc := New(action, nil, mockGitClient, nil, nil)
-
-	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-lsp",
-		URL:    "https://github.com/test/platform-lsp.git",
-		Dir:    "/home/test/platform-lsp",
-		Branch: plumbing.NewBranchReferenceName("snapshot"),
-	}
+func TestCloneAndUpdateRepository(t *testing.T) {
+	ensureErr := errors.New("checkout mismatch")
 	updateErr := errors.New("update failed")
 
-	mockGitClient.On("PlatformLspRepository", mock.Anything).
-		Return(mockRepo, nil)
-	mockGitClient.On("Clone", mockRepo).
-		Return(git.ErrRepositoryAlreadyExists)
-	mockGitClient.On("ResetHardPullFromOrigin", mockRepo).
-		Return(updateErr)
+	testCases := []struct {
+		name         string
+		updateCloned bool
+		ensureErr    error
+		updateErr    error
+		wantErr      error
+	}{
+		{"Checkout ensured without update", false, nil, nil, nil},
+		{"Checkout ensured and updated", true, nil, nil, nil},
+		{"Ensure error without update", false, ensureErr, nil, ensureErr},
+		{"Ensure error with update", true, ensureErr, nil, ensureErr},
+		{"Update error", true, nil, updateErr, updateErr},
+	}
 
-	// Act
-	outputDir, err := svc.CloneAndUpdateRepository(true)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Arrange
+			mockGitClient := new(testhelpers.MockGitClient)
+			svc := New(testhelpers.NewMockAction(), nil, mockGitClient, nil, nil)
+			mockRepo := newPlatformRepository()
+			mockGitClient.On("PlatformLspRepository", constant.PlatformLspRepositoryURL, mock.Anything).Return(mockRepo, nil)
+			mockGitClient.On("EnsureCheckout", mockRepo, tc.updateCloned).Return(tc.ensureErr)
+			if tc.ensureErr == nil && tc.updateCloned {
+				mockGitClient.On("ResetHardPullFromOrigin", mockRepo).Return(tc.updateErr)
+			}
 
-	// Assert
-	assert.Error(t, err)
-	assert.Equal(t, "", outputDir)
-	assert.Equal(t, updateErr, err)
-	mockGitClient.AssertExpectations(t)
+			// Act
+			outputDir, err := svc.CloneAndUpdateRepository(tc.updateCloned)
+
+			// Assert
+			assert.Equal(t, tc.wantErr, err)
+			if tc.wantErr == nil {
+				assert.Equal(t, testPlatformDir, outputDir)
+			} else {
+				assert.Equal(t, "", outputDir)
+			}
+			mockGitClient.AssertExpectations(t)
+			if tc.ensureErr != nil || !tc.updateCloned {
+				mockGitClient.AssertNotCalled(t, "ResetHardPullFromOrigin", mock.Anything)
+			}
+		})
+	}
 }
 
 func TestCloneAndUpdateRepository_RepositoryError(t *testing.T) {
 	// Arrange
-	action := testhelpers.NewMockAction()
 	mockGitClient := new(testhelpers.MockGitClient)
-	svc := New(action, nil, mockGitClient, nil, nil)
-
+	svc := New(testhelpers.NewMockAction(), nil, mockGitClient, nil, nil)
 	repoErr := errors.New("repository creation failed")
-
-	mockGitClient.On("PlatformLspRepository", mock.Anything).
-		Return(nil, repoErr)
+	mockGitClient.On("PlatformLspRepository", mock.Anything, mock.Anything).Return(nil, repoErr)
 
 	// Act
 	outputDir, err := svc.CloneAndUpdateRepository(false)
 
 	// Assert
-	assert.Error(t, err)
-	assert.Equal(t, "", outputDir)
 	assert.Equal(t, repoErr, err)
-	mockGitClient.AssertExpectations(t)
+	assert.Equal(t, "", outputDir)
+	mockGitClient.AssertNotCalled(t, "EnsureCheckout", mock.Anything, mock.Anything)
 }
 
 func TestPrepareImage_BuildImages(t *testing.T) {
@@ -245,16 +180,11 @@ func TestPrepareImage_BuildImages(t *testing.T) {
 	mockGitClient := new(testhelpers.MockGitClient)
 	svc := New(act, nil, mockGitClient, nil, nil)
 
-	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-lsp",
-		URL:    "https://github.com/test/platform-lsp.git",
-		Dir:    "/home/test/platform-lsp",
-		Branch: plumbing.NewBranchReferenceName("snapshot"),
-	}
+	mockRepo := newPlatformRepository()
 
-	mockGitClient.On("PlatformLspRepository", mock.Anything).
+	mockGitClient.On("PlatformLspRepository", mock.Anything, mock.Anything).
 		Return(mockRepo, nil)
-	mockGitClient.On("Clone", mockRepo).
+	mockGitClient.On("EnsureCheckout", mockRepo, false).
 		Return(nil)
 
 	// Act
@@ -352,17 +282,12 @@ func TestPrepareImage_NoNamespace_BuildsWhenImageMissing(t *testing.T) {
 	mockGitClient := new(testhelpers.MockGitClient)
 	svc := New(act, mockExec, mockGitClient, nil, nil)
 
-	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-lsp",
-		URL:    "https://github.com/test/platform-lsp.git",
-		Dir:    "/home/test/platform-lsp",
-		Branch: plumbing.NewBranchReferenceName("snapshot"),
-	}
+	mockRepo := newPlatformRepository()
 
 	mockExec.On("ExecReturnOutput", matchImageExistsCommand("platform-lsp-ui-test-tenant")).Return(bytes.Buffer{}, bytes.Buffer{}, nil)
-	mockGitClient.On("PlatformLspRepository", mock.Anything).
+	mockGitClient.On("PlatformLspRepository", mock.Anything, mock.Anything).
 		Return(mockRepo, nil)
-	mockGitClient.On("Clone", mockRepo).
+	mockGitClient.On("EnsureCheckout", mockRepo, false).
 		Return(nil)
 
 	// Act

@@ -1,7 +1,6 @@
 package uisvc
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -14,7 +13,6 @@ import (
 	"github.com/folio-org/eureka-setup/eureka-cli/execsvc"
 	"github.com/folio-org/eureka-setup/eureka-cli/gitclient"
 	"github.com/folio-org/eureka-setup/eureka-cli/tenantsvc"
-	"github.com/go-git/go-git/v5"
 )
 
 // UIProcessor defines the composite interface for all UI-related operations
@@ -61,22 +59,20 @@ func New(action *action.Action,
 	}
 }
 
+// CloneAndUpdateRepository makes sure the platform checkout comes from the configured repository and returns its directory.
+// A checkout cloned from another repository is replaced when updateCloned is set and is an error otherwise.
 func (us *UISvc) CloneAndUpdateRepository(updateCloned bool) (string, error) {
 	slog.Info(us.Action.Name, "text", "CLONING & UPDATING PLATFORM LSP UI REPOSITORY")
-	branch := us.GetStripesBranch()
-	repository, err := us.GitClient.PlatformLspRepository(branch)
+	repository, err := us.GitClient.PlatformLspRepository(us.GetStripesURL(), us.GetStripesBranch())
 	if err != nil {
 		return "", err
 	}
 
-	err = us.GitClient.Clone(repository)
-	if err != nil && !errors.Is(err, git.ErrRepositoryAlreadyExists) {
+	if err := us.GitClient.EnsureCheckout(repository, updateCloned); err != nil {
 		return "", err
 	}
-
 	if updateCloned {
-		err = us.GitClient.ResetHardPullFromOrigin(repository)
-		if err != nil {
+		if err := us.GitClient.ResetHardPullFromOrigin(repository); err != nil {
 			return "", err
 		}
 	}

@@ -24,9 +24,18 @@ var stripesPlaceholderPattern = regexp.MustCompile(`\$\{([^}]*)\}`)
 
 // UIStripesConfigProcessor defines the interface for UI Stripes configuration operations
 type UIStripesConfigProcessor interface {
+	GetStripesURL() string
 	GetStripesBranch() plumbing.ReferenceName
 	PrepareStripesConfigJS(tenantName string, configPath string) error
 	PrepareStripesModulesJS(outputDir string) error
+}
+
+// GetStripesURL returns the platform repository the UI is built from: application.stripes-url, or the upstream platform-lsp repository
+func (us *UISvc) GetStripesURL() string {
+	url := action.GetStringOrDefault(field.ApplicationStripesURL, constant.PlatformLspRepositoryURL)
+	slog.Info(us.Action.Name, "text", "Using stripes url", "url", url)
+
+	return url
 }
 
 func (us *UISvc) GetStripesBranch() plumbing.ReferenceName {
