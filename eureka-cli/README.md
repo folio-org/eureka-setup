@@ -812,10 +812,10 @@ namespaces:
 The environment depends on the [platform-lsp](https://github.com/folio-org/platform-lsp) project to combine and assemble frontend modules into a single UI package. No official prebuilt UI image is published to any registry, so by default the CLI builds the UI image locally from the _platform-lsp_ repository.
 
 - The image `{{platform}}-ui-{{tenant}}` (`platform-lsp-ui-diku` by default; the platform part is the name of the repository the UI is built from) is built automatically during `deployApplication` or `deployUi` for every tenant with `deploy-ui: true` in the config, and is reused on subsequent runs
-- To force a rebuild (e.g. to include the latest module versions), pass the `-b` flag, optionally combined with `-u` to first update the local _platform-lsp_ repository
+- To force a rebuild (e.g. to include the latest module versions), pass the `-b` flag, optionally combined with `-u` to first update the local _platform-lsp_ repository, which brings the checkout to `stripes-branch` as it is on origin and discards local changes (see [Building the UI from a platform fork](#building-the-ui-from-a-platform-fork))
 
 ```bash
-# Will rebuild and redeploy only the platform-lsp image
+# Will rebuild the platform-lsp image; a running UI container is kept, see below
 eureka-cli deployUi -b -u
 
 # Will do the same during a full deployment
@@ -841,7 +841,7 @@ eureka-cli buildUi -u
 eureka-cli deployApplication --skipUi
 ```
 
-- To pull a prebuilt UI image from a registry instead of building locally, set the `namespaces.platform-lsp-ui` key in the config; the CLI will then pull `{{namespace}}/{{platform}}-ui-{{tenant}}` on every deployment instead of building. The `buildAndPushUi` command builds such an image and pushes it to a namespace of your choice.
+- To pull a prebuilt UI image from a registry instead of building locally, set the `namespaces.platform-lsp-ui` key in the config; the CLI will then pull `{{namespace}}/{{platform}}-ui-{{tenant}}` on every deployment instead of building, unless `-b` is passed, which builds locally. The `buildAndPushUi` command builds such an image and pushes it to a namespace of your choice.
 
 ```yaml
 namespaces:
@@ -865,13 +865,13 @@ application:
   stripes-config: stripes.local-eureka.config.js # default stripes.config.js
 ```
 
-- The image is named after the repository, e.g. `platform-fork-ui-diku`, so repositories with different names keep separate images and switching between them reuses the image that exists; a fork that keeps the upstream name shares `platform-lsp-ui-{{tenant}}` with upstream. Pass `-b -u` to rebuild from the configured repository and branch, e.g. after changing `stripes-branch` or switching between same-named repositories; `-b` alone rebuilds the checkout as it is. A configured `namespaces.platform-lsp-ui` (see above) pulls instead of building.
+- The image is named after the repository, e.g. `platform-fork-ui-diku`, so repositories with different names keep separate images and switching between them reuses the image that exists; a fork that keeps the upstream name shares `platform-lsp-ui-{{tenant}}` with upstream. Pass `-b -u` to rebuild from the configured repository and branch, e.g. after changing `stripes-branch` or switching between same-named repositories; `-b` alone rebuilds the checkout as it is. A configured `namespaces.platform-lsp-ui` (see above) pulls instead of building, unless `-b` is passed, which builds locally.
 - The local checkout in `~/.eureka/misc/platform-lsp` must come from the configured repository. If it was cloned from another one, the build stops with an error naming both repositories; pass `-u` to replace the checkout, which discards everything in it.
 - Without `-u`, the checkout is built as it is: local branches, commits and edits are kept, and a warning names the checked-out branch if it differs from `stripes-branch`. With `-u`, the checkout is brought to `stripes-branch` as it is on origin: the branch is fetched and checked out, untracked files and uncommitted changes are discarded, other local branches are kept.
 - A `file://` URL works as well, e.g. to build from a bare repository on the same machine
-- The fork must keep the _platform-lsp_ layout the build relies on: `docker/Dockerfile`, a `stripes.config.js` whose `${...}` placeholders are among the ones the CLI substitutes (an unknown placeholder fails the build, a file without placeholders is used as is), and a `package.json` whose `build` script builds `stripes.config.js`, as the _platform-lsp_ one does; the CLI edits these files in the build copy and relies on the build reading them. The optional modules `@folio/consortia-settings` and `@folio/ld-folio-wrapper` are removed from `stripes.modules.js` and `package.json` if present, unless `--linkedData` or a multi-tenant deployment keeps them. A fork that keeps its modules inline in its Stripes config needs no `stripes.modules.js`; it then must not list those two modules itself. All edits happen in a temporary build copy, the checkout is never modified. `package.json` is rewritten only when one of the two modules was actually removed, with every other field kept (the rewritten file has its keys sorted); otherwise it is used as it is.
-- The build substitutes and builds `stripes.config.js`. For a fork that keeps several Stripes configs, `application.stripes-config` names another file of the repository (path relative to its root) to build instead: it is copied over `stripes.config.js` in the build copy first, the same placeholder rules apply, and a file that is not in the repository fails the build.
-- To switch a running environment to a fork, build first so a failing build leaves the running UI alone, then replace the container. `undeployUi` removes the UI containers of every tenant the platform knows, not only those of the current profile.
+- The fork must keep the _platform-lsp_ layout the build relies on: `docker/Dockerfile`, a Stripes config (`stripes.config.js`, or the file `stripes-config` selects) whose `${...}` placeholders are among the ones the CLI substitutes (an unknown placeholder fails the build, a file without placeholders is used as is), and a `package.json` whose `build` script builds `stripes.config.js`, as the _platform-lsp_ one does; the CLI edits these files in the build copy and relies on the build reading them. The optional modules `@folio/consortia-settings` and `@folio/ld-folio-wrapper` are removed from `stripes.modules.js` and `package.json` if present, unless `--linkedData` or a multi-tenant deployment keeps them. A fork that keeps its modules inline in its Stripes config needs no `stripes.modules.js`; inline module lists are not filtered, so omit `@folio/consortia-settings` for single-tenant builds and `@folio/ld-folio-wrapper` when `--linkedData` is disabled. All edits happen in a temporary build copy, the checkout is never modified. `package.json` is rewritten only when one of the two modules was actually removed, with every other field kept (the rewritten file has its keys sorted); otherwise it is used as it is.
+- The build substitutes and builds `stripes.config.js`. For a fork that keeps several Stripes configs, `application.stripes-config` names another file of the repository (path relative to its root) to build instead: it is substituted and written as `stripes.config.js` in the build copy, the same placeholder rules apply, and a file that is not in the repository fails the build.
+- To switch a running environment to a fork, build first so a failing build leaves the running UI alone, then replace the container, with `namespaces.platform-lsp-ui` unset, otherwise `deployUi` pulls instead of using the image just built. `undeployUi` removes the UI containers of every tenant the platform knows, not only those of the current profile.
 
 ```bash
 eureka-cli buildUi -u
