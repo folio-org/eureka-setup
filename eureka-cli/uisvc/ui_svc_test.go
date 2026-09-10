@@ -1214,6 +1214,21 @@ func TestDeployContainer_AlreadyExists_Skipped(t *testing.T) {
 
 // ==================== PrepareStripesModulesJS Tests ====================
 
+func TestPrepareStripesModulesJS_MissingFile_IsSkipped(t *testing.T) {
+	// Arrange: a fork keeping its modules inline has no stripes.modules.js
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{SingleTenant: true, LinkedData: false}
+	svc := New(act, nil, nil, nil, nil)
+	tempDir := t.TempDir()
+
+	// Act
+	err := svc.PrepareStripesModulesJS(tempDir)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.NoFileExists(t, filepath.Join(tempDir, "stripes.modules.js"), "the file is not created")
+}
+
 func TestPrepareStripesModulesJS_SingleTenant_RemovesConsortia(t *testing.T) {
 	// Arrange
 	act := testhelpers.NewMockAction()
@@ -1274,19 +1289,6 @@ func TestPrepareStripesModulesJS_MultiTenant_LinkedData_NoChanges(t *testing.T) 
 	result := testhelpers.ReadFileContent(t, tempDir, "stripes.modules.js")
 	assert.Contains(t, result, "'@folio/consortia-settings':")
 	assert.Contains(t, result, "'@folio/ld-folio-wrapper':")
-}
-
-func TestPrepareStripesModulesJS_FileNotFound(t *testing.T) {
-	// Arrange
-	act := testhelpers.NewMockAction()
-	act.Param = &action.Param{SingleTenant: true, LinkedData: false}
-	svc := New(act, nil, nil, nil, nil)
-
-	// Act
-	err := svc.PrepareStripesModulesJS("/nonexistent/path")
-
-	// Assert
-	assert.Error(t, err)
 }
 
 func TestPrepareStripesModulesJS_BothRemoved(t *testing.T) {

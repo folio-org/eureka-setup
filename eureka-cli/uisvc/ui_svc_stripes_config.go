@@ -151,6 +151,11 @@ func (us *UISvc) PrepareStripesModulesJS(outputDir string) error {
 
 	filePath := filepath.Join(outputDir, "stripes.modules.js")
 	content, err := os.ReadFile(filePath)
+	if errors.Is(err, os.ErrNotExist) {
+		// A fork may keep its modules inline in its Stripes config; nothing to remove then
+		slog.Info(us.Action.Name, "text", "No stripes.modules.js in the repository, optional modules not removed", "modules", modulesToRemove)
+		return nil
+	}
 	if err != nil {
 		return err
 	}
