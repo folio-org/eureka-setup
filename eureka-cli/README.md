@@ -856,19 +856,21 @@ eureka-cli buildUi -u
 
 ### Building the UI from a platform fork
 
-The repository and branch the UI is built from are set per profile; both default to the upstream _platform-lsp_ `snapshot` branch. Point them at a fork, e.g. a vendor platform that adds its own UI modules, to build that platform instead:
+The repository, branch and Stripes config the UI is built from are set per profile; all three are optional and default to the upstream _platform-lsp_ `snapshot` branch and its `stripes.config.js`. Point them at a fork, e.g. a vendor platform that adds its own UI modules, to build that platform instead:
 
 ```yaml
 application:
-  stripes-url: https://example.org/vendor/platform-fork.git
-  stripes-branch: stable
+  stripes-url: https://example.org/vendor/platform-fork.git # default https://github.com/folio-org/platform-lsp.git
+  stripes-branch: stable # default snapshot
+  stripes-config: stripes.local-eureka.config.js # default stripes.config.js
 ```
 
 - The image is named after the repository, e.g. `platform-fork-ui-diku`, so repositories with different names keep separate images and switching between them reuses the image that exists; a fork that keeps the upstream name shares `platform-lsp-ui-{{tenant}}` with upstream. Pass `-b -u` to rebuild from the configured repository and branch, e.g. after changing `stripes-branch` or switching between same-named repositories; `-b` alone rebuilds the checkout as it is. A configured `namespaces.platform-lsp-ui` (see above) pulls instead of building.
 - The local checkout in `~/.eureka/misc/platform-lsp` must come from the configured repository. If it was cloned from another one, the build stops with an error naming both repositories; pass `-u` to replace the checkout, which discards everything in it.
 - Without `-u`, the checkout is built as it is: local branches, commits and edits are kept, and a warning names the checked-out branch if it differs from `stripes-branch`. With `-u`, the checkout is brought to `stripes-branch` as it is on origin: the branch is fetched and checked out, untracked files and uncommitted changes are discarded, other local branches are kept.
 - A `file://` URL works as well, e.g. to build from a bare repository on the same machine
-- The fork must keep the _platform-lsp_ layout the build relies on: `docker/Dockerfile`, a `stripes.config.js` whose `${...}` placeholders are among the ones the CLI substitutes (an unknown placeholder fails the build, a file without placeholders is used as is), a `stripes.modules.js` and a `package.json`. The optional modules `@folio/consortia-settings` and `@folio/ld-folio-wrapper` are removed from both files if present, unless `--linkedData` or a multi-tenant deployment keeps them. All edits happen in a temporary build copy, the checkout is never modified. `package.json` is rewritten only when one of the two modules was actually removed, with every other field kept (the rewritten file has its keys sorted); otherwise it is used as it is.
+- The fork must keep the _platform-lsp_ layout the build relies on: `docker/Dockerfile`, a `stripes.config.js` whose `${...}` placeholders are among the ones the CLI substitutes (an unknown placeholder fails the build, a file without placeholders is used as is), a `stripes.modules.js` and a `package.json` whose `build` script builds `stripes.config.js`, as the _platform-lsp_ one does; the CLI edits these files in the build copy and relies on the build reading them. The optional modules `@folio/consortia-settings` and `@folio/ld-folio-wrapper` are removed from both files if present, unless `--linkedData` or a multi-tenant deployment keeps them. All edits happen in a temporary build copy, the checkout is never modified. `package.json` is rewritten only when one of the two modules was actually removed, with every other field kept (the rewritten file has its keys sorted); otherwise it is used as it is.
+- The build substitutes and builds `stripes.config.js`. For a fork that keeps several Stripes configs, `application.stripes-config` names another file of the repository (path relative to its root) to build instead: it is copied over `stripes.config.js` in the build copy first, the same placeholder rules apply, and a file that is not in the repository fails the build.
 - To switch a running environment to a fork, build first so a failing build leaves the running UI alone, then replace the container. `undeployUi` removes the UI containers of every tenant the platform knows, not only those of the current profile.
 
 ```bash

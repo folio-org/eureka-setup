@@ -264,6 +264,14 @@ func StripesConfigPlaceholdersUnresolved(placeholders []string) error {
 	return fmt.Errorf("%w: stripes.config.js still contains placeholder(s) the CLI does not substitute, the UI build would fail on them: %s", ErrDeploymentFailed, strings.Join(placeholders, ", "))
 }
 
+func StripesConfigInvalid(key string, value string) error {
+	return fmt.Errorf("%w: %s %q must be a path relative to the repository root, without \"..\"", ErrInvalidInput, key, value)
+}
+
+func StripesConfigMissing(key string, value string, repositoryURL string) error {
+	return fmt.Errorf("%w: %s %q is not in the repository %s", ErrNotFound, key, value, repositoryURL)
+}
+
 func ModuleAlreadyInBaseApplication(moduleName, baseApplicationName string) error {
 	return fmt.Errorf("%w: %s is already provided by application %s; use upgradeModule to change its version", ErrInvalidInput, moduleName, baseApplicationName)
 }

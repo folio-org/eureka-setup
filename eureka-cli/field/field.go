@@ -11,6 +11,7 @@ const (
 	ApplicationPortEnd                   = "application.port-end"
 	ApplicationStripesBranch             = "application.stripes-branch"
 	ApplicationStripesURL                = "application.stripes-url"
+	ApplicationStripesConfig             = "application.stripes-config"
 	ApplicationGatewayHostname           = "application.gateway-hostname"
 	ApplicationDependencies              = "application.dependencies"
 	Lsp                                  = "lsp"

@@ -546,6 +546,11 @@ func (m *MockUISvc) GetStripesURL() string {
 	return args.String(0)
 }
 
+func (m *MockUISvc) GetStripesConfig() string {
+	args := m.Called()
+	return args.String(0)
+}
+
 func (m *MockUISvc) GetStripesBranch() plumbing.ReferenceName {
 	args := m.Called()
 	return args.Get(0).(plumbing.ReferenceName)

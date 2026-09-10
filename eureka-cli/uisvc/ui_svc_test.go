@@ -11,6 +11,7 @@ import (
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	apperrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/folio-org/eureka-setup/eureka-cli/gitrepository"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
@@ -18,6 +19,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNew(t *testing.T) {
@@ -101,6 +103,115 @@ func TestGetStripesURL_ConfigValue(t *testing.T) {
 
 	// Assert
 	assert.Equal(t, "https://example.org/vendor/platform-fork.git", url)
+}
+
+func TestGetStripesConfig_Default(t *testing.T) {
+	// Arrange
+	svc := New(testhelpers.NewMockAction(), nil, nil, nil, nil)
+
+	// Act
+	config := svc.GetStripesConfig()
+
+	// Assert
+	assert.Equal(t, constant.StripesConfigFile, config)
+}
+
+func TestGetStripesConfig_ConfigValue(t *testing.T) {
+	// Arrange
+	viperConfig := testhelpers.SetupViperForTest(map[string]any{field.ApplicationStripesConfig: "stripes.local.config.js"})
+	defer viperConfig.Reset()
+	svc := New(testhelpers.NewMockAction(), nil, nil, nil, nil)
+
+	// Act
+	config := svc.GetStripesConfig()
+
+	// Assert
+	assert.Equal(t, "stripes.local.config.js", config)
+}
+
+func TestPrepareStripesConfigJS_SelectedConfig(t *testing.T) {
+	testCases := []struct {
+		name       string
+		config     string
+		wantConfig string // content of stripes.config.js afterwards
+		wantErr    error
+	}{
+		{"Default substitutes stripes.config.js", "", "default " + constant.KongExternalHTTP, nil},
+		{"Another file is substituted into stripes.config.js", "stripes.local.config.js", "local " + constant.KongExternalHTTP, nil},
+		{"A file in a subdirectory", "configs/eureka.js", "nested " + constant.KongExternalHTTP, nil},
+		{"A file that is not in the repository", "stripes.nope.config.js", "default ${kongUrl}", apperrors.ErrNotFound},
+		{"A path outside the repository", "../stripes.config.js", "default ${kongUrl}", apperrors.ErrInvalidInput},
+		{"An absolute path", "/etc/stripes.config.js", "default ${kongUrl}", apperrors.ErrInvalidInput},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Arrange
+			settings := map[string]any{}
+			if tc.config != "" {
+				settings[field.ApplicationStripesConfig] = tc.config
+			}
+			viperConfig := testhelpers.SetupViperForTest(settings)
+			defer viperConfig.Reset()
+			act := testhelpers.NewMockAction()
+			act.Param = &action.Param{SingleTenant: true, PlatformLspURL: "http://localhost:3000"}
+			svc := New(act, nil, nil, nil, nil)
+			buildDir := t.TempDir()
+			require.NoError(t, os.MkdirAll(filepath.Join(buildDir, "configs"), 0755))
+			testhelpers.CreateFileInDir(t, buildDir, "stripes.config.js", "default ${kongUrl}")
+			testhelpers.CreateFileInDir(t, buildDir, "stripes.local.config.js", "local ${kongUrl}")
+			testhelpers.CreateFileInDir(t, filepath.Join(buildDir, "configs"), "eureka.js", "nested ${kongUrl}")
+
+			// Act
+			err := svc.PrepareStripesConfigJS("test-tenant", buildDir)
+
+			// Assert
+			if tc.wantErr != nil {
+				assert.ErrorIs(t, err, tc.wantErr)
+				assert.Contains(t, err.Error(), tc.config)
+				assert.Contains(t, err.Error(), field.ApplicationStripesConfig)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tc.wantConfig, testhelpers.ReadFileContent(t, buildDir, "stripes.config.js"))
+			assert.Equal(t, "local ${kongUrl}", testhelpers.ReadFileContent(t, buildDir, "stripes.local.config.js"), "the selected file itself is kept")
+		})
+	}
+}
+
+func TestBuildImage_SelectedStripesConfigIsSubstituted(t *testing.T) {
+	// Arrange
+	viperConfig := testhelpers.SetupViperForTest(map[string]any{field.ApplicationStripesConfig: "stripes.local.config.js"})
+	defer viperConfig.Reset()
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{SingleTenant: true}
+	mockExec := new(testhelpers.MockCommandExecutor)
+	svc := New(act, mockExec, nil, nil, nil)
+
+	sourceDir := t.TempDir()
+	defaultConfig := `okapi: {url: "${kongUrl}"}, marker: "default"`
+	localConfig := `okapi: {url: "${kongUrl}"}, marker: "local"`
+	assert.NoError(t, os.WriteFile(filepath.Join(sourceDir, "stripes.config.js"), []byte(defaultConfig), 0644))
+	assert.NoError(t, os.WriteFile(filepath.Join(sourceDir, "stripes.local.config.js"), []byte(localConfig), 0644))
+	assert.NoError(t, os.WriteFile(filepath.Join(sourceDir, "stripes.modules.js"), []byte("'@folio/users': {},\n"), 0644))
+	assert.NoError(t, os.WriteFile(filepath.Join(sourceDir, "package.json"), []byte(`{"dependencies": {"@folio/users": "1.0.0"}}`), 0644))
+
+	var builtConfig string
+	mockExec.On("ExecFromDir", mock.Anything, mock.MatchedBy(func(dir string) bool { return dir != sourceDir })).
+		Run(func(args mock.Arguments) {
+			builtConfig = testhelpers.ReadFileContent(t, args.String(1), "stripes.config.js")
+		}).
+		Return(nil)
+
+	// Act
+	_, err := svc.BuildImage("test-tenant", sourceDir)
+
+	// Assert
+	assert.NoError(t, err)
+	mockExec.AssertExpectations(t)
+	assert.Equal(t, `okapi: {url: "`+constant.KongExternalHTTP+`"}, marker: "local"`, builtConfig, "the selected file is what gets substituted and built")
+	assert.Equal(t, defaultConfig, testhelpers.ReadFileContent(t, sourceDir, "stripes.config.js"), "the checkout is untouched")
+	assert.Equal(t, localConfig, testhelpers.ReadFileContent(t, sourceDir, "stripes.local.config.js"))
 }
 
 func TestPlatformName(t *testing.T) {
