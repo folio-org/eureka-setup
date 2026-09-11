@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
-	"github.com/folio-org/eureka-setup/eureka-cli/models"
 )
 
 // UIPackageJSONProcessor defines the interface for UI package.json operations
@@ -15,14 +14,16 @@ type UIPackageJSONProcessor interface {
 	PreparePackageJSON(configPath string) error
 }
 
+// PreparePackageJSON removes the optional UI modules from the dependencies of package.json and leaves every other field as it is
 func (us *UISvc) PreparePackageJSON(configPath string) error {
-	var packageJSON models.PackageJSON
+	var packageJSON map[string]any
 	packageJSONPath := filepath.Join(configPath, "package.json")
 
 	err := helpers.ReadJSONFromFile(packageJSONPath, &packageJSON)
 	if err != nil {
 		return err
 	}
+	dependencies, _ := packageJSON["dependencies"].(map[string]any)
 
 	var modulesToRemove []string
 	if us.Action.Param.SingleTenant {
@@ -34,8 +35,8 @@ func (us *UISvc) PreparePackageJSON(configPath string) error {
 
 	removed := 0
 	for _, mod := range modulesToRemove {
-		if _, exists := packageJSON.Dependencies[mod]; exists {
-			delete(packageJSON.Dependencies, mod)
+		if _, exists := dependencies[mod]; exists {
+			delete(dependencies, mod)
 			removed++
 		}
 	}

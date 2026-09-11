@@ -11,14 +11,15 @@ import (
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	apperrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
+	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/folio-org/eureka-setup/eureka-cli/gitrepository"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
-	"github.com/folio-org/eureka-setup/eureka-cli/models"
-	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNew(t *testing.T) {
@@ -69,168 +70,242 @@ func TestGetStripesBranch_ConfigValue(t *testing.T) {
 	assert.NotEmpty(t, branch)
 }
 
-func TestCloneAndUpdateRepository_CloneSuccess(t *testing.T) {
-	// Arrange
-	action := testhelpers.NewMockAction()
-	mockGitClient := new(testhelpers.MockGitClient)
-	svc := New(action, nil, mockGitClient, nil, nil)
+const testPlatformDir = "/home/test/platform-lsp"
 
-	mockRepo := &gitrepository.GitRepository{
+func newPlatformRepository() *gitrepository.GitRepository {
+	return &gitrepository.GitRepository{
 		Label:  "platform-lsp",
 		URL:    "https://github.com/test/platform-lsp.git",
-		Dir:    "/home/test/platform-lsp",
+		Dir:    testPlatformDir,
 		Branch: plumbing.NewBranchReferenceName("snapshot"),
 	}
+}
 
-	mockGitClient.On("PlatformLspRepository", mock.Anything).
-		Return(mockRepo, nil)
-	mockGitClient.On("Clone", mockRepo).
+func TestGetStripesURL_Default(t *testing.T) {
+	// Arrange
+	svc := New(testhelpers.NewMockAction(), nil, nil, nil, nil)
+
+	// Act
+	url := svc.GetStripesURL()
+
+	// Assert
+	assert.Equal(t, constant.PlatformLspRepositoryURL, url)
+}
+
+func TestGetStripesURL_ConfigValue(t *testing.T) {
+	// Arrange
+	viperConfig := testhelpers.SetupViperForTest(map[string]any{field.ApplicationStripesURL: "https://example.org/vendor/platform-fork.git"})
+	defer viperConfig.Reset()
+	svc := New(testhelpers.NewMockAction(), nil, nil, nil, nil)
+
+	// Act
+	url := svc.GetStripesURL()
+
+	// Assert
+	assert.Equal(t, "https://example.org/vendor/platform-fork.git", url)
+}
+
+func TestGetStripesConfig_Default(t *testing.T) {
+	// Arrange
+	svc := New(testhelpers.NewMockAction(), nil, nil, nil, nil)
+
+	// Act
+	config := svc.GetStripesConfig()
+
+	// Assert
+	assert.Equal(t, constant.StripesConfigFile, config)
+}
+
+func TestGetStripesConfig_ConfigValue(t *testing.T) {
+	// Arrange
+	viperConfig := testhelpers.SetupViperForTest(map[string]any{field.ApplicationStripesConfig: "stripes.local.config.js"})
+	defer viperConfig.Reset()
+	svc := New(testhelpers.NewMockAction(), nil, nil, nil, nil)
+
+	// Act
+	config := svc.GetStripesConfig()
+
+	// Assert
+	assert.Equal(t, "stripes.local.config.js", config)
+}
+
+func TestPrepareStripesConfigJS_SelectedConfig(t *testing.T) {
+	testCases := []struct {
+		name       string
+		config     string
+		wantConfig string // content of stripes.config.js afterwards
+		wantErr    error
+	}{
+		{"Default substitutes stripes.config.js", "", "default " + constant.KongExternalHTTP, nil},
+		{"Another file is substituted into stripes.config.js", "stripes.local.config.js", "local " + constant.KongExternalHTTP, nil},
+		{"A file in a subdirectory", "configs/eureka.js", "nested " + constant.KongExternalHTTP, nil},
+		{"A file that is not in the repository", "stripes.nope.config.js", "default ${kongUrl}", apperrors.ErrNotFound},
+		{"A path outside the repository", "../stripes.config.js", "default ${kongUrl}", apperrors.ErrInvalidInput},
+		{"An absolute path", "/etc/stripes.config.js", "default ${kongUrl}", apperrors.ErrInvalidInput},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Arrange
+			settings := map[string]any{}
+			if tc.config != "" {
+				settings[field.ApplicationStripesConfig] = tc.config
+			}
+			viperConfig := testhelpers.SetupViperForTest(settings)
+			defer viperConfig.Reset()
+			act := testhelpers.NewMockAction()
+			act.Param = &action.Param{SingleTenant: true, PlatformLspURL: "http://localhost:3000"}
+			svc := New(act, nil, nil, nil, nil)
+			buildDir := t.TempDir()
+			require.NoError(t, os.MkdirAll(filepath.Join(buildDir, "configs"), 0755))
+			testhelpers.CreateFileInDir(t, buildDir, "stripes.config.js", "default ${kongUrl}")
+			testhelpers.CreateFileInDir(t, buildDir, "stripes.local.config.js", "local ${kongUrl}")
+			testhelpers.CreateFileInDir(t, filepath.Join(buildDir, "configs"), "eureka.js", "nested ${kongUrl}")
+
+			// Act
+			err := svc.PrepareStripesConfigJS("test-tenant", buildDir)
+
+			// Assert
+			if tc.wantErr != nil {
+				assert.ErrorIs(t, err, tc.wantErr)
+				assert.Contains(t, err.Error(), tc.config)
+				assert.Contains(t, err.Error(), field.ApplicationStripesConfig)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tc.wantConfig, testhelpers.ReadFileContent(t, buildDir, "stripes.config.js"))
+			assert.Equal(t, "local ${kongUrl}", testhelpers.ReadFileContent(t, buildDir, "stripes.local.config.js"), "the selected file itself is kept")
+		})
+	}
+}
+
+func TestBuildImage_SelectedStripesConfigIsSubstituted(t *testing.T) {
+	// Arrange
+	viperConfig := testhelpers.SetupViperForTest(map[string]any{field.ApplicationStripesConfig: "stripes.local.config.js"})
+	defer viperConfig.Reset()
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{SingleTenant: true}
+	mockExec := new(testhelpers.MockCommandExecutor)
+	svc := New(act, mockExec, nil, nil, nil)
+
+	sourceDir := t.TempDir()
+	defaultConfig := `okapi: {url: "${kongUrl}"}, marker: "default"`
+	localConfig := `okapi: {url: "${kongUrl}"}, marker: "local"`
+	assert.NoError(t, os.WriteFile(filepath.Join(sourceDir, "stripes.config.js"), []byte(defaultConfig), 0644))
+	assert.NoError(t, os.WriteFile(filepath.Join(sourceDir, "stripes.local.config.js"), []byte(localConfig), 0644))
+	assert.NoError(t, os.WriteFile(filepath.Join(sourceDir, "stripes.modules.js"), []byte("'@folio/users': {},\n"), 0644))
+	assert.NoError(t, os.WriteFile(filepath.Join(sourceDir, "package.json"), []byte(`{"dependencies": {"@folio/users": "1.0.0"}}`), 0644))
+
+	var builtConfig string
+	mockExec.On("ExecFromDir", mock.Anything, mock.MatchedBy(func(dir string) bool { return dir != sourceDir })).
+		Run(func(args mock.Arguments) {
+			builtConfig = testhelpers.ReadFileContent(t, args.String(1), "stripes.config.js")
+		}).
 		Return(nil)
 
 	// Act
-	outputDir, err := svc.CloneAndUpdateRepository(false)
+	_, err := svc.BuildImage("test-tenant", sourceDir)
 
 	// Assert
 	assert.NoError(t, err)
-	assert.Equal(t, "/home/test/platform-lsp", outputDir)
-	mockGitClient.AssertExpectations(t)
+	mockExec.AssertExpectations(t)
+	assert.Equal(t, `okapi: {url: "`+constant.KongExternalHTTP+`"}, marker: "local"`, builtConfig, "the selected file is what gets substituted and built")
+	assert.Equal(t, defaultConfig, testhelpers.ReadFileContent(t, sourceDir, "stripes.config.js"), "the checkout is untouched")
+	assert.Equal(t, localConfig, testhelpers.ReadFileContent(t, sourceDir, "stripes.local.config.js"))
 }
 
-func TestCloneAndUpdateRepository_AlreadyExists(t *testing.T) {
-	// Arrange
-	action := testhelpers.NewMockAction()
-	mockGitClient := new(testhelpers.MockGitClient)
-	svc := New(action, nil, mockGitClient, nil, nil)
-
-	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-lsp",
-		URL:    "https://github.com/test/platform-lsp.git",
-		Dir:    "/home/test/platform-lsp",
-		Branch: plumbing.NewBranchReferenceName("snapshot"),
+func TestPlatformName(t *testing.T) {
+	testCases := []struct {
+		url  string
+		want string
+	}{
+		{constant.PlatformLspRepositoryURL, "platform-lsp"},
+		{"https://gitlab.com/knowledge-integration/libraries/networks/platform-ill.git", "platform-ill"},
+		{"git@github.com:vendor/Platform-Fork.git", "platform-fork"},
+		{"file:///home/dev/platform-fork.git/", "platform-fork"},
+		{"/home/dev/my platform", "my-platform"},
+		{"https://example.org/platform-lsp", "platform-lsp"},
 	}
 
-	mockGitClient.On("PlatformLspRepository", mock.Anything).
-		Return(mockRepo, nil)
-	mockGitClient.On("Clone", mockRepo).
-		Return(git.ErrRepositoryAlreadyExists)
+	for _, tc := range testCases {
+		t.Run(tc.url, func(t *testing.T) {
+			assert.Equal(t, tc.want, platformName(tc.url))
+		})
+	}
+}
+
+func TestPrepareImage_ForkURL_NamesImageAfterRepository(t *testing.T) {
+	// Arrange
+	viperConfig := testhelpers.SetupViperForTest(map[string]any{field.ApplicationStripesURL: "https://example.org/vendor/platform-fork.git"})
+	defer viperConfig.Reset()
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{}
+	mockExec := new(testhelpers.MockCommandExecutor)
+	svc := New(act, mockExec, nil, nil, nil)
+	var stdout bytes.Buffer
+	stdout.WriteString("abc123\n")
+	mockExec.On("ExecReturnOutput", matchImageExistsCommand("platform-fork-ui-test-tenant")).Return(stdout, bytes.Buffer{}, nil)
 
 	// Act
-	outputDir, err := svc.CloneAndUpdateRepository(false)
+	imageName, err := svc.PrepareImage("test-tenant")
 
 	// Assert
 	assert.NoError(t, err)
-	assert.Equal(t, "/home/test/platform-lsp", outputDir)
-	mockGitClient.AssertExpectations(t)
+	assert.Equal(t, "platform-fork-ui-test-tenant", imageName)
+	mockExec.AssertExpectations(t)
 }
 
-func TestCloneAndUpdateRepository_CloneError(t *testing.T) {
-	// Arrange
-	action := testhelpers.NewMockAction()
-	mockGitClient := new(testhelpers.MockGitClient)
-	svc := New(action, nil, mockGitClient, nil, nil)
+func TestCloneAndUpdateRepository(t *testing.T) {
+	ensureErr := errors.New("checkout mismatch")
 
-	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-lsp",
-		URL:    "https://github.com/test/platform-lsp.git",
-		Dir:    "/home/test/platform-lsp",
-		Branch: plumbing.NewBranchReferenceName("snapshot"),
-	}
-	cloneErr := errors.New("clone failed")
-
-	mockGitClient.On("PlatformLspRepository", mock.Anything).
-		Return(mockRepo, nil)
-	mockGitClient.On("Clone", mockRepo).
-		Return(cloneErr)
-
-	// Act
-	outputDir, err := svc.CloneAndUpdateRepository(false)
-
-	// Assert
-	assert.Error(t, err)
-	assert.Equal(t, "", outputDir)
-	assert.Equal(t, cloneErr, err)
-	mockGitClient.AssertExpectations(t)
-}
-
-func TestCloneAndUpdateRepository_WithUpdate(t *testing.T) {
-	// Arrange
-	action := testhelpers.NewMockAction()
-	mockGitClient := new(testhelpers.MockGitClient)
-	svc := New(action, nil, mockGitClient, nil, nil)
-
-	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-lsp",
-		URL:    "https://github.com/test/platform-lsp.git",
-		Dir:    "/home/test/platform-lsp",
-		Branch: plumbing.NewBranchReferenceName("snapshot"),
+	testCases := []struct {
+		name         string
+		updateCloned bool
+		ensureErr    error
+	}{
+		{"Checkout ensured without update", false, nil},
+		{"Checkout ensured with update", true, nil},
+		{"Ensure error", false, ensureErr},
 	}
 
-	mockGitClient.On("PlatformLspRepository", mock.Anything).
-		Return(mockRepo, nil)
-	mockGitClient.On("Clone", mockRepo).
-		Return(git.ErrRepositoryAlreadyExists)
-	mockGitClient.On("ResetHardPullFromOrigin", mockRepo).
-		Return(nil)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Arrange
+			mockGitClient := new(testhelpers.MockGitClient)
+			svc := New(testhelpers.NewMockAction(), nil, mockGitClient, nil, nil)
+			mockRepo := newPlatformRepository()
+			mockGitClient.On("PlatformLspRepository", constant.PlatformLspRepositoryURL, mock.Anything).Return(mockRepo, nil)
+			mockGitClient.On("EnsureCheckout", mockRepo, tc.updateCloned).Return(tc.ensureErr)
 
-	// Act
-	outputDir, err := svc.CloneAndUpdateRepository(true)
+			// Act
+			outputDir, err := svc.CloneAndUpdateRepository(tc.updateCloned)
 
-	// Assert
-	assert.NoError(t, err)
-	assert.Equal(t, "/home/test/platform-lsp", outputDir)
-	mockGitClient.AssertExpectations(t)
-}
-
-func TestCloneAndUpdateRepository_UpdateError(t *testing.T) {
-	// Arrange
-	action := testhelpers.NewMockAction()
-	mockGitClient := new(testhelpers.MockGitClient)
-	svc := New(action, nil, mockGitClient, nil, nil)
-
-	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-lsp",
-		URL:    "https://github.com/test/platform-lsp.git",
-		Dir:    "/home/test/platform-lsp",
-		Branch: plumbing.NewBranchReferenceName("snapshot"),
+			// Assert
+			assert.Equal(t, tc.ensureErr, err)
+			if tc.ensureErr == nil {
+				assert.Equal(t, testPlatformDir, outputDir)
+			} else {
+				assert.Equal(t, "", outputDir)
+			}
+			mockGitClient.AssertExpectations(t)
+		})
 	}
-	updateErr := errors.New("update failed")
-
-	mockGitClient.On("PlatformLspRepository", mock.Anything).
-		Return(mockRepo, nil)
-	mockGitClient.On("Clone", mockRepo).
-		Return(git.ErrRepositoryAlreadyExists)
-	mockGitClient.On("ResetHardPullFromOrigin", mockRepo).
-		Return(updateErr)
-
-	// Act
-	outputDir, err := svc.CloneAndUpdateRepository(true)
-
-	// Assert
-	assert.Error(t, err)
-	assert.Equal(t, "", outputDir)
-	assert.Equal(t, updateErr, err)
-	mockGitClient.AssertExpectations(t)
 }
 
 func TestCloneAndUpdateRepository_RepositoryError(t *testing.T) {
 	// Arrange
-	action := testhelpers.NewMockAction()
 	mockGitClient := new(testhelpers.MockGitClient)
-	svc := New(action, nil, mockGitClient, nil, nil)
-
+	svc := New(testhelpers.NewMockAction(), nil, mockGitClient, nil, nil)
 	repoErr := errors.New("repository creation failed")
-
-	mockGitClient.On("PlatformLspRepository", mock.Anything).
-		Return(nil, repoErr)
+	mockGitClient.On("PlatformLspRepository", mock.Anything, mock.Anything).Return(nil, repoErr)
 
 	// Act
 	outputDir, err := svc.CloneAndUpdateRepository(false)
 
 	// Assert
-	assert.Error(t, err)
-	assert.Equal(t, "", outputDir)
 	assert.Equal(t, repoErr, err)
-	mockGitClient.AssertExpectations(t)
+	assert.Equal(t, "", outputDir)
+	mockGitClient.AssertNotCalled(t, "EnsureCheckout", mock.Anything, mock.Anything)
 }
 
 func TestPrepareImage_BuildImages(t *testing.T) {
@@ -245,16 +320,11 @@ func TestPrepareImage_BuildImages(t *testing.T) {
 	mockGitClient := new(testhelpers.MockGitClient)
 	svc := New(act, nil, mockGitClient, nil, nil)
 
-	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-lsp",
-		URL:    "https://github.com/test/platform-lsp.git",
-		Dir:    "/home/test/platform-lsp",
-		Branch: plumbing.NewBranchReferenceName("snapshot"),
-	}
+	mockRepo := newPlatformRepository()
 
-	mockGitClient.On("PlatformLspRepository", mock.Anything).
+	mockGitClient.On("PlatformLspRepository", mock.Anything, mock.Anything).
 		Return(mockRepo, nil)
-	mockGitClient.On("Clone", mockRepo).
+	mockGitClient.On("EnsureCheckout", mockRepo, false).
 		Return(nil)
 
 	// Act
@@ -352,17 +422,12 @@ func TestPrepareImage_NoNamespace_BuildsWhenImageMissing(t *testing.T) {
 	mockGitClient := new(testhelpers.MockGitClient)
 	svc := New(act, mockExec, mockGitClient, nil, nil)
 
-	mockRepo := &gitrepository.GitRepository{
-		Label:  "platform-lsp",
-		URL:    "https://github.com/test/platform-lsp.git",
-		Dir:    "/home/test/platform-lsp",
-		Branch: plumbing.NewBranchReferenceName("snapshot"),
-	}
+	mockRepo := newPlatformRepository()
 
 	mockExec.On("ExecReturnOutput", matchImageExistsCommand("platform-lsp-ui-test-tenant")).Return(bytes.Buffer{}, bytes.Buffer{}, nil)
-	mockGitClient.On("PlatformLspRepository", mock.Anything).
+	mockGitClient.On("PlatformLspRepository", mock.Anything, mock.Anything).
 		Return(mockRepo, nil)
-	mockGitClient.On("Clone", mockRepo).
+	mockGitClient.On("EnsureCheckout", mockRepo, false).
 		Return(nil)
 
 	// Act
@@ -871,6 +936,43 @@ module.exports = {
 
 // ==================== PreparePackageJSON Tests ====================
 
+// packageJSONFile is the subset of package.json the tests look at
+type packageJSONFile struct {
+	Scripts      map[string]string `json:"scripts"`
+	Dependencies map[string]string `json:"dependencies"`
+}
+
+func TestPreparePackageJSON_KeepsUnknownFields(t *testing.T) {
+	// Arrange
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{SingleTenant: true}
+	svc := New(act, nil, nil, nil, nil)
+	configPath := t.TempDir()
+	testhelpers.CreateJSONFileInDir(t, configPath, "package.json", map[string]any{
+		"name":       "platform-fork",
+		"private":    true,
+		"engines":    map[string]any{"node": ">=20"},
+		"workspaces": []any{"packages/*"},
+		"dependencies": map[string]any{
+			"@folio/users":              "^1.0.0",
+			"@folio/consortia-settings": "^2.0.0",
+		},
+	})
+
+	// Act
+	err := svc.PreparePackageJSON(configPath)
+
+	// Assert
+	assert.NoError(t, err)
+	var result map[string]any
+	assert.NoError(t, helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result))
+	assert.Equal(t, true, result["private"])
+	assert.Equal(t, map[string]any{"node": ">=20"}, result["engines"])
+	assert.Equal(t, []any{"packages/*"}, result["workspaces"])
+	assert.Equal(t, map[string]any{"@folio/users": "^1.0.0"}, result["dependencies"])
+	assert.NotContains(t, result, "devDependencies", "fields absent from the file must not appear")
+}
+
 func TestPreparePackageJSON_SingleTenant_RemovesConsortiaAndLdWrapper(t *testing.T) {
 	// Arrange
 	act := testhelpers.NewMockAction()
@@ -902,7 +1004,7 @@ func TestPreparePackageJSON_SingleTenant_RemovesConsortiaAndLdWrapper(t *testing
 	// Assert
 	assert.NoError(t, err)
 
-	var result models.PackageJSON
+	var result packageJSONFile
 	err = helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result)
 	assert.NoError(t, err)
 
@@ -948,7 +1050,7 @@ func TestPreparePackageJSON_MultiTenant_LinkedData_KeepsAll(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 
-	var result models.PackageJSON
+	var result packageJSONFile
 	err = helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result)
 	assert.NoError(t, err)
 
@@ -990,7 +1092,7 @@ func TestPreparePackageJSON_MultiTenant_NoLinkedData_RemovesLdWrapper(t *testing
 	// Assert
 	assert.NoError(t, err)
 
-	var result models.PackageJSON
+	var result packageJSONFile
 	err = helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result)
 	assert.NoError(t, err)
 
@@ -1042,7 +1144,7 @@ func TestPreparePackageJSON_BuildScriptNotOverwritten(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 
-	var result models.PackageJSON
+	var result packageJSONFile
 	err = helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result)
 	assert.NoError(t, err)
 
@@ -1079,7 +1181,7 @@ func TestPreparePackageJSON_NothingToRemove_NoWrite(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 
-	var result models.PackageJSON
+	var result packageJSONFile
 	err = helpers.ReadJSONFromFile(filepath.Join(configPath, "package.json"), &result)
 	assert.NoError(t, err)
 
@@ -1111,6 +1213,21 @@ func TestDeployContainer_AlreadyExists_Skipped(t *testing.T) {
 }
 
 // ==================== PrepareStripesModulesJS Tests ====================
+
+func TestPrepareStripesModulesJS_MissingFile_IsSkipped(t *testing.T) {
+	// Arrange: a fork keeping its modules inline has no stripes.modules.js
+	act := testhelpers.NewMockAction()
+	act.Param = &action.Param{SingleTenant: true, LinkedData: false}
+	svc := New(act, nil, nil, nil, nil)
+	tempDir := t.TempDir()
+
+	// Act
+	err := svc.PrepareStripesModulesJS(tempDir)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.NoFileExists(t, filepath.Join(tempDir, "stripes.modules.js"), "the file is not created")
+}
 
 func TestPrepareStripesModulesJS_SingleTenant_RemovesConsortia(t *testing.T) {
 	// Arrange
@@ -1172,19 +1289,6 @@ func TestPrepareStripesModulesJS_MultiTenant_LinkedData_NoChanges(t *testing.T) 
 	result := testhelpers.ReadFileContent(t, tempDir, "stripes.modules.js")
 	assert.Contains(t, result, "'@folio/consortia-settings':")
 	assert.Contains(t, result, "'@folio/ld-folio-wrapper':")
-}
-
-func TestPrepareStripesModulesJS_FileNotFound(t *testing.T) {
-	// Arrange
-	act := testhelpers.NewMockAction()
-	act.Param = &action.Param{SingleTenant: true, LinkedData: false}
-	svc := New(act, nil, nil, nil, nil)
-
-	// Act
-	err := svc.PrepareStripesModulesJS("/nonexistent/path")
-
-	// Assert
-	assert.Error(t, err)
 }
 
 func TestPrepareStripesModulesJS_BothRemoved(t *testing.T) {
