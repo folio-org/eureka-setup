@@ -79,6 +79,9 @@ const (
 	// Branch names
 	StripesBranch = "snapshot"
 
+	// Stripes config the UI build substitutes and builds
+	StripesConfigFile = "stripes.config.js"
+
 	// Module descriptor file name
 	ModuleDescriptor = "ModuleDescriptor.json"
 

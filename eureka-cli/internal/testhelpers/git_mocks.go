@@ -11,20 +11,20 @@ type MockGitClient struct {
 	mock.Mock
 }
 
-func (m *MockGitClient) PlatformLspRepository(branch plumbing.ReferenceName) (*gitrepository.GitRepository, error) {
-	args := m.Called(branch)
+func (m *MockGitClient) PlatformLspRepository(url string, branch plumbing.ReferenceName) (*gitrepository.GitRepository, error) {
+	args := m.Called(url, branch)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*gitrepository.GitRepository), args.Error(1)
 }
 
-func (m *MockGitClient) Clone(repository *gitrepository.GitRepository) error {
-	args := m.Called(repository)
+func (m *MockGitClient) EnsureCheckout(repository *gitrepository.GitRepository, update bool) error {
+	args := m.Called(repository, update)
 	return args.Error(0)
 }
 
-func (m *MockGitClient) ResetHardPullFromOrigin(repository *gitrepository.GitRepository) error {
+func (m *MockGitClient) Clone(repository *gitrepository.GitRepository) error {
 	args := m.Called(repository)
 	return args.Error(0)
 }
