@@ -322,6 +322,11 @@ func (m *MockDockerClient) ForcePullImage(imageName string) (string, error) {
 	return args.String(0), args.Error(1)
 }
 
+func (m *MockDockerClient) GetRegistryAuth(imageName string) (string, error) {
+	args := m.Called(imageName)
+	return args.String(0), args.Error(1)
+}
+
 // MockModuleSvc is a mock for modulesvc.ModuleProcessor
 type MockModuleSvc struct {
 	mock.Mock

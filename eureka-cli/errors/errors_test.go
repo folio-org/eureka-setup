@@ -947,6 +947,43 @@ func TestReindexJobIDBlank(t *testing.T) {
 
 // ==================== Registry Errors Tests ====================
 
+func TestInvalidImageReference(t *testing.T) {
+	t.Run("TestInvalidImageReference_Success", func(t *testing.T) {
+		// Act
+		result := apperrors.InvalidImageReference("MOD-USERS:1.0.0", errors.New("repository name must be lowercase"))
+
+		// Assert
+		assert.Error(t, result)
+		assert.ErrorIs(t, result, apperrors.ErrInvalidInput)
+		assert.Contains(t, result.Error(), "invalid image reference MOD-USERS:1.0.0")
+		assert.Contains(t, result.Error(), "repository name must be lowercase")
+	})
+}
+
+func TestDockerConfigInvalid(t *testing.T) {
+	t.Run("TestDockerConfigInvalid_Success", func(t *testing.T) {
+		// Act
+		result := apperrors.DockerConfigInvalid("/home/user/.docker/config.json", errors.New("unexpected end of JSON input"))
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "invalid Docker config: /home/user/.docker/config.json")
+		assert.Contains(t, result.Error(), "unexpected end of JSON input")
+	})
+}
+
+func TestRegistryAuthResolveFailed(t *testing.T) {
+	t.Run("TestRegistryAuthResolveFailed_Success", func(t *testing.T) {
+		// Act
+		result := apperrors.RegistryAuthResolveFailed("docker.libsdev.k-int.com", "secretservice", errors.New("exit status 1"))
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "docker.libsdev.k-int.com via credential helper secretservice")
+		assert.Contains(t, result.Error(), "exit status 1")
+	})
+}
+
 func TestLocalInstallFileNotFound(t *testing.T) {
 	t.Run("TestLocalInstallFileNotFound_Success", func(t *testing.T) {
 		// Arrange

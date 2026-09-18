@@ -356,6 +356,18 @@ func FARFetchFailed(appID string, err error) error {
 	return fmt.Errorf("%w: failed to fetch application %s from FAR: %w", ErrNotFound, appID, err)
 }
 
+func InvalidImageReference(imageName string, err error) error {
+	return fmt.Errorf("%w: invalid image reference %s: %w", ErrInvalidInput, imageName, err)
+}
+
+func DockerConfigInvalid(detail string, err error) error {
+	return fmt.Errorf("invalid Docker config: %s: %w", detail, err)
+}
+
+func RegistryAuthResolveFailed(serverAddress, helper string, err error) error {
+	return fmt.Errorf("failed to resolve Docker registry credentials for %s via credential helper %s: %w", serverAddress, helper, err)
+}
+
 // ==================== Flag Errors ====================
 
 func RegisterFlagCompletionFailed(err error) error {
