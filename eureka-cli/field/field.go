@@ -12,6 +12,7 @@ const (
 	ApplicationStripesBranch             = "application.stripes-branch"
 	ApplicationGatewayHostname           = "application.gateway-hostname"
 	ApplicationDependencies              = "application.dependencies"
+	ApplicationDescriptor                = "application.descriptor"
 	Lsp                                  = "lsp"
 	LspURL                               = "lsp.url"
 	Far                                  = "far"

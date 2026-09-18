@@ -33,6 +33,26 @@ func TestIsHostnameReachable_InvalidHostname(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestIsURL_TableDrivenTests(t *testing.T) {
+	tests := []struct {
+		name     string
+		value    string
+		expected bool
+	}{
+		{name: "https", value: "https://registry.example.com/app.json", expected: true},
+		{name: "http", value: "http://localhost:8080/app.json", expected: true},
+		{name: "absolute path", value: "/home/user/app.json", expected: false},
+		{name: "home relative path", value: "~/app.json", expected: false},
+		{name: "empty", value: "", expected: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, helpers.IsURL(tt.value))
+		})
+	}
+}
+
 func TestConstructURL_WithHTTPPrefix(t *testing.T) {
 	// Arrange
 	url := "http://example.com/api"

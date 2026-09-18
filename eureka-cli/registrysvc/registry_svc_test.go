@@ -437,6 +437,30 @@ func TestGetModules_UIModulesIncluded(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
+func TestGetModules_FARDescriptorURLsCarried(t *testing.T) {
+	// Arrange
+	testhelpers.SetTempConfigDir(t)
+	mockHTTP := &testhelpers.MockHTTPClient{}
+	act := testhelpers.NewMockAction()
+	act.ConfigLspURL = "http://lsp.example.com/descriptor.json"
+	act.ConfigFarURL = "http://far.example.com"
+	svc := registrysvc.New(act, mockHTTP, &MockAWSSvc{})
+	stubLSP(mockHTTP, act.ConfigLspURL, buildLSPResponse([]models.PlatformApplication{{Name: "app-core", Version: "1.0.0"}}, nil, nil, nil))
+	stubFAR(mockHTTP, act.ConfigFarURL, "app-core", "1.0.0", []any{
+		map[string]any{"id": "mod-users-19.0.0", "name": "mod-users", "version": "19.0.0", "url": "https://folio-registry.dev.folio.org/_/proxy/modules/mod-users-19.0.0"},
+		map[string]any{"id": "mod-inventory-20.0.0", "name": "mod-inventory", "version": "20.0.0"},
+	})
+
+	// Act
+	result, err := svc.GetModules(false, true)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Len(t, result.FolioModules, 2)
+	assert.Equal(t, map[string]string{"mod-users-19.0.0": "https://folio-registry.dev.folio.org/_/proxy/modules/mod-users-19.0.0"}, result.ModuleDescriptorURLs, "only modules with a url in the descriptor are keyed")
+	assert.Empty(t, result.ModuleDescriptors)
+}
+
 func TestGetModules_EmptyApplications(t *testing.T) {
 	testhelpers.SetTempConfigDir(t)
 

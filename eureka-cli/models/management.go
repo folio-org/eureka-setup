@@ -43,18 +43,17 @@ type TenantEntitlementDTO struct {
 
 // ==================== Application Management ====================
 
-// ApplicationCreateRequest represents the payload for creating a new application with modules and descriptors
-type ApplicationCreateRequest struct {
+// ApplicationDescriptorSource is an Eureka application descriptor read from application.descriptor (file or URL).
+// It supplies the module inventory of a profile; dependencies are intentionally not read because
+// application.dependencies in the profile names the applications available in the local installation.
+type ApplicationDescriptorSource struct {
 	ID                  string              `json:"id"`
 	Name                string              `json:"name"`
 	Version             string              `json:"version"`
-	Description         string              `json:"description"`
-	Platform            string              `json:"platform"`
-	Dependencies        map[string]any      `json:"dependencies"`
 	Modules             []ApplicationModule `json:"modules"`
 	UIModules           []ApplicationModule `json:"uiModules"`
-	ModuleDescriptors   []any               `json:"moduleDescriptors"`
-	UIModuleDescriptors []any               `json:"uiModuleDescriptors"`
+	ModuleDescriptors   []map[string]any    `json:"moduleDescriptors"`
+	UIModuleDescriptors []map[string]any    `json:"uiModuleDescriptors"`
 }
 
 // ApplicationModule represents a module within an application

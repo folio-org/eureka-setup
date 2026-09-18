@@ -672,6 +672,29 @@ func TestStripesConfigPlaceholdersUnresolved(t *testing.T) {
 
 // ==================== Module Errors Tests ====================
 
+func TestApplicationDescriptorReadFailed(t *testing.T) {
+	t.Run("TestApplicationDescriptorReadFailed_Success", func(t *testing.T) {
+		// Act
+		result := apperrors.ApplicationDescriptorReadFailed("~/app-ill-1.0.0.json", errors.New("no such file"))
+
+		// Assert
+		assert.ErrorIs(t, result, apperrors.ErrInvalidInput)
+		assert.Contains(t, result.Error(), "~/app-ill-1.0.0.json")
+		assert.Contains(t, result.Error(), "no such file")
+	})
+}
+
+func TestApplicationDescriptorNoModules(t *testing.T) {
+	t.Run("TestApplicationDescriptorNoModules_Success", func(t *testing.T) {
+		// Act
+		result := apperrors.ApplicationDescriptorNoModules("https://example.com/app.json")
+
+		// Assert
+		assert.ErrorIs(t, result, apperrors.ErrInvalidInput)
+		assert.Contains(t, result.Error(), "https://example.com/app.json contains no modules")
+	})
+}
+
 func TestModulesNotDeployed(t *testing.T) {
 	t.Run("TestModulesNotDeployed_Success", func(t *testing.T) {
 		// Arrange
