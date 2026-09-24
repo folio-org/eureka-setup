@@ -624,3 +624,31 @@ func TestCopyMultipleFiles_EmptyEmbedFS(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestExpandHomeDir_TableDrivenTests(t *testing.T) {
+	userHome := testhelpers.SetTempHome(t)
+
+	tests := []struct {
+		name     string
+		path     string
+		expected string
+	}{
+		{name: "tilde prefix", path: "~/app-ill-1.0.0.json", expected: userHome + "/app-ill-1.0.0.json"},
+		{name: "HOME variable prefix", path: "$HOME/app-ill-1.0.0.json", expected: userHome + "/app-ill-1.0.0.json"},
+		{name: "bare tilde", path: "~", expected: userHome},
+		{name: "bare HOME variable", path: "$HOME", expected: userHome},
+		{name: "other user's home unchanged", path: "~alice/app-ill-1.0.0.json", expected: "~alice/app-ill-1.0.0.json"},
+		{name: "HOME-prefixed name unchanged", path: "$HOMEDIR/app-ill-1.0.0.json", expected: "$HOMEDIR/app-ill-1.0.0.json"},
+		{name: "absolute path unchanged", path: "/opt/app-ill-1.0.0.json", expected: "/opt/app-ill-1.0.0.json"},
+		{name: "relative path unchanged", path: "descriptors/app-ill-1.0.0.json", expected: "descriptors/app-ill-1.0.0.json"},
+		{name: "empty unchanged", path: "", expected: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := helpers.ExpandHomeDir(tt.path)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

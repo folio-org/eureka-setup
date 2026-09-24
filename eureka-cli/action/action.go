@@ -43,6 +43,7 @@ type Action struct {
 	ConfigApplicationDependencies      map[string]any
 	ConfigApplicationStripesBranch     string
 	ConfigApplicationGatewayHostname   string
+	ConfigApplicationDescriptor        string
 	ConfigNamespacePlatformLspUI       string
 	ConfigNamespaceBackendModules      string
 	ConfigGlobalEnv                    map[string]string
@@ -84,6 +85,7 @@ func New(name string, gatewayURL string, actionParam *Param) *Action {
 		ConfigApplicationPortStart:         viper.GetInt(field.ApplicationPortStart),
 		ConfigApplicationPortEnd:           viper.GetInt(field.ApplicationPortEnd),
 		ConfigApplicationDependencies:      viper.GetStringMap(field.ApplicationDependencies),
+		ConfigApplicationDescriptor:        viper.GetString(field.ApplicationDescriptor),
 		ConfigApplicationStripesBranch:     viper.GetString(field.ApplicationStripesBranch),
 		ConfigApplicationGatewayHostname:   viper.GetString(field.ApplicationGatewayHostname),
 		ConfigNamespacePlatformLspUI:       viper.GetString(field.NamespacesPlatformLspUI),
