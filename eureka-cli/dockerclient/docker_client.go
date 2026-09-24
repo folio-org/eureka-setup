@@ -19,6 +19,7 @@ type DockerClientRunner interface {
 	Close(client *client.Client)
 	PushImage(namespace string, imageName string) error
 	ForcePullImage(imageName string) (finalImageName string, err error)
+	GetRegistryAuth(imageName string) (string, error)
 }
 
 // DockerClient provides functionality for Docker operations
