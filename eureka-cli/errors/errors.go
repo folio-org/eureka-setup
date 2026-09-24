@@ -184,6 +184,18 @@ func CloneFailed(repoLabel string, err error) error {
 	return fmt.Errorf("failed to clone repository %s: %w", repoLabel, err)
 }
 
+func FetchFailed(repoLabel string, err error) error {
+	return fmt.Errorf("failed to fetch repository %s: %w", repoLabel, err)
+}
+
+func RemoteBranchMissing(repoLabel string, branch string, err error) error {
+	return fmt.Errorf("%w: branch %s of repository %s is not available from origin: %w", ErrInvalidInput, branch, repoLabel, err)
+}
+
+func CheckoutOriginMismatch(repoLabel string, dir string, configuredURL string, originURL string) error {
+	return fmt.Errorf("%w: checkout of %s at %s was cloned from %q, not from the configured %q; pass -u to replace the checkout or remove the directory", ErrInvalidInput, repoLabel, dir, originURL, configuredURL)
+}
+
 // ==================== Kafka Errors ====================
 
 func KafkaNotReady(err error) error {
@@ -250,6 +262,14 @@ func ParentApplicationNotReachable(required []string, err error) error {
 
 func StripesConfigPlaceholdersUnresolved(placeholders []string) error {
 	return fmt.Errorf("%w: stripes.config.js still contains placeholder(s) the CLI does not substitute, the UI build would fail on them: %s", ErrDeploymentFailed, strings.Join(placeholders, ", "))
+}
+
+func StripesConfigInvalid(key string, value string) error {
+	return fmt.Errorf("%w: %s %q must be a path relative to the repository root, without \"..\"", ErrInvalidInput, key, value)
+}
+
+func StripesConfigMissing(key string, value string, repositoryURL string) error {
+	return fmt.Errorf("%w: %s %q is not in the repository %s", ErrNotFound, key, value, repositoryURL)
 }
 
 func ModuleAlreadyInBaseApplication(moduleName, baseApplicationName string) error {

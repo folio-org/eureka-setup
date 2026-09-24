@@ -1,6 +1,7 @@
 package uisvc
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"maps"
@@ -24,9 +25,16 @@ var stripesPlaceholderPattern = regexp.MustCompile(`\$\{([^}]*)\}`)
 
 // UIStripesConfigProcessor defines the interface for UI Stripes configuration operations
 type UIStripesConfigProcessor interface {
+	GetStripesURL() string
 	GetStripesBranch() plumbing.ReferenceName
+	GetStripesConfig() string
 	PrepareStripesConfigJS(tenantName string, configPath string) error
 	PrepareStripesModulesJS(outputDir string) error
+}
+
+// GetStripesURL returns the platform repository the UI is built from: application.stripes-url, or the upstream platform-lsp repository
+func (us *UISvc) GetStripesURL() string {
+	return action.GetStringOrDefault(field.ApplicationStripesURL, constant.PlatformLspRepositoryURL)
 }
 
 func (us *UISvc) GetStripesBranch() plumbing.ReferenceName {
@@ -40,12 +48,23 @@ func (us *UISvc) GetStripesBranch() plumbing.ReferenceName {
 	return constant.StripesBranch
 }
 
+// GetStripesConfig returns the Stripes config the UI build substitutes and builds: application.stripes-config, or stripes.config.js
+func (us *UISvc) GetStripesConfig() string {
+	return action.GetStringOrDefault(field.ApplicationStripesConfig, constant.StripesConfigFile)
+}
+
+// PrepareStripesConfigJS substitutes the placeholders of the configured Stripes config (application.stripes-config, by default
+// stripes.config.js) and writes the result to stripes.config.js, the file the repository's build reads.
 func (us *UISvc) PrepareStripesConfigJS(tenantName string, configPath string) error {
-	stripesConfigJSFilePath := filepath.Join(configPath, "stripes.config.js")
-	readFileBytes, err := os.ReadFile(stripesConfigJSFilePath)
+	selected := us.GetStripesConfig()
+	readFileBytes, err := us.readStripesConfig(configPath, selected)
 	if err != nil {
 		return err
 	}
+	if selected != constant.StripesConfigFile {
+		slog.Info(us.Action.Name, "text", "Using stripes config", "file", selected)
+	}
+	stripesConfigJSFilePath := filepath.Join(configPath, constant.StripesConfigFile)
 
 	clientIdSuffix := action.GetConfigEnv("KC_LOGIN_CLIENT_SUFFIX", us.Action.ConfigGlobalEnv)
 	tenantOptions := fmt.Sprintf(`{%[1]s: {name: "%[1]s", displayName: "%[1]s", clientId: "%[1]s%s"}}`, tenantName, clientIdSuffix)
@@ -102,6 +121,22 @@ func (us *UISvc) PrepareStripesConfigJS(tenantName string, configPath string) er
 	return nil
 }
 
+// readStripesConfig reads the selected Stripes config, a path relative to the repository root
+func (us *UISvc) readStripesConfig(configPath string, selected string) ([]byte, error) {
+	if !filepath.IsLocal(selected) {
+		return nil, apperrors.StripesConfigInvalid(field.ApplicationStripesConfig, selected)
+	}
+	content, err := os.ReadFile(filepath.Join(configPath, selected))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, apperrors.StripesConfigMissing(field.ApplicationStripesConfig, selected, us.GetStripesURL())
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return content, nil
+}
+
 func (us *UISvc) PrepareStripesModulesJS(outputDir string) error {
 	var modulesToRemove []string
 	if us.Action.Param.SingleTenant {
@@ -116,6 +151,11 @@ func (us *UISvc) PrepareStripesModulesJS(outputDir string) error {
 
 	filePath := filepath.Join(outputDir, "stripes.modules.js")
 	content, err := os.ReadFile(filePath)
+	if errors.Is(err, os.ErrNotExist) {
+		// A fork may keep its modules inline in its Stripes config; nothing to remove then
+		slog.Info(us.Action.Name, "text", "No stripes.modules.js in the repository, optional modules not removed", "modules", modulesToRemove)
+		return nil
+	}
 	if err != nil {
 		return err
 	}
