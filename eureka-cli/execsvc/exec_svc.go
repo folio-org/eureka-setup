@@ -2,6 +2,7 @@ package execsvc
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"os/exec"
 
@@ -12,6 +13,7 @@ import (
 type CommandRunner interface {
 	Exec(cmd *exec.Cmd) error
 	ExecReturnOutput(cmd *exec.Cmd) (stdout, stderr bytes.Buffer, err error)
+	ExecTeeOutput(cmd *exec.Cmd) (stdout, stderr bytes.Buffer, err error)
 	ExecFromDir(cmd *exec.Cmd, workDir string) error
 }
 
@@ -40,6 +42,15 @@ func (es *ExecSvc) ExecReturnOutput(cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+	err := cmd.Run()
+	return stdout, stderr, err
+}
+
+// ExecTeeOutput streams the command output to the terminal while it runs and also returns it
+func (es *ExecSvc) ExecTeeOutput(cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, error) {
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = io.MultiWriter(os.Stdout, &stdout)
+	cmd.Stderr = io.MultiWriter(os.Stderr, &stderr)
 	err := cmd.Run()
 	return stdout, stderr, err
 }

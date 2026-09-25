@@ -69,7 +69,7 @@ func (run *Run) dockerComposeUp(subCommand []string, wait time.Duration, label s
 	dockerCmd := exec.Command("docker", subCommand...)
 	dockerCmd.Dir = homeDir
 
-	stdout, stderr, err := run.Config.ExecSvc.ExecReturnOutput(dockerCmd)
+	stdout, stderr, err := run.Config.ExecSvc.ExecTeeOutput(dockerCmd)
 	if err != nil {
 		return err
 	}
