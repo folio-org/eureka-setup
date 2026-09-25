@@ -26,6 +26,7 @@ var (
 	//go:embed misc/folio-keycloak-nginx
 	//go:embed misc/folio-netcat
 	//go:embed misc/folio-vault
+	//go:embed misc/garage
 	//go:embed misc/postgres
 	//go:embed misc/.env
 	//go:embed misc/docker-compose.*

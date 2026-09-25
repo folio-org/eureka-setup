@@ -240,8 +240,7 @@ func TestAppendRequiredContainers_WithDataExportWorkerModule(t *testing.T) {
 	result := helpers.AppendRequiredContainers(actionName, requiredContainers, configBackendModules)
 
 	// Assert
-	assert.Contains(t, result, constant.MinIOContainer)
-	assert.Contains(t, result, constant.CreateBucketsContainer)
+	assert.Contains(t, result, constant.GarageContainer)
 	assert.Contains(t, result, constant.FTPServerContainer)
 }
 
@@ -264,10 +263,9 @@ func TestAppendRequiredContainers_WithBothModules(t *testing.T) {
 	// Assert
 	assert.Contains(t, result, "existing-container")
 	assert.Contains(t, result, constant.OpenSearchContainer)
-	assert.Contains(t, result, constant.MinIOContainer)
-	assert.Contains(t, result, constant.CreateBucketsContainer)
+	assert.Contains(t, result, constant.GarageContainer)
 	assert.Contains(t, result, constant.FTPServerContainer)
-	assert.Len(t, result, 5)
+	assert.Len(t, result, 4)
 }
 
 func TestAppendRequiredContainers_NoModulesEnabled(t *testing.T) {

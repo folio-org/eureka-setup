@@ -136,7 +136,7 @@ func AppendRequiredContainers(actionName string, containers []string, backendMod
 		containers = append(containers, constant.OpenSearchContainer)
 	}
 	if IsModuleEnabled(constant.ModDataExportWorkerModule, backendModules) {
-		extraContainers := []string{constant.MinIOContainer, constant.CreateBucketsContainer, constant.FTPServerContainer}
+		extraContainers := []string{constant.GarageContainer, constant.FTPServerContainer}
 		containers = append(containers, extraContainers...)
 	}
 	if len(containers) > 0 {
