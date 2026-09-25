@@ -174,8 +174,7 @@ const (
 	KongContainer          = "kong"
 	VaultContainer         = "vault"
 	OpenSearchContainer    = "opensearch"
-	MinIOContainer         = "minio"
-	CreateBucketsContainer = "createbuckets"
+	GarageContainer        = "garage"
 	FTPServerContainer     = "ftp-server"
 
 	// Keycloak properties

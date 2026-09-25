@@ -104,7 +104,7 @@ Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc
 - [Vault](http://localhost:8200) UI (Userpass method): admin/admin
 - [Kafka](http://localhost:9080) UI: No auth
 - [Kong](http://localhost:8002) Admin GUI: No auth
-- [MinIO](http://localhost:9001) Console: minioadmin/minioadmin
+- [Garage](http://localhost:3903/health) S3 API on port 3900: eurekaadmin/eurekaadminsecret
 - [OpenSearch Dashboards](http://localhost:15601) UI: No auth
 - [Grafana](http://localhost:4000) UI: No auth
 
@@ -263,7 +263,7 @@ eureka-cli deployApplication -oq
 
 ![CLI Deploy Combined with Only Required System Containers](images/cli_deploy_combined_only_required.png)
 
-> Deploys the system without optional containers depending on the profile, such as _netcat_, _kafka-ui_, _minio_, _createbuckets_, _opensearch_, _opensearch dashboards_ and _ftp-server_.
+> Deploys the system without optional containers depending on the profile, such as _netcat_, _kafka-ui_, _garage_, _opensearch_, _opensearch dashboards_ and _ftp-server_.
 
 - In case you want to update your local repository of _platform-lsp_ (UI), you can do so with the combined `-bu` flags
 
@@ -285,7 +285,7 @@ eureka-cli buildSystem
 eureka-cli undeployApplication
 ```
 
-> This removes all containers and deletes the system data volumes (PostgreSQL, Vault, Kafka, MinIO, FTP, OpenSearch plugins), so the next deployment starts from scratch and re-runs tenant initialization. To keep the data volumes, add the `--keepVolumes` (`-k`) flag; see [Preserve data volumes across redeployments](#preserve-data-volumes-across-redeployments).
+> This removes all containers and deletes the system data volumes (PostgreSQL, Vault, Kafka, Garage, FTP, OpenSearch plugins), so the next deployment starts from scratch and re-runs tenant initialization. To keep the data volumes, add the `--keepVolumes` (`-k`) flag; see [Preserve data volumes across redeployments](#preserve-data-volumes-across-redeployments).
 
 ### Preserve data volumes across redeployments
 
@@ -402,7 +402,7 @@ The CLI also supports deploying child applications on top of existing ones. The 
 
 #### Deploy the export application
 
-- This application contains modules and system containers required for data export functionality that relies on MinIO and FTP
+- This application contains modules and system containers required for data export functionality that relies on Garage (S3-compatible object storage) and FTP
 
 ```bash
 eureka-cli -p export deployApplication

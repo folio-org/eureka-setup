@@ -1,0 +1,22 @@
+# The access key, secret key and bucket are not defined here: docker-compose.yaml passes them as
+# GARAGE_DEFAULT_* environment variables and starts Garage with --single-node --default-bucket.
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "sqlite"
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+# Node-to-node RPC secret, mandatory even for a single node; a fixed value for local development.
+rpc_secret = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+[s3_api]
+# Garage rejects requests signed for another region, so this must equal the S3_REGION/AWS_REGION in the profiles.
+s3_region = "us-east-1"
+api_bind_addr = "[::]:3900"
+root_domain = ".s3.garage.localhost"
+
+[admin]
+# GET /health on this port needs no token; the token protects the rest of the admin API.
+api_bind_addr = "[::]:3903"
+admin_token = "eurekaadminsecret"
