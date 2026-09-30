@@ -24,6 +24,7 @@ import (
 
 	"github.com/folio-org/eureka-setup/eureka-cli/action"
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	"github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/spf13/cobra"
 )
@@ -71,7 +72,7 @@ func (run *Run) dockerComposeUp(subCommand []string, wait time.Duration, label s
 
 	stdout, stderr, err := run.Config.ExecSvc.ExecTeeOutput(dockerCmd)
 	if err != nil {
-		return err
+		return errors.ComposeUpFailed(label, err)
 	}
 
 	combined := stdout.String() + stderr.String()

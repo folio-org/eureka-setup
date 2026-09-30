@@ -302,6 +302,10 @@ func SidecarDeployFailed(sidecarName string, err error) error {
 	return fmt.Errorf("%w: failed to deploy sidecar %s: %w", ErrDeploymentFailed, sidecarName, err)
 }
 
+func ComposeUpFailed(label string, err error) error {
+	return fmt.Errorf("%w: docker compose up for the %s containers: %w", ErrDeploymentFailed, label, err)
+}
+
 func SidecarVersionNotFound() error {
 	return fmt.Errorf("%w: sidecar version in registry", ErrNotFound)
 }

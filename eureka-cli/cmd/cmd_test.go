@@ -2711,8 +2711,8 @@ func TestDeploySystem_ExecError(t *testing.T) {
 	err := run.DeploySystem()
 
 	// Assert
-	assert.Error(t, err)
-	assert.Equal(t, expectedError, err)
+	assert.ErrorIs(t, err, expectedError)
+	assert.Contains(t, err.Error(), "docker compose up for the system containers")
 }
 
 // ==================== DeployAdditionalSystem Tests ====================
@@ -2796,8 +2796,8 @@ func TestDeployAdditionalSystem_ExecError(t *testing.T) {
 	err := run.DeployAdditionalSystem()
 
 	// Assert
-	assert.Error(t, err)
-	assert.Equal(t, expectedError, err)
+	assert.ErrorIs(t, err, expectedError)
+	assert.Contains(t, err.Error(), "docker compose up for the additional system containers")
 }
 
 // ==================== InterceptModule Tests ====================
