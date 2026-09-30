@@ -52,7 +52,7 @@ func (run *Run) DeploySystem() error {
 		}
 	}
 
-	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}
+	subCommand := []string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach", "--quiet-pull"}
 	if params.OnlyRequired {
 		initialRequiredContainers := constant.GetInitialRequiredContainers()
 		finalRequiredContainers := helpers.AppendRequiredContainers(run.Config.Action.Name, initialRequiredContainers, run.Config.Action.ConfigBackendModules)

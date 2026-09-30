@@ -47,7 +47,7 @@ func (run *Run) DeployAdditionalSystem() error {
 		return nil
 	}
 
-	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach"}, finalRequiredContainers...)
+	subCommand := append([]string{"compose", "--progress", "plain", "--ansi", "never", "--project-name", "eureka", "up", "--detach", "--quiet-pull"}, finalRequiredContainers...)
 	return run.dockerComposeUp(subCommand, constant.DeployAdditionalSystemWait, "additional system")
 }
 
