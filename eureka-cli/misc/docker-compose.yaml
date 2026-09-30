@@ -43,6 +43,7 @@ services:
   netcat:
     container_name: netcat
     image: folio-netcat:${FOLIO_NETCAT_VERSION}
+    pull_policy: never
     restart: unless-stopped
     build:
       context: ${HOME}/.eureka/misc/folio-netcat
@@ -188,6 +189,7 @@ services:
   vault:
     container_name: vault
     image: folio-vault:${FOLIO_VAULT_VERSION}
+    pull_policy: never
     restart: unless-stopped
     build:
       context: ${HOME}/.eureka/misc/folio-vault
