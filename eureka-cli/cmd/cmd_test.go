@@ -511,6 +511,11 @@ func (m *MockExecSvc) ExecReturnOutput(cmd *exec.Cmd) (bytes.Buffer, bytes.Buffe
 	return args.Get(0).(bytes.Buffer), args.Get(1).(bytes.Buffer), args.Error(2)
 }
 
+func (m *MockExecSvc) ExecTeeOutput(cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, error) {
+	args := m.Called(cmd)
+	return args.Get(0).(bytes.Buffer), args.Get(1).(bytes.Buffer), args.Error(2)
+}
+
 func (m *MockExecSvc) ExecFromDir(cmd *exec.Cmd, dir string) error {
 	args := m.Called(cmd, dir)
 	return args.Error(0)
@@ -2659,7 +2664,7 @@ func TestDeploySystem_Success(t *testing.T) {
 	run.Config.ExecSvc = mockExecSvc
 	params.BuildImages = false
 
-	mockExecSvc.On("ExecReturnOutput", mock.Anything).Return(bytes.Buffer{}, bytes.Buffer{}, nil)
+	mockExecSvc.On("ExecTeeOutput", mock.Anything).Return(bytes.Buffer{}, bytes.Buffer{}, nil)
 
 	// Act
 	err := run.DeploySystem()
@@ -2680,7 +2685,7 @@ func TestDeploySystem_AlreadyRunning_SkipsSleep(t *testing.T) {
 
 	var stdout bytes.Buffer
 	stdout.WriteString("Container eureka-kafka  Running\nContainer eureka-postgres  Running\n")
-	mockExecSvc.On("ExecReturnOutput", mock.Anything).Return(stdout, bytes.Buffer{}, nil)
+	mockExecSvc.On("ExecTeeOutput", mock.Anything).Return(stdout, bytes.Buffer{}, nil)
 
 	// Act
 	err := run.DeploySystem()
@@ -2700,14 +2705,14 @@ func TestDeploySystem_ExecError(t *testing.T) {
 	params.BuildImages = false
 
 	expectedError := assert.AnError
-	mockExecSvc.On("ExecReturnOutput", mock.Anything).Return(bytes.Buffer{}, bytes.Buffer{}, expectedError)
+	mockExecSvc.On("ExecTeeOutput", mock.Anything).Return(bytes.Buffer{}, bytes.Buffer{}, expectedError)
 
 	// Act
 	err := run.DeploySystem()
 
 	// Assert
-	assert.Error(t, err)
-	assert.Equal(t, expectedError, err)
+	assert.ErrorIs(t, err, expectedError)
+	assert.Contains(t, err.Error(), "docker compose up for the system containers")
 }
 
 // ==================== DeployAdditionalSystem Tests ====================
@@ -2724,7 +2729,7 @@ func TestDeployAdditionalSystem_NoContainers_Skips(t *testing.T) {
 
 	// Assert
 	assert.NoError(t, err)
-	mockExecSvc.AssertNotCalled(t, "ExecReturnOutput", mock.Anything)
+	mockExecSvc.AssertNotCalled(t, "ExecTeeOutput", mock.Anything)
 }
 
 func TestDeployAdditionalSystem_NewContainers_Sleeps(t *testing.T) {
@@ -2740,7 +2745,7 @@ func TestDeployAdditionalSystem_NewContainers_Sleeps(t *testing.T) {
 
 	var stderr bytes.Buffer
 	stderr.WriteString(" Started\n")
-	mockExecSvc.On("ExecReturnOutput", mock.Anything).Return(bytes.Buffer{}, stderr, nil)
+	mockExecSvc.On("ExecTeeOutput", mock.Anything).Return(bytes.Buffer{}, stderr, nil)
 
 	// Act
 	err := run.DeployAdditionalSystem()
@@ -2763,7 +2768,7 @@ func TestDeployAdditionalSystem_AlreadyRunning_SkipsSleep(t *testing.T) {
 
 	var stdout bytes.Buffer
 	stdout.WriteString("Container eureka-opensearch  Running\n")
-	mockExecSvc.On("ExecReturnOutput", mock.Anything).Return(stdout, bytes.Buffer{}, nil)
+	mockExecSvc.On("ExecTeeOutput", mock.Anything).Return(stdout, bytes.Buffer{}, nil)
 
 	// Act
 	err := run.DeployAdditionalSystem()
@@ -2785,14 +2790,14 @@ func TestDeployAdditionalSystem_ExecError(t *testing.T) {
 	}
 
 	expectedError := assert.AnError
-	mockExecSvc.On("ExecReturnOutput", mock.Anything).Return(bytes.Buffer{}, bytes.Buffer{}, expectedError)
+	mockExecSvc.On("ExecTeeOutput", mock.Anything).Return(bytes.Buffer{}, bytes.Buffer{}, expectedError)
 
 	// Act
 	err := run.DeployAdditionalSystem()
 
 	// Assert
-	assert.Error(t, err)
-	assert.Equal(t, expectedError, err)
+	assert.ErrorIs(t, err, expectedError)
+	assert.Contains(t, err.Error(), "docker compose up for the additional system containers")
 }
 
 // ==================== InterceptModule Tests ====================

@@ -123,6 +123,11 @@ func (m *MockCommandExecutor) ExecReturnOutput(cmd *exec.Cmd) (bytes.Buffer, byt
 	return args.Get(0).(bytes.Buffer), args.Get(1).(bytes.Buffer), args.Error(2)
 }
 
+func (m *MockCommandExecutor) ExecTeeOutput(cmd *exec.Cmd) (bytes.Buffer, bytes.Buffer, error) {
+	args := m.Called(cmd)
+	return args.Get(0).(bytes.Buffer), args.Get(1).(bytes.Buffer), args.Error(2)
+}
+
 func (m *MockCommandExecutor) ExecFromDir(cmd *exec.Cmd, workDir string) error {
 	args := m.Called(cmd, workDir)
 	return args.Error(0)

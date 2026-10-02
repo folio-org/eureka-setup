@@ -138,6 +138,50 @@ func TestExecReturnOutput_CommandWithError(t *testing.T) {
 	assert.NotEmpty(t, output, "should have error output")
 }
 
+// TestExecTeeOutput_EchoCommand tests that the streamed output is also returned
+func TestExecTeeOutput_EchoCommand(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	svc := execsvc.New(action)
+
+	expectedOutput := "Hello, Tee!"
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/C", "echo", expectedOutput)
+	} else {
+		cmd = exec.Command("echo", expectedOutput)
+	}
+
+	// Act
+	stdout, stderr, err := svc.ExecTeeOutput(cmd)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Contains(t, stdout.String(), expectedOutput)
+	assert.Empty(t, stderr.String())
+}
+
+// TestExecTeeOutput_CommandWithError tests that stderr and the error are returned for a failing command
+func TestExecTeeOutput_CommandWithError(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	svc := execsvc.New(action)
+
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/C", "dir", "C:\\nonexistentdir12345")
+	} else {
+		cmd = exec.Command("ls", "/nonexistentdir12345")
+	}
+
+	// Act
+	stdout, stderr, err := svc.ExecTeeOutput(cmd)
+
+	// Assert
+	assert.Error(t, err)
+	assert.NotEmpty(t, stdout.String()+stderr.String(), "should have error output")
+}
+
 // TestExecFromDir_ValidDirectory tests executing command from a specific directory
 func TestExecFromDir_ValidDirectory(t *testing.T) {
 	// Arrange

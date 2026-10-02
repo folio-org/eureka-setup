@@ -758,6 +758,22 @@ func TestSidecarDeployFailed(t *testing.T) {
 	})
 }
 
+func TestComposeUpFailed(t *testing.T) {
+	t.Run("TestComposeUpFailed_Success", func(t *testing.T) {
+		// Arrange
+		baseErr := errors.New("exit status 1")
+
+		// Act
+		result := apperrors.ComposeUpFailed("system", baseErr)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Equal(t, "deployment failed: docker compose up for the system containers: exit status 1", result.Error())
+		assert.True(t, errors.Is(result, apperrors.ErrDeploymentFailed))
+		assert.True(t, errors.Is(result, baseErr))
+	})
+}
+
 func TestSidecarVersionNotFound(t *testing.T) {
 	t.Run("TestSidecarVersionNotFound_Success", func(t *testing.T) {
 		// Act
