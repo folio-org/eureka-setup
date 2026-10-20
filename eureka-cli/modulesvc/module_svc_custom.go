@@ -18,6 +18,8 @@ type ModuleCustomizer interface {
 	DeployCustomModule(client *client.Client, pair *ModulePair) error
 	DeployCustomSidecar(client *client.Client, pair *ModulePair) error
 	CheckModuleAndSidecarReadiness(pair *ModulePair) error
+	CheckModuleReadinessAndSidecarLiveness(pair *ModulePair) error
+	CheckSidecarReadiness(pair *ModulePair) error
 }
 
 func (ms *ModuleSvc) UndeployModuleAndSidecarPair(client *client.Client, pair *ModulePair) error {
@@ -88,6 +90,22 @@ func (ms *ModuleSvc) DeployCustomSidecar(client *client.Client, pair *ModulePair
 }
 
 func (ms *ModuleSvc) CheckModuleAndSidecarReadiness(pair *ModulePair) error {
+	return ms.checkModuleAndSidecar(pair, healthPath)
+}
+
+// CheckModuleReadinessAndSidecarLiveness is for a module id that mgr-applications does not know yet: the sidecar
+// reports ready only after it has loaded the module bootstrap, so CheckSidecarReadiness follows the registration
+func (ms *ModuleSvc) CheckModuleReadinessAndSidecarLiveness(pair *ModulePair) error {
+	return ms.checkModuleAndSidecar(pair, livenessHealthPath)
+}
+
+func (ms *ModuleSvc) CheckSidecarReadiness(pair *ModulePair) error {
+	slog.Info(ms.Action.Name, "text", "WAITING FOR SIDECAR ROUTES TO INITIALIZE", "module", pair.ModuleName)
+
+	return ms.waitUntilHealthy(helpers.GetSidecarName(pair.ModuleName), ms.healthURL(pair.SidecarURL, pair.BackendModule.SidecarExposedServerPort, healthPath))
+}
+
+func (ms *ModuleSvc) checkModuleAndSidecar(pair *ModulePair, sidecarHealthPath string) error {
 	slog.Info(ms.Action.Name, "text", "WAITING FOR MODULE AND SIDECAR TO INITIALIZE", "module", pair.ModuleName)
 	var interceptModuleWG sync.WaitGroup
 	errCh := make(chan error, 2)
@@ -98,11 +116,7 @@ func (ms *ModuleSvc) CheckModuleAndSidecarReadiness(pair *ModulePair) error {
 	} else {
 		go ms.CheckModuleReadiness(&interceptModuleWG, errCh, pair.ModuleName, pair.BackendModule.ModuleExposedServerPort)
 	}
-	if pair.SidecarURL != "" {
-		go ms.CheckModuleReadinessByURL(&interceptModuleWG, errCh, helpers.GetSidecarName(pair.ModuleName), pair.SidecarURL)
-	} else {
-		go ms.CheckModuleReadiness(&interceptModuleWG, errCh, helpers.GetSidecarName(pair.ModuleName), pair.BackendModule.SidecarExposedServerPort)
-	}
+	go ms.checkReadiness(&interceptModuleWG, errCh, helpers.GetSidecarName(pair.ModuleName), ms.healthURL(pair.SidecarURL, pair.BackendModule.SidecarExposedServerPort, sidecarHealthPath))
 	interceptModuleWG.Wait()
 	close(errCh)
 
