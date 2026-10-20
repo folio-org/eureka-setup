@@ -27,6 +27,7 @@ import (
 	"github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/models"
+	"github.com/folio-org/eureka-setup/eureka-cli/modulesvc"
 	"github.com/spf13/cobra"
 )
 
@@ -126,8 +127,10 @@ func (run *Run) RunLocalModule() error {
 		}
 	}
 
+	var pair *modulesvc.ModulePair
 	if !params.SkipModuleDeployment {
-		if err := run.deployLocalModuleAndSidecarPair(descriptorPath); err != nil {
+		pair, err = run.deployLocalModuleAndSidecarPair(descriptorPath)
+		if err != nil {
 			return err
 		}
 	}
@@ -139,6 +142,15 @@ func (run *Run) RunLocalModule() error {
 
 	if !params.SkipModuleDiscovery {
 		if err := run.Config.ManagementSvc.CreateNewModuleDiscovery(discovery); err != nil {
+			if cleanupErr := run.cleanupLocalAppOnFailure(appName, keepAppID); cleanupErr != nil {
+				return cleanupErr
+			}
+
+			return err
+		}
+	}
+	if pair != nil {
+		if err := run.Config.ModuleSvc.CheckSidecarReadiness(pair); err != nil {
 			if cleanupErr := run.cleanupLocalAppOnFailure(appName, keepAppID); cleanupErr != nil {
 				return cleanupErr
 			}
@@ -235,9 +247,9 @@ func (run *Run) reserveUsedHostPorts() error {
 	return nil
 }
 
-func (run *Run) deployLocalModuleAndSidecarPair(descriptorPath string) error {
+func (run *Run) deployLocalModuleAndSidecarPair(descriptorPath string) (*modulesvc.ModulePair, error) {
 	if err := run.reserveUsedHostPorts(); err != nil {
-		return err
+		return nil, err
 	}
 
 	return run.deployModuleAndSidecarPair(func(modules *models.ProxyModulesByRegistry, backendModules map[string]models.BackendModule) error {

@@ -92,10 +92,13 @@ func (run *Run) UpgradeModule() error {
 		}
 		newModuleDescriptor = readModuleDescriptor
 	}
+	var pair *modulesvc.ModulePair
 	if !params.SkipModuleDeployment {
-		if err := run.deployModuleAndSidecarPair(nil); err != nil {
+		deployedPair, err := run.deployModuleAndSidecarPair(nil)
+		if err != nil {
 			return err
 		}
+		pair = deployedPair
 	}
 
 	app, err := run.Config.ManagementSvc.GetLatestApplication()
@@ -153,6 +156,15 @@ func (run *Run) UpgradeModule() error {
 			return err
 		}
 	}
+	if pair != nil {
+		if err := run.Config.ModuleSvc.CheckSidecarReadiness(pair); err != nil {
+			if downstreamErr := run.cleanupApplicationsOnFailure(constant.NoneConsortium, constant.All, appName, err); downstreamErr != nil {
+				return downstreamErr
+			}
+
+			return err
+		}
+	}
 	if !params.SkipTenantEntitlement {
 		slog.Info(run.Config.Action.Name, "text", "UPGRADING TENANT ENTITLEMENT", "from", oldAppVersion, "to", newAppVersion)
 		if err := run.Config.ManagementSvc.UpgradeTenantEntitlement(constant.NoneConsortium, constant.All, newAppID); err != nil {
@@ -176,44 +188,47 @@ func (run *Run) UpgradeModule() error {
 	return nil
 }
 
-func (run *Run) deployModuleAndSidecarPair(prepare func(*models.ProxyModulesByRegistry, map[string]models.BackendModule) error) error {
+func (run *Run) deployModuleAndSidecarPair(prepare func(*models.ProxyModulesByRegistry, map[string]models.BackendModule) error) (*modulesvc.ModulePair, error) {
 	slog.Info(run.Config.Action.Name, "text", "DEPLOYING MODULE AND SIDECAR PAIR", "module", params.ModuleName, "id", params.ID)
 	backendModules, err := run.Config.ModuleProps.ReadBackendModules(false, false)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	modules, err := run.Config.RegistrySvc.GetModules(false, false)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if prepare != nil {
 		if err := prepare(modules, backendModules); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	run.Config.RegistrySvc.ResolveModuleMetadata(modules)
 
 	client, err := run.Config.DockerClient.Create()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer run.Config.DockerClient.Close(client)
 	if err := run.setVaultRootTokenIntoContext(client); err != nil {
-		return err
+		return nil, err
 	}
 
 	pair, err := modulesvc.NewModulePair(run.Config.Action, run.Config.Action.Param)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	pair.Containers = &models.Containers{
 		Modules:        modules,
 		BackendModules: backendModules,
 		IsManagement:   false,
 	}
+	if err := run.Config.UpgradeModuleSvc.DeployModuleAndSidecarPair(client, pair); err != nil {
+		return nil, err
+	}
 
-	return run.Config.UpgradeModuleSvc.DeployModuleAndSidecarPair(client, pair)
+	return pair, nil
 }
 
 func (run *Run) validateModulePath(modulePath string) error {

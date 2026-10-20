@@ -54,7 +54,7 @@ func (um *UpgradeModuleSvc) DeployModuleAndSidecarPair(client *client.Client, pa
 		return err
 	}
 
-	return um.ModuleSvc.CheckModuleAndSidecarReadiness(pair)
+	return um.ModuleSvc.CheckModuleReadinessAndSidecarLiveness(pair)
 }
 
 func (um *UpgradeModuleSvc) prepareModuleAndSidecarPairNetwork(pair *modulesvc.ModulePair) error {

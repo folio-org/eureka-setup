@@ -445,6 +445,16 @@ func (m *MockModuleSvc) CheckModuleAndSidecarReadiness(pair *modulesvc.ModulePai
 	return args.Error(0)
 }
 
+func (m *MockModuleSvc) CheckModuleReadinessAndSidecarLiveness(pair *modulesvc.ModulePair) error {
+	args := m.Called(pair)
+	return args.Error(0)
+}
+
+func (m *MockModuleSvc) CheckSidecarReadiness(pair *modulesvc.ModulePair) error {
+	args := m.Called(pair)
+	return args.Error(0)
+}
+
 // MockInterceptModuleSvc is a mock for interceptmodulesvc.InterceptModuleProcessor
 type MockInterceptModuleSvc struct {
 	mock.Mock

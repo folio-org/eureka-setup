@@ -1253,6 +1253,133 @@ func TestCheckModuleAndSidecarReadiness_MixedURLs(t *testing.T) {
 	mockHTTP.AssertExpectations(t)
 }
 
+// ==================== CheckModuleReadinessAndSidecarLiveness Tests ====================
+
+func TestCheckModuleReadinessAndSidecarLiveness(t *testing.T) {
+	tests := []struct {
+		name          string
+		sidecarURL    string
+		sidecarPing   string
+		sidecarStatus int
+		wantErr       string
+	}{
+		{
+			name:          "sidecar liveness by exposed port",
+			sidecarPing:   "http://localhost:30056/admin/health/live",
+			sidecarStatus: http.StatusOK,
+		},
+		{
+			name:          "sidecar liveness by URL",
+			sidecarURL:    "http://192.168.122.1:30056/",
+			sidecarPing:   "http://192.168.122.1:30056/admin/health/live",
+			sidecarStatus: http.StatusOK,
+		},
+		{
+			name:          "sidecar not live",
+			sidecarPing:   "http://localhost:30056/admin/health/live",
+			sidecarStatus: http.StatusServiceUnavailable,
+			wantErr:       "module mod-test-sc",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			mockHTTP := new(testhelpers.MockHTTPClient)
+			svc := New(testhelpers.NewMockAction(), mockHTTP, nil, nil, nil)
+			svc.ReadinessMaxRetries = 2
+			svc.ReadinessWait = 1 * time.Millisecond
+			pair := &ModulePair{
+				ModuleName: "mod-test",
+				SidecarURL: tt.sidecarURL,
+				BackendModule: &models.BackendModule{
+					ModuleExposedServerPort:  8082,
+					SidecarExposedServerPort: 30056,
+				},
+			}
+			mockHTTP.On("Ping", "http://localhost:8082/admin/health", mock.Anything).Return(http.StatusOK, nil)
+			mockHTTP.On("Ping", tt.sidecarPing, mock.Anything).Return(tt.sidecarStatus, nil)
+
+			// Act
+			err := svc.CheckModuleReadinessAndSidecarLiveness(pair)
+
+			// Assert
+			if tt.wantErr != "" {
+				assert.ErrorContains(t, err, tt.wantErr)
+			} else {
+				assert.NoError(t, err)
+			}
+			mockHTTP.AssertExpectations(t)
+			mockHTTP.AssertNotCalled(t, "Ping", "http://localhost:30056/admin/health", mock.Anything)
+		})
+	}
+}
+
+// ==================== CheckSidecarReadiness Tests ====================
+
+func TestCheckSidecarReadiness(t *testing.T) {
+	tests := []struct {
+		name       string
+		sidecarURL string
+		ping       string
+		statuses   []int
+		wantErr    string
+	}{
+		{
+			name:     "ready by exposed port",
+			ping:     "http://localhost:30056/admin/health",
+			statuses: []int{http.StatusOK},
+		},
+		{
+			name:       "ready by URL",
+			sidecarURL: "http://192.168.122.1:30056",
+			ping:       "http://192.168.122.1:30056/admin/health",
+			statuses:   []int{http.StatusOK},
+		},
+		{
+			name:     "ready once routes are loaded",
+			ping:     "http://localhost:30056/admin/health",
+			statuses: []int{http.StatusServiceUnavailable, http.StatusServiceUnavailable, http.StatusOK},
+		},
+		{
+			name:     "routes never loaded",
+			ping:     "http://localhost:30056/admin/health",
+			statuses: []int{http.StatusServiceUnavailable, http.StatusServiceUnavailable, http.StatusServiceUnavailable},
+			wantErr:  "module mod-test-sc",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			mockHTTP := new(testhelpers.MockHTTPClient)
+			svc := New(testhelpers.NewMockAction(), mockHTTP, nil, nil, nil)
+			svc.ReadinessMaxRetries = 3
+			svc.ReadinessWait = 1 * time.Millisecond
+			pair := &ModulePair{
+				ModuleName: "mod-test",
+				SidecarURL: tt.sidecarURL,
+				BackendModule: &models.BackendModule{
+					ModuleExposedServerPort:  8082,
+					SidecarExposedServerPort: 30056,
+				},
+			}
+			for _, status := range tt.statuses {
+				mockHTTP.On("Ping", tt.ping, mock.Anything).Return(status, nil).Once()
+			}
+
+			// Act
+			err := svc.CheckSidecarReadiness(pair)
+
+			// Assert
+			if tt.wantErr != "" {
+				assert.ErrorContains(t, err, tt.wantErr)
+			} else {
+				assert.NoError(t, err)
+			}
+			mockHTTP.AssertExpectations(t)
+		})
+	}
+}
+
 // ==================== GetLocalModuleImage Tests ====================
 
 func TestGetLocalModuleImage_Success(t *testing.T) {

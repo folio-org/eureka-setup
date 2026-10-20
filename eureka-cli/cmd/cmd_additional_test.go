@@ -215,6 +215,103 @@ func TestUpgradeModule_GetLatestApplicationError(t *testing.T) {
 	t.Skip("UpgradeModule requires extensive mocking; tested via integration tests")
 }
 
+func TestUpgradeModule_SidecarReadinessAfterRegistration(t *testing.T) {
+	tests := []struct {
+		name            string
+		skipApplication bool
+		skipDeployment  bool
+		readinessErr    error
+		wantCalls       []string
+		wantErr         error
+	}{
+		{
+			name:      "checked after discovery and before entitlement",
+			wantCalls: []string{"application", "discovery", "sidecarReadiness", "entitlement", "removeSuperseded"},
+		},
+		{
+			name:         "failure removes the new application version",
+			readinessErr: assert.AnError,
+			wantCalls:    []string{"application", "discovery", "sidecarReadiness", "removeOnFailure"},
+			wantErr:      assert.AnError,
+		},
+		{
+			name:            "checked when the application step is skipped",
+			skipApplication: true,
+			wantCalls:       []string{"discovery", "sidecarReadiness", "entitlement", "removeSuperseded"},
+		},
+		{
+			name:           "skipped when no pair is deployed",
+			skipDeployment: true,
+			wantCalls:      []string{"application", "discovery", "entitlement", "removeSuperseded"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			run, mockManagement, mockKeycloak, _, mockDocker, mockModule := newTestRun(action.UpgradeModule)
+			mockUpgrade := &MockUpgradeModuleSvc{}
+			mockModuleProps := &MockModuleProps{}
+			mockRegistrySvc := &MockRegistrySvc{}
+			run.Config.UpgradeModuleSvc = mockUpgrade
+			run.Config.ModuleProps = mockModuleProps
+			run.Config.RegistrySvc = mockRegistrySvc
+
+			originalParams := params
+			defer func() { params = originalParams }()
+			params = action.Param{
+				ModuleName:           "mod-x",
+				ModuleVersion:        "1.1.0",
+				Namespace:            constant.SnapshotNamespace, // folioci -> shouldBuild=false
+				SkipModuleDeployment: tt.skipDeployment,
+				SkipApplication:      tt.skipApplication,
+			}
+
+			var calls []string
+			record := func(name string) func(mock.Arguments) {
+				return func(mock.Arguments) { calls = append(calls, name) }
+			}
+			mockKeycloak.On("GetMasterAccessToken", mock.AnythingOfType("constant.KeycloakGrantType")).Return("master-token", nil)
+			mockManagement.On("GetModuleDiscovery", "mod-x").Return(models.ModuleDiscoveryResponse{
+				Discovery: []models.ModuleDiscovery{{ID: "mod-x-1.0.0"}},
+			}, nil)
+			mockUpgrade.On("SetNewModuleVersionAndIDIntoContext").Return(nil)
+			mockUpgrade.On("SetDefaultNamespaceIntoContext").Return()
+			mockDocker.On("Create").Return(nil, nil)
+			mockDocker.On("Close", mock.Anything).Return()
+			mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+			mockModuleProps.On("ReadBackendModules", false, false).Return(map[string]models.BackendModule{}, nil)
+			mockRegistrySvc.On("GetModules", false, false).Return(&models.ProxyModulesByRegistry{}, nil)
+			mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything).Return()
+			mockUpgrade.On("DeployModuleAndSidecarPair", mock.Anything, mock.Anything).Return(nil)
+			mockManagement.On("GetLatestApplication").Return(map[string]any{"name": "app-combined", "version": "1.0.0"}, nil)
+			mockUpgrade.On("UpdateBackendModules", "mod-x", "1.1.0", false, mock.Anything).Return([]map[string]any{}, []map[string]string{}, "mod-x-1.0.0", nil)
+			mockUpgrade.On("UpdateFrontendModules", false, mock.Anything).Return(nil)
+			mockManagement.On("CreateNewApplication", mock.Anything).Return(nil).Run(record("application"))
+			mockManagement.On("CreateNewModuleDiscovery", mock.Anything).Return(nil).Run(record("discovery"))
+			mockModule.On("CheckSidecarReadiness", mock.AnythingOfType("*modulesvc.ModulePair")).Return(tt.readinessErr).Run(record("sidecarReadiness"))
+			mockManagement.On("UpgradeTenantEntitlement", mock.Anything, mock.Anything, "app-combined-1.0.1").Return(nil).Run(record("entitlement"))
+			mockManagement.On("GetTenants", mock.Anything, mock.Anything).Return([]any{map[string]any{"name": "test-tenant"}}, nil)
+			mockManagement.On("GetTenantEntitlements", "test-tenant", false).Return(models.TenantEntitlementResponse{
+				Entitlements: []models.TenantEntitlementDTO{{ApplicationID: "app-combined-1.0.0"}},
+			}, nil)
+			mockManagement.On("RemoveApplications", "app-combined", "app-combined-1.0.0").Return(nil).Run(record("removeOnFailure"))
+			mockManagement.On("RemoveApplications", "app-combined", "app-combined-1.0.1").Return(nil).Run(record("removeSuperseded"))
+
+			// Act
+			err := run.UpgradeModule()
+
+			// Assert
+			assert.Equal(t, tt.wantErr, err)
+			assert.Equal(t, tt.wantCalls, calls)
+			if tt.skipDeployment {
+				mockUpgrade.AssertNotCalled(t, "DeployModuleAndSidecarPair", mock.Anything, mock.Anything)
+			} else {
+				mockUpgrade.AssertCalled(t, "DeployModuleAndSidecarPair", mock.Anything, mock.Anything)
+			}
+		})
+	}
+}
+
 // ==================== RunLocalModule Rollback Tests ====================
 
 func setupRunLocalModuleRollbackTest(t *testing.T) (*Run, *MockManagementSvc, *MockUpgradeModuleSvc, func()) {
@@ -367,6 +464,88 @@ func TestRunLocalModule_FirstRunCreatesInitialVersion(t *testing.T) {
 	mockManagement.AssertCalled(t, "CreateTenantEntitlementForApplication", mock.Anything, mock.Anything, "app-local-1.0.0")
 	mockManagement.AssertExpectations(t)
 	mockUpgrade.AssertExpectations(t)
+}
+
+func TestRunLocalModule_SidecarReadinessAfterRegistration(t *testing.T) {
+	tests := []struct {
+		name            string
+		skipApplication bool
+		skipDeployment  bool
+		readinessErr    error
+		wantCalls       []string
+		wantErr         error
+	}{
+		{
+			name:      "checked after discovery and before entitlement",
+			wantCalls: []string{"application", "discovery", "sidecarReadiness", "entitlement", "removeSuperseded"},
+		},
+		{
+			name:         "failure removes the new application version",
+			readinessErr: assert.AnError,
+			wantCalls:    []string{"application", "discovery", "sidecarReadiness", "removeOnFailure"},
+			wantErr:      assert.AnError,
+		},
+		{
+			name:            "checked when the application step is skipped",
+			skipApplication: true,
+			wantCalls:       []string{"discovery", "sidecarReadiness", "entitlement", "removeSuperseded"},
+		},
+		{
+			name:           "skipped when no pair is deployed",
+			skipDeployment: true,
+			wantCalls:      []string{"application", "discovery", "entitlement", "removeSuperseded"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			run, mockManagement, mockUpgrade, cleanup := setupRunLocalModuleRollbackTest(t)
+			defer cleanup()
+			mockModule := run.Config.ModuleSvc.(*MockModuleSvc)
+			mockDocker := run.Config.DockerClient.(*MockDockerClient)
+			mockModuleProps := &MockModuleProps{}
+			mockRegistrySvc := &MockRegistrySvc{}
+			run.Config.ModuleProps = mockModuleProps
+			run.Config.RegistrySvc = mockRegistrySvc
+			run.Config.Action.ConfigApplicationPortStart = 40100
+			run.Config.Action.ConfigApplicationPortEnd = 40199
+			params.ID = "mod-x-1.0.0"
+			params.SkipModuleDeployment = tt.skipDeployment
+			params.SkipApplication = tt.skipApplication
+
+			var calls []string
+			record := func(name string) func(mock.Arguments) {
+				return func(mock.Arguments) { calls = append(calls, name) }
+			}
+			mockDocker.On("Create").Return(nil, nil)
+			mockDocker.On("Close", mock.Anything).Return()
+			mockModule.On("GetDeployedModules", mock.Anything, mock.Anything).Return([]container.Summary{}, nil)
+			mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+			mockModuleProps.On("ReadBackendModules", false, false).Return(map[string]models.BackendModule{}, nil)
+			mockRegistrySvc.On("GetModules", false, false).Return(&models.ProxyModulesByRegistry{}, nil)
+			mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything).Return()
+			mockUpgrade.On("DeployModuleAndSidecarPair", mock.Anything, mock.Anything).Return(nil)
+			mockManagement.On("GetLatestApplicationByName", "app-local").Return(nil, nil)
+			mockManagement.On("CreateNewApplication", mock.Anything).Return(nil).Run(record("application"))
+			mockManagement.On("CreateNewModuleDiscovery", mock.Anything).Return(nil).Run(record("discovery"))
+			mockModule.On("CheckSidecarReadiness", mock.AnythingOfType("*modulesvc.ModulePair")).Return(tt.readinessErr).Run(record("sidecarReadiness"))
+			mockManagement.On("CreateTenantEntitlementForApplication", mock.Anything, mock.Anything, "app-local-1.0.0").Return(nil).Run(record("entitlement"))
+			mockManagement.On("RemoveApplications", "app-local", "").Return(nil).Run(record("removeOnFailure"))
+			mockManagement.On("RemoveApplications", "app-local", "app-local-1.0.0").Return(nil).Run(record("removeSuperseded"))
+
+			// Act
+			err := run.RunLocalModule()
+
+			// Assert
+			assert.Equal(t, tt.wantErr, err)
+			assert.Equal(t, tt.wantCalls, calls)
+			if tt.skipDeployment {
+				mockUpgrade.AssertNotCalled(t, "DeployModuleAndSidecarPair", mock.Anything, mock.Anything)
+			} else {
+				mockUpgrade.AssertCalled(t, "DeployModuleAndSidecarPair", mock.Anything, mock.Anything)
+			}
+		})
+	}
 }
 
 func TestCleanupLocalAppOnFailure_OnlyRemovesAppVersions(t *testing.T) {
