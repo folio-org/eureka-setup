@@ -99,7 +99,11 @@ func (ks *KafkaSvc) getConsumerGroupLag(tenant string, consumerGroup string, ini
 	rebalanceWait := helpers.DefaultDuration(ks.RebalanceWait, constant.AttachCapabilitySetsRebalanceWait)
 	timeoutWait := helpers.DefaultDuration(ks.TimeoutWait, constant.AttachCapabilitySetsTimeoutWait)
 
-	kafkaCmd := fmt.Sprintf("timeout 30s kafka-consumer-groups.sh --bootstrap-server %s --describe --group %s | grep %s | awk '{print $6}'", constant.KafkaTCP, consumerGroup, tenant)
+	// mod-roles-keycloak may suffix the group with its version (MODROLESKC-438), so match the group by regexp
+	groupPattern := fmt.Sprintf(constant.ConsumerGroupPattern, consumerGroup)
+	kafkaCmd := fmt.Sprintf(`group=$(timeout 30s kafka-consumer-groups.sh --bootstrap-server %[1]s --list | grep -E '%[2]s' | sort | tail -1); `+
+		`timeout 30s kafka-consumer-groups.sh --bootstrap-server %[1]s --describe --group "${group:-%[3]s}" | grep %[4]s | awk '{print $6}'`,
+		constant.KafkaTCP, groupPattern, consumerGroup, tenant)
 	stdout, stderr, err := ks.ExecSvc.ExecReturnOutput(exec.Command("docker", "exec", "-i", "kafka-tools", "bash", "-c", kafkaCmd))
 	if err != nil {
 		return initialLag, err

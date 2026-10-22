@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+	"regexp"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	"github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/stretchr/testify/assert"
@@ -168,7 +171,11 @@ func TestGetConsumerGroupLag_Success(t *testing.T) {
 
 	lagStdout := bytes.NewBufferString("42\n")
 	lagStderr := bytes.NewBuffer(nil)
-	mockExec.On("ExecReturnOutput", mock.Anything).Return(*lagStdout, *lagStderr, nil).Once()
+	mockExec.On("ExecReturnOutput", mock.MatchedBy(func(cmd *exec.Cmd) bool {
+		kafkaCmd := cmd.Args[len(cmd.Args)-1]
+		return strings.Contains(kafkaCmd, "--list | grep -E '^test-env-consumer-group(-.*)?$'") &&
+			strings.Contains(kafkaCmd, `--describe --group "${group:-test-env-consumer-group}" | grep diku`)
+	})).Return(*lagStdout, *lagStderr, nil).Once()
 
 	// Act
 	lag, err := svc.getConsumerGroupLag(tenantName, consumerGroup, initialLag)
@@ -177,6 +184,16 @@ func TestGetConsumerGroupLag_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 42, lag)
 	mockExec.AssertExpectations(t)
+}
+
+func TestConsumerGroupPattern(t *testing.T) {
+	pattern := regexp.MustCompile(fmt.Sprintf(constant.ConsumerGroupPattern, "folio-mod-roles-keycloak-capability-group"))
+
+	assert.True(t, pattern.MatchString("folio-mod-roles-keycloak-capability-group"))
+	assert.True(t, pattern.MatchString("folio-mod-roles-keycloak-capability-group-"))
+	assert.True(t, pattern.MatchString("folio-mod-roles-keycloak-capability-group-4.1.0-SNAPSHOT.2598"))
+	assert.False(t, pattern.MatchString("test-mod-roles-keycloak-capability-group-4.1.0"))
+	assert.False(t, pattern.MatchString("mod-roles-keycloak-sc_1902e16b-86fd-4459-b98b-e5c0bac68b5b"))
 }
 
 func TestGetConsumerGroupLag_CommandError(t *testing.T) {
