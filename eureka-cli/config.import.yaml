@@ -198,7 +198,6 @@ backend-modules:
       cpus: 4
       memory: 900
   mod-login-keycloak:
-    version: 3.0.4
     use-vault: true
     port: 9905
     environment:
