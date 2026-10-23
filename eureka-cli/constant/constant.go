@@ -207,10 +207,11 @@ const (
 	ModDataExportWorkerModule = "mod-data-export-worker"
 
 	// Kafka consumer group properties
-	ConsumerGroupSuffix = "mod-roles-keycloak-capability-group"
-	ErrNoActiveMembers  = "Consumer group 'folio-mod-roles-keycloak-capability-group' has no active members."
-	ErrRebalancing      = "Consumer group 'folio-mod-roles-keycloak-capability-group' is rebalancing."
-	ErrTimeoutException = "TimeoutException"
+	ConsumerGroupSuffix  = "mod-roles-keycloak-capability-group"
+	ConsumerGroupPattern = `^%s(-.*)?$`
+	ErrNoActiveMembers   = "has no active members."
+	ErrRebalancing       = "is rebalancing."
+	ErrTimeoutException  = "TimeoutException"
 )
 
 // ==================== Container Types ====================
