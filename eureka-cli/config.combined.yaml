@@ -162,8 +162,6 @@ backend-modules:
     resources:
       cpus: 4
   mod-users-keycloak:
-    # Workaround for MODUSERSKC-179 (lost system-user events); remove once fixed upstream
-    version: 4.1.0-SNAPSHOT.2301
     use-vault: true
     use-okapi-url: true
     disable-system-user: true
