@@ -242,8 +242,6 @@ backend-modules:
       KC_ADMIN_TOKEN_TTL: 895s
       KAFKA_PRODUCER_TENANT_COLLECTION: "true"
   mod-roles-keycloak:
-    # Workaround for MODROLESKC-438 (lost capability events); remove once fixed upstream
-    version: 4.1.0-SNAPSHOT.2561
     use-vault: true
     disable-system-user: true
     port: 9906
