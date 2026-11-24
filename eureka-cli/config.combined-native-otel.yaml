@@ -228,9 +228,13 @@ backend-modules:
   mod-roles:
   mod-password-validator:
   mod-settings:
+    sidecar-environment:
+      HANDLER_EGRESS_IGNORE_SYSTEM_USER_TOKEN_ERROR: "true" # no system user - see ECLI-51
   mod-notes:
   mod-tags:
   mod-inventory-storage:
+    sidecar-environment:
+      HANDLER_EGRESS_IGNORE_SYSTEM_USER_TOKEN_ERROR: "true" # no system user - see ECLI-51
   mod-inventory:
     private-port: 9403
     disable-system-user: true
