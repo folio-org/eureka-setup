@@ -19,6 +19,7 @@ import (
 // ModulePropsProcessor defines the interface for reading module parameters from configuration
 type ModulePropsProcessor interface {
 	ReadBackendModules(isManagement bool, verbose bool) (map[string]models.BackendModule, error)
+	ReadLocalDescriptorModules() map[string]models.BackendModule
 	ReadFrontendModules(verbose bool) (map[string]models.FrontendModule, error)
 }
 
@@ -64,6 +65,27 @@ func (mp *ModuleProps) ReadBackendModules(isManagement bool, verbose bool) (map[
 	}
 
 	return modules, nil
+}
+
+// ReadLocalDescriptorModules reads the deployed backend modules with a local-descriptor-path, without
+// reserving host ports as ReadBackendModules does, so that a check can run before the deployment reads them
+func (mp *ModuleProps) ReadLocalDescriptorModules() map[string]models.BackendModule {
+	modules := make(map[string]models.BackendModule)
+	for name, value := range mp.Action.ConfigBackendModules {
+		entry, ok := value.(map[string]any)
+		if !ok || mp.isManagementModule(name) || !helpers.GetBoolOrDefault(entry, field.ModuleDeployModuleEntry, true) {
+			continue
+		}
+		if localDescriptorPath := helpers.GetString(entry, field.ModuleLocalDescriptorPathEntry); localDescriptorPath != "" {
+			modules[name] = models.BackendModule{
+				DeployModule:        true,
+				LocalDescriptorPath: localDescriptorPath,
+				ModuleVersion:       mp.getVersion(entry),
+			}
+		}
+	}
+
+	return modules
 }
 
 func (mp *ModuleProps) createBackendProperties(name string, value any) (models.BackendModuleProperties, error) {

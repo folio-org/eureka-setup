@@ -23,6 +23,7 @@ type ModuleProcessor interface {
 	ModuleProvisioner
 	ModuleManager
 	ModuleCustomizer
+	ModuleLocalImageChecker
 }
 
 // ModuleProvisioner defines the interface for module provisioning operations
@@ -95,7 +96,7 @@ func (ms *ModuleSvc) GetSidecarImage(modules []*models.ProxyModule) (string, boo
 
 	customNamespace := helpers.GetBool(ms.Action.ConfigSidecarModule, field.SidecarModuleCustomNamespaceEntry)
 	if customNamespace {
-		return finalImage, true, nil
+		return finalImage, !ms.isLocalOnlySidecarImage(), nil
 	}
 	namespace := ms.RegistrySvc.GetNamespace(sidecarImageVersion)
 

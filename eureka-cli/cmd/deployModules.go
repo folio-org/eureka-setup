@@ -77,6 +77,9 @@ func (run *Run) DeployModules() error {
 		BackendModules: backendModules,
 		IsManagement:   false,
 	}
+	if err := run.Config.ModuleSvc.CheckLocalOnlyImages(client, containers); err != nil {
+		return err
+	}
 	sidecarImage, pullSidecarImage, err := run.Config.ModuleSvc.GetSidecarImage(containers.Modules.EurekaModules)
 	if err != nil {
 		return err

@@ -61,14 +61,26 @@ func (ms *ModuleSvc) getPullAuthorizationToken(imageName string) (string, error)
 	return ms.RegistrySvc.GetAuthorizationToken()
 }
 
-func (ms *ModuleSvc) PullModule(dockerClient *client.Client, imageName string) error {
+func imageExists(dockerClient *client.Client, imageName string) (bool, error) {
 	_, err := dockerClient.ImageInspect(context.Background(), imageName)
 	if err == nil {
+		return true, nil
+	}
+	if errdefs.IsNotFound(err) {
+		return false, nil
+	}
+
+	return false, err
+}
+
+func (ms *ModuleSvc) PullModule(dockerClient *client.Client, imageName string) error {
+	exists, err := imageExists(dockerClient, imageName)
+	if err != nil {
+		return err
+	}
+	if exists {
 		slog.Info(ms.Action.Name, "text", "Image already exists locally", "image", imageName)
 		return nil
-	}
-	if !errdefs.IsNotFound(err) {
-		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), constant.ContextTimeoutDockerImagePull)
 	defer cancel()

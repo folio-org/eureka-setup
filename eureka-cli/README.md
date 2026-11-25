@@ -95,7 +95,7 @@ Configure hosts (add entries to `/etc/hosts` or `C:\Windows\System32\drivers\etc
   - `127.0.0.1 keycloak.eureka`
   - `127.0.0.1 kong.eureka`
 
-> **WARNING:** JVM sidecar images published on FOLIO Docker Hub are built with an invalid entrypoint and will fail to start. If you intend to use sidecars, you must build a native sidecar image locally — see [Using a native folio-module-sidecar](#using-a-native-folio-module-sidecar).
+> **NOTE:** Every profile except _combined_ uses the native sidecar image `folio-module-sidecar-native`, which is not published and must be built locally before the first deployment — see [Using a native folio-module-sidecar](#using-a-native-folio-module-sidecar). The _combined_ profile uses the JVM sidecar image published on FOLIO Docker Hub.
 
 ## Monitor system components
 
@@ -680,7 +680,7 @@ docker build --tag custom-folio-module-sidecar:1.0.0 .
 
 > This example uses a non-native image build, see <https://github.com/folio-org/folio-module-sidecar/blob/master/README.md> for how to build a native Docker image.
 
-- Use the newly built `custom-folio-module-sidecar:1.0.0` local image in your config by setting `sidecar-module.custom-namespace` to true
+- Use the newly built `custom-folio-module-sidecar:1.0.0` local image in your config by setting `sidecar-module.custom-namespace` to true. `custom-namespace` takes the `image` reference verbatim, including a custom registry namespace like `mycorp/folio-module-sidecar`, instead of prepending a namespace
 
 ```yaml
 sidecar-module:
@@ -690,6 +690,8 @@ sidecar-module:
 ```
 
 > The `version` must be set explicitly.
+
+- An `image` without a namespace (no `/`) is never pulled and must exist locally; `deployApplication` and `deployModules` check that it exists before deploying anything. An `image` with a namespace is pulled from its registry when it is missing locally
 
 - Deploy the environment with this config, in our example we deploy an _edge_ application with `custom-folio-module-sidecar:1.0.0` sidecars
 
@@ -730,7 +732,7 @@ mvn clean install -Pnative -DskipTests \
 docker build -f docker/Dockerfile.native-micro -t folio-module-sidecar-native .
 ```
 
-- Use the newly built `folio-module-sidecar-native:latest` local image in your config by setting `sidecar-module.custom-namespace` to true and `sidecar-module.native-binary-cmd` with valid args
+- Use the newly built `folio-module-sidecar-native:latest` local image in your config by setting `sidecar-module.custom-namespace` to true, which takes the `image` verbatim (see [Using a custom folio-module-sidecar](#using-a-custom-folio-module-sidecar)), and `sidecar-module.native-binary-cmd` with valid args
 
 ```yaml
 sidecar-module:
@@ -759,8 +761,10 @@ When developing backend modules locally, you can deploy them with custom module 
 ```bash
 cd <module-directory>
 mvn clean package -DskipTests
-docker build --tag <module-name>:<version> .
+docker build --tag <namespace>/<module-name>:<version> .
 ```
+
+> The image is looked up as `<namespace>/<module-name>:<version>`, where the namespace is `namespaces.backend-modules` when set (see [Using a backend module namespace](#using-a-backend-module-namespace)), otherwise the ECR namespace when `AWS_ECR_FOLIO_REPO` is set, or else `folioci` for SNAPSHOT versions and `folioorg` for releases.
 
 - Configure the module to use the local descriptor in your config file
 
@@ -771,7 +775,7 @@ backend-modules:
     local-descriptor-path: "/path/to/module/target/ModuleDescriptor.json"
 ```
 
-> When `local-descriptor-path` is specified, the Docker image will not be pulled from a registry and the descriptor will be loaded from the local filesystem.
+> When `local-descriptor-path` is specified, the Docker image will not be pulled from a registry and the descriptor will be loaded from the local filesystem. `deployApplication` and `deployModules` check that the image exists locally before deploying anything.
 
 - Deploy the environment with your local module
 

@@ -802,6 +802,21 @@ func TestLocalDescriptorNotFound(t *testing.T) {
 	})
 }
 
+func TestLocalImagesNotFound(t *testing.T) {
+	t.Run("TestLocalImagesNotFound_ListsAllImages", func(t *testing.T) {
+		// Arrange
+		images := []string{"folio-module-sidecar-native:latest", "folioci/mod-orders:13.1.0-SNAPSHOT.1"}
+
+		// Act
+		result := apperrors.LocalImagesNotFound(images)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "local image(s) folio-module-sidecar-native:latest, folioci/mod-orders:13.1.0-SNAPSHOT.1")
+		assert.True(t, errors.Is(result, apperrors.ErrNotFound))
+	})
+}
+
 func TestEmptyLineNotFound(t *testing.T) {
 	t.Run("TestEmptyLineNotFound_Success", func(t *testing.T) {
 		// Arrange
