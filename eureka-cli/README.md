@@ -1150,6 +1150,10 @@ Vault UI does not have a **Userpass** sign-in method or login fails with admin/a
 
 - Your local Vault image is outdated, update the git repository of the CLI, rebuild the binary for your platform of choice and run `eureka-cli buildSystem -o` once before deploying any application (`-o` overwrites the extracted files under `~/.eureka` with the versions embedded in the binary)
 
+Requests through Kong return `502 Bad Gateway` for up to 10 minutes after a sidecar or `mgr-*` container is recreated
+
+- Your extracted `docker-compose.yaml` predates the Kong DNS cache cap, update the git repository of the CLI, rebuild the binary for your platform of choice and run `eureka-cli buildSystem -o` once; the next `deploySystem` (or `deployApplication` of the main application) recreates Kong with `KONG_DNS_VALID_TTL`, so it follows a changed container IP within seconds
+
 ### Command-based
 
 Shell commands are failing to execute
