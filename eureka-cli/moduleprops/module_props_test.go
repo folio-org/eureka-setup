@@ -10,6 +10,7 @@ import (
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/models"
 	"github.com/folio-org/eureka-setup/eureka-cli/moduleprops"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -519,6 +520,38 @@ func TestReadBackendModules_LocalDescriptor(t *testing.T) {
 		assert.Nil(t, result)
 		assert.Contains(t, err.Error(), "local descriptor")
 	})
+}
+
+func TestReadLocalDescriptorModules(t *testing.T) {
+	// Arrange
+	act := &action.Action{
+		Name:          "test-action",
+		Param:         &action.Param{},
+		ReservedPorts: []int{},
+		ConfigBackendModules: map[string]any{
+			"mod-pinned":            map[string]any{field.ModuleLocalDescriptorPathEntry: "/tmp/pinned.json", field.ModuleVersionEntry: "1.0.0-SNAPSHOT.1"},
+			"mod-unpinned":          map[string]any{field.ModuleLocalDescriptorPathEntry: "/tmp/unpinned.json"},
+			"mod-undeployed":        map[string]any{field.ModuleLocalDescriptorPathEntry: "/tmp/undeployed.json", field.ModuleDeployModuleEntry: false},
+			"mgr-applications":      map[string]any{field.ModuleLocalDescriptorPathEntry: "/tmp/mgr.json"},
+			"mod-registry":          map[string]any{field.ModuleVersionEntry: "2.0.0"},
+			"mod-without-any-entry": nil,
+		},
+	}
+	mp := moduleprops.New(act)
+	nonManagementModules := map[string]models.BackendModule{
+		"mod-pinned":   {DeployModule: true, LocalDescriptorPath: "/tmp/pinned.json", ModuleVersion: helpers.StringPtr("1.0.0-SNAPSHOT.1")},
+		"mod-unpinned": {DeployModule: true, LocalDescriptorPath: "/tmp/unpinned.json"},
+	}
+
+	// Act
+	withoutManagement := mp.ReadLocalDescriptorModules(false)
+	withManagement := mp.ReadLocalDescriptorModules(true)
+
+	// Assert
+	assert.Equal(t, nonManagementModules, withoutManagement)
+	nonManagementModules["mgr-applications"] = models.BackendModule{DeployModule: true, LocalDescriptorPath: "/tmp/mgr.json"}
+	assert.Equal(t, nonManagementModules, withManagement)
+	assert.Empty(t, act.ReservedPorts)
 }
 
 func TestReadBackendModules_Volumes(t *testing.T) {

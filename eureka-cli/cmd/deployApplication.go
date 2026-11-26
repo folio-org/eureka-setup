@@ -25,6 +25,7 @@ import (
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
 	apperrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/helpers"
+	"github.com/folio-org/eureka-setup/eureka-cli/models"
 	"github.com/spf13/cobra"
 )
 
@@ -42,6 +43,9 @@ var deployApplicationCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		if err := run.CheckLocalOnlyImages(); err != nil {
+			return err
+		}
 
 		if params.Cleanup {
 			err = run.DeployApplicationWithCleanup()
@@ -55,6 +59,46 @@ var deployApplicationCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+// CheckLocalOnlyImages runs before the cleanup and the system containers, so that a missing local build
+// fails within seconds instead of minutes into the deployment
+func (run *Run) CheckLocalOnlyImages() error {
+	backendModules := run.Config.ModuleProps.ReadLocalDescriptorModules(!run.Config.Action.IsChildApp())
+	if !run.Config.ModuleSvc.HasLocalOnlyImages(backendModules) {
+		return nil
+	}
+
+	slog.Info(run.Config.Action.Name, "text", "CHECKING LOCAL IMAGES")
+	modules, err := run.readModulesForLocalOnlyImages(backendModules)
+	if err != nil {
+		return err
+	}
+
+	client, err := run.Config.DockerClient.Create()
+	if err != nil {
+		return err
+	}
+	defer run.Config.DockerClient.Close(client)
+
+	return run.Config.ModuleSvc.CheckLocalOnlyImages(client, &models.Containers{
+		Modules:        modules,
+		BackendModules: backendModules,
+	})
+}
+
+// readModulesForLocalOnlyImages fetches the registries only when a local-only image takes its version from them
+func (run *Run) readModulesForLocalOnlyImages(backendModules map[string]models.BackendModule) (*models.ProxyModulesByRegistry, error) {
+	if !run.Config.ModuleSvc.LocalOnlyImagesNeedRegistry(backendModules) {
+		return &models.ProxyModulesByRegistry{}, nil
+	}
+	modules, err := run.Config.RegistrySvc.GetModules(false, true)
+	if err != nil {
+		return nil, err
+	}
+	run.Config.RegistrySvc.ResolveModuleMetadata(modules)
+
+	return modules, nil
 }
 
 func (run *Run) DeployApplicationWithCleanup() error {

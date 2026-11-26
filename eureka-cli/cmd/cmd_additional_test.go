@@ -587,6 +587,7 @@ func TestDeployManagement_Success(t *testing.T) {
 	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockModule.On("CheckLocalOnlyImages", mock.Anything, mock.Anything).Return(nil)
 	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(map[string]int{"test-module": 8080}, 1, nil)
 	mockModule.On("CheckModuleReadiness", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return()
@@ -617,6 +618,7 @@ func TestDeployManagement_DeployModulesError(t *testing.T) {
 	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockModule.On("CheckLocalOnlyImages", mock.Anything, mock.Anything).Return(nil)
 	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil, 0, expectedError)
 	mockDocker.On("Close", mock.Anything).Return(nil)
 
@@ -641,6 +643,7 @@ func TestDeployManagement_NoModulesDeployed(t *testing.T) {
 	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockModule.On("CheckLocalOnlyImages", mock.Anything, mock.Anything).Return(nil)
 	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(map[string]int{}, 0, nil)
 	mockDocker.On("Close", mock.Anything).Return(nil)
@@ -666,6 +669,7 @@ func TestDeployManagement_AllAlreadyDeployed_SkipsHealthcheck(t *testing.T) {
 	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockModule.On("CheckLocalOnlyImages", mock.Anything, mock.Anything).Return(nil)
 	// newlyDeployed=empty (all already existed), totalMatched=1
 	mockModule.On("DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(map[string]int{}, 1, nil)
@@ -679,6 +683,31 @@ func TestDeployManagement_AllAlreadyDeployed_SkipsHealthcheck(t *testing.T) {
 	// Assert — no healthcheck, no kong check
 	assert.NoError(t, err)
 	mockModule.AssertNotCalled(t, "CheckModuleReadiness")
+}
+
+func TestDeployManagement_MissingLocalImage_StopsBeforeDeploying(t *testing.T) {
+	// Arrange
+	run, _, _, _, mockDocker, mockModule := newTestRun(action.DeployManagement)
+	mockModuleProps := &MockModuleProps{}
+	mockRegistrySvc := &MockRegistrySvc{}
+	run.Config.ModuleProps = mockModuleProps
+	run.Config.RegistrySvc = mockRegistrySvc
+
+	expectedError := assert.AnError
+	mockModuleProps.On("ReadBackendModules", true, true).Return(map[string]models.BackendModule{}, nil)
+	mockRegistrySvc.On("GetModules", true, true).Return(&models.ProxyModulesByRegistry{}, nil)
+	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything).Return()
+	mockDocker.On("Create").Return(nil, nil)
+	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
+	mockModule.On("CheckLocalOnlyImages", mock.Anything, mock.MatchedBy(func(c *models.Containers) bool { return c.IsManagement })).Return(expectedError)
+	mockDocker.On("Close", mock.Anything).Return(nil)
+
+	// Act
+	err := run.DeployManagement()
+
+	// Assert
+	assert.Equal(t, expectedError, err)
+	mockModule.AssertNotCalled(t, "DeployModules", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
 // ==================== UndeployManagement Tests ====================

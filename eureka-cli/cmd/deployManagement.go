@@ -64,12 +64,17 @@ func (run *Run) DeployManagement() error {
 		return err
 	}
 
-	slog.Info(run.Config.Action.Name, "text", "DEPLOYING MANAGEMENT MODULES")
-	newlyDeployed, totalMatched, err := run.Config.ModuleSvc.DeployModules(client, &models.Containers{
+	containers := &models.Containers{
 		Modules:        modules,
 		BackendModules: backendModules,
 		IsManagement:   true,
-	}, "", nil)
+	}
+	if err := run.Config.ModuleSvc.CheckLocalOnlyImages(client, containers); err != nil {
+		return err
+	}
+
+	slog.Info(run.Config.Action.Name, "text", "DEPLOYING MANAGEMENT MODULES")
+	newlyDeployed, totalMatched, err := run.Config.ModuleSvc.DeployModules(client, containers, "", nil)
 	if err != nil {
 		return err
 	}

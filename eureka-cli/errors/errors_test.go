@@ -802,6 +802,35 @@ func TestLocalDescriptorNotFound(t *testing.T) {
 	})
 }
 
+func TestLocalImagesNotFound(t *testing.T) {
+	t.Run("TestLocalImagesNotFound_ListsAllImages", func(t *testing.T) {
+		// Arrange
+		images := []string{"folio-module-sidecar-native:latest", "folioci/mod-orders:13.1.0-SNAPSHOT.1"}
+
+		// Act
+		result := apperrors.LocalImagesNotFound(images)
+
+		// Assert
+		assert.Error(t, result)
+		assert.Contains(t, result.Error(), "local image(s) folio-module-sidecar-native:latest, folioci/mod-orders:13.1.0-SNAPSHOT.1")
+		assert.Contains(t, result.Error(), "build each one with docker build --tag <image>")
+		assert.True(t, errors.Is(result, apperrors.ErrNotFound))
+	})
+}
+
+func TestLocalImageInspectFailed(t *testing.T) {
+	// Arrange
+	rootCause := errors.New("daemon failure")
+
+	// Act
+	result := apperrors.LocalImageInspectFailed("folio-module-sidecar-native:latest", rootCause)
+
+	// Assert
+	assert.Contains(t, result.Error(), "failed to inspect local image folio-module-sidecar-native:latest: daemon failure")
+	assert.ErrorIs(t, result, rootCause)
+	assert.ErrorIs(t, result, apperrors.ErrDeploymentFailed)
+}
+
 func TestEmptyLineNotFound(t *testing.T) {
 	t.Run("TestEmptyLineNotFound_Success", func(t *testing.T) {
 		// Arrange

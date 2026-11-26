@@ -5,12 +5,14 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/folio-org/eureka-setup/eureka-cli/constant"
+	apperrors "github.com/folio-org/eureka-setup/eureka-cli/errors"
 	"github.com/folio-org/eureka-setup/eureka-cli/field"
 	"github.com/folio-org/eureka-setup/eureka-cli/internal/testhelpers"
 	"github.com/folio-org/eureka-setup/eureka-cli/models"
@@ -226,6 +228,25 @@ func TestGetSidecarImage_CustomNamespace(t *testing.T) {
 	// Assert
 	assert.NoError(t, err)
 	assert.Equal(t, "my-custom-sidecar:3.0.0", image)
+	assert.False(t, shouldPull)
+}
+
+func TestGetSidecarImage_CustomNamespaceWithNamespace(t *testing.T) {
+	// Arrange
+	action := testhelpers.NewMockAction()
+	action.ConfigSidecarModule = map[string]any{
+		field.SidecarModuleVersionEntry:         "3.0.0",
+		field.SidecarModuleCustomNamespaceEntry: true,
+		field.SidecarModuleImageEntry:           "mycorp/folio-module-sidecar",
+	}
+	svc := New(action, nil, nil, nil, nil)
+
+	// Act
+	image, shouldPull, err := svc.GetSidecarImage(nil)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, "mycorp/folio-module-sidecar:3.0.0", image)
 	assert.True(t, shouldPull)
 }
 
@@ -1653,4 +1674,206 @@ func TestGetModule_DockerError_Propagates(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, result)
+}
+
+func newImageTestServer(t *testing.T, localImages []string, statusCode int) *client.Client {
+	t.Helper()
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, image, _ := strings.Cut(strings.TrimSuffix(r.URL.Path, "/json"), "/images/")
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case statusCode != http.StatusOK:
+			w.WriteHeader(statusCode)
+		case slices.Contains(localImages, image):
+			_, _ = w.Write([]byte(`{"Id":"sha256:abc"}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"message":"No such image: ` + image + `"}`))
+		}
+	}))
+	t.Cleanup(ts.Close)
+	cli, err := client.New(client.WithHost(ts.URL), client.WithAPIVersion("1.41"))
+	require.NoError(t, err)
+	return cli
+}
+
+func newLocalOnlyImageContainers() *models.Containers {
+	localVersion := "1.0.0-SNAPSHOT.1"
+	registryVersion := "2.0.0"
+	return &models.Containers{
+		Modules: &models.ProxyModulesByRegistry{
+			FolioModules: []*models.ProxyModule{
+				{Metadata: models.ProxyModuleMetadata{Name: "mod-local", Version: &registryVersion}},
+				{Metadata: models.ProxyModuleMetadata{Name: "mod-local-undeployed", Version: &registryVersion}},
+				{Metadata: models.ProxyModuleMetadata{Name: "mod-local-unpinned", Version: &registryVersion}},
+				{Metadata: models.ProxyModuleMetadata{Name: "mod-registry", Version: &registryVersion}},
+			},
+		},
+		BackendModules: map[string]models.BackendModule{
+			"mod-local":                  {DeployModule: true, ModuleVersion: &localVersion, LocalDescriptorPath: "/tmp/ModuleDescriptor.json"},
+			"mod-local-undeployed":       {DeployModule: false, LocalDescriptorPath: "/tmp/ModuleDescriptor.json"},
+			"mod-local-unpinned":         {DeployModule: true, LocalDescriptorPath: "/tmp/ModuleDescriptor.json"},
+			"mod-not-in-registry":        {DeployModule: true, LocalDescriptorPath: "/tmp/ModuleDescriptor.json"},
+			"mod-pinned-not-in-registry": {DeployModule: true, ModuleVersion: &localVersion, LocalDescriptorPath: "/tmp/ModuleDescriptor.json"},
+			"mod-registry":               {DeployModule: true},
+		},
+	}
+}
+
+func newLocalOnlySidecarSvc() *ModuleSvc {
+	act := testhelpers.NewMockAction()
+	act.ConfigNamespaceBackendModules = "foliolocal"
+	act.ConfigSidecarModule = map[string]any{
+		field.SidecarModuleImageEntry:           "folio-module-sidecar-native",
+		field.SidecarModuleVersionEntry:         "latest",
+		field.SidecarModuleCustomNamespaceEntry: true,
+	}
+	return New(act, nil, nil, nil, nil)
+}
+
+func TestCheckLocalOnlyImages_ListsAllMissingImages(t *testing.T) {
+	// Arrange
+	dockerClient := newImageTestServer(t, nil, http.StatusOK)
+	svc := newLocalOnlySidecarSvc()
+
+	// Act
+	err := svc.CheckLocalOnlyImages(dockerClient, newLocalOnlyImageContainers())
+
+	// Assert
+	require.Error(t, err)
+	assert.ErrorIs(t, err, apperrors.ErrNotFound)
+	assert.Contains(t, err.Error(), "local image(s) folio-module-sidecar-native:latest, foliolocal/mod-local:1.0.0-SNAPSHOT.1, foliolocal/mod-local-unpinned:2.0.0 -")
+}
+
+func TestCheckLocalOnlyImages_AllImagesExist(t *testing.T) {
+	// Arrange
+	dockerClient := newImageTestServer(t, []string{"folio-module-sidecar-native:latest", "foliolocal/mod-local:1.0.0-SNAPSHOT.1", "foliolocal/mod-local-unpinned:2.0.0"}, http.StatusOK)
+	svc := newLocalOnlySidecarSvc()
+
+	// Act
+	err := svc.CheckLocalOnlyImages(dockerClient, newLocalOnlyImageContainers())
+
+	// Assert
+	assert.NoError(t, err)
+}
+
+func TestCheckLocalOnlyImages_DockerError(t *testing.T) {
+	// Arrange
+	dockerClient := newImageTestServer(t, nil, http.StatusInternalServerError)
+	svc := newLocalOnlySidecarSvc()
+
+	// Act
+	err := svc.CheckLocalOnlyImages(dockerClient, newLocalOnlyImageContainers())
+
+	// Assert
+	require.Error(t, err)
+	assert.NotErrorIs(t, err, apperrors.ErrNotFound)
+	assert.Contains(t, err.Error(), "failed to inspect local image folio-module-sidecar-native:latest")
+}
+
+func TestCheckLocalOnlyImages_ManagementModules_SkipSidecar(t *testing.T) {
+	// Arrange
+	dockerClient := newImageTestServer(t, nil, http.StatusOK)
+	svc := newLocalOnlySidecarSvc()
+	version := "3.0.0"
+	containers := &models.Containers{
+		Modules: &models.ProxyModulesByRegistry{
+			EurekaModules: []*models.ProxyModule{{Metadata: models.ProxyModuleMetadata{Name: "mgr-applications", Version: &version}}},
+		},
+		BackendModules: map[string]models.BackendModule{
+			"mgr-applications": {DeployModule: true, LocalDescriptorPath: "/tmp/ModuleDescriptor.json"},
+		},
+		IsManagement: true,
+	}
+
+	// Act
+	err := svc.CheckLocalOnlyImages(dockerClient, containers)
+
+	// Assert
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "local image(s) foliolocal/mgr-applications:3.0.0 -")
+}
+
+func TestCheckLocalOnlyImages_UnpinnedSidecarVersionFromRegistry(t *testing.T) {
+	// Arrange
+	dockerClient := newImageTestServer(t, nil, http.StatusOK)
+	svc := newLocalOnlySidecarSvc()
+	delete(svc.Action.ConfigSidecarModule, field.SidecarModuleVersionEntry)
+	sidecarVersion := "4.1.0-SNAPSHOT.2488"
+	containers := &models.Containers{
+		Modules: &models.ProxyModulesByRegistry{
+			EurekaModules: []*models.ProxyModule{{Metadata: models.ProxyModuleMetadata{Name: constant.SidecarProjectName, Version: &sidecarVersion}}},
+		},
+	}
+
+	// Act
+	err := svc.CheckLocalOnlyImages(dockerClient, containers)
+
+	// Assert
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "local image(s) folio-module-sidecar-native:4.1.0-SNAPSHOT.2488 -")
+}
+
+func TestHasLocalOnlyImages(t *testing.T) {
+	tests := []struct {
+		name           string
+		sidecarImage   string
+		backendModules map[string]models.BackendModule
+		expected       bool
+	}{
+		{name: "registry images only", sidecarImage: "mycorp/folio-module-sidecar", backendModules: map[string]models.BackendModule{"mod-a": {DeployModule: true}}, expected: false},
+		{name: "sidecar image without namespace", sidecarImage: "folio-module-sidecar-native", expected: true},
+		{name: "deployed module with local descriptor", sidecarImage: "mycorp/folio-module-sidecar", backendModules: map[string]models.BackendModule{"mod-a": {DeployModule: true, LocalDescriptorPath: "/tmp/md.json"}}, expected: true},
+		{name: "undeployed module with local descriptor", sidecarImage: "mycorp/folio-module-sidecar", backendModules: map[string]models.BackendModule{"mod-a": {DeployModule: false, LocalDescriptorPath: "/tmp/md.json"}}, expected: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			act := testhelpers.NewMockAction()
+			act.ConfigSidecarModule = map[string]any{
+				field.SidecarModuleImageEntry:           tt.sidecarImage,
+				field.SidecarModuleCustomNamespaceEntry: true,
+			}
+			svc := New(act, nil, nil, nil, nil)
+
+			// Act
+			result := svc.HasLocalOnlyImages(tt.backendModules)
+
+			// Assert
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestLocalOnlyImagesNeedRegistry(t *testing.T) {
+	pinned := "1.0.0"
+	tests := []struct {
+		name           string
+		sidecarModule  map[string]any
+		backendModules map[string]models.BackendModule
+		expected       bool
+	}{
+		{name: "pinned local-only sidecar", sidecarModule: map[string]any{field.SidecarModuleImageEntry: "folio-module-sidecar-native", field.SidecarModuleVersionEntry: "latest"}, expected: false},
+		{name: "unpinned local-only sidecar", sidecarModule: map[string]any{field.SidecarModuleImageEntry: "folio-module-sidecar-native"}, expected: true},
+		{name: "unpinned namespaced sidecar", sidecarModule: map[string]any{field.SidecarModuleImageEntry: "mycorp/folio-module-sidecar"}, expected: false},
+		{name: "pinned local-descriptor module", sidecarModule: map[string]any{field.SidecarModuleImageEntry: "mycorp/folio-module-sidecar"}, backendModules: map[string]models.BackendModule{"mod-a": {DeployModule: true, LocalDescriptorPath: "/tmp/md.json", ModuleVersion: &pinned}}, expected: true},
+		{name: "undeployed local-descriptor module", sidecarModule: map[string]any{field.SidecarModuleImageEntry: "mycorp/folio-module-sidecar"}, backendModules: map[string]models.BackendModule{"mod-a": {DeployModule: false, LocalDescriptorPath: "/tmp/md.json"}}, expected: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			act := testhelpers.NewMockAction()
+			act.ConfigSidecarModule = tt.sidecarModule
+			act.ConfigSidecarModule[field.SidecarModuleCustomNamespaceEntry] = true
+			svc := New(act, nil, nil, nil, nil)
+
+			// Act
+			result := svc.LocalOnlyImagesNeedRegistry(tt.backendModules)
+
+			// Assert
+			assert.Equal(t, tt.expected, result)
+		})
+	}
 }
