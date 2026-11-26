@@ -775,7 +775,7 @@ backend-modules:
     local-descriptor-path: "/path/to/module/target/ModuleDescriptor.json"
 ```
 
-> When `local-descriptor-path` is specified, the Docker image will not be pulled from a registry and the descriptor will be loaded from the local filesystem. `deployApplication` and `deployModules` check that the image exists locally before deploying anything.
+> When `local-descriptor-path` is specified, the Docker image will not be pulled from a registry and the descriptor will be loaded from the local filesystem. `deployApplication`, `deployModules` and, for `mgr-*` modules, `deployManagement` check that the image exists locally before deploying anything.
 
 - Deploy the environment with your local module
 

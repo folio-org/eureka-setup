@@ -1768,6 +1768,50 @@ func TestCheckLocalOnlyImages_DockerError(t *testing.T) {
 	// Assert
 	require.Error(t, err)
 	assert.NotErrorIs(t, err, apperrors.ErrNotFound)
+	assert.Contains(t, err.Error(), "failed to inspect local image folio-module-sidecar-native:latest")
+}
+
+func TestCheckLocalOnlyImages_ManagementModules_SkipSidecar(t *testing.T) {
+	// Arrange
+	dockerClient := newImageTestServer(t, nil, http.StatusOK)
+	svc := newLocalOnlySidecarSvc()
+	version := "3.0.0"
+	containers := &models.Containers{
+		Modules: &models.ProxyModulesByRegistry{
+			EurekaModules: []*models.ProxyModule{{Metadata: models.ProxyModuleMetadata{Name: "mgr-applications", Version: &version}}},
+		},
+		BackendModules: map[string]models.BackendModule{
+			"mgr-applications": {DeployModule: true, LocalDescriptorPath: "/tmp/ModuleDescriptor.json"},
+		},
+		IsManagement: true,
+	}
+
+	// Act
+	err := svc.CheckLocalOnlyImages(dockerClient, containers)
+
+	// Assert
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "local image(s) foliolocal/mgr-applications:3.0.0 -")
+}
+
+func TestCheckLocalOnlyImages_UnpinnedSidecarVersionFromRegistry(t *testing.T) {
+	// Arrange
+	dockerClient := newImageTestServer(t, nil, http.StatusOK)
+	svc := newLocalOnlySidecarSvc()
+	delete(svc.Action.ConfigSidecarModule, field.SidecarModuleVersionEntry)
+	sidecarVersion := "4.1.0-SNAPSHOT.2488"
+	containers := &models.Containers{
+		Modules: &models.ProxyModulesByRegistry{
+			EurekaModules: []*models.ProxyModule{{Metadata: models.ProxyModuleMetadata{Name: constant.SidecarProjectName, Version: &sidecarVersion}}},
+		},
+	}
+
+	// Act
+	err := svc.CheckLocalOnlyImages(dockerClient, containers)
+
+	// Assert
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "local image(s) folio-module-sidecar-native:4.1.0-SNAPSHOT.2488 -")
 }
 
 func TestHasLocalOnlyImages(t *testing.T) {

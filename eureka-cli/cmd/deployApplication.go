@@ -64,7 +64,7 @@ var deployApplicationCmd = &cobra.Command{
 // CheckLocalOnlyImages runs before the cleanup and the system containers, so that a missing local build
 // fails within seconds instead of minutes into the deployment
 func (run *Run) CheckLocalOnlyImages() error {
-	backendModules := run.Config.ModuleProps.ReadLocalDescriptorModules()
+	backendModules := run.Config.ModuleProps.ReadLocalDescriptorModules(!run.Config.Action.IsChildApp())
 	if !run.Config.ModuleSvc.HasLocalOnlyImages(backendModules) {
 		return nil
 	}

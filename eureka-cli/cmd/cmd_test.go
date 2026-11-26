@@ -641,8 +641,8 @@ func (m *MockModuleProps) ReadBackendModules(checkIntegrity, skipFrontendCompati
 	return args.Get(0).(map[string]models.BackendModule), args.Error(1)
 }
 
-func (m *MockModuleProps) ReadLocalDescriptorModules() map[string]models.BackendModule {
-	args := m.Called()
+func (m *MockModuleProps) ReadLocalDescriptorModules(includeManagement bool) map[string]models.BackendModule {
+	args := m.Called(includeManagement)
 	return args.Get(0).(map[string]models.BackendModule)
 }
 
@@ -2703,7 +2703,7 @@ func TestDeployModules_MissingLocalImage_StopsBeforeDeploying(t *testing.T) {
 	mockRegistrySvc.On("ResolveModuleMetadata", mock.Anything).Return()
 	mockDocker.On("Create").Return(nil, nil)
 	mockModule.On("GetVaultRootToken", mock.Anything).Return("", nil)
-	mockModule.On("CheckLocalOnlyImages", mock.Anything, mock.Anything).Return(expectedError)
+	mockModule.On("CheckLocalOnlyImages", mock.Anything, mock.MatchedBy(func(c *models.Containers) bool { return !c.IsManagement })).Return(expectedError)
 	mockDocker.On("Close", mock.Anything).Return(nil)
 
 	// Act
@@ -2739,6 +2739,24 @@ func TestCheckLocalOnlyImages_NoLocalOnlyImages_ReservesNoPortsAndSkipsRegistryA
 	mockDocker.AssertNotCalled(t, "Create")
 }
 
+func TestCheckLocalOnlyImages_ChildApplication_ExcludesManagementModules(t *testing.T) {
+	// Arrange
+	run, _, _, _, _, mockModule := newTestRun(action.DeployApplication)
+	mockModuleProps := &MockModuleProps{}
+	run.Config.ModuleProps = mockModuleProps
+	run.Config.Action.ConfigApplicationDependencies = map[string]any{"name": "app-combined", "version": "1.0.0"}
+
+	mockModuleProps.On("ReadLocalDescriptorModules", false).Return(map[string]models.BackendModule{})
+	mockModule.On("HasLocalOnlyImages", mock.Anything).Return(false)
+
+	// Act
+	err := run.CheckLocalOnlyImages()
+
+	// Assert
+	assert.NoError(t, err)
+	mockModuleProps.AssertExpectations(t)
+}
+
 func TestCheckLocalOnlyImages_RegistryNeeded_ReadsRegistry(t *testing.T) {
 	// Arrange
 	run, _, _, _, mockDocker, mockModule := newTestRun(action.DeployApplication)
@@ -2750,7 +2768,7 @@ func TestCheckLocalOnlyImages_RegistryNeeded_ReadsRegistry(t *testing.T) {
 	backendModules := map[string]models.BackendModule{"mod-local": {DeployModule: true, LocalDescriptorPath: "/tmp/md.json"}}
 	modules := &models.ProxyModulesByRegistry{FolioModules: []*models.ProxyModule{{ID: "mod-local-1.0.0"}}}
 	expectedError := assert.AnError
-	mockModuleProps.On("ReadLocalDescriptorModules").Return(backendModules)
+	mockModuleProps.On("ReadLocalDescriptorModules", true).Return(backendModules)
 	mockModule.On("HasLocalOnlyImages", backendModules).Return(true)
 	mockModule.On("LocalOnlyImagesNeedRegistry", backendModules).Return(true)
 	mockRegistrySvc.On("GetModules", false, true).Return(modules, nil)
@@ -2778,7 +2796,7 @@ func TestCheckLocalOnlyImages_RegistryNotNeeded_SkipsRegistry(t *testing.T) {
 	run.Config.RegistrySvc = mockRegistrySvc
 
 	backendModules := map[string]models.BackendModule{}
-	mockModuleProps.On("ReadLocalDescriptorModules").Return(backendModules)
+	mockModuleProps.On("ReadLocalDescriptorModules", true).Return(backendModules)
 	mockModule.On("HasLocalOnlyImages", backendModules).Return(true)
 	mockModule.On("LocalOnlyImagesNeedRegistry", backendModules).Return(false)
 	mockDocker.On("Create").Return(nil, nil)

@@ -318,6 +318,10 @@ func LocalDescriptorNotFound(path, moduleName string) error {
 	return fmt.Errorf("%w: local descriptor %s for module %s", ErrNotFound, path, moduleName)
 }
 
+func LocalImageInspectFailed(image string, err error) error {
+	return fmt.Errorf("%w: failed to inspect local image %s: %w", ErrDeploymentFailed, image, err)
+}
+
 func LocalImagesNotFound(images []string) error {
 	return fmt.Errorf("%w: local image(s) %s - these images are never pulled, build each one with docker build --tag <image> before deploying (see the README on custom sidecars and local backend module images)", ErrNotFound, strings.Join(images, ", "))
 }

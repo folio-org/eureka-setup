@@ -23,8 +23,9 @@ func (ms *ModuleSvc) HasLocalOnlyImages(backendModules map[string]models.Backend
 	return ms.isLocalOnlySidecarImage() || hasLocalOnlyModules(backendModules)
 }
 
-// LocalOnlyImagesNeedRegistry reports whether the registry is needed: it decides which local-descriptor modules
-// are deployed, and it provides the version of an unpinned local-only sidecar
+// LocalOnlyImagesNeedRegistry reports whether the module registry (LSP and FAR, or application.descriptor; not a
+// Docker registry) must be read first: only it tells which local-descriptor modules are deployed and which
+// version an unpinned local-only sidecar has
 func (ms *ModuleSvc) LocalOnlyImagesNeedRegistry(backendModules map[string]models.BackendModule) bool {
 	return ms.isLocalOnlySidecarImage() && !ms.isSidecarVersionPinned() || hasLocalOnlyModules(backendModules)
 }
@@ -39,7 +40,7 @@ func (ms *ModuleSvc) CheckLocalOnlyImages(dockerClient *client.Client, container
 	for _, image := range images {
 		exists, err := imageExists(dockerClient, image)
 		if err != nil {
-			return err
+			return appErrors.LocalImageInspectFailed(image, err)
 		}
 		if !exists {
 			missing = append(missing, image)
@@ -54,7 +55,8 @@ func (ms *ModuleSvc) CheckLocalOnlyImages(dockerClient *client.Client, container
 
 func (ms *ModuleSvc) getLocalOnlyImages(containers *models.Containers) ([]string, error) {
 	var images []string
-	if ms.isLocalOnlySidecarImage() {
+	// Management modules run without sidecars
+	if !containers.IsManagement && ms.isLocalOnlySidecarImage() {
 		sidecarImage, _, err := ms.GetSidecarImage(containers.Modules.EurekaModules)
 		if err != nil {
 			return nil, err

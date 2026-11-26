@@ -538,15 +538,19 @@ func TestReadLocalDescriptorModules(t *testing.T) {
 		},
 	}
 	mp := moduleprops.New(act)
-
-	// Act
-	result := mp.ReadLocalDescriptorModules()
-
-	// Assert
-	assert.Equal(t, map[string]models.BackendModule{
+	nonManagementModules := map[string]models.BackendModule{
 		"mod-pinned":   {DeployModule: true, LocalDescriptorPath: "/tmp/pinned.json", ModuleVersion: helpers.StringPtr("1.0.0-SNAPSHOT.1")},
 		"mod-unpinned": {DeployModule: true, LocalDescriptorPath: "/tmp/unpinned.json"},
-	}, result)
+	}
+
+	// Act
+	withoutManagement := mp.ReadLocalDescriptorModules(false)
+	withManagement := mp.ReadLocalDescriptorModules(true)
+
+	// Assert
+	assert.Equal(t, nonManagementModules, withoutManagement)
+	nonManagementModules["mgr-applications"] = models.BackendModule{DeployModule: true, LocalDescriptorPath: "/tmp/mgr.json"}
+	assert.Equal(t, nonManagementModules, withManagement)
 	assert.Empty(t, act.ReservedPorts)
 }
 
